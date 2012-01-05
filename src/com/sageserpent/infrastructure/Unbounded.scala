@@ -49,6 +49,7 @@ class TestSuite extends Suite {
 
     assert(!(NegativeInfinity[Int]() > NegativeInfinity()))
     assert(!(NegativeInfinity > NegativeInfinity[Nothing]()))
+    assert(NegativeInfinity <= NegativeInfinity[Nothing])
     
     assert(NegativeInfinity < twentyThree)
   }
