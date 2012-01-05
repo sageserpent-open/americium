@@ -1,6 +1,7 @@
 package com.sageserpent.infrastructure
 
 import scala.math.Ordered
+
 import org.scalatest.Suite
 
 class Unbounded[X <% Ordered[X]] extends Ordered[Unbounded[X]] {
