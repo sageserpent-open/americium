@@ -21,6 +21,7 @@ case class NegativeInfinity[X <% Ordered[X]]() extends Unbounded[X]
 
 object NegativeInfinity {
   implicit def bridgeToAllCandidateTypes[X <% Ordered[X]](ni: this.type) = new NegativeInfinity()
+  implicit def fallbackBridge(ni: this.type) = new NegativeInfinity[Nothing]()
 }
 
 class TestSuite extends Suite {
@@ -47,6 +48,9 @@ class TestSuite extends Suite {
     assert(NegativeInfinity == NegativeInfinity)
 
     assert(!(NegativeInfinity[Int]() > NegativeInfinity()))
+    assert(!(NegativeInfinity > NegativeInfinity[Nothing]()))
+    
+    assert(NegativeInfinity < twentyThree)
   }
 }
 
