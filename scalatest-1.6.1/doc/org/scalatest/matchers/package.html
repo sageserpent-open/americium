@@ -1,0 +1,301 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html>
+        <head>
+          <title>org.scalatest.matchers</title>
+          <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+          
+      <link type="text/css" media="screen" rel="stylesheet" href="../../../lib/template.css" />
+      <script type="text/javascript" src="../../../lib/jquery.js"></script>
+      <script type="text/javascript" src="../../../lib/jquery-ui.js"></script>
+      <script type="text/javascript" src="../../../lib/template.js"></script>
+      <script type="text/javascript" src="../../../lib/tools.tooltip.js"></script>
+    
+        </head>
+        <body class="value">
+      <div id="definition">
+        <img src="../../../lib/package_big.png" />
+        <p id="owner"><a name="org" class="extype" href="../../package.html">org</a>.<a name="org.scalatest" class="extype" href="../package.html">scalatest</a></p>
+        <h1>matchers</h1>
+      </div>
+
+      <h4 class="signature" id="signature">
+      <span class="kind">package</span>
+      <span class="symbol"> 
+        <span class="name">matchers</span>
+        
+        
+      </span>
+      </h4>
+      
+          <div class="fullcommenttop" id="comment"></div>
+        
+
+      <div id="template">
+
+        <div id="mbrsel">
+          <div id="textfilter"><span class="pre"></span><span class="input"><input accesskey="/" type="text" /></span><span class="post"></span></div>
+          
+          
+          <div id="visbl">
+              <span class="filtertype">Visibility</span>
+              <ol><li class="public in"><span>Public</span></li><li class="all out"><span>All</span></li></ol>
+            </div>
+        </div>
+
+        
+
+        <div class="types members" id="types">
+              <h3>Type Members</h3>
+              <ol><li visbl="pub" name="org.scalatest.matchers.BeMatcher" data-isabs="true">
+      <a id="BeMatcher:BeMatcher[T]"></a>
+      <h4 class="signature">
+      <span class="kind">trait</span>
+      <span class="symbol"> 
+        <a href="BeMatcher.html"><span class="name">BeMatcher</span></a>
+        <span class="tparams">[<span name="T">-T</span>]</span>
+        <span class="result"> extends (T) ⇒ MatchResult</span>
+      </span>
+      </h4>
+      <p class="comment cmt">Trait extended by matcher objects, which may appear after the word <code>be</code>, that can match a value of the specified type.</p>
+    </li><li visbl="pub" name="org.scalatest.matchers.BePropertyMatchResult" data-isabs="false">
+      <a id="BePropertyMatchResult:BePropertyMatchResult"></a>
+      <h4 class="signature">
+      <span class="kind">case class</span>
+      <span class="symbol"> 
+        <a href="BePropertyMatchResult.html"><span class="name">BePropertyMatchResult</span></a>
+        
+        <span class="params">(<span name="matches">matches: Boolean</span>, <span name="propertyName">propertyName: String</span>)</span><span class="result"> extends Product with Serializable</span>
+      </span>
+      </h4>
+      <p class="comment cmt">The result of a <code>Boolean</code> property match operation, such as one performed by a
+<a href="BePropertyMatcher.html"><code>BePropertyMatcher</code></a>,
+which contains one field that indicates whether the match succeeded (<em>i.e.</em>, the <code>Boolean</code>
+property was <code>true</code>) and one field that provides
+the name of the property.</a href="BePropertyMatcher.html"></p>
+    </li><li visbl="pub" name="org.scalatest.matchers.BePropertyMatcher" data-isabs="true">
+      <a id="BePropertyMatcher:BePropertyMatcher[T]"></a>
+      <h4 class="signature">
+      <span class="kind">trait</span>
+      <span class="symbol"> 
+        <a href="BePropertyMatcher.html"><span class="name">BePropertyMatcher</span></a>
+        <span class="tparams">[<span name="T">-T</span>]</span>
+        <span class="result"> extends (T) ⇒ BePropertyMatchResult</span>
+      </span>
+      </h4>
+      <p class="comment cmt">Trait extended by matcher objects, which may appear after the word <code>be</code>, that can match against a <code>Boolean</code>
+property.</p>
+    </li><li visbl="pub" name="org.scalatest.matchers.HavePropertyMatchResult" data-isabs="false">
+      <a id="HavePropertyMatchResult:HavePropertyMatchResult[P]"></a>
+      <h4 class="signature">
+      <span class="kind">case class</span>
+      <span class="symbol"> 
+        <a href="HavePropertyMatchResult.html"><span class="name">HavePropertyMatchResult</span></a>
+        <span class="tparams">[<span name="P">P</span>]</span>
+        <span class="params">(<span name="matches">matches: Boolean</span>, <span name="propertyName">propertyName: String</span>, <span name="expectedValue">expectedValue: P</span>, <span name="actualValue">actualValue: P</span>)</span><span class="result"> extends Product with Serializable</span>
+      </span>
+      </h4>
+      <p class="comment cmt">The result of a property match operation such as one performed by a
+<a href="HavePropertyMatcher.html"><code>HavePropertyMatcher</code></a>,
+which contains one field that indicates whether the match succeeded (<em>i.e.</em>, the
+property had its expected value), one field that provides
+the name of the property, and two fields giving the expected and actual values.</a href="HavePropertyMatcher.html"></p>
+    </li><li visbl="pub" name="org.scalatest.matchers.HavePropertyMatcher" data-isabs="true">
+      <a id="HavePropertyMatcher:HavePropertyMatcher[T, P]"></a>
+      <h4 class="signature">
+      <span class="kind">trait</span>
+      <span class="symbol"> 
+        <a href="HavePropertyMatcher.html"><span class="name">HavePropertyMatcher</span></a>
+        <span class="tparams">[<span name="T">-T</span>, <span name="P">P</span>]</span>
+        <span class="result"> extends (T) ⇒ HavePropertyMatchResult[P]</span>
+      </span>
+      </h4>
+      <p class="comment cmt">Trait extended by matcher objects, which may appear after the word <code>have</code>, that can match against a
+property of the type specified by the <code>HavePropertyMatcher</code>'s second type parameter <code>P</code>.</p>
+    </li><li visbl="pub" name="org.scalatest.matchers.MatchResult" data-isabs="false">
+      <a id="MatchResult:MatchResult"></a>
+      <h4 class="signature">
+      <span class="kind">case class</span>
+      <span class="symbol"> 
+        <a href="MatchResult.html"><span class="name">MatchResult</span></a>
+        
+        <span class="params">(<span name="matches">matches: Boolean</span>, <span name="failureMessage">failureMessage: String</span>, <span name="negatedFailureMessage">negatedFailureMessage: String</span>, <span name="midSentenceFailureMessage">midSentenceFailureMessage: String</span>, <span name="midSentenceNegatedFailureMessage">midSentenceNegatedFailureMessage: String</span>)</span><span class="result"> extends Product with Serializable</span>
+      </span>
+      </h4>
+      <p class="comment cmt">The result of a match operation, such as one performed by a <a href="Matcher.html"><code>Matcher</code></a> or
+<a href="BeMatcher.html"><code>BeMatcher</code></a>, which
+contains one field that indicates whether the match succeeded and four fields that provide
+failure messages to report under different circumstances.</a href="BeMatcher.html"></a href="Matcher.html"></p>
+    </li><li visbl="pub" name="org.scalatest.matchers.Matcher" data-isabs="true">
+      <a id="Matcher:Matcher[T]"></a>
+      <h4 class="signature">
+      <span class="kind">trait</span>
+      <span class="symbol"> 
+        <a href="Matcher.html"><span class="name">Matcher</span></a>
+        <span class="tparams">[<span name="T">-T</span>]</span>
+        <span class="result"> extends (T) ⇒ MatchResult</span>
+      </span>
+      </h4>
+      <p class="comment cmt">Trait extended by objects that can match a value of the specified type.</p>
+    </li><li visbl="pub" name="org.scalatest.matchers.Matchers" data-isabs="true">
+      <a id="Matchers:Matchers"></a>
+      <h4 class="signature">
+      <span class="kind">trait</span>
+      <span class="symbol"> 
+        <a href="Matchers.html"><span class="name">Matchers</span></a>
+        
+        <span class="result"> extends Assertions</span>
+      </span>
+      </h4>
+      <p class="comment cmt">This trait is part of the ScalaTest matchers DSL.</p>
+    </li><li visbl="pub" name="org.scalatest.matchers.MustMatchers" data-isabs="true">
+      <a id="MustMatchers:MustMatchers"></a>
+      <h4 class="signature">
+      <span class="kind">trait</span>
+      <span class="symbol"> 
+        <a href="MustMatchers.html"><span class="name">MustMatchers</span></a>
+        
+        <span class="result"> extends Matchers with MustVerb</span>
+      </span>
+      </h4>
+      <p class="comment cmt">Trait that provides a domain specific language (DSL) for expressing assertions in tests
+using the word <code>must</code>.</p>
+    </li><li visbl="pub" name="org.scalatest.matchers.ShouldMatchers" data-isabs="true">
+      <a id="ShouldMatchers:ShouldMatchers"></a>
+      <h4 class="signature">
+      <span class="kind">trait</span>
+      <span class="symbol"> 
+        <a href="ShouldMatchers.html"><span class="name">ShouldMatchers</span></a>
+        
+        <span class="result"> extends Matchers with ShouldVerb</span>
+      </span>
+      </h4>
+      <p class="comment cmt">Trait that provides a domain specific language (DSL) for expressing assertions in tests
+using the word <code>should</code>.</p>
+    </li></ol>
+            </div>
+        
+        
+
+        <div class="values members" id="values">
+              <h3>Value Members</h3>
+              <ol><li visbl="pub" name="org.scalatest.matchers.BeMatcher" data-isabs="false">
+      <a id="BeMatcher:BeMatcher"></a>
+      <h4 class="signature">
+      <span class="kind">object</span>
+      <span class="symbol"> 
+        <a href="BeMatcher$.html"><span class="name">BeMatcher</span></a>
+        
+        <span class="result"> extends AnyRef</span>
+      </span>
+      </h4>
+      <p class="comment cmt">Companion object for trait <code>BeMatcher</code> that provides a
+factory method that creates a <code>BeMatcher[T]</code> from a
+passed function of type <code>(T => MatchResult)</code>.</p>
+    </li><li visbl="pub" name="org.scalatest.matchers.BePropertyMatchResult" data-isabs="false">
+      <a id="BePropertyMatchResult:BePropertyMatchResult"></a>
+      <h4 class="signature">
+      <span class="kind">object</span>
+      <span class="symbol"> 
+        <a href="BePropertyMatchResult$.html"><span class="name">BePropertyMatchResult</span></a>
+        
+        <span class="result"> extends Serializable</span>
+      </span>
+      </h4>
+      <p class="comment cmt">Companion object for the <code>BePropertyMatchResult</code> case class.</p>
+    </li><li visbl="pub" name="org.scalatest.matchers.BePropertyMatcher" data-isabs="false">
+      <a id="BePropertyMatcher:BePropertyMatcher"></a>
+      <h4 class="signature">
+      <span class="kind">object</span>
+      <span class="symbol"> 
+        <a href="BePropertyMatcher$.html"><span class="name">BePropertyMatcher</span></a>
+        
+        <span class="result"> extends AnyRef</span>
+      </span>
+      </h4>
+      <p class="comment cmt">Companion object for trait <code>BePropertyMatcher</code> that provides a
+factory method that creates a <code>BePropertyMatcher[T]</code> from a
+passed function of type <code>(T => BePropertyMatchResult)</code>.</p>
+    </li><li visbl="pub" name="org.scalatest.matchers.HavePropertyMatchResult" data-isabs="false">
+      <a id="HavePropertyMatchResult:HavePropertyMatchResult"></a>
+      <h4 class="signature">
+      <span class="kind">object</span>
+      <span class="symbol"> 
+        <a href="HavePropertyMatchResult$.html"><span class="name">HavePropertyMatchResult</span></a>
+        
+        <span class="result"> extends Serializable</span>
+      </span>
+      </h4>
+      <p class="comment cmt">Companion object for the <code>HavePropertyMatchResult</code> case class.</p>
+    </li><li visbl="pub" name="org.scalatest.matchers.HavePropertyMatcher" data-isabs="false">
+      <a id="HavePropertyMatcher:HavePropertyMatcher"></a>
+      <h4 class="signature">
+      <span class="kind">object</span>
+      <span class="symbol"> 
+        <a href="HavePropertyMatcher$.html"><span class="name">HavePropertyMatcher</span></a>
+        
+        <span class="result"> extends AnyRef</span>
+      </span>
+      </h4>
+      <p class="comment cmt">Companion object for trait <code>HavePropertyMatcher</code> that provides a
+factory method that creates a <code>HavePropertyMatcher[T]</code> from a
+passed function of type <code>(T => HavePropertyMatchResult)</code>.</p>
+    </li><li visbl="pub" name="org.scalatest.matchers.MatchResult" data-isabs="false">
+      <a id="MatchResult:MatchResult"></a>
+      <h4 class="signature">
+      <span class="kind">object</span>
+      <span class="symbol"> 
+        <a href="MatchResult$.html"><span class="name">MatchResult</span></a>
+        
+        <span class="result"> extends Serializable</span>
+      </span>
+      </h4>
+      <p class="comment cmt">Companion object for the <code>MatchResult</code> case class.</p>
+    </li><li visbl="pub" name="org.scalatest.matchers.Matcher" data-isabs="false">
+      <a id="Matcher:Matcher"></a>
+      <h4 class="signature">
+      <span class="kind">object</span>
+      <span class="symbol"> 
+        <a href="Matcher$.html"><span class="name">Matcher</span></a>
+        
+        <span class="result"> extends AnyRef</span>
+      </span>
+      </h4>
+      <p class="comment cmt">Companion object for trait <code>Matcher</code> that provides a
+factory method that creates a <code>Matcher[T]</code> from a
+passed function of type <code>(T => MatchResult)</code>.</p>
+    </li><li visbl="pub" name="org.scalatest.matchers.MustMatchers" data-isabs="false">
+      <a id="MustMatchers:MustMatchers"></a>
+      <h4 class="signature">
+      <span class="kind">object</span>
+      <span class="symbol"> 
+        <a href="MustMatchers$.html"><span class="name">MustMatchers</span></a>
+        
+        <span class="result"> extends MustMatchers</span>
+      </span>
+      </h4>
+      <p class="comment cmt">Companion object that facilitates the importing of <code>MustMatchers</code> members as
+an alternative to mixing it the trait.</p>
+    </li><li visbl="pub" name="org.scalatest.matchers.ShouldMatchers" data-isabs="false">
+      <a id="ShouldMatchers:ShouldMatchers"></a>
+      <h4 class="signature">
+      <span class="kind">object</span>
+      <span class="symbol"> 
+        <a href="ShouldMatchers$.html"><span class="name">ShouldMatchers</span></a>
+        
+        <span class="result"> extends ShouldMatchers</span>
+      </span>
+      </h4>
+      <p class="comment cmt">Companion object that facilitates the importing of <code>ShouldMatchers</code> members as
+an alternative to mixing it the trait.</p>
+    </li></ol>
+            </div>
+
+        
+
+      </div>
+      
+      <div id="tooltip"></div>
+      
+    </body>
+      </html>

@@ -1,0 +1,471 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html>
+        <head>
+          <title>org.scalatest.events</title>
+          <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+          
+      <link type="text/css" media="screen" rel="stylesheet" href="../../../lib/template.css" />
+      <script type="text/javascript" src="../../../lib/jquery.js"></script>
+      <script type="text/javascript" src="../../../lib/jquery-ui.js"></script>
+      <script type="text/javascript" src="../../../lib/template.js"></script>
+      <script type="text/javascript" src="../../../lib/tools.tooltip.js"></script>
+    
+        </head>
+        <body class="value">
+      <div id="definition">
+        <img src="../../../lib/package_big.png" />
+        <p id="owner"><a name="org" class="extype" href="../../package.html">org</a>.<a name="org.scalatest" class="extype" href="../package.html">scalatest</a></p>
+        <h1>events</h1>
+      </div>
+
+      <h4 class="signature" id="signature">
+      <span class="kind">package</span>
+      <span class="symbol"> 
+        <span class="name">events</span>
+        
+        
+      </span>
+      </h4>
+      
+          <div class="fullcommenttop" id="comment"></div>
+        
+
+      <div id="template">
+
+        <div id="mbrsel">
+          <div id="textfilter"><span class="pre"></span><span class="input"><input accesskey="/" type="text" /></span><span class="post"></span></div>
+          
+          
+          <div id="visbl">
+              <span class="filtertype">Visibility</span>
+              <ol><li class="public in"><span>Public</span></li><li class="all out"><span>All</span></li></ol>
+            </div>
+        </div>
+
+        
+
+        <div class="types members" id="types">
+              <h3>Type Members</h3>
+              <ol><li visbl="pub" name="org.scalatest.events.Event" data-isabs="true">
+      <a id="Event:Event"></a>
+      <h4 class="signature">
+      <span class="kind">class</span>
+      <span class="symbol"> 
+        <a href="Event.html"><span class="name">Event</span></a>
+        
+        <span class="result"> extends Ordered[Event]</span>
+      </span>
+      </h4>
+      <p class="comment cmt">A base class for the events that can be passed to the report function passed
+to the <code>execute</code> method of a <code>Suite</code>.</p>
+    </li><li visbl="pub" name="org.scalatest.events.Formatter" data-isabs="true">
+      <a id="Formatter:Formatter"></a>
+      <h4 class="signature">
+      <span class="kind">class</span>
+      <span class="symbol"> 
+        <a href="Formatter.html"><span class="name">Formatter</span></a>
+        
+        <span class="result"> extends AnyRef</span>
+      </span>
+      </h4>
+      <p class="comment cmt">Abstract class for the optional formatter objects that must be passed to the <code>Event</code>s reported
+during a ScalaTest run.</p>
+    </li><li visbl="pub" name="org.scalatest.events.IndentedText" data-isabs="false">
+      <a id="IndentedText:IndentedText"></a>
+      <h4 class="signature">
+      <span class="kind">case class</span>
+      <span class="symbol"> 
+        <a href="IndentedText.html"><span class="name">IndentedText</span></a>
+        
+        <span class="params">(<span name="formattedText">formattedText: String</span>, <span name="rawText">rawText: String</span>, <span name="indentationLevel">indentationLevel: Int</span>)</span><span class="result"> extends Formatter with Product with Serializable</span>
+      </span>
+      </h4>
+      <p class="comment cmt">A <code>Formatter</code> providing information that enables reporters to create more stylized output.</p>
+    </li><li visbl="pub" name="org.scalatest.events.InfoProvided" data-isabs="false">
+      <a id="InfoProvided:InfoProvided"></a>
+      <h4 class="signature">
+      <span class="kind">case class</span>
+      <span class="symbol"> 
+        <a href="InfoProvided.html"><span class="name">InfoProvided</span></a>
+        
+        <span class="params">(<span name="ordinal">ordinal: Ordinal</span>, <span name="message">message: String</span>, <span name="nameInfo">nameInfo: Option[NameInfo]</span>, <span name="aboutAPendingTest">aboutAPendingTest: Option[Boolean]</span>, <span name="throwable">throwable: Option[Throwable]</span>, <span name="formatter">formatter: Option[Formatter]</span>, <span name="payload">payload: Option[Any]</span>, <span name="threadName">threadName: String</span>, <span name="timeStamp">timeStamp: Long</span>)</span><span class="result"> extends Event with Product with Serializable</span>
+      </span>
+      </h4>
+      <p class="comment cmt">Event used to provide information that is not appropriate to report via any other <code>Event</code>.</p>
+    </li><li visbl="pub" name="org.scalatest.events.NameInfo" data-isabs="false">
+      <a id="NameInfo:NameInfo"></a>
+      <h4 class="signature">
+      <span class="kind">case class</span>
+      <span class="symbol"> 
+        <a href="NameInfo.html"><span class="name">NameInfo</span></a>
+        
+        <span class="params">(<span name="suiteName">suiteName: String</span>, <span name="suiteClassName">suiteClassName: Option[String]</span>, <span name="testName">testName: Option[String]</span>)</span><span class="result"> extends Product with Serializable</span>
+      </span>
+      </h4>
+      <p class="comment cmt">Class that holds information about names for an <code>InfoProvided</code> event.</p>
+    </li><li visbl="pub" name="org.scalatest.events.Ordinal" data-isabs="false">
+      <a id="Ordinal:Ordinal"></a>
+      <h4 class="signature">
+      <span class="kind">class</span>
+      <span class="symbol"> 
+        <a href="Ordinal.html"><span class="name">Ordinal</span></a>
+        
+        <span class="result"> extends Ordered[Ordinal]</span>
+      </span>
+      </h4>
+      <p class="comment cmt">Class used to specify a sequential order for events reported during a test run, so they
+can be arranged in that order in a report even if the events were fired in some other order
+during concurrent or distributed execution.</p>
+    </li><li visbl="pub" name="org.scalatest.events.RunAborted" data-isabs="false">
+      <a id="RunAborted:RunAborted"></a>
+      <h4 class="signature">
+      <span class="kind">case class</span>
+      <span class="symbol"> 
+        <a href="RunAborted.html"><span class="name">RunAborted</span></a>
+        
+        <span class="params">(<span name="ordinal">ordinal: Ordinal</span>, <span name="message">message: String</span>, <span name="throwable">throwable: Option[Throwable]</span>, <span name="duration">duration: Option[Long]</span>, <span name="summary">summary: Option[Summary]</span>, <span name="formatter">formatter: Option[Formatter]</span>, <span name="payload">payload: Option[Any]</span>, <span name="threadName">threadName: String</span>, <span name="timeStamp">timeStamp: Long</span>)</span><span class="result"> extends Event with Product with Serializable</span>
+      </span>
+      </h4>
+      <p class="comment cmt">Event that indicates a runner encountered an error while attempting to run a suite of tests.</p>
+    </li><li visbl="pub" name="org.scalatest.events.RunCompleted" data-isabs="false">
+      <a id="RunCompleted:RunCompleted"></a>
+      <h4 class="signature">
+      <span class="kind">case class</span>
+      <span class="symbol"> 
+        <a href="RunCompleted.html"><span class="name">RunCompleted</span></a>
+        
+        <span class="params">(<span name="ordinal">ordinal: Ordinal</span>, <span name="duration">duration: Option[Long]</span>, <span name="summary">summary: Option[Summary]</span>, <span name="formatter">formatter: Option[Formatter]</span>, <span name="payload">payload: Option[Any]</span>, <span name="threadName">threadName: String</span>, <span name="timeStamp">timeStamp: Long</span>)</span><span class="result"> extends Event with Product with Serializable</span>
+      </span>
+      </h4>
+      <p class="comment cmt">Event that indicates a runner has completed running a suite of tests.</p>
+    </li><li visbl="pub" name="org.scalatest.events.RunStarting" data-isabs="false">
+      <a id="RunStarting:RunStarting"></a>
+      <h4 class="signature">
+      <span class="kind">case class</span>
+      <span class="symbol"> 
+        <a href="RunStarting.html"><span class="name">RunStarting</span></a>
+        
+        <span class="params">(<span name="ordinal">ordinal: Ordinal</span>, <span name="testCount">testCount: Int</span>, <span name="configMap">configMap: Map[String, Any]</span>, <span name="formatter">formatter: Option[Formatter]</span>, <span name="payload">payload: Option[Any]</span>, <span name="threadName">threadName: String</span>, <span name="timeStamp">timeStamp: Long</span>)</span><span class="result"> extends Event with Product with Serializable</span>
+      </span>
+      </h4>
+      <p class="comment cmt">Event that indicates a runner is about run a suite of tests.</p>
+    </li><li visbl="pub" name="org.scalatest.events.RunStopped" data-isabs="false">
+      <a id="RunStopped:RunStopped"></a>
+      <h4 class="signature">
+      <span class="kind">case class</span>
+      <span class="symbol"> 
+        <a href="RunStopped.html"><span class="name">RunStopped</span></a>
+        
+        <span class="params">(<span name="ordinal">ordinal: Ordinal</span>, <span name="duration">duration: Option[Long]</span>, <span name="summary">summary: Option[Summary]</span>, <span name="formatter">formatter: Option[Formatter]</span>, <span name="payload">payload: Option[Any]</span>, <span name="threadName">threadName: String</span>, <span name="timeStamp">timeStamp: Long</span>)</span><span class="result"> extends Event with Product with Serializable</span>
+      </span>
+      </h4>
+      <p class="comment cmt">Event that indicates a runner has stopped running a suite of tests prior to completion, likely
+because of a stop request.</p>
+    </li><li visbl="pub" name="org.scalatest.events.SuiteAborted" data-isabs="false">
+      <a id="SuiteAborted:SuiteAborted"></a>
+      <h4 class="signature">
+      <span class="kind">case class</span>
+      <span class="symbol"> 
+        <a href="SuiteAborted.html"><span class="name">SuiteAborted</span></a>
+        
+        <span class="params">(<span name="ordinal">ordinal: Ordinal</span>, <span name="message">message: String</span>, <span name="suiteName">suiteName: String</span>, <span name="suiteClassName">suiteClassName: Option[String]</span>, <span name="throwable">throwable: Option[Throwable]</span>, <span name="duration">duration: Option[Long]</span>, <span name="formatter">formatter: Option[Formatter]</span>, <span name="rerunner">rerunner: Option[Rerunner]</span>, <span name="payload">payload: Option[Any]</span>, <span name="threadName">threadName: String</span>, <span name="timeStamp">timeStamp: Long</span>)</span><span class="result"> extends Event with Product with Serializable</span>
+      </span>
+      </h4>
+      <p class="comment cmt">Event that indicates the execution of a suite of tests has aborted, likely because of an error, prior
+to completion.</p>
+    </li><li visbl="pub" name="org.scalatest.events.SuiteCompleted" data-isabs="false">
+      <a id="SuiteCompleted:SuiteCompleted"></a>
+      <h4 class="signature">
+      <span class="kind">case class</span>
+      <span class="symbol"> 
+        <a href="SuiteCompleted.html"><span class="name">SuiteCompleted</span></a>
+        
+        <span class="params">(<span name="ordinal">ordinal: Ordinal</span>, <span name="suiteName">suiteName: String</span>, <span name="suiteClassName">suiteClassName: Option[String]</span>, <span name="duration">duration: Option[Long]</span>, <span name="formatter">formatter: Option[Formatter]</span>, <span name="rerunner">rerunner: Option[Rerunner]</span>, <span name="payload">payload: Option[Any]</span>, <span name="threadName">threadName: String</span>, <span name="timeStamp">timeStamp: Long</span>)</span><span class="result"> extends Event with Product with Serializable</span>
+      </span>
+      </h4>
+      <p class="comment cmt">Event that indicates a suite of tests has completed executing.</p>
+    </li><li visbl="pub" name="org.scalatest.events.SuiteStarting" data-isabs="false">
+      <a id="SuiteStarting:SuiteStarting"></a>
+      <h4 class="signature">
+      <span class="kind">case class</span>
+      <span class="symbol"> 
+        <a href="SuiteStarting.html"><span class="name">SuiteStarting</span></a>
+        
+        <span class="params">(<span name="ordinal">ordinal: Ordinal</span>, <span name="suiteName">suiteName: String</span>, <span name="suiteClassName">suiteClassName: Option[String]</span>, <span name="formatter">formatter: Option[Formatter]</span>, <span name="rerunner">rerunner: Option[Rerunner]</span>, <span name="payload">payload: Option[Any]</span>, <span name="threadName">threadName: String</span>, <span name="timeStamp">timeStamp: Long</span>)</span><span class="result"> extends Event with Product with Serializable</span>
+      </span>
+      </h4>
+      <p class="comment cmt">Event that indicates a suite of tests is about to start executing.</p>
+    </li><li visbl="pub" name="org.scalatest.events.Summary" data-isabs="false">
+      <a id="Summary:Summary"></a>
+      <h4 class="signature">
+      <span class="kind">case class</span>
+      <span class="symbol"> 
+        <a href="Summary.html"><span class="name">Summary</span></a>
+        
+        <span class="params">(<span name="testsSucceededCount">testsSucceededCount: Int</span>, <span name="testsFailedCount">testsFailedCount: Int</span>, <span name="testsIgnoredCount">testsIgnoredCount: Int</span>, <span name="testsPendingCount">testsPendingCount: Int</span>, <span name="suitesCompletedCount">suitesCompletedCount: Int</span>, <span name="suitesAbortedCount">suitesAbortedCount: Int</span>)</span><span class="result"> extends Product with Serializable</span>
+      </span>
+      </h4>
+      <p class="comment cmt">Class each of whose instances hold summary information about one ScalaTest run.</p>
+    </li><li visbl="pub" name="org.scalatest.events.TestFailed" data-isabs="false">
+      <a id="TestFailed:TestFailed"></a>
+      <h4 class="signature">
+      <span class="kind">case class</span>
+      <span class="symbol"> 
+        <a href="TestFailed.html"><span class="name">TestFailed</span></a>
+        
+        <span class="params">(<span name="ordinal">ordinal: Ordinal</span>, <span name="message">message: String</span>, <span name="suiteName">suiteName: String</span>, <span name="suiteClassName">suiteClassName: Option[String]</span>, <span name="testName">testName: String</span>, <span name="throwable">throwable: Option[Throwable]</span>, <span name="duration">duration: Option[Long]</span>, <span name="formatter">formatter: Option[Formatter]</span>, <span name="rerunner">rerunner: Option[Rerunner]</span>, <span name="payload">payload: Option[Any]</span>, <span name="threadName">threadName: String</span>, <span name="timeStamp">timeStamp: Long</span>)</span><span class="result"> extends Event with Product with Serializable</span>
+      </span>
+      </h4>
+      <p class="comment cmt">Event that indicates a suite (or other entity) has completed running a test that failed.</p>
+    </li><li visbl="pub" name="org.scalatest.events.TestIgnored" data-isabs="false">
+      <a id="TestIgnored:TestIgnored"></a>
+      <h4 class="signature">
+      <span class="kind">case class</span>
+      <span class="symbol"> 
+        <a href="TestIgnored.html"><span class="name">TestIgnored</span></a>
+        
+        <span class="params">(<span name="ordinal">ordinal: Ordinal</span>, <span name="suiteName">suiteName: String</span>, <span name="suiteClassName">suiteClassName: Option[String]</span>, <span name="testName">testName: String</span>, <span name="formatter">formatter: Option[Formatter]</span>, <span name="payload">payload: Option[Any]</span>, <span name="threadName">threadName: String</span>, <span name="timeStamp">timeStamp: Long</span>)</span><span class="result"> extends Event with Product with Serializable</span>
+      </span>
+      </h4>
+      <p class="comment cmt">Event that indicates a suite (or other entity) has ignored a test.</p>
+    </li><li visbl="pub" name="org.scalatest.events.TestPending" data-isabs="false">
+      <a id="TestPending:TestPending"></a>
+      <h4 class="signature">
+      <span class="kind">case class</span>
+      <span class="symbol"> 
+        <a href="TestPending.html"><span class="name">TestPending</span></a>
+        
+        <span class="params">(<span name="ordinal">ordinal: Ordinal</span>, <span name="suiteName">suiteName: String</span>, <span name="suiteClassName">suiteClassName: Option[String]</span>, <span name="testName">testName: String</span>, <span name="formatter">formatter: Option[Formatter]</span>, <span name="payload">payload: Option[Any]</span>, <span name="threadName">threadName: String</span>, <span name="timeStamp">timeStamp: Long</span>)</span><span class="result"> extends Event with Product with Serializable</span>
+      </span>
+      </h4>
+      <p class="comment cmt">Event that indicates a test is pending, <em>i.e.</em>, it hasn't yet been implemented.</p>
+    </li><li visbl="pub" name="org.scalatest.events.TestStarting" data-isabs="false">
+      <a id="TestStarting:TestStarting"></a>
+      <h4 class="signature">
+      <span class="kind">case class</span>
+      <span class="symbol"> 
+        <a href="TestStarting.html"><span class="name">TestStarting</span></a>
+        
+        <span class="params">(<span name="ordinal">ordinal: Ordinal</span>, <span name="suiteName">suiteName: String</span>, <span name="suiteClassName">suiteClassName: Option[String]</span>, <span name="testName">testName: String</span>, <span name="formatter">formatter: Option[Formatter]</span>, <span name="rerunner">rerunner: Option[Rerunner]</span>, <span name="payload">payload: Option[Any]</span>, <span name="threadName">threadName: String</span>, <span name="timeStamp">timeStamp: Long</span>)</span><span class="result"> extends Event with Product with Serializable</span>
+      </span>
+      </h4>
+      <p class="comment cmt">Event that indicates a suite (or other entity) is about to start running a test.</p>
+    </li><li visbl="pub" name="org.scalatest.events.TestSucceeded" data-isabs="false">
+      <a id="TestSucceeded:TestSucceeded"></a>
+      <h4 class="signature">
+      <span class="kind">case class</span>
+      <span class="symbol"> 
+        <a href="TestSucceeded.html"><span class="name">TestSucceeded</span></a>
+        
+        <span class="params">(<span name="ordinal">ordinal: Ordinal</span>, <span name="suiteName">suiteName: String</span>, <span name="suiteClassName">suiteClassName: Option[String]</span>, <span name="testName">testName: String</span>, <span name="duration">duration: Option[Long]</span>, <span name="formatter">formatter: Option[Formatter]</span>, <span name="rerunner">rerunner: Option[Rerunner]</span>, <span name="payload">payload: Option[Any]</span>, <span name="threadName">threadName: String</span>, <span name="timeStamp">timeStamp: Long</span>)</span><span class="result"> extends Event with Product with Serializable</span>
+      </span>
+      </h4>
+      <p class="comment cmt">Event that indicates a suite (or other entity) has completed running a test that succeeded.</p>
+    </li></ol>
+            </div>
+        
+        
+
+        <div class="values members" id="values">
+              <h3>Value Members</h3>
+              <ol><li visbl="pub" name="org.scalatest.events.InfoProvided" data-isabs="false">
+      <a id="InfoProvided:InfoProvided"></a>
+      <h4 class="signature">
+      <span class="kind">object</span>
+      <span class="symbol"> 
+        <a href="InfoProvided$.html"><span class="name">InfoProvided</span></a>
+        
+        <span class="result"> extends Serializable</span>
+      </span>
+      </h4>
+      <p class="comment cmt">Companion object for the <a href="InfoProvided.html"><code>InfoProvided</code></a> event, which contains overloaded factory methods
+and an extractor method to facilitate pattern matching on <code>InfoProvided</code> objects.</a href="InfoProvided.html"></p>
+    </li><li visbl="pub" name="org.scalatest.events.MotionToSuppress" data-isabs="false">
+      <a id="MotionToSuppress:MotionToSuppress"></a>
+      <h4 class="signature">
+      <span class="kind">object</span>
+      <span class="symbol"> 
+        <a href="MotionToSuppress$.html"><span class="name">MotionToSuppress</span></a>
+        
+        <span class="result"> extends Formatter with Product with Serializable</span>
+      </span>
+      </h4>
+      <p class="comment cmt">A <code>Formatter</code> that indicates reporters may wish to suppress reporting of an <code>Event</code>.</p>
+    </li><li visbl="pub" name="org.scalatest.events.NameInfo" data-isabs="false">
+      <a id="NameInfo:NameInfo"></a>
+      <h4 class="signature">
+      <span class="kind">object</span>
+      <span class="symbol"> 
+        <a href="NameInfo$.html"><span class="name">NameInfo</span></a>
+        
+        <span class="result"> extends Serializable</span>
+      </span>
+      </h4>
+      <p class="comment cmt">Companion object for case class <a href="NameInfo.html"><code>NameInfo</code></a>.</a href="NameInfo.html"></p>
+    </li><li visbl="pub" name="org.scalatest.events.RunAborted" data-isabs="false">
+      <a id="RunAborted:RunAborted"></a>
+      <h4 class="signature">
+      <span class="kind">object</span>
+      <span class="symbol"> 
+        <a href="RunAborted$.html"><span class="name">RunAborted</span></a>
+        
+        <span class="result"> extends Serializable</span>
+      </span>
+      </h4>
+      <p class="comment cmt">Companion object for the <a href="RunAborted.html"><code>RunAborted</code></a> event, which contains overloaded factory methods
+and an extractor method to facilitate pattern matching on <code>RunAborted</code> objects.</a href="RunAborted.html"></p>
+    </li><li visbl="pub" name="org.scalatest.events.RunCompleted" data-isabs="false">
+      <a id="RunCompleted:RunCompleted"></a>
+      <h4 class="signature">
+      <span class="kind">object</span>
+      <span class="symbol"> 
+        <a href="RunCompleted$.html"><span class="name">RunCompleted</span></a>
+        
+        <span class="result"> extends Serializable</span>
+      </span>
+      </h4>
+      <p class="comment cmt">Companion object for the <a href="RunCompleted.html"><code>RunCompleted</code></a> event, which contains overloaded factory methods
+and an extractor method to facilitate pattern matching on <code>RunCompleted</code> objects.</a href="RunCompleted.html"></p>
+    </li><li visbl="pub" name="org.scalatest.events.RunStarting" data-isabs="false">
+      <a id="RunStarting:RunStarting"></a>
+      <h4 class="signature">
+      <span class="kind">object</span>
+      <span class="symbol"> 
+        <a href="RunStarting$.html"><span class="name">RunStarting</span></a>
+        
+        <span class="result"> extends Serializable</span>
+      </span>
+      </h4>
+      <p class="comment cmt">Companion object for the <a href="RunStarting.html"><code>RunStarting</code></a> event, which contains overloaded factory methods
+and an extractor method to facilitate pattern matching on <code>RunStarting</code> objects.</a href="RunStarting.html"></p>
+    </li><li visbl="pub" name="org.scalatest.events.RunStopped" data-isabs="false">
+      <a id="RunStopped:RunStopped"></a>
+      <h4 class="signature">
+      <span class="kind">object</span>
+      <span class="symbol"> 
+        <a href="RunStopped$.html"><span class="name">RunStopped</span></a>
+        
+        <span class="result"> extends Serializable</span>
+      </span>
+      </h4>
+      <p class="comment cmt">Companion object for the <a href="RunStopped.html"><code>RunStopped</code></a> event, which contains overloaded factory methods
+and an extractor method to facilitate pattern matching on <code>RunStopped</code> objects.</a href="RunStopped.html"></p>
+    </li><li visbl="pub" name="org.scalatest.events.SuiteAborted" data-isabs="false">
+      <a id="SuiteAborted:SuiteAborted"></a>
+      <h4 class="signature">
+      <span class="kind">object</span>
+      <span class="symbol"> 
+        <a href="SuiteAborted$.html"><span class="name">SuiteAborted</span></a>
+        
+        <span class="result"> extends Serializable</span>
+      </span>
+      </h4>
+      <p class="comment cmt">Companion object for the <a href="SuiteAborted.html"><code>SuiteAborted</code></a> event, which contains overloaded factory methods
+and an extractor method to facilitate pattern matching on <code>SuiteAborted</code> objects.</a href="SuiteAborted.html"></p>
+    </li><li visbl="pub" name="org.scalatest.events.SuiteCompleted" data-isabs="false">
+      <a id="SuiteCompleted:SuiteCompleted"></a>
+      <h4 class="signature">
+      <span class="kind">object</span>
+      <span class="symbol"> 
+        <a href="SuiteCompleted$.html"><span class="name">SuiteCompleted</span></a>
+        
+        <span class="result"> extends Serializable</span>
+      </span>
+      </h4>
+      <p class="comment cmt">Companion object for the <a href="SuiteCompleted.html"><code>SuiteCompleted</code></a> event, which contains overloaded factory methods
+and an extractor method to facilitate pattern matching on <code>SuiteCompleted</code> objects.</a href="SuiteCompleted.html"></p>
+    </li><li visbl="pub" name="org.scalatest.events.SuiteStarting" data-isabs="false">
+      <a id="SuiteStarting:SuiteStarting"></a>
+      <h4 class="signature">
+      <span class="kind">object</span>
+      <span class="symbol"> 
+        <a href="SuiteStarting$.html"><span class="name">SuiteStarting</span></a>
+        
+        <span class="result"> extends Serializable</span>
+      </span>
+      </h4>
+      <p class="comment cmt">Companion object for the <a href="SuiteStarting.html"><code>SuiteStarting</code></a> event, which contains overloaded factory methods
+and an extractor method to facilitate pattern matching on <code>SuiteStarting</code> objects.</a href="SuiteStarting.html"></p>
+    </li><li visbl="pub" name="org.scalatest.events.Summary" data-isabs="false">
+      <a id="Summary:Summary"></a>
+      <h4 class="signature">
+      <span class="kind">object</span>
+      <span class="symbol"> 
+        <a href="Summary$.html"><span class="name">Summary</span></a>
+        
+        <span class="result"> extends Serializable</span>
+      </span>
+      </h4>
+      <p class="comment cmt">Companion object for case class <a href="Summary.html"><code>Summary</code></a>.</a href="Summary.html"></p>
+    </li><li visbl="pub" name="org.scalatest.events.TestFailed" data-isabs="false">
+      <a id="TestFailed:TestFailed"></a>
+      <h4 class="signature">
+      <span class="kind">object</span>
+      <span class="symbol"> 
+        <a href="TestFailed$.html"><span class="name">TestFailed</span></a>
+        
+        <span class="result"> extends Serializable</span>
+      </span>
+      </h4>
+      <p class="comment cmt">Companion object for the <a href="TestFailed.html"><code>TestFailed</code></a> event, which contains overloaded factory methods
+and an extractor method to facilitate pattern matching on <code>TestFailed</code> objects.</a href="TestFailed.html"></p>
+    </li><li visbl="pub" name="org.scalatest.events.TestIgnored" data-isabs="false">
+      <a id="TestIgnored:TestIgnored"></a>
+      <h4 class="signature">
+      <span class="kind">object</span>
+      <span class="symbol"> 
+        <a href="TestIgnored$.html"><span class="name">TestIgnored</span></a>
+        
+        <span class="result"> extends Serializable</span>
+      </span>
+      </h4>
+      <p class="comment cmt">Companion object for the <a href="TestIgnored.html"><code>TestIgnored</code></a> event, which contains overloaded factory methods
+and an extractor method to facilitate pattern matching on <code>TestIgnored</code> objects.</a href="TestIgnored.html"></p>
+    </li><li visbl="pub" name="org.scalatest.events.TestPending" data-isabs="false">
+      <a id="TestPending:TestPending"></a>
+      <h4 class="signature">
+      <span class="kind">object</span>
+      <span class="symbol"> 
+        <a href="TestPending$.html"><span class="name">TestPending</span></a>
+        
+        <span class="result"> extends Serializable</span>
+      </span>
+      </h4>
+      <p class="comment cmt">Companion object for the <a href="TestPending.html"><code>TestPending</code></a> event, which contains overloaded factory methods
+and an extractor method to facilitate pattern matching on <code>TestPending</code> objects.</a href="TestPending.html"></p>
+    </li><li visbl="pub" name="org.scalatest.events.TestStarting" data-isabs="false">
+      <a id="TestStarting:TestStarting"></a>
+      <h4 class="signature">
+      <span class="kind">object</span>
+      <span class="symbol"> 
+        <a href="TestStarting$.html"><span class="name">TestStarting</span></a>
+        
+        <span class="result"> extends Serializable</span>
+      </span>
+      </h4>
+      <p class="comment cmt">Companion object for the <a href="TestStarting.html"><code>TestStarting</code></a> event, which contains overloaded factory methods
+and an extractor method to facilitate pattern matching on <code>TestStarting</code> objects.</a href="TestStarting.html"></p>
+    </li><li visbl="pub" name="org.scalatest.events.TestSucceeded" data-isabs="false">
+      <a id="TestSucceeded:TestSucceeded"></a>
+      <h4 class="signature">
+      <span class="kind">object</span>
+      <span class="symbol"> 
+        <a href="TestSucceeded$.html"><span class="name">TestSucceeded</span></a>
+        
+        <span class="result"> extends Serializable</span>
+      </span>
+      </h4>
+      <p class="comment cmt">Companion object for the <a href="TestSucceeded.html"><code>TestSucceeded</code></a> event, which contains overloaded factory methods
+and an extractor method to facilitate pattern matching on <code>TestSucceeded</code> objects.</a href="TestSucceeded.html"></p>
+    </li></ol>
+            </div>
+
+        
+
+      </div>
+      
+      <div id="tooltip"></div>
+      
+    </body>
+      </html>

@@ -1,0 +1,781 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html>
+        <head>
+          <title>org.scalatest.prop</title>
+          <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+          
+      <link type="text/css" media="screen" rel="stylesheet" href="../../../lib/template.css" />
+      <script type="text/javascript" src="../../../lib/jquery.js"></script>
+      <script type="text/javascript" src="../../../lib/jquery-ui.js"></script>
+      <script type="text/javascript" src="../../../lib/template.js"></script>
+      <script type="text/javascript" src="../../../lib/tools.tooltip.js"></script>
+    
+        </head>
+        <body class="value">
+      <div id="definition">
+        <img src="../../../lib/package_big.png" />
+        <p id="owner"><a name="org" class="extype" href="../../package.html">org</a>.<a name="org.scalatest" class="extype" href="../package.html">scalatest</a></p>
+        <h1>prop</h1>
+      </div>
+
+      <h4 class="signature" id="signature">
+      <span class="kind">package</span>
+      <span class="symbol"> 
+        <span class="name">prop</span>
+        
+        
+      </span>
+      </h4>
+      
+          <div class="fullcommenttop" id="comment"></div>
+        
+
+      <div id="template">
+
+        <div id="mbrsel">
+          <div id="textfilter"><span class="pre"></span><span class="input"><input accesskey="/" type="text" /></span><span class="post"></span></div>
+          
+          
+          <div id="visbl">
+              <span class="filtertype">Visibility</span>
+              <ol><li class="public in"><span>Public</span></li><li class="all out"><span>All</span></li></ol>
+            </div>
+        </div>
+
+        
+
+        <div class="types members" id="types">
+              <h3>Type Members</h3>
+              <ol><li visbl="pub" name="org.scalatest.prop.Checkers" data-isabs="true">
+      <a id="Checkers:Checkers"></a>
+      <h4 class="signature">
+      <span class="kind">trait</span>
+      <span class="symbol"> 
+        <a href="Checkers.html"><span class="name">Checkers</span></a>
+        
+        <span class="result"> extends Configuration</span>
+      </span>
+      </h4>
+      <p class="comment cmt">Trait that contains several &#8220;check&#8221; methods that perform ScalaCheck property checks.</&#8221;</&#8220;</p>
+    </li><li visbl="pub" name="org.scalatest.prop.Configuration" data-isabs="true">
+      <a id="Configuration:Configuration"></a>
+      <h4 class="signature">
+      <span class="kind">trait</span>
+      <span class="symbol"> 
+        <a href="Configuration.html"><span class="name">Configuration</span></a>
+        
+        <span class="result"> extends AnyRef</span>
+      </span>
+      </h4>
+      <p class="comment cmt">Trait providing methods and classes used to configure property checks provided by the
+the <code>forAll</code> methods of trait <code>GeneratorDrivenPropertyChecks</code> (for ScalaTest-style
+property checks) and the <code>check</code> methods <code>Checkers</code> (for ScalaCheck-style property checks).</p>
+    </li><li visbl="pub" name="org.scalatest.prop.DiscardedEvaluationException" data-isabs="false">
+      <a id="DiscardedEvaluationException:DiscardedEvaluationException"></a>
+      <h4 class="signature">
+      <span class="kind">class</span>
+      <span class="symbol"> 
+        <a href="DiscardedEvaluationException.html"><span class="name">DiscardedEvaluationException</span></a>
+        
+        <span class="result"> extends RuntimeException</span>
+      </span>
+      </h4>
+      <p class="comment cmt">Exception that indicates an evaluation of a property should be discarded, because a condition
+required by a property was not met by the passed values.</p>
+    </li><li visbl="pub" name="org.scalatest.prop.GeneratorDrivenPropertyCheckFailedException" data-isabs="false">
+      <a id="GeneratorDrivenPropertyCheckFailedException:GeneratorDrivenPropertyCheckFailedException"></a>
+      <h4 class="signature">
+      <span class="kind">class</span>
+      <span class="symbol"> 
+        <a href="GeneratorDrivenPropertyCheckFailedException.html"><span class="name">GeneratorDrivenPropertyCheckFailedException</span></a>
+        
+        <span class="result"> extends PropertyCheckFailedException</span>
+      </span>
+      </h4>
+      <p class="comment cmt">Exception that indicates a ScalaCheck property check failed.</p>
+    </li><li visbl="pub" name="org.scalatest.prop.GeneratorDrivenPropertyChecks" data-isabs="true">
+      <a id="GeneratorDrivenPropertyChecks:GeneratorDrivenPropertyChecks"></a>
+      <h4 class="signature">
+      <span class="kind">trait</span>
+      <span class="symbol"> 
+        <a href="GeneratorDrivenPropertyChecks.html"><span class="name">GeneratorDrivenPropertyChecks</span></a>
+        
+        <span class="result"> extends Whenever with Configuration</span>
+      </span>
+      </h4>
+      <p class="comment cmt">Trait containing methods that faciliate property checks against generated data using ScalaCheck.</p>
+    </li><li visbl="pub" name="org.scalatest.prop.PropertyCheckFailedException" data-isabs="false">
+      <a id="PropertyCheckFailedException:PropertyCheckFailedException"></a>
+      <h4 class="signature">
+      <span class="kind">class</span>
+      <span class="symbol"> 
+        <a href="PropertyCheckFailedException.html"><span class="name">PropertyCheckFailedException</span></a>
+        
+        <span class="result"> extends TestFailedException</span>
+      </span>
+      </h4>
+      <p class="comment cmt">Exception that indicates a property check failed.</p>
+    </li><li visbl="pub" name="org.scalatest.prop.PropertyChecks" data-isabs="true">
+      <a id="PropertyChecks:PropertyChecks"></a>
+      <h4 class="signature">
+      <span class="kind">trait</span>
+      <span class="symbol"> 
+        <a href="PropertyChecks.html"><span class="name">PropertyChecks</span></a>
+        
+        <span class="result"> extends TableDrivenPropertyChecks with GeneratorDrivenPropertyChecks</span>
+      </span>
+      </h4>
+      <p class="comment cmt">Trait that facilitates property checks on data supplied by tables and generators.</p>
+    </li><li visbl="pub" name="org.scalatest.prop.TableDrivenPropertyCheckFailedException" data-isabs="false">
+      <a id="TableDrivenPropertyCheckFailedException:TableDrivenPropertyCheckFailedException"></a>
+      <h4 class="signature">
+      <span class="kind">class</span>
+      <span class="symbol"> 
+        <a href="TableDrivenPropertyCheckFailedException.html"><span class="name">TableDrivenPropertyCheckFailedException</span></a>
+        
+        <span class="result"> extends PropertyCheckFailedException</span>
+      </span>
+      </h4>
+      <p class="comment cmt">Exception that indicates a table-driven property check failed.</p>
+    </li><li visbl="pub" name="org.scalatest.prop.TableDrivenPropertyChecks" data-isabs="true">
+      <a id="TableDrivenPropertyChecks:TableDrivenPropertyChecks"></a>
+      <h4 class="signature">
+      <span class="kind">trait</span>
+      <span class="symbol"> 
+        <a href="TableDrivenPropertyChecks.html"><span class="name">TableDrivenPropertyChecks</span></a>
+        
+        <span class="result"> extends Whenever with Tables</span>
+      </span>
+      </h4>
+      <p class="comment cmt">Trait containing methods that faciliate property checks against tables of data.</p>
+    </li><li visbl="pub" name="org.scalatest.prop.TableFor1" data-isabs="false">
+      <a id="TableFor1:TableFor1[A]"></a>
+      <h4 class="signature">
+      <span class="kind">class</span>
+      <span class="symbol"> 
+        <a href="TableFor1.html"><span class="name">TableFor1</span></a>
+        <span class="tparams">[<span name="A">A</span>]</span>
+        <span class="result"> extends IndexedSeq[A] with IndexedSeqLike[A, TableFor1[A]]</span>
+      </span>
+      </h4>
+      <p class="comment cmt">A table with 1 column.</p>
+    </li><li visbl="pub" name="org.scalatest.prop.TableFor10" data-isabs="false">
+      <a id="TableFor10:TableFor10[A, B, C, D, E, F, G, H, I, J]"></a>
+      <h4 class="signature">
+      <span class="kind">class</span>
+      <span class="symbol"> 
+        <a href="TableFor10.html"><span class="name">TableFor10</span></a>
+        <span class="tparams">[<span name="A">A</span>, <span name="B">B</span>, <span name="C">C</span>, <span name="D">D</span>, <span name="E">E</span>, <span name="F">F</span>, <span name="G">G</span>, <span name="H">H</span>, <span name="I">I</span>, <span name="J">J</span>]</span>
+        <span class="result"> extends IndexedSeq[(A, B, C, D, E, F, G, H, I, J)] with IndexedSeqLike[(A, B, C, D, E, F, G, H, I, J), TableFor10[A, B, C, D, E, F, G, H, I, J]]</span>
+      </span>
+      </h4>
+      <p class="comment cmt">A table with 10 columns.</p>
+    </li><li visbl="pub" name="org.scalatest.prop.TableFor11" data-isabs="false">
+      <a id="TableFor11:TableFor11[A, B, C, D, E, F, G, H, I, J, K]"></a>
+      <h4 class="signature">
+      <span class="kind">class</span>
+      <span class="symbol"> 
+        <a href="TableFor11.html"><span class="name">TableFor11</span></a>
+        <span class="tparams">[<span name="A">A</span>, <span name="B">B</span>, <span name="C">C</span>, <span name="D">D</span>, <span name="E">E</span>, <span name="F">F</span>, <span name="G">G</span>, <span name="H">H</span>, <span name="I">I</span>, <span name="J">J</span>, <span name="K">K</span>]</span>
+        <span class="result"> extends IndexedSeq[(A, B, C, D, E, F, G, H, I, J, K)] with IndexedSeqLike[(A, B, C, D, E, F, G, H, I, J, K), TableFor11[A, B, C, D, E, F, G, H, I, J, K]]</span>
+      </span>
+      </h4>
+      <p class="comment cmt">A table with 11 columns.</p>
+    </li><li visbl="pub" name="org.scalatest.prop.TableFor12" data-isabs="false">
+      <a id="TableFor12:TableFor12[A, B, C, D, E, F, G, H, I, J, K, L]"></a>
+      <h4 class="signature">
+      <span class="kind">class</span>
+      <span class="symbol"> 
+        <a href="TableFor12.html"><span class="name">TableFor12</span></a>
+        <span class="tparams">[<span name="A">A</span>, <span name="B">B</span>, <span name="C">C</span>, <span name="D">D</span>, <span name="E">E</span>, <span name="F">F</span>, <span name="G">G</span>, <span name="H">H</span>, <span name="I">I</span>, <span name="J">J</span>, <span name="K">K</span>, <span name="L">L</span>]</span>
+        <span class="result"> extends IndexedSeq[(A, B, C, D, E, F, G, H, I, J, K, L)] with IndexedSeqLike[(A, B, C, D, E, F, G, H, I, J, K, L), TableFor12[A, B, C, D, E, F, G, H, I, J, K, L]]</span>
+      </span>
+      </h4>
+      <p class="comment cmt">A table with 12 columns.</p>
+    </li><li visbl="pub" name="org.scalatest.prop.TableFor13" data-isabs="false">
+      <a id="TableFor13:TableFor13[A, B, C, D, E, F, G, H, I, J, K, L, M]"></a>
+      <h4 class="signature">
+      <span class="kind">class</span>
+      <span class="symbol"> 
+        <a href="TableFor13.html"><span class="name">TableFor13</span></a>
+        <span class="tparams">[<span name="A">A</span>, <span name="B">B</span>, <span name="C">C</span>, <span name="D">D</span>, <span name="E">E</span>, <span name="F">F</span>, <span name="G">G</span>, <span name="H">H</span>, <span name="I">I</span>, <span name="J">J</span>, <span name="K">K</span>, <span name="L">L</span>, <span name="M">M</span>]</span>
+        <span class="result"> extends IndexedSeq[(A, B, C, D, E, F, G, H, I, J, K, L, M)] with IndexedSeqLike[(A, B, C, D, E, F, G, H, I, J, K, L, M), TableFor13[A, B, C, D, E, F, G, H, I, J, K, L, M]]</span>
+      </span>
+      </h4>
+      <p class="comment cmt">A table with 13 columns.</p>
+    </li><li visbl="pub" name="org.scalatest.prop.TableFor14" data-isabs="false">
+      <a id="TableFor14:TableFor14[A, B, C, D, E, F, G, H, I, J, K, L, M, N]"></a>
+      <h4 class="signature">
+      <span class="kind">class</span>
+      <span class="symbol"> 
+        <a href="TableFor14.html"><span class="name">TableFor14</span></a>
+        <span class="tparams">[<span name="A">A</span>, <span name="B">B</span>, <span name="C">C</span>, <span name="D">D</span>, <span name="E">E</span>, <span name="F">F</span>, <span name="G">G</span>, <span name="H">H</span>, <span name="I">I</span>, <span name="J">J</span>, <span name="K">K</span>, <span name="L">L</span>, <span name="M">M</span>, <span name="N">N</span>]</span>
+        <span class="result"> extends IndexedSeq[(A, B, C, D, E, F, G, H, I, J, K, L, M, N)] with IndexedSeqLike[(A, B, C, D, E, F, G, H, I, J, K, L, M, N), TableFor14[A, B, C, D, E, F, G, H, I, J, K, L, M, N]]</span>
+      </span>
+      </h4>
+      <p class="comment cmt">A table with 14 columns.</p>
+    </li><li visbl="pub" name="org.scalatest.prop.TableFor15" data-isabs="false">
+      <a id="TableFor15:TableFor15[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O]"></a>
+      <h4 class="signature">
+      <span class="kind">class</span>
+      <span class="symbol"> 
+        <a href="TableFor15.html"><span class="name">TableFor15</span></a>
+        <span class="tparams">[<span name="A">A</span>, <span name="B">B</span>, <span name="C">C</span>, <span name="D">D</span>, <span name="E">E</span>, <span name="F">F</span>, <span name="G">G</span>, <span name="H">H</span>, <span name="I">I</span>, <span name="J">J</span>, <span name="K">K</span>, <span name="L">L</span>, <span name="M">M</span>, <span name="N">N</span>, <span name="O">O</span>]</span>
+        <span class="result"> extends IndexedSeq[(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O)] with IndexedSeqLike[(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O), TableFor15[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O]]</span>
+      </span>
+      </h4>
+      <p class="comment cmt">A table with 15 columns.</p>
+    </li><li visbl="pub" name="org.scalatest.prop.TableFor16" data-isabs="false">
+      <a id="TableFor16:TableFor16[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P]"></a>
+      <h4 class="signature">
+      <span class="kind">class</span>
+      <span class="symbol"> 
+        <a href="TableFor16.html"><span class="name">TableFor16</span></a>
+        <span class="tparams">[<span name="A">A</span>, <span name="B">B</span>, <span name="C">C</span>, <span name="D">D</span>, <span name="E">E</span>, <span name="F">F</span>, <span name="G">G</span>, <span name="H">H</span>, <span name="I">I</span>, <span name="J">J</span>, <span name="K">K</span>, <span name="L">L</span>, <span name="M">M</span>, <span name="N">N</span>, <span name="O">O</span>, <span name="P">P</span>]</span>
+        <span class="result"> extends IndexedSeq[(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P)] with IndexedSeqLike[(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P), TableFor16[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P]]</span>
+      </span>
+      </h4>
+      <p class="comment cmt">A table with 16 columns.</p>
+    </li><li visbl="pub" name="org.scalatest.prop.TableFor17" data-isabs="false">
+      <a id="TableFor17:TableFor17[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q]"></a>
+      <h4 class="signature">
+      <span class="kind">class</span>
+      <span class="symbol"> 
+        <a href="TableFor17.html"><span class="name">TableFor17</span></a>
+        <span class="tparams">[<span name="A">A</span>, <span name="B">B</span>, <span name="C">C</span>, <span name="D">D</span>, <span name="E">E</span>, <span name="F">F</span>, <span name="G">G</span>, <span name="H">H</span>, <span name="I">I</span>, <span name="J">J</span>, <span name="K">K</span>, <span name="L">L</span>, <span name="M">M</span>, <span name="N">N</span>, <span name="O">O</span>, <span name="P">P</span>, <span name="Q">Q</span>]</span>
+        <span class="result"> extends IndexedSeq[(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q)] with IndexedSeqLike[(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q), TableFor17[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q]]</span>
+      </span>
+      </h4>
+      <p class="comment cmt">A table with 17 columns.</p>
+    </li><li visbl="pub" name="org.scalatest.prop.TableFor18" data-isabs="false">
+      <a id="TableFor18:TableFor18[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R]"></a>
+      <h4 class="signature">
+      <span class="kind">class</span>
+      <span class="symbol"> 
+        <a href="TableFor18.html"><span class="name">TableFor18</span></a>
+        <span class="tparams">[<span name="A">A</span>, <span name="B">B</span>, <span name="C">C</span>, <span name="D">D</span>, <span name="E">E</span>, <span name="F">F</span>, <span name="G">G</span>, <span name="H">H</span>, <span name="I">I</span>, <span name="J">J</span>, <span name="K">K</span>, <span name="L">L</span>, <span name="M">M</span>, <span name="N">N</span>, <span name="O">O</span>, <span name="P">P</span>, <span name="Q">Q</span>, <span name="R">R</span>]</span>
+        <span class="result"> extends IndexedSeq[(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R)] with IndexedSeqLike[(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R), TableFor18[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R]]</span>
+      </span>
+      </h4>
+      <p class="comment cmt">A table with 18 columns.</p>
+    </li><li visbl="pub" name="org.scalatest.prop.TableFor19" data-isabs="false">
+      <a id="TableFor19:TableFor19[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S]"></a>
+      <h4 class="signature">
+      <span class="kind">class</span>
+      <span class="symbol"> 
+        <a href="TableFor19.html"><span class="name">TableFor19</span></a>
+        <span class="tparams">[<span name="A">A</span>, <span name="B">B</span>, <span name="C">C</span>, <span name="D">D</span>, <span name="E">E</span>, <span name="F">F</span>, <span name="G">G</span>, <span name="H">H</span>, <span name="I">I</span>, <span name="J">J</span>, <span name="K">K</span>, <span name="L">L</span>, <span name="M">M</span>, <span name="N">N</span>, <span name="O">O</span>, <span name="P">P</span>, <span name="Q">Q</span>, <span name="R">R</span>, <span name="S">S</span>]</span>
+        <span class="result"> extends IndexedSeq[(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S)] with IndexedSeqLike[(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S), TableFor19[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S]]</span>
+      </span>
+      </h4>
+      <p class="comment cmt">A table with 19 columns.</p>
+    </li><li visbl="pub" name="org.scalatest.prop.TableFor2" data-isabs="false">
+      <a id="TableFor2:TableFor2[A, B]"></a>
+      <h4 class="signature">
+      <span class="kind">class</span>
+      <span class="symbol"> 
+        <a href="TableFor2.html"><span class="name">TableFor2</span></a>
+        <span class="tparams">[<span name="A">A</span>, <span name="B">B</span>]</span>
+        <span class="result"> extends IndexedSeq[(A, B)] with IndexedSeqLike[(A, B), TableFor2[A, B]]</span>
+      </span>
+      </h4>
+      <p class="comment cmt">A table with 2 columns.</p>
+    </li><li visbl="pub" name="org.scalatest.prop.TableFor20" data-isabs="false">
+      <a id="TableFor20:TableFor20[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T]"></a>
+      <h4 class="signature">
+      <span class="kind">class</span>
+      <span class="symbol"> 
+        <a href="TableFor20.html"><span class="name">TableFor20</span></a>
+        <span class="tparams">[<span name="A">A</span>, <span name="B">B</span>, <span name="C">C</span>, <span name="D">D</span>, <span name="E">E</span>, <span name="F">F</span>, <span name="G">G</span>, <span name="H">H</span>, <span name="I">I</span>, <span name="J">J</span>, <span name="K">K</span>, <span name="L">L</span>, <span name="M">M</span>, <span name="N">N</span>, <span name="O">O</span>, <span name="P">P</span>, <span name="Q">Q</span>, <span name="R">R</span>, <span name="S">S</span>, <span name="T">T</span>]</span>
+        <span class="result"> extends IndexedSeq[(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T)] with IndexedSeqLike[(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T), TableFor20[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T]]</span>
+      </span>
+      </h4>
+      <p class="comment cmt">A table with 20 columns.</p>
+    </li><li visbl="pub" name="org.scalatest.prop.TableFor21" data-isabs="false">
+      <a id="TableFor21:TableFor21[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U]"></a>
+      <h4 class="signature">
+      <span class="kind">class</span>
+      <span class="symbol"> 
+        <a href="TableFor21.html"><span class="name">TableFor21</span></a>
+        <span class="tparams">[<span name="A">A</span>, <span name="B">B</span>, <span name="C">C</span>, <span name="D">D</span>, <span name="E">E</span>, <span name="F">F</span>, <span name="G">G</span>, <span name="H">H</span>, <span name="I">I</span>, <span name="J">J</span>, <span name="K">K</span>, <span name="L">L</span>, <span name="M">M</span>, <span name="N">N</span>, <span name="O">O</span>, <span name="P">P</span>, <span name="Q">Q</span>, <span name="R">R</span>, <span name="S">S</span>, <span name="T">T</span>, <span name="U">U</span>]</span>
+        <span class="result"> extends IndexedSeq[(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U)] with IndexedSeqLike[(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U), TableFor21[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U]]</span>
+      </span>
+      </h4>
+      <p class="comment cmt">A table with 21 columns.</p>
+    </li><li visbl="pub" name="org.scalatest.prop.TableFor22" data-isabs="false">
+      <a id="TableFor22:TableFor22[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V]"></a>
+      <h4 class="signature">
+      <span class="kind">class</span>
+      <span class="symbol"> 
+        <a href="TableFor22.html"><span class="name">TableFor22</span></a>
+        <span class="tparams">[<span name="A">A</span>, <span name="B">B</span>, <span name="C">C</span>, <span name="D">D</span>, <span name="E">E</span>, <span name="F">F</span>, <span name="G">G</span>, <span name="H">H</span>, <span name="I">I</span>, <span name="J">J</span>, <span name="K">K</span>, <span name="L">L</span>, <span name="M">M</span>, <span name="N">N</span>, <span name="O">O</span>, <span name="P">P</span>, <span name="Q">Q</span>, <span name="R">R</span>, <span name="S">S</span>, <span name="T">T</span>, <span name="U">U</span>, <span name="V">V</span>]</span>
+        <span class="result"> extends IndexedSeq[(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V)] with IndexedSeqLike[(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V), TableFor22[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V]]</span>
+      </span>
+      </h4>
+      <p class="comment cmt">A table with 22 columns.</p>
+    </li><li visbl="pub" name="org.scalatest.prop.TableFor3" data-isabs="false">
+      <a id="TableFor3:TableFor3[A, B, C]"></a>
+      <h4 class="signature">
+      <span class="kind">class</span>
+      <span class="symbol"> 
+        <a href="TableFor3.html"><span class="name">TableFor3</span></a>
+        <span class="tparams">[<span name="A">A</span>, <span name="B">B</span>, <span name="C">C</span>]</span>
+        <span class="result"> extends IndexedSeq[(A, B, C)] with IndexedSeqLike[(A, B, C), TableFor3[A, B, C]]</span>
+      </span>
+      </h4>
+      <p class="comment cmt">A table with 3 columns.</p>
+    </li><li visbl="pub" name="org.scalatest.prop.TableFor4" data-isabs="false">
+      <a id="TableFor4:TableFor4[A, B, C, D]"></a>
+      <h4 class="signature">
+      <span class="kind">class</span>
+      <span class="symbol"> 
+        <a href="TableFor4.html"><span class="name">TableFor4</span></a>
+        <span class="tparams">[<span name="A">A</span>, <span name="B">B</span>, <span name="C">C</span>, <span name="D">D</span>]</span>
+        <span class="result"> extends IndexedSeq[(A, B, C, D)] with IndexedSeqLike[(A, B, C, D), TableFor4[A, B, C, D]]</span>
+      </span>
+      </h4>
+      <p class="comment cmt">A table with 4 columns.</p>
+    </li><li visbl="pub" name="org.scalatest.prop.TableFor5" data-isabs="false">
+      <a id="TableFor5:TableFor5[A, B, C, D, E]"></a>
+      <h4 class="signature">
+      <span class="kind">class</span>
+      <span class="symbol"> 
+        <a href="TableFor5.html"><span class="name">TableFor5</span></a>
+        <span class="tparams">[<span name="A">A</span>, <span name="B">B</span>, <span name="C">C</span>, <span name="D">D</span>, <span name="E">E</span>]</span>
+        <span class="result"> extends IndexedSeq[(A, B, C, D, E)] with IndexedSeqLike[(A, B, C, D, E), TableFor5[A, B, C, D, E]]</span>
+      </span>
+      </h4>
+      <p class="comment cmt">A table with 5 columns.</p>
+    </li><li visbl="pub" name="org.scalatest.prop.TableFor6" data-isabs="false">
+      <a id="TableFor6:TableFor6[A, B, C, D, E, F]"></a>
+      <h4 class="signature">
+      <span class="kind">class</span>
+      <span class="symbol"> 
+        <a href="TableFor6.html"><span class="name">TableFor6</span></a>
+        <span class="tparams">[<span name="A">A</span>, <span name="B">B</span>, <span name="C">C</span>, <span name="D">D</span>, <span name="E">E</span>, <span name="F">F</span>]</span>
+        <span class="result"> extends IndexedSeq[(A, B, C, D, E, F)] with IndexedSeqLike[(A, B, C, D, E, F), TableFor6[A, B, C, D, E, F]]</span>
+      </span>
+      </h4>
+      <p class="comment cmt">A table with 6 columns.</p>
+    </li><li visbl="pub" name="org.scalatest.prop.TableFor7" data-isabs="false">
+      <a id="TableFor7:TableFor7[A, B, C, D, E, F, G]"></a>
+      <h4 class="signature">
+      <span class="kind">class</span>
+      <span class="symbol"> 
+        <a href="TableFor7.html"><span class="name">TableFor7</span></a>
+        <span class="tparams">[<span name="A">A</span>, <span name="B">B</span>, <span name="C">C</span>, <span name="D">D</span>, <span name="E">E</span>, <span name="F">F</span>, <span name="G">G</span>]</span>
+        <span class="result"> extends IndexedSeq[(A, B, C, D, E, F, G)] with IndexedSeqLike[(A, B, C, D, E, F, G), TableFor7[A, B, C, D, E, F, G]]</span>
+      </span>
+      </h4>
+      <p class="comment cmt">A table with 7 columns.</p>
+    </li><li visbl="pub" name="org.scalatest.prop.TableFor8" data-isabs="false">
+      <a id="TableFor8:TableFor8[A, B, C, D, E, F, G, H]"></a>
+      <h4 class="signature">
+      <span class="kind">class</span>
+      <span class="symbol"> 
+        <a href="TableFor8.html"><span class="name">TableFor8</span></a>
+        <span class="tparams">[<span name="A">A</span>, <span name="B">B</span>, <span name="C">C</span>, <span name="D">D</span>, <span name="E">E</span>, <span name="F">F</span>, <span name="G">G</span>, <span name="H">H</span>]</span>
+        <span class="result"> extends IndexedSeq[(A, B, C, D, E, F, G, H)] with IndexedSeqLike[(A, B, C, D, E, F, G, H), TableFor8[A, B, C, D, E, F, G, H]]</span>
+      </span>
+      </h4>
+      <p class="comment cmt">A table with 8 columns.</p>
+    </li><li visbl="pub" name="org.scalatest.prop.TableFor9" data-isabs="false">
+      <a id="TableFor9:TableFor9[A, B, C, D, E, F, G, H, I]"></a>
+      <h4 class="signature">
+      <span class="kind">class</span>
+      <span class="symbol"> 
+        <a href="TableFor9.html"><span class="name">TableFor9</span></a>
+        <span class="tparams">[<span name="A">A</span>, <span name="B">B</span>, <span name="C">C</span>, <span name="D">D</span>, <span name="E">E</span>, <span name="F">F</span>, <span name="G">G</span>, <span name="H">H</span>, <span name="I">I</span>]</span>
+        <span class="result"> extends IndexedSeq[(A, B, C, D, E, F, G, H, I)] with IndexedSeqLike[(A, B, C, D, E, F, G, H, I), TableFor9[A, B, C, D, E, F, G, H, I]]</span>
+      </span>
+      </h4>
+      <p class="comment cmt">A table with 9 columns.</p>
+    </li><li visbl="pub" name="org.scalatest.prop.Tables" data-isabs="true">
+      <a id="Tables:Tables"></a>
+      <h4 class="signature">
+      <span class="kind">trait</span>
+      <span class="symbol"> 
+        <a href="Tables.html"><span class="name">Tables</span></a>
+        
+        <span class="result"> extends AnyRef</span>
+      </span>
+      </h4>
+      <p class="comment cmt">Trait containing the <code>Table</code> object, which offers one <code>apply</code> factory method for
+each <code>TableForN</code> class, <code>TableFor1</code> through <code>TableFor22</code>.</p>
+    </li><li visbl="pub" name="org.scalatest.prop.Whenever" data-isabs="true">
+      <a id="Whenever:Whenever"></a>
+      <h4 class="signature">
+      <span class="kind">trait</span>
+      <span class="symbol"> 
+        <a href="Whenever.html"><span class="name">Whenever</span></a>
+        
+        <span class="result"> extends AnyRef</span>
+      </span>
+      </h4>
+      <p class="comment cmt">Trait that contains the <code>whenever</code> clause that can be used in table- or generator-driven property checks.</p>
+    </li><li visbl="pub" name="org.scalatest.prop.PropertyTestFailedException" data-isabs="false">
+      <a id="PropertyTestFailedException:PropertyTestFailedException"></a>
+      <h4 class="signature">
+      <span class="kind">class</span>
+      <span class="symbol"> 
+        <a href="PropertyTestFailedException.html"><span class="name deprecated">PropertyTestFailedException</span></a>
+        
+        <span class="result"> extends GeneratorDrivenPropertyCheckFailedException</span>
+      </span>
+      </h4>
+      <p class="comment cmt"><strong>This exception class has been deprecated and will be removed in a future version of ScalaTest. Please
+change uses of this class to use <code>GeneratorDrivenPropertyCheckFailedException</code> instead.</strong>
+</p>
+    </li></ol>
+            </div>
+        
+        
+
+        <div class="values members" id="values">
+              <h3>Value Members</h3>
+              <ol><li visbl="pub" name="org.scalatest.prop.Checkers" data-isabs="false">
+      <a id="Checkers:Checkers"></a>
+      <h4 class="signature">
+      <span class="kind">object</span>
+      <span class="symbol"> 
+        <a href="Checkers$.html"><span class="name">Checkers</span></a>
+        
+        <span class="result"> extends Checkers</span>
+      </span>
+      </h4>
+      <p class="comment cmt">Companion object that facilitates the importing of <code>Checkers</code> members as
+an alternative to mixing it in.</p>
+    </li><li visbl="pub" name="org.scalatest.prop.Configuration" data-isabs="false">
+      <a id="Configuration:Configuration"></a>
+      <h4 class="signature">
+      <span class="kind">object</span>
+      <span class="symbol"> 
+        <a href="Configuration$.html"><span class="name">Configuration</span></a>
+        
+        <span class="result"> extends Configuration</span>
+      </span>
+      </h4>
+      <p class="comment cmt">Companion object that facilitates the importing of <code>Configuration</code> members as
+an alternative to mixing it in.</p>
+    </li><li visbl="pub" name="org.scalatest.prop.GeneratorDrivenPropertyChecks" data-isabs="false">
+      <a id="GeneratorDrivenPropertyChecks:GeneratorDrivenPropertyChecks"></a>
+      <h4 class="signature">
+      <span class="kind">object</span>
+      <span class="symbol"> 
+        <a href="GeneratorDrivenPropertyChecks$.html"><span class="name">GeneratorDrivenPropertyChecks</span></a>
+        
+        <span class="result"> extends GeneratorDrivenPropertyChecks</span>
+      </span>
+      </h4>
+      
+    </li><li visbl="pub" name="org.scalatest.prop.PropertyChecks" data-isabs="false">
+      <a id="PropertyChecks:PropertyChecks"></a>
+      <h4 class="signature">
+      <span class="kind">object</span>
+      <span class="symbol"> 
+        <a href="PropertyChecks$.html"><span class="name">PropertyChecks</span></a>
+        
+        <span class="result"> extends PropertyChecks</span>
+      </span>
+      </h4>
+      <p class="comment cmt">Companion object that facilitates the importing of <code>PropertyChecks</code> members as
+an alternative to mixing it in.</p>
+    </li><li visbl="pub" name="org.scalatest.prop.TableDrivenPropertyChecks" data-isabs="false">
+      <a id="TableDrivenPropertyChecks:TableDrivenPropertyChecks"></a>
+      <h4 class="signature">
+      <span class="kind">object</span>
+      <span class="symbol"> 
+        <a href="TableDrivenPropertyChecks$.html"><span class="name">TableDrivenPropertyChecks</span></a>
+        
+        <span class="result"> extends TableDrivenPropertyChecks</span>
+      </span>
+      </h4>
+      
+    </li><li visbl="pub" name="org.scalatest.prop.TableFor1" data-isabs="false">
+      <a id="TableFor1:TableFor1"></a>
+      <h4 class="signature">
+      <span class="kind">object</span>
+      <span class="symbol"> 
+        <a href="TableFor1$.html"><span class="name">TableFor1</span></a>
+        
+        <span class="result"> extends AnyRef</span>
+      </span>
+      </h4>
+      <p class="comment cmt">Companion object for class <code>TableFor1</code> that provides an implicit <code>canBuildFrom</code> method
+that enables higher order functions defined on <code>TableFor1</code> to return another <code>TableFor1</code>.</p>
+    </li><li visbl="pub" name="org.scalatest.prop.TableFor10" data-isabs="false">
+      <a id="TableFor10:TableFor10"></a>
+      <h4 class="signature">
+      <span class="kind">object</span>
+      <span class="symbol"> 
+        <a href="TableFor10$.html"><span class="name">TableFor10</span></a>
+        
+        <span class="result"> extends AnyRef</span>
+      </span>
+      </h4>
+      <p class="comment cmt">Companion object for class <code>TableFor10</code> that provides an implicit <code>canBuildFrom</code> method
+that enables higher order functions defined on <code>TableFor10</code> to return another <code>TableFor10</code>.</p>
+    </li><li visbl="pub" name="org.scalatest.prop.TableFor11" data-isabs="false">
+      <a id="TableFor11:TableFor11"></a>
+      <h4 class="signature">
+      <span class="kind">object</span>
+      <span class="symbol"> 
+        <a href="TableFor11$.html"><span class="name">TableFor11</span></a>
+        
+        <span class="result"> extends AnyRef</span>
+      </span>
+      </h4>
+      <p class="comment cmt">Companion object for class <code>TableFor11</code> that provides an implicit <code>canBuildFrom</code> method
+that enables higher order functions defined on <code>TableFor11</code> to return another <code>TableFor11</code>.</p>
+    </li><li visbl="pub" name="org.scalatest.prop.TableFor12" data-isabs="false">
+      <a id="TableFor12:TableFor12"></a>
+      <h4 class="signature">
+      <span class="kind">object</span>
+      <span class="symbol"> 
+        <a href="TableFor12$.html"><span class="name">TableFor12</span></a>
+        
+        <span class="result"> extends AnyRef</span>
+      </span>
+      </h4>
+      <p class="comment cmt">Companion object for class <code>TableFor12</code> that provides an implicit <code>canBuildFrom</code> method
+that enables higher order functions defined on <code>TableFor12</code> to return another <code>TableFor12</code>.</p>
+    </li><li visbl="pub" name="org.scalatest.prop.TableFor13" data-isabs="false">
+      <a id="TableFor13:TableFor13"></a>
+      <h4 class="signature">
+      <span class="kind">object</span>
+      <span class="symbol"> 
+        <a href="TableFor13$.html"><span class="name">TableFor13</span></a>
+        
+        <span class="result"> extends AnyRef</span>
+      </span>
+      </h4>
+      <p class="comment cmt">Companion object for class <code>TableFor13</code> that provides an implicit <code>canBuildFrom</code> method
+that enables higher order functions defined on <code>TableFor13</code> to return another <code>TableFor13</code>.</p>
+    </li><li visbl="pub" name="org.scalatest.prop.TableFor14" data-isabs="false">
+      <a id="TableFor14:TableFor14"></a>
+      <h4 class="signature">
+      <span class="kind">object</span>
+      <span class="symbol"> 
+        <a href="TableFor14$.html"><span class="name">TableFor14</span></a>
+        
+        <span class="result"> extends AnyRef</span>
+      </span>
+      </h4>
+      <p class="comment cmt">Companion object for class <code>TableFor14</code> that provides an implicit <code>canBuildFrom</code> method
+that enables higher order functions defined on <code>TableFor14</code> to return another <code>TableFor14</code>.</p>
+    </li><li visbl="pub" name="org.scalatest.prop.TableFor15" data-isabs="false">
+      <a id="TableFor15:TableFor15"></a>
+      <h4 class="signature">
+      <span class="kind">object</span>
+      <span class="symbol"> 
+        <a href="TableFor15$.html"><span class="name">TableFor15</span></a>
+        
+        <span class="result"> extends AnyRef</span>
+      </span>
+      </h4>
+      <p class="comment cmt">Companion object for class <code>TableFor15</code> that provides an implicit <code>canBuildFrom</code> method
+that enables higher order functions defined on <code>TableFor15</code> to return another <code>TableFor15</code>.</p>
+    </li><li visbl="pub" name="org.scalatest.prop.TableFor16" data-isabs="false">
+      <a id="TableFor16:TableFor16"></a>
+      <h4 class="signature">
+      <span class="kind">object</span>
+      <span class="symbol"> 
+        <a href="TableFor16$.html"><span class="name">TableFor16</span></a>
+        
+        <span class="result"> extends AnyRef</span>
+      </span>
+      </h4>
+      <p class="comment cmt">Companion object for class <code>TableFor16</code> that provides an implicit <code>canBuildFrom</code> method
+that enables higher order functions defined on <code>TableFor16</code> to return another <code>TableFor16</code>.</p>
+    </li><li visbl="pub" name="org.scalatest.prop.TableFor17" data-isabs="false">
+      <a id="TableFor17:TableFor17"></a>
+      <h4 class="signature">
+      <span class="kind">object</span>
+      <span class="symbol"> 
+        <a href="TableFor17$.html"><span class="name">TableFor17</span></a>
+        
+        <span class="result"> extends AnyRef</span>
+      </span>
+      </h4>
+      <p class="comment cmt">Companion object for class <code>TableFor17</code> that provides an implicit <code>canBuildFrom</code> method
+that enables higher order functions defined on <code>TableFor17</code> to return another <code>TableFor17</code>.</p>
+    </li><li visbl="pub" name="org.scalatest.prop.TableFor18" data-isabs="false">
+      <a id="TableFor18:TableFor18"></a>
+      <h4 class="signature">
+      <span class="kind">object</span>
+      <span class="symbol"> 
+        <a href="TableFor18$.html"><span class="name">TableFor18</span></a>
+        
+        <span class="result"> extends AnyRef</span>
+      </span>
+      </h4>
+      <p class="comment cmt">Companion object for class <code>TableFor18</code> that provides an implicit <code>canBuildFrom</code> method
+that enables higher order functions defined on <code>TableFor18</code> to return another <code>TableFor18</code>.</p>
+    </li><li visbl="pub" name="org.scalatest.prop.TableFor19" data-isabs="false">
+      <a id="TableFor19:TableFor19"></a>
+      <h4 class="signature">
+      <span class="kind">object</span>
+      <span class="symbol"> 
+        <a href="TableFor19$.html"><span class="name">TableFor19</span></a>
+        
+        <span class="result"> extends AnyRef</span>
+      </span>
+      </h4>
+      <p class="comment cmt">Companion object for class <code>TableFor19</code> that provides an implicit <code>canBuildFrom</code> method
+that enables higher order functions defined on <code>TableFor19</code> to return another <code>TableFor19</code>.</p>
+    </li><li visbl="pub" name="org.scalatest.prop.TableFor2" data-isabs="false">
+      <a id="TableFor2:TableFor2"></a>
+      <h4 class="signature">
+      <span class="kind">object</span>
+      <span class="symbol"> 
+        <a href="TableFor2$.html"><span class="name">TableFor2</span></a>
+        
+        <span class="result"> extends AnyRef</span>
+      </span>
+      </h4>
+      <p class="comment cmt">Companion object for class <code>TableFor2</code> that provides an implicit <code>canBuildFrom</code> method
+that enables higher order functions defined on <code>TableFor2</code> to return another <code>TableFor2</code>.</p>
+    </li><li visbl="pub" name="org.scalatest.prop.TableFor20" data-isabs="false">
+      <a id="TableFor20:TableFor20"></a>
+      <h4 class="signature">
+      <span class="kind">object</span>
+      <span class="symbol"> 
+        <a href="TableFor20$.html"><span class="name">TableFor20</span></a>
+        
+        <span class="result"> extends AnyRef</span>
+      </span>
+      </h4>
+      <p class="comment cmt">Companion object for class <code>TableFor20</code> that provides an implicit <code>canBuildFrom</code> method
+that enables higher order functions defined on <code>TableFor20</code> to return another <code>TableFor20</code>.</p>
+    </li><li visbl="pub" name="org.scalatest.prop.TableFor21" data-isabs="false">
+      <a id="TableFor21:TableFor21"></a>
+      <h4 class="signature">
+      <span class="kind">object</span>
+      <span class="symbol"> 
+        <a href="TableFor21$.html"><span class="name">TableFor21</span></a>
+        
+        <span class="result"> extends AnyRef</span>
+      </span>
+      </h4>
+      <p class="comment cmt">Companion object for class <code>TableFor21</code> that provides an implicit <code>canBuildFrom</code> method
+that enables higher order functions defined on <code>TableFor21</code> to return another <code>TableFor21</code>.</p>
+    </li><li visbl="pub" name="org.scalatest.prop.TableFor22" data-isabs="false">
+      <a id="TableFor22:TableFor22"></a>
+      <h4 class="signature">
+      <span class="kind">object</span>
+      <span class="symbol"> 
+        <a href="TableFor22$.html"><span class="name">TableFor22</span></a>
+        
+        <span class="result"> extends AnyRef</span>
+      </span>
+      </h4>
+      <p class="comment cmt">Companion object for class <code>TableFor22</code> that provides an implicit <code>canBuildFrom</code> method
+that enables higher order functions defined on <code>TableFor22</code> to return another <code>TableFor22</code>.</p>
+    </li><li visbl="pub" name="org.scalatest.prop.TableFor3" data-isabs="false">
+      <a id="TableFor3:TableFor3"></a>
+      <h4 class="signature">
+      <span class="kind">object</span>
+      <span class="symbol"> 
+        <a href="TableFor3$.html"><span class="name">TableFor3</span></a>
+        
+        <span class="result"> extends AnyRef</span>
+      </span>
+      </h4>
+      <p class="comment cmt">Companion object for class <code>TableFor3</code> that provides an implicit <code>canBuildFrom</code> method
+that enables higher order functions defined on <code>TableFor3</code> to return another <code>TableFor3</code>.</p>
+    </li><li visbl="pub" name="org.scalatest.prop.TableFor4" data-isabs="false">
+      <a id="TableFor4:TableFor4"></a>
+      <h4 class="signature">
+      <span class="kind">object</span>
+      <span class="symbol"> 
+        <a href="TableFor4$.html"><span class="name">TableFor4</span></a>
+        
+        <span class="result"> extends AnyRef</span>
+      </span>
+      </h4>
+      <p class="comment cmt">Companion object for class <code>TableFor4</code> that provides an implicit <code>canBuildFrom</code> method
+that enables higher order functions defined on <code>TableFor4</code> to return another <code>TableFor4</code>.</p>
+    </li><li visbl="pub" name="org.scalatest.prop.TableFor5" data-isabs="false">
+      <a id="TableFor5:TableFor5"></a>
+      <h4 class="signature">
+      <span class="kind">object</span>
+      <span class="symbol"> 
+        <a href="TableFor5$.html"><span class="name">TableFor5</span></a>
+        
+        <span class="result"> extends AnyRef</span>
+      </span>
+      </h4>
+      <p class="comment cmt">Companion object for class <code>TableFor5</code> that provides an implicit <code>canBuildFrom</code> method
+that enables higher order functions defined on <code>TableFor5</code> to return another <code>TableFor5</code>.</p>
+    </li><li visbl="pub" name="org.scalatest.prop.TableFor6" data-isabs="false">
+      <a id="TableFor6:TableFor6"></a>
+      <h4 class="signature">
+      <span class="kind">object</span>
+      <span class="symbol"> 
+        <a href="TableFor6$.html"><span class="name">TableFor6</span></a>
+        
+        <span class="result"> extends AnyRef</span>
+      </span>
+      </h4>
+      <p class="comment cmt">Companion object for class <code>TableFor6</code> that provides an implicit <code>canBuildFrom</code> method
+that enables higher order functions defined on <code>TableFor6</code> to return another <code>TableFor6</code>.</p>
+    </li><li visbl="pub" name="org.scalatest.prop.TableFor7" data-isabs="false">
+      <a id="TableFor7:TableFor7"></a>
+      <h4 class="signature">
+      <span class="kind">object</span>
+      <span class="symbol"> 
+        <a href="TableFor7$.html"><span class="name">TableFor7</span></a>
+        
+        <span class="result"> extends AnyRef</span>
+      </span>
+      </h4>
+      <p class="comment cmt">Companion object for class <code>TableFor7</code> that provides an implicit <code>canBuildFrom</code> method
+that enables higher order functions defined on <code>TableFor7</code> to return another <code>TableFor7</code>.</p>
+    </li><li visbl="pub" name="org.scalatest.prop.TableFor8" data-isabs="false">
+      <a id="TableFor8:TableFor8"></a>
+      <h4 class="signature">
+      <span class="kind">object</span>
+      <span class="symbol"> 
+        <a href="TableFor8$.html"><span class="name">TableFor8</span></a>
+        
+        <span class="result"> extends AnyRef</span>
+      </span>
+      </h4>
+      <p class="comment cmt">Companion object for class <code>TableFor8</code> that provides an implicit <code>canBuildFrom</code> method
+that enables higher order functions defined on <code>TableFor8</code> to return another <code>TableFor8</code>.</p>
+    </li><li visbl="pub" name="org.scalatest.prop.TableFor9" data-isabs="false">
+      <a id="TableFor9:TableFor9"></a>
+      <h4 class="signature">
+      <span class="kind">object</span>
+      <span class="symbol"> 
+        <a href="TableFor9$.html"><span class="name">TableFor9</span></a>
+        
+        <span class="result"> extends AnyRef</span>
+      </span>
+      </h4>
+      <p class="comment cmt">Companion object for class <code>TableFor9</code> that provides an implicit <code>canBuildFrom</code> method
+that enables higher order functions defined on <code>TableFor9</code> to return another <code>TableFor9</code>.</p>
+    </li><li visbl="pub" name="org.scalatest.prop.Tables" data-isabs="false">
+      <a id="Tables:Tables"></a>
+      <h4 class="signature">
+      <span class="kind">object</span>
+      <span class="symbol"> 
+        <a href="Tables$.html"><span class="name">Tables</span></a>
+        
+        <span class="result"> extends Tables</span>
+      </span>
+      </h4>
+      <p class="comment cmt">Companion object that facilitates the importing of <code>Tables</code> members as
+an alternative to mixing it in.</p>
+    </li></ol>
+            </div>
+
+        
+
+      </div>
+      
+      <div id="tooltip"></div>
+      
+    </body>
+      </html>

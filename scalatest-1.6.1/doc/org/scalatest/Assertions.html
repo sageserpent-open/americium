@@ -1,0 +1,681 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html>
+        <head>
+          <title>org.scalatest.Assertions</title>
+          <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+          
+      <link type="text/css" media="screen" rel="stylesheet" href="../../lib/template.css" />
+      <script type="text/javascript" src="../../lib/jquery.js"></script>
+      <script type="text/javascript" src="../../lib/jquery-ui.js"></script>
+      <script type="text/javascript" src="../../lib/template.js"></script>
+      <script type="text/javascript" src="../../lib/tools.tooltip.js"></script>
+    
+        </head>
+        <body class="type">
+      <div id="definition">
+        <a title="Go to companion" href="Assertions$.html"><img src="../../lib/trait_to_object_big.png" /></a>
+        <p id="owner"><a name="org" class="extype" href="../package.html">org</a>.<a name="org.scalatest" class="extype" href="package.html">scalatest</a></p>
+        <h1><a title="Go to companion" href="Assertions$.html">Assertions</a></h1>
+      </div>
+
+      <h4 class="signature" id="signature">
+      <span class="kind">trait</span>
+      <span class="symbol"> 
+        <span class="name">Assertions</span>
+        
+        <span class="result"> extends AnyRef</span>
+      </span>
+      </h4>
+      
+          <div class="fullcommenttop" id="comment"><div class="comment cmt"><p>Trait that contains ScalaTest's basic assertion methods.</p><p>You can use the assertions provided by this trait in any ScalaTest <code>Suite</code>, because <code>Suite</code>
+mixes in this trait. This trait is designed to be used independently of anything else in ScalaTest, though, so you
+can mix it into anything. (You can alternatively import the methods defined in this trait. For details, see the documentation
+for the <a href="Assertions$.html"><code>Assertions</code> companion object</a>.</p><p>In any Scala program, you can write assertions by invoking <code>assert</code> and passing in a <code>Boolean</code> expression,
+such as:</p><p><pre class="stHighlighted">
+<span class="stReserved">val</span> left = <span class="stLiteral">2</span>
+<span class="stReserved">val</span> right = <span class="stLiteral">1</span>
+assert(left == right)
+</pre></p><p>If the passed expression is <code>true</code>, <code>assert</code> will return normally. If <code>false</code>,
+<code>assert</code> will complete abruptly with an <code>AssertionError</code>. This behavior is provided by
+the <code>assert</code> method defined in object <code>Predef</code>, whose members are implicitly imported into every
+Scala source file. This <code>Assertions</code> traits defines another <code>assert</code> method that hides the
+one in <code>Predef</code>. It behaves the same, except that if <code>false</code> is passed it throws
+<code>TestFailedException</code> instead of <code>AssertionError</code>. The reason it throws <code>TestFailedException</code>
+is because <code>TestFailedException</code> carries information about exactly which item in the stack trace represents
+the line of test code that failed, which can help users more quickly find an offending line of code in a failing test.</p><p>If you pass the previous <code>Boolean</code> expression, <code>left == right</code> to <code>assert</code> in a ScalaTest test, a failure
+will be reported, but without reporting the left and right values. You can alternatively encode these values in a <code>String</code> passed as
+a second argument to <code>assert</code>, like this:</p><p><pre class="stHighlighted">
+<span class="stReserved">val</span> left = <span class="stLiteral">2</span>
+<span class="stReserved">val</span> right = <span class="stLiteral">1</span>
+assert(left == right, left + <span class="stQuotedString">&quot; did not equal &quot;</span> + right)
+</pre></p><p>Using this form of <code>assert</code>, the failure report will include the left and right values, thereby
+helping you debug the problem. However, ScalaTest provides the <code>===</code> operator to make this easier.
+You use it like this:</p><p><pre class="stHighlighted">
+<span class="stReserved">val</span> left = <span class="stLiteral">2</span>
+<span class="stReserved">val</span> right = <span class="stLiteral">1</span>
+assert(left === right)
+</pre></p><p>Because you use <code>===</code> here instead of <code>==</code>, the failure report will include the left
+and right values. For example, the detail message in the thrown <code>TestFailedException</code> from the <code>assert</code>
+shown previously will include, &quot;2 did not equal 1&quot;.
+From this message you will know that the operand on the left had the value 2, and the operand on the right had the value 1.</p><p>If you're familiar with JUnit, you would use <code>===</code>
+in a ScalaTest <code>Suite</code> where you'd use <code>assertEquals</code> in a JUnit <code>TestCase</code>.
+The <code>===</code> operator is made possible by an implicit conversion from <code>Any</code>
+to <code>Equalizer</code>. If you're curious to understand the mechanics, see the <a href="Assertions$Equalizer.html">documentation for
+<code>Equalizer</code></a> and the <code>convertToEqualizer</code> method.</p><h4> Expected results </h4><p>Although <code>===</code> provides a natural, readable extension to Scala's <code>assert</code> mechanism,
+as the operands become lengthy, the code becomes less readable. In addition, the <code>===</code> comparison
+doesn't distinguish between actual and expected values. The operands are just called <code>left</code> and <code>right</code>,
+because if one were named <code>expected</code> and the other <code>actual</code>, it would be difficult for people to
+remember which was which. To help with these limitations of assertions, <code>Suite</code> includes a method called <code>expect</code> that
+can be used as an alternative to <code>assert</code> with <code>===</code>. To use <code>expect</code>, you place
+the expected value in parentheses after <code>expect</code>, followed by curly braces containing code
+that should result in the expected value. For example:</p><p><pre class="stHighlighted">
+<span class="stReserved">val</span> a = <span class="stLiteral">5</span>
+<span class="stReserved">val</span> b = <span class="stLiteral">2</span>
+expect(<span class="stLiteral">2</span>) {
+  a - b
+}
+</pre></p><p>In this case, the expected value is <code>2</code>, and the code being tested is <code>a - b</code>. This expectation will fail, and
+the detail message in the <code>TestFailedException</code> will read, &quot;Expected 2, but got 3.&quot;</p><h4> Intercepted exceptions </h4><p>Sometimes you need to test whether a method throws an expected exception under certain circumstances, such
+as when invalid arguments are passed to the method. You can do this in the JUnit 3 style, like this:</p><p><pre class="stHighlighted">
+<span class="stReserved">val</span> s = <span class="stQuotedString">&quot;hi&quot;</span>
+<span class="stReserved">try</span> {
+  s.charAt(-<span class="stLiteral">1</span>)
+  fail()
+}
+<span class="stReserved">catch</span> {
+  <span class="stReserved">case</span> _: <span class="stType">IndexOutOfBoundsException</span> =&gt; <span class="stLineComment">// Expected, so continue</span>
+}
+</pre></p><p>If <code>charAt</code> throws <code>IndexOutOfBoundsException</code> as expected, control will transfer
+to the catch case, which does nothing. If, however, <code>charAt</code> fails to throw an exception,
+the next statement, <code>fail()</code>, will be run. The <code>fail</code> method always completes abruptly with
+a <code>TestFailedException</code>, thereby signaling a failed test.</p><p>To make this common use case easier to express and read, ScalaTest provides an <code>intercept</code>
+method. You use it like this:</p><p><pre class="stHighlighted">
+<span class="stReserved">val</span> s = <span class="stQuotedString">&quot;hi&quot;</span>
+intercept[<span class="stType">IndexOutOfBoundsException</span>] {
+  s.charAt(-<span class="stLiteral">1</span>)
+}
+</pre></p><p>This code behaves much like the previous example. If <code>charAt</code> throws an instance of <code>IndexOutOfBoundsException</code>,
+<code>intercept</code> will return that exception. But if <code>charAt</code> completes normally, or throws a different
+exception, <code>intercept</code> will complete abruptly with a <code>TestFailedException</code>. <code>intercept</code> returns the
+caught exception so that you can inspect it further if you wish, for example, to ensure that data contained inside
+the exception has the expected values.</p><h4> Getting a clue </h4><p>If you want more information that is provided by default by the methods if this trait,
+you can supply a &quot;clue&quot; string in one of several ways.
+The extra information (or &quot;clues&quot;) you provide will
+be included in the detail message of the thrown exception. Both
+<code>assert</code> and <code>expect</code> provide a way for a clue to be
+included directly, <code>intercept</code> does not.
+Here's an example of clues provided directly in <code>assert</code>:</p><p><pre class="stHighlighted">
+assert(<span class="stLiteral">1</span> + <span class="stLiteral">1</span> === <span class="stLiteral">3</span>, <span class="stQuotedString">&quot;this is a clue&quot;</span>)
+</pre></p><p>and in <code>expect</code>:</p><p><pre class="stHighlighted">
+expect(<span class="stLiteral">3</span>, <span class="stQuotedString">&quot;this is a clue&quot;</span>) { <span class="stLiteral">1</span> + <span class="stLiteral">1</span> }
+</pre></p><p>The exceptions thrown by the previous two statements will include the clue
+string, <code>"this is a clue"</code>, in the exception's detail message.
+To get the same clue in the detail message of an exception thrown
+by a failed <code>intercept</code> call requires using <code>withClue</code>:</p><p><pre class="stHighlighted">
+withClue(<span class="stQuotedString">&quot;this is a clue&quot;</span>) {
+  intercept[<span class="stType">IndexOutOfBoundsException</span>] {
+    <span class="stQuotedString">&quot;hi&quot;</span>.charAt(-<span class="stLiteral">1</span>)
+  }
+}
+</pre></p><p>The <code>withClue</code> method will only prepend the clue string to the detail
+message of exception types that mix in the <code>ModifiableMessage</code> trait.
+See the documentation for <a href="ModifiableMessage.html"><code>ModifiableMessage</code></a> for more information.
+</p></div><div class="toggleContainer block">
+          <span class="toggle">Linear Supertypes</span>
+          <div class="superTypes hiddenContent">AnyRef, <span name="scala.Any" class="extype">Any</span></div>
+        </div><div class="toggleContainer block">
+          <span class="toggle">Known Subclasses</span>
+          <div class="subClasses hiddenContent"><a name="org.scalatest.Assertions" class="extype" href="Assertions$.html">Assertions</a>, <a name="org.scalatest.junit.AssertionsForJUnit" class="extype" href="junit/AssertionsForJUnit.html">AssertionsForJUnit</a>, <a name="org.scalatest.junit.AssertionsForJUnit" class="extype" href="junit/AssertionsForJUnit$.html">AssertionsForJUnit</a>, <a name="org.scalatest.FeatureSpec" class="extype" href="FeatureSpec.html">FeatureSpec</a>, <a name="org.scalatest.fixture.FixtureFeatureSpec" class="extype" href="fixture/FixtureFeatureSpec.html">FixtureFeatureSpec</a>, <a name="org.scalatest.fixture.FixtureFlatSpec" class="extype" href="fixture/FixtureFlatSpec.html">FixtureFlatSpec</a>, <a name="org.scalatest.fixture.FixtureFreeSpec" class="extype" href="fixture/FixtureFreeSpec.html">FixtureFreeSpec</a>, <a name="org.scalatest.fixture.FixtureFunSuite" class="extype" href="fixture/FixtureFunSuite.html">FixtureFunSuite</a>, <a name="org.scalatest.fixture.FixturePropSpec" class="extype" href="fixture/FixturePropSpec.html">FixturePropSpec</a>, <a name="org.scalatest.fixture.FixtureSpec" class="extype" href="fixture/FixtureSpec.html">FixtureSpec</a>, <a name="org.scalatest.fixture.FixtureSuite" class="extype" href="fixture/FixtureSuite.html">FixtureSuite</a>, <a name="org.scalatest.fixture.FixtureWordSpec" class="extype" href="fixture/FixtureWordSpec.html">FixtureWordSpec</a>, <a name="org.scalatest.FlatSpec" class="extype" href="FlatSpec.html">FlatSpec</a>, <a name="org.scalatest.FreeSpec" class="extype" href="FreeSpec.html">FreeSpec</a>, <a name="org.scalatest.FunSuite" class="extype" href="FunSuite.html">FunSuite</a>, <a name="org.scalatest.junit.JUnit3Suite" class="extype" href="junit/JUnit3Suite.html">JUnit3Suite</a>, <a name="org.scalatest.junit.JUnitSuite" class="extype" href="junit/JUnitSuite.html">JUnitSuite</a>, <a name="org.scalatest.junit.JUnitWrapperSuite" class="extype" href="junit/JUnitWrapperSuite.html">JUnitWrapperSuite</a>, <a name="org.scalatest.matchers.Matchers" class="extype" href="matchers/Matchers.html">Matchers</a>, <a name="org.scalatest.fixture.MultipleFixtureFeatureSpec" class="extype" href="fixture/MultipleFixtureFeatureSpec.html">MultipleFixtureFeatureSpec</a>, <a name="org.scalatest.fixture.MultipleFixtureFlatSpec" class="extype" href="fixture/MultipleFixtureFlatSpec.html">MultipleFixtureFlatSpec</a>, <a name="org.scalatest.fixture.MultipleFixtureFreeSpec" class="extype" href="fixture/MultipleFixtureFreeSpec.html">MultipleFixtureFreeSpec</a>, <a name="org.scalatest.fixture.MultipleFixtureFunSuite" class="extype" href="fixture/MultipleFixtureFunSuite.html">MultipleFixtureFunSuite</a>, <a name="org.scalatest.fixture.MultipleFixturePropSpec" class="extype" href="fixture/MultipleFixturePropSpec.html">MultipleFixturePropSpec</a>, <a name="org.scalatest.fixture.MultipleFixtureSpec" class="extype" href="fixture/MultipleFixtureSpec.html">MultipleFixtureSpec</a>, <a name="org.scalatest.fixture.MultipleFixtureWordSpec" class="extype" href="fixture/MultipleFixtureWordSpec.html">MultipleFixtureWordSpec</a>, <a name="org.scalatest.matchers.MustMatchers" class="extype" href="matchers/MustMatchers.html">MustMatchers</a>, <a name="org.scalatest.matchers.MustMatchers" class="extype" href="matchers/MustMatchers$.html">MustMatchers</a>, <a name="org.scalatest.junit.MustMatchersForJUnit" class="extype" href="junit/MustMatchersForJUnit.html">MustMatchersForJUnit</a>, <a name="org.scalatest.junit.MustMatchersForJUnit" class="extype" href="junit/MustMatchersForJUnit$.html">MustMatchersForJUnit</a>, <a name="org.scalatest.PropSpec" class="extype" href="PropSpec.html">PropSpec</a>, <a name="org.scalatest.matchers.ShouldMatchers" class="extype" href="matchers/ShouldMatchers.html">ShouldMatchers</a>, <a name="org.scalatest.matchers.ShouldMatchers" class="extype" href="matchers/ShouldMatchers$.html">ShouldMatchers</a>, <a name="org.scalatest.junit.ShouldMatchersForJUnit" class="extype" href="junit/ShouldMatchersForJUnit.html">ShouldMatchersForJUnit</a>, <a name="org.scalatest.junit.ShouldMatchersForJUnit" class="extype" href="junit/ShouldMatchersForJUnit$.html">ShouldMatchersForJUnit</a>, <a name="org.scalatest.Spec" class="extype" href="Spec.html">Spec</a>, <a name="org.scalatest.Specs" class="extype" href="Specs.html">Specs</a>, <a name="org.scalatest.Suite" class="extype" href="Suite.html">Suite</a>, <a name="org.scalatest.Suites" class="extype" href="Suites.html">Suites</a>, <a name="org.scalatest.SuperSuite" class="extype" href="SuperSuite.html">SuperSuite</a>, <a name="org.scalatest.testng.TestNGSuite" class="extype" href="testng/TestNGSuite.html">TestNGSuite</a>, <a name="org.scalatest.testng.TestNGWrapperSuite" class="extype" href="testng/TestNGWrapperSuite.html">TestNGWrapperSuite</a>, <a name="org.scalatest.WordSpec" class="extype" href="WordSpec.html">WordSpec</a></div>
+        </div></div>
+        
+
+      <div id="template">
+
+        <div id="mbrsel">
+          <div id="textfilter"><span class="pre"></span><span class="input"><input accesskey="/" type="text" /></span><span class="post"></span></div>
+          <div id="order">
+                <span class="filtertype">Ordering</span>
+                <ol><li class="alpha in"><span>Alphabetic</span></li><li class="inherit out"><span>By inheritance</span></li></ol>
+              </div>
+          <div id="ancestors">
+                <span class="filtertype">Inherited</span>
+                <ol><li class="hideall out"><span>Hide All</span></li>
+                <li class="showall in"><span>Show all</span></li></ol>
+                <ol id="linearization"><li name="org.scalatest.Assertions" class="in"><span>Assertions</span></li><li name="scala.AnyRef" class="in"><span>AnyRef</span></li><li name="scala.Any" class="in"><span>Any</span></li></ol>
+              </div>
+          <div id="visbl">
+              <span class="filtertype">Visibility</span>
+              <ol><li class="public in"><span>Public</span></li><li class="all out"><span>All</span></li></ol>
+            </div>
+        </div>
+
+        
+
+        <div class="types members" id="types">
+              <h3>Type Members</h3>
+              <ol><li visbl="pub" name="org.scalatest.Assertions.Equalizer" data-isabs="false">
+      <a id="Equalizer:Equalizer"></a>
+      <h4 class="signature">
+      <span class="kind">class</span>
+      <span class="symbol"> 
+        <a href="Assertions$Equalizer.html"><span class="name">Equalizer</span></a>
+        
+        <span class="result"> extends AnyRef</span>
+      </span>
+      </h4>
+      <p class="comment cmt">Class used via an implicit conversion to enable any two objects to be compared with
+<code>===</code> in assertions in tests.</p>
+    </li></ol>
+            </div>
+        
+        
+
+        <div class="values members" id="values">
+              <h3>Value Members</h3>
+              <ol><li visbl="pub" name="scala.AnyRef#!=" data-isabs="false">
+      <a id="!=(AnyRef):Boolean"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">!=</span>
+        
+        <span class="params">(<span name="arg0">arg0: AnyRef</span>)</span><span class="result">: <span name="scala.Boolean" class="extype">Boolean</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>AnyRef</dd></dl></div>
+    </li><li visbl="pub" name="scala.Any#!=" data-isabs="false">
+      <a id="!=(Any):Boolean"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">!=</span>
+        
+        <span class="params">(<span name="arg0">arg0: <span name="scala.Any" class="extype">Any</span></span>)</span><span class="result">: <span name="scala.Boolean" class="extype">Boolean</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>Any</dd></dl></div>
+    </li><li visbl="pub" name="scala.AnyRef###" data-isabs="false">
+      <a id="##():Int"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">##</span>
+        
+        <span class="params">()</span><span class="result">: <span name="scala.Int" class="extype">Int</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>AnyRef → Any</dd></dl></div>
+    </li><li visbl="pub" name="scala.AnyRef#==" data-isabs="false">
+      <a id="==(AnyRef):Boolean"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">==</span>
+        
+        <span class="params">(<span name="arg0">arg0: AnyRef</span>)</span><span class="result">: <span name="scala.Boolean" class="extype">Boolean</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>AnyRef</dd></dl></div>
+    </li><li visbl="pub" name="scala.Any#==" data-isabs="false">
+      <a id="==(Any):Boolean"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">==</span>
+        
+        <span class="params">(<span name="arg0">arg0: <span name="scala.Any" class="extype">Any</span></span>)</span><span class="result">: <span name="scala.Boolean" class="extype">Boolean</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>Any</dd></dl></div>
+    </li><li visbl="pub" name="scala.Any#asInstanceOf" data-isabs="false">
+      <a id="asInstanceOf[T0]:T0"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">asInstanceOf</span>
+        <span class="tparams">[<span name="T0">T0</span>]</span>
+        <span class="result">: T0</span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>Any</dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.Assertions#assert" data-isabs="false">
+      <a id="assert(Option[String]):Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">assert</span>
+        
+        <span class="params">(<span name="o">o: <span name="scala.Option" class="extype">Option</span>[String]</span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Assert that an <code>Option[String]</code> is <code>None</code>.</p><div class="fullcomment"><div class="comment cmt"><p>Assert that an <code>Option[String]</code> is <code>None</code>.
+If the condition is <code>None</code>, this method returns normally.
+Else, it throws <code>TestFailedException</code> with the <code>String</code>
+value of the <code>Some</code> included in the <code>TestFailedException</code>'s
+detail message.</p><p>This form of <code>assert</code> is usually called in conjunction with an
+implicit conversion to <code>Equalizer</code>, using a <code>===</code> comparison, as in:</p><p><pre class="stHighlighted">
+assert(a === b)
+</pre></p><p>For more information on how this mechanism works, see the <a href="Suite.Equalizer.html">documentation for
+<code>Equalizer</code></a>.</p></div><dl class="paramcmts block"><dt class="param">o</dt><dd class="cmt"><p>the <code>Option[String]</code> to assert</p></dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.Assertions#assert" data-isabs="false">
+      <a id="assert(Option[String],Any):Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">assert</span>
+        
+        <span class="params">(<span name="o">o: <span name="scala.Option" class="extype">Option</span>[String]</span>, <span name="clue">clue: <span name="scala.Any" class="extype">Any</span></span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Assert that an <code>Option[String]</code> is <code>None</code>.</p><div class="fullcomment"><div class="comment cmt"><p>Assert that an <code>Option[String]</code> is <code>None</code>.
+If the condition is <code>None</code>, this method returns normally.
+Else, it throws <code>TestFailedException</code> with the <code>String</code>
+value of the <code>Some</code>, as well as the
+<code>String</code> obtained by invoking <code>toString</code> on the
+specified <code>message</code>,
+included in the <code>TestFailedException</code>'s detail message.</p><p>This form of <code>assert</code> is usually called in conjunction with an
+implicit conversion to <code>Equalizer</code>, using a <code>===</code> comparison, as in:</p><p><pre class="stHighlighted">
+assert(a === b, <span class="stQuotedString">&quot;extra info reported if assertion fails&quot;</span>)
+</pre></p><p>For more information on how this mechanism works, see the <a href="Suite.Equalizer.html">documentation for
+<code>Equalizer</code></a>.</p></div><dl class="paramcmts block"><dt class="param">o</dt><dd class="cmt"><p>the <code>Option[String]</code> to assert</p></dd><dt class="param">clue</dt><dd class="cmt"><p>An objects whose <code>toString</code> method returns a message to include in a failure report.</p></dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.Assertions#assert" data-isabs="false">
+      <a id="assert(Boolean,Any):Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">assert</span>
+        
+        <span class="params">(<span name="condition">condition: <span name="scala.Boolean" class="extype">Boolean</span></span>, <span name="clue">clue: <span name="scala.Any" class="extype">Any</span></span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Assert that a boolean condition, described in <code>String</code>
+<code>message</code>, is true.</p><div class="fullcomment"><div class="comment cmt"><p>Assert that a boolean condition, described in <code>String</code>
+<code>message</code>, is true.
+If the condition is <code>true</code>, this method returns normally.
+Else, it throws <code>TestFailedException</code> with the
+<code>String</code> obtained by invoking <code>toString</code> on the
+specified <code>message</code> as the exception's detail message.
+</p></div><dl class="paramcmts block"><dt class="param">condition</dt><dd class="cmt"><p>the boolean condition to assert</p></dd><dt class="param">clue</dt><dd class="cmt"><p>An objects whose <code>toString</code> method returns a message to include in a failure report.</p></dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.Assertions#assert" data-isabs="false">
+      <a id="assert(Boolean):Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">assert</span>
+        
+        <span class="params">(<span name="condition">condition: <span name="scala.Boolean" class="extype">Boolean</span></span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Assert that a boolean condition is true.</p><div class="fullcomment"><div class="comment cmt"><p>Assert that a boolean condition is true.
+If the condition is <code>true</code>, this method returns normally.
+Else, it throws <code>TestFailedException</code>.
+</p></div><dl class="paramcmts block"><dt class="param">condition</dt><dd class="cmt"><p>the boolean condition to assert</p></dd></dl></div>
+    </li><li visbl="prt" name="scala.AnyRef#clone" data-isabs="false">
+      <a id="clone():AnyRef"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">clone</span>
+        
+        <span class="params">()</span><span class="result">: AnyRef</span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>protected[<a name="java.lang" class="extype" href="../../java/lang/package.html">lang</a>] </dd><dt>Definition Classes</dt><dd>AnyRef</dd><dt>Annotations</dt><dd>
+                <span class="name">@throws</span><span class="args">()</span>
+              
+        </dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.Assertions#convertToEqualizer" data-isabs="false">
+      <a id="convertToEqualizer(Any):Equalizer"></a>
+      <h4 class="signature">
+      <span class="kind">implicit def</span>
+      <span class="symbol"> 
+        <span class="name">convertToEqualizer</span>
+        
+        <span class="params">(<span name="left">left: <span name="scala.Any" class="extype">Any</span></span>)</span><span class="result">: <a name="org.scalatest.Assertions.Equalizer" class="extype" href="Assertions$Equalizer.html">Equalizer</a></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Implicit conversion from <code>Any</code> to <code>Equalizer</code>, used to enable
+assertions with <code>===</code> comparisons.</p><div class="fullcomment"><div class="comment cmt"><p>Implicit conversion from <code>Any</code> to <code>Equalizer</code>, used to enable
+assertions with <code>===</code> comparisons.</p><p>For more information
+on this mechanism, see the <a href="Suite.Equalizer.html">documentation for </code>Equalizer</code></a>.</p><p>Because trait <code>Suite</code> mixes in <code>Assertions</code>, this implicit conversion will always be
+available by default in ScalaTest <code>Suite</code>s. This is the only implicit conversion that is in scope by default in every
+ScalaTest <code>Suite</code>. Other implicit conversions offered by ScalaTest, such as those that support the matchers DSL
+or <code>invokePrivate</code>, must be explicitly invited into your test code, either by mixing in a trait or importing the
+members of its companion object. The reason ScalaTest requires you to invite in implicit conversions (with the exception of the
+implicit conversion for <code>===</code> operator)  is because if one of ScalaTest's implicit conversions clashes with an
+implicit conversion used in the code you are trying to test, your program won't compile. Thus there is a chance that if you
+are ever trying to use a library or test some code that also offers an implicit conversion involving a <code>===</code> operator,
+you could run into the problem of a compiler error due to an ambiguous implicit conversion. If that happens, you can turn off
+the implicit conversion offered by this <code>convertToEqualizer</code> method simply by overriding the method in your
+<code>Suite</code> subclass, but not marking it as implicit:</p><p><pre class="stHighlighted">
+<span class="stLineComment">// In your Suite subclass</span>
+<span class="stReserved">override</span> <span class="stReserved">def</span> convertToEqualizer(left: <span class="stType">Any</span>) = <span class="stReserved">new</span> <span class="stType">Equalizer</span>(left)
+</pre>
+</p></div><dl class="paramcmts block"><dt class="param">left</dt><dd class="cmt"><p>the object whose type to convert to <code>Equalizer</code>.</p></dd></dl><dl class="attributes block"> <dt>Attributes</dt><dd>implicit </dd></dl></div>
+    </li><li visbl="pub" name="scala.AnyRef#eq" data-isabs="false">
+      <a id="eq(AnyRef):Boolean"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">eq</span>
+        
+        <span class="params">(<span name="arg0">arg0: AnyRef</span>)</span><span class="result">: <span name="scala.Boolean" class="extype">Boolean</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>AnyRef</dd></dl></div>
+    </li><li visbl="pub" name="scala.AnyRef#equals" data-isabs="false">
+      <a id="equals(Any):Boolean"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">equals</span>
+        
+        <span class="params">(<span name="arg0">arg0: <span name="scala.Any" class="extype">Any</span></span>)</span><span class="result">: <span name="scala.Boolean" class="extype">Boolean</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef → Any</dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.Assertions#expect" data-isabs="false">
+      <a id="expect(Any)(Any):Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">expect</span>
+        
+        <span class="params">(<span name="expected">expected: <span name="scala.Any" class="extype">Any</span></span>)</span><span class="params">(<span name="actual">actual: <span name="scala.Any" class="extype">Any</span></span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Expect that the value passed as <code>expected</code> equals the value passed as <code>actual</code>.</p><div class="fullcomment"><div class="comment cmt"><p>Expect that the value passed as <code>expected</code> equals the value passed as <code>actual</code>.
+If the <code>actual</code> value equals the <code>expected</code> value
+(as determined by <code>==</code>), <code>expect</code> returns
+normally. Else, <code>expect</code> throws an
+<code>TestFailedException</code> whose detail message includes the expected and actual values.
+</p></div><dl class="paramcmts block"><dt class="param">expected</dt><dd class="cmt"><p>the expected value</p></dd><dt class="param">actual</dt><dd class="cmt"><p>the actual value, which should equal the passed <code>expected</code> value</p></dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.Assertions#expect" data-isabs="false">
+      <a id="expect(Any,Any)(Any):Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">expect</span>
+        
+        <span class="params">(<span name="expected">expected: <span name="scala.Any" class="extype">Any</span></span>, <span name="clue">clue: <span name="scala.Any" class="extype">Any</span></span>)</span><span class="params">(<span name="actual">actual: <span name="scala.Any" class="extype">Any</span></span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Expect that the value passed as <code>expected</code> equals the value passed as <code>actual</code>.</p><div class="fullcomment"><div class="comment cmt"><p>Expect that the value passed as <code>expected</code> equals the value passed as <code>actual</code>.
+If the <code>actual</code> equals the <code>expected</code>
+(as determined by <code>==</code>), <code>expect</code> returns
+normally. Else, if <code>actual</code> is not equal to <code>expected</code>, <code>expect</code> throws an
+<code>TestFailedException</code> whose detail message includes the expected and actual values, as well as the <code>String</code>
+obtained by invoking <code>toString</code> on the passed <code>message</code>.
+</p></div><dl class="paramcmts block"><dt class="param">expected</dt><dd class="cmt"><p>the expected value</p></dd><dt class="param">clue</dt><dd class="cmt"><p>An object whose <code>toString</code> method returns a message to include in a failure report.</p></dd><dt class="param">actual</dt><dd class="cmt"><p>the actual value, which should equal the passed <code>expected</code> value</p></dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.Assertions#fail" data-isabs="false">
+      <a id="fail(Throwable):Nothing"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">fail</span>
+        
+        <span class="params">(<span name="cause">cause: Throwable</span>)</span><span class="result">: <span name="scala.Nothing" class="extype">Nothing</span></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Throws <code>TestFailedException</code>, with the passed
+<code>Throwable</code> cause, to indicate a test failed.</p><div class="fullcomment"><div class="comment cmt"><p>Throws <code>TestFailedException</code>, with the passed
+<code>Throwable</code> cause, to indicate a test failed.
+The <code>getMessage</code> method of the thrown <code>TestFailedException</code>
+will return <code>cause.toString()</code>.
+</p></div><dl class="paramcmts block"><dt class="param">cause</dt><dd class="cmt"><p>a <code>Throwable</code> that indicates the cause of the failure.</p></dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.Assertions#fail" data-isabs="false">
+      <a id="fail(String,Throwable):Nothing"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">fail</span>
+        
+        <span class="params">(<span name="message">message: String</span>, <span name="cause">cause: Throwable</span>)</span><span class="result">: <span name="scala.Nothing" class="extype">Nothing</span></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Throws <code>TestFailedException</code>, with the passed
+<code>String</code> <code>message</code> as the exception's detail
+message and <code>Throwable</code> cause, to indicate a test failed.</p><div class="fullcomment"><div class="comment cmt"><p>Throws <code>TestFailedException</code>, with the passed
+<code>String</code> <code>message</code> as the exception's detail
+message and <code>Throwable</code> cause, to indicate a test failed.
+</p></div><dl class="paramcmts block"><dt class="param">message</dt><dd class="cmt"><p>A message describing the failure.</p></dd><dt class="param">cause</dt><dd class="cmt"><p>A <code>Throwable</code> that indicates the cause of the failure.</p></dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.Assertions#fail" data-isabs="false">
+      <a id="fail(String):Nothing"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">fail</span>
+        
+        <span class="params">(<span name="message">message: String</span>)</span><span class="result">: <span name="scala.Nothing" class="extype">Nothing</span></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Throws <code>TestFailedException</code>, with the passed
+<code>String</code> <code>message</code> as the exception's detail
+message, to indicate a test failed.</p><div class="fullcomment"><div class="comment cmt"><p>Throws <code>TestFailedException</code>, with the passed
+<code>String</code> <code>message</code> as the exception's detail
+message, to indicate a test failed.
+</p></div><dl class="paramcmts block"><dt class="param">message</dt><dd class="cmt"><p>A message describing the failure.</p></dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.Assertions#fail" data-isabs="false">
+      <a id="fail():Nothing"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">fail</span>
+        
+        <span class="params">()</span><span class="result">: <span name="scala.Nothing" class="extype">Nothing</span></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Throws <code>TestFailedException</code> to indicate a test failed.</p>
+    </li><li visbl="prt" name="scala.AnyRef#finalize" data-isabs="false">
+      <a id="finalize():Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">finalize</span>
+        
+        <span class="params">()</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>protected[<a name="java.lang" class="extype" href="../../java/lang/package.html">lang</a>] </dd><dt>Definition Classes</dt><dd>AnyRef</dd><dt>Annotations</dt><dd>
+                <span class="name">@throws</span><span class="args">()</span>
+              
+        </dd></dl></div>
+    </li><li visbl="pub" name="scala.AnyRef#getClass" data-isabs="false">
+      <a id="getClass():java.lang.Class[_]"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">getClass</span>
+        
+        <span class="params">()</span><span class="result">: java.lang.Class[_]</span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>AnyRef</dd></dl></div>
+    </li><li visbl="pub" name="scala.AnyRef#hashCode" data-isabs="false">
+      <a id="hashCode():Int"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">hashCode</span>
+        
+        <span class="params">()</span><span class="result">: <span name="scala.Int" class="extype">Int</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef → Any</dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.Assertions#intercept" data-isabs="false">
+      <a id="intercept[T&lt;:AnyRef](⇒ Any)(Manifest[T]):T"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">intercept</span>
+        <span class="tparams">[<span name="T">T &lt;: AnyRef</span>]</span>
+        <span class="params">(<span name="f">f: ⇒ <span name="scala.Any" class="extype">Any</span></span>)</span><span class="params">(<span class="implicit">implicit </span><span name="manifest">manifest: <span name="scala.reflect.Manifest" class="extype">Manifest</span>[T]</span>)</span><span class="result">: T</span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Intercept and return an exception that's expected to
+be thrown by the passed function value.</p><div class="fullcomment"><div class="comment cmt"><p>Intercept and return an exception that's expected to
+be thrown by the passed function value. The thrown exception must be an instance of the
+type specified by the type parameter of this method. This method invokes the passed
+function. If the function throws an exception that's an instance of the specified type,
+this method returns that exception. Else, whether the passed function returns normally
+or completes abruptly with a different exception, this method throws <code>TestFailedException</code>.</p><p>Note that the type specified as this method's type parameter may represent any subtype of
+<code>AnyRef</code>, not just <code>Throwable</code> or one of its subclasses. In
+Scala, exceptions can be caught based on traits they implement, so it may at times make sense
+to specify a trait that the intercepted exception's class must mix in. If a class instance is
+passed for a type that could not possibly be used to catch an exception (such as <code>String</code>,
+for example), this method will complete abruptly with a <code>TestFailedException</code>.</p></div><dl class="paramcmts block"><dt class="param">f</dt><dd class="cmt"><p>the function value that should throw the expected exception</p></dd><dt class="param">manifest</dt><dd class="cmt"><p>an implicit <code>Manifest</code> representing the type of the specified
+type parameter.</p></dd><dt>returns</dt><dd class="cmt"><p>the intercepted exception, if it is of the expected type</p></dd></dl></div>
+    </li><li visbl="pub" name="scala.Any#isInstanceOf" data-isabs="false">
+      <a id="isInstanceOf[T0]:Boolean"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">isInstanceOf</span>
+        <span class="tparams">[<span name="T0">T0</span>]</span>
+        <span class="result">: <span name="scala.Boolean" class="extype">Boolean</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>Any</dd></dl></div>
+    </li><li visbl="pub" name="scala.AnyRef#ne" data-isabs="false">
+      <a id="ne(AnyRef):Boolean"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">ne</span>
+        
+        <span class="params">(<span name="arg0">arg0: AnyRef</span>)</span><span class="result">: <span name="scala.Boolean" class="extype">Boolean</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>AnyRef</dd></dl></div>
+    </li><li visbl="pub" name="scala.AnyRef#notify" data-isabs="false">
+      <a id="notify():Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">notify</span>
+        
+        <span class="params">()</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>AnyRef</dd></dl></div>
+    </li><li visbl="pub" name="scala.AnyRef#notifyAll" data-isabs="false">
+      <a id="notifyAll():Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">notifyAll</span>
+        
+        <span class="params">()</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>AnyRef</dd></dl></div>
+    </li><li visbl="pub" name="scala.AnyRef#synchronized" data-isabs="false">
+      <a id="synchronized[T0](⇒ T0):T0"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">synchronized</span>
+        <span class="tparams">[<span name="T0">T0</span>]</span>
+        <span class="params">(<span name="arg0">arg0: ⇒ T0</span>)</span><span class="result">: T0</span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>AnyRef</dd></dl></div>
+    </li><li visbl="pub" name="scala.AnyRef#toString" data-isabs="false">
+      <a id="toString():String"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">toString</span>
+        
+        <span class="params">()</span><span class="result">: <span name="java.lang.String" class="extype">String</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef → Any</dd></dl></div>
+    </li><li visbl="pub" name="scala.AnyRef#wait" data-isabs="false">
+      <a id="wait():Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">wait</span>
+        
+        <span class="params">()</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>AnyRef</dd><dt>Annotations</dt><dd>
+                <span class="name">@throws</span><span class="args">()</span>
+              
+        </dd></dl></div>
+    </li><li visbl="pub" name="scala.AnyRef#wait" data-isabs="false">
+      <a id="wait(Long,Int):Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">wait</span>
+        
+        <span class="params">(<span name="arg0">arg0: <span name="scala.Long" class="extype">Long</span></span>, <span name="arg1">arg1: <span name="scala.Int" class="extype">Int</span></span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>AnyRef</dd><dt>Annotations</dt><dd>
+                <span class="name">@throws</span><span class="args">()</span>
+              
+        </dd></dl></div>
+    </li><li visbl="pub" name="scala.AnyRef#wait" data-isabs="false">
+      <a id="wait(Long):Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">wait</span>
+        
+        <span class="params">(<span name="arg0">arg0: <span name="scala.Long" class="extype">Long</span></span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>AnyRef</dd><dt>Annotations</dt><dd>
+                <span class="name">@throws</span><span class="args">()</span>
+              
+        </dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.Assertions#withClue" data-isabs="false">
+      <a id="withClue(Any)(⇒ Unit):Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">withClue</span>
+        
+        <span class="params">(<span name="clue">clue: <span name="scala.Any" class="extype">Any</span></span>)</span><span class="params">(<span name="fun">fun: ⇒ <span name="scala.Unit" class="extype">Unit</span></span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Executes the block of code passed as the second parameter, and, if it
+completes abruptly with a <code>ModifiableMessage</code> exception,
+prepends the &quot;clue&quot; string passed as the first parameter to the beginning of the detail message
+of that thrown exception, then rethrows it.</p><div class="fullcomment"><div class="comment cmt"><p>Executes the block of code passed as the second parameter, and, if it
+completes abruptly with a <code>ModifiableMessage</code> exception,
+prepends the &quot;clue&quot; string passed as the first parameter to the beginning of the detail message
+of that thrown exception, then rethrows it. If clue does not end in a white space
+character, one space will be added
+between it and the existing detail message (unless the detail message is
+not defined).</p><p>This method allows you to add more information about what went wrong that will be
+reported when a test fails. Here's an example:</p><p><pre class="stHighlighted">
+withClue(<span class="stQuotedString">&quot;(Employee's name was: &quot;</span> + employee.name + <span class="stQuotedString">&quot;)&quot;</span>) {
+  intercept[<span class="stType">IllegalArgumentException</span>] {
+    employee.getTask(-<span class="stLiteral">1</span>)
+  }
+}
+</pre></p><p>If an invocation of <code>intercept</code> completed abruptly with an exception, the resulting message would be something like:</p><p><pre>
+(Employee's name was Bob Jones) Expected IllegalArgumentException to be thrown, but no exception was thrown
+</pre>
+</p></div></div>
+    </li></ol>
+            </div>
+
+        <div name="scala.AnyRef" class="parent">
+              <h3>Inherited from AnyRef</h3>
+            </div><div name="scala.Any" class="parent">
+              <h3>Inherited from <span name="scala.Any" class="extype">Any</span></h3>
+            </div>
+
+      </div>
+      
+      <div id="tooltip"></div>
+      
+    </body>
+      </html>

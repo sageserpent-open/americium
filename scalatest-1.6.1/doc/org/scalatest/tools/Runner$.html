@@ -1,0 +1,508 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html>
+        <head>
+          <title>org.scalatest.tools.Runner</title>
+          <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+          
+      <link type="text/css" media="screen" rel="stylesheet" href="../../../lib/template.css" />
+      <script type="text/javascript" src="../../../lib/jquery.js"></script>
+      <script type="text/javascript" src="../../../lib/jquery-ui.js"></script>
+      <script type="text/javascript" src="../../../lib/template.js"></script>
+      <script type="text/javascript" src="../../../lib/tools.tooltip.js"></script>
+    
+        </head>
+        <body class="value">
+      <div id="definition">
+        <img src="../../../lib/object_big.png" />
+        <p id="owner"><a name="org" class="extype" href="../../package.html">org</a>.<a name="org.scalatest" class="extype" href="../package.html">scalatest</a>.<a name="org.scalatest.tools" class="extype" href="package.html">tools</a></p>
+        <h1>Runner</h1>
+      </div>
+
+      <h4 class="signature" id="signature">
+      <span class="kind">object</span>
+      <span class="symbol"> 
+        <span class="name">Runner</span>
+        
+        <span class="result"> extends AnyRef</span>
+      </span>
+      </h4>
+      
+          <div class="fullcommenttop" id="comment"><div class="comment cmt"><p>Application that runs a suite of tests.
+The application accepts command line arguments that specify optional <em>config map</em> (key-value pairs), an optional
+<em>runpath</em>, zero to many <code>Reporter</code>s, optional lists of tags to include and/or exclude, zero to many
+<code>Suite</code> class names, zero to many &quot;members-only&quot; <code>Suite</code> paths, zero to many &quot;wildcard&quot; <code>Suite</code> paths,
+and zero to many TestNG XML config file paths.
+All of these arguments are described in more detail below. Here's a summary:</p><p><pre class="stExamples">
+scala [-classpath scalatest-&lt;version&gt;.jar:...] org.scalatest.tools.Runner
+[-D&lt;key&gt;=&lt;value&gt; [...]] [-p &lt;runpath&gt;] [reporter [...]]
+[-n &lt;includes&gt;] [-l &lt;excludes&gt;] [-c] [-s &lt;suite class name&gt;
+[...]] [-j &lt;junit class name&gt; [...]] [-m &lt;members-only suite path&gt;
+[...]] [-w &lt;wildcard suite path&gt; [...]] [-t &lt;TestNG config file
+path&gt; [...]]
+</pre></p><p>The simplest way to start <code>Runner</code> is to specify the directory containing your compiled tests as the sole element of the runpath, for example:</p><p><pre class="stExamples">
+scala -classpath scalatest-&lt;version&gt;.jar org.scalatest.tools.Runner -p compiled_tests
+</pre></p><p>Given the previous command, <code>Runner</code> will discover and execute all <code>Suite</code>s in the <code>compiled_tests</code> directory and its subdirectories,
+and show results in graphical user interface (GUI).</p><p><a name="configMapSection"> </a></p><h4> Specifying the config map </h4><p>A <em>config map</em> contains pairs consisting of a string key and a value that may be of any type. (Keys that start with
+&quot;org.scalatest.&quot; are reserved for ScalaTest. Configuration values that are themselves strings may be specified on the
+<code>Runner</code> command line.
+Each configuration pair is denoted with a &quot;-D&quot;, followed immediately by the key string, an &quot;=&quot;, and the value string.
+For example:</p><p><pre class="stExamples">
+-Ddbname=testdb -Dserver=192.168.1.188
+</pre></p><h4> Specifying a runpath </h4><p>A runpath is the list of filenames, directory paths, and/or URLs that <code>Runner</code>
+uses to load classes for the running test. If runpath is specified, <code>Runner</code> creates
+a custom class loader to load classes available on the runpath.
+The graphical user interface reloads the test classes anew for each run
+by creating and using a new instance of the custom class loader for each run.
+The classes that comprise the test may also be made available on
+the classpath, in which case no runpath need be specified.</p><p>The runpath is specified with the <b>-p</b> option. The <b>-p</b> must be followed by a space,
+a double quote (<code>"</code>), a white-space-separated list of
+paths and URLs, and a double quote. If specifying only one element in the runpath, you can leave off
+the double quotes, which only serve to combine a white-space separated list of strings into one
+command line argument. If you have path elements that themselves have a space in them, you must
+place a backslash (\) in front of the space. Here's an example:</p><p><pre class="stExamples">
+-p &quot;serviceuitest-1.1beta4.jar myjini http://myhost:9998/myfile.jar target/class\ files&quot;
+</pre></p><h4> Specifying reporters </h4><p>Reporters can be specified  on the command line in any of the following
+ways:</p><ul><li> <code><b>-g[configs...]</b></code> - causes display of a graphical user interface that allows
+   tests to be run and results to be investigated</li><li> <code><b>-f[configs...] &lt;filename&gt;</b></code> - causes test results to be written to
+    the named file</li><li> <code><b>-u &lt;directory&gt;</b></code> - causes test results to be written to
+     xml files in the named directory</li><li> <code><b>-o[configs...]</b></code> - causes test results to be written to
+    the standard output</li><li> <code><b>-e[configs...]</b></code> - causes test results to be written to
+    the standard error</li><li> <code><b>-r[configs...] &lt;reporterclass&gt;</b></code> - causes test results to be reported to
+    an instance of the specified fully qualified <code>Reporter</code> class name</li></ul><p>The <code><b>[configs...]</b></code> parameter, which is used to configure reporters, is described in the next section.</p><p>The <code><b>-r</b></code> option causes the reporter specified in
+<code><b>&lt;reporterclass&gt;</b></code> to be
+instantiated.
+Each reporter class specified with a <b>-r</b> option must be public, implement
+<code>org.scalatest.Reporter</code>, and have a public no-arg constructor.
+Reporter classes must be specified with fully qualified names.
+The specified reporter classes may be
+deployed on the classpath. If a runpath is specified with the
+<code>-p</code> option, the specified reporter classes may also be loaded from the runpath.
+All specified reporter classes will be loaded and instantiated via their no-arg constructor.</p><p>For example, to run a suite named <code>MySuite</code> from the <code>mydir</code> directory
+using two reporters, the graphical reporter and a file reporter
+writing to a file named <code>"test.out"</code>, you would type:</p><p><pre class="stExamples">
+java -jar scalatest.jar -p mydir <b>-g -f test.out</b> -s MySuite
+</pre></p><p>The <code><b>-g</b></code>, <code><b>-o</b></code>, or <code><b>-e</b></code> options can
+appear at most once each in any single command line.
+Multiple appearances of <code><b>-f</b></code> and <code><b>-r</b></code> result in multiple reporters
+unless the specified <code><b>&lt;filename&gt;</b></code> or <code><b>&lt;reporterclass&gt;</b></code> is
+repeated. If any of <code><b>-g</b></code>, <code><b>-o</b></code>, <code><b>-e</b></code>,
+<code><b>&lt;filename&gt;</b></code> or <code><b>&lt;reporterclass&gt;</b></code> are repeated on
+the command line, the <code>Runner</code> will print an error message and not run the tests.</p><p><code>Runner</code> adds the reporters specified on the command line to a <em>dispatch reporter</em>,
+which will dispatch each method invocation to each contained reporter. <code>Runner</code> will pass
+the dispatch reporter to executed suites. As a result, every
+specified reporter will receive every report generated by the running suite of tests.
+If no reporters are specified, a graphical
+runner will be displayed that provides a graphical report of
+executed suites.</p><h4> Configuring Reporters </h4><p>Each reporter option on the command line can include configuration characters. Configuration characters
+are specified immediately following the <code><b>-g</b></code>, <code><b>-o</b></code>,
+<code><b>-e</b></code>, <code><b>-f</b></code>, or <code><b>-r</b></code>. The following configuration
+characters, which cause reports to be dropped, are valid for any reporter:</p><ul><li> <code><b>N</b></code> - drop <code>TestStarting</code> events</li><li> <code><b>C</b></code> - drop <code>TestSucceeded</code> events</li><li> <code><b>X</b></code> - drop <code>TestIgnored</code> events</li><li> <code><b>E</b></code> - drop <code>TestPending</code> events</li><li> <code><b>H</b></code> - drop <code>SuiteStarting</code> events</li><li> <code><b>L</b></code> - drop <code>SuiteCompleted</code> events</li><li> <code><b>O</b></code> - drop <code>InfoProvided</code> events</li></ul><p>A dropped event will not be delivered to the reporter at all. So the reporter will not know about it and therefore not
+present information about the event in its report. For example, if you specify <code>-oN</code>, the standard output reporter
+will never receive any <code>TestStarting</code> events and will therefore never report them. The purpose of these
+configuration parameters is to allow users to selectively remove events they find add clutter to the report without
+providing essential information.</p><p>The following three reporter configuration parameters may additionally be used on standard output (-o), standard error (-e),
+and file (-f) reporters:</p><ul><li> <code><b>W</b></code> - without color</li><li> <code><b>D</b></code> - show all durations</li><li> <code><b>S</b></code> - show short stack traces</li><li> <code><b>F</b></code> - show full stack traces</li></ul><p>If you specify a W, D, S, or F for any reporter other than standard output, standard error, or file reporters, <code>Runner</code>
+will complain with an error message and not perform the run.</p><p>Configuring a standard output, error, or file reporter with <code>D</code> will cause that reporter to
+print a duration for each test and suite.  When running in the default mode, a duration will only be printed for
+the entire run.</p><p>Configuring a standard output, error, or file reporter with <code>F</code> will cause that reporter to print full stack traces for all exceptions,
+including <code>TestFailedExceptions</code>. Every <code>TestFailedException</code> contains a stack depth of the
+line of test code that failed so that users won't need to search through a stack trace to find it. When running in the default,
+mode, these reporters will only show full stack traces when other exceptions are thrown, such as an exception thrown
+by production code. When a <code>TestFailedException</code> is thrown in default mode, only the source filename and
+line number of the line of test code that caused the test to fail are printed along with the error message, not the full stack
+trace.</p><p>By default, a standard output, error, or file reporter inserts ansi escape codes into the output printed to change and later reset
+terminal colors. Information printed as a result of run starting, completed, and stopped events
+is printed in cyan. Information printed as a result of ignored or pending test events is shown in yellow. Information printed
+as a result of test failed, suite aborted, or run aborted events is printed in red. All other information is printed in green.
+The purpose of these colors is to facilitate speedy reading of the output, especially the finding of failed tests, which can
+get lost in a sea of passing tests. Configuring a standard output, error, or file reporter into without-color mode ('W') will
+turn off this behavior. No ansi codes will be inserted.</p><p>For example, to run a suite using two reporters, the graphical reporter configured to present every reported event
+and a standard error reporter configured to present everything but test starting, test succeeded, test ignored, test
+pending, suite starting, suite completed, and info provided events, you would type:</p><p><code>scala -classpath scalatest-&lt;version&gt;.jar -p mydir <strong>-g -eNDXEHLO</strong> -s MySuite</code></p><p>Note that no white space is allowed between the reporter option and the initial configuration
+parameters. So <code>"-e NDXEHLO"</code> will not work,
+<code>"-eNDXEHLO"</code> will work.</p><h4> Specifying tags to include and exclude </h4><p>You can specify tag names of tests to include or exclude from a run. To specify tags to include,
+use <code>-n</code> followed by a white-space-separated list of tag names to include, surrounded by
+double quotes. (The double quotes are not needed if specifying just one tag.)  Similarly, to specify tags
+to exclude, use <code>-l</code> followed by a white-space-separated
+list of tag names to exclude, surrounded by double quotes. (As before, the double quotes are not needed
+if specifying just one tag.) If tags to include is not specified, then all tests
+except those mentioned in the tags to exclude (and in the <code>org.scalatest.Ignore</code> tag), will be executed.
+(In other words, the absence of a <code>-n</code> option is like a wildcard, indicating all tests be included.)
+If tags to include is specified, then only those tests whose tags are mentioned in the argument following <code>-n</code>
+and not mentioned in the tags to exclude, will be executed. For more information on test tags, see
+the <a href="../Suite.html">documentation for <code>Suite</code></a>. Here are some examples:</p><ul><li><code>-n CheckinTests</code></li><li><code>-n FunctionalTests -l SlowTests</code></li><li><code>-n "CheckinTests FunctionalTests" -l "SlowTests NetworkTests"</code></li></ul><h4> Executing <code>Suite</code>s in parallel </h4><p>With the proliferation of multi-core architectures, and the often parallelizable nature of tests, it is useful to be able to run
+tests in parallel. If you include <code>-c</code> on the command line, <code>Runner</code> will pass a <code>Distributor</code> to
+the <code>Suite</code>s you specify with <code>-s</code>. <code>Runner</code> will set up a thread pool to execute any <code>Suite</code>s
+passed to the <code>Distributor</code>'s <code>put</code> method in parallel. Trait <code>Suite</code>'s implementation of
+<code>runNestedSuites</code> will place any nested <code>Suite</code>s into this <code>Distributor</code>. Thus, if you have a <code>Suite</code>
+of tests that must be executed sequentially, you should override <code>runNestedSuites</code> as described in the <a href="../Distributor.html">documentation for <code>Distributor</code></a>.</p><p>The <code>-c</code> option may optionally be appended with a number (e.g.
+&quot;<code>-c10</code>&quot; -- no intervening space) to specify the number of
+threads to be created in the thread pool.  If no number (or 0) is
+specified, the number of threads will be decided based on the number of
+processors available.</p><h4> Specifying <code>Suite</code>s </h4><p>Suites are specified on the command line with a <b>-s</b> followed by the fully qualified
+name of a <code>Suite</code> subclass, as in:</p><p><pre class="stExamples">
+-s com.artima.serviceuitest.ServiceUITestkit
+</pre></p><p>Each specified suite class must be public, a subclass of
+<code>org.scalatest.Suite</code>, and contain a public no-arg constructor.
+<code>Suite</code> classes must be specified with fully qualified names.
+The specified <code>Suite</code> classes may be
+loaded from the classpath. If a runpath is specified with the
+<code>-p</code> option, specified <code>Suite</code> classes may also be loaded from the runpath.
+All specified <code>Suite</code> classes will be loaded and instantiated via their no-arg constructor.</p><p>The runner will invoke <code>execute</code> on each instantiated <code>org.scalatest.Suite</code>,
+passing in the dispatch reporter to each <code>execute</code> method.</p><p><code>Runner</code> is intended to be used from the command line. It is included in <code>org.scalatest</code>
+package as a convenience for the user. If this package is incorporated into tools, such as IDEs, which take
+over the role of runner, object <code>org.scalatest.tools.Runner</code> may be excluded from that implementation of the package.
+All other public types declared in package <code>org.scalatest.tools.Runner</code> should be included in any such usage, however,
+so client software can count on them being available.</p><p><a name="membersOnlyWildcard"></p><h4> Specifying &quot;members-only&quot; and &quot;wildcard&quot; <code>Suite</code> paths </h4><p></a></p><p>If you specify <code>Suite</code> path names with <code>-m</code> or <code>-w</code>, <code>Runner</code> will automatically
+discover and execute accessible <code>Suite</code>s in the runpath that are either a member of (in the case of <code>-m</code>)
+or enclosed by (in the case of <code>-w</code>) the specified path. As used in this context, a <em>path</em> is a portion of a fully qualified name.
+For example, the fully qualifed name <code>com.example.webapp.MySuite</code> contains paths <code>com</code>, <code>com.example</code>, and <code>com.example.webapp</code>.
+The fully qualifed name <code>com.example.webapp.MyObject.NestedSuite</code> contains paths <code>com</code>, <code>com.example</code>,
+<code>com.example.webapp</code>, and <code>com.example.webapp.MyObject</code>.
+An <em>accessible <code>Suite</code></em> is a public class that extends <code>org.scalatest.Suite</code>
+and defines a public no-arg constructor. Note that <code>Suite</code>s defined inside classes and traits do not have no-arg constructors,
+and therefore won't be discovered. <code>Suite</code>s defined inside singleton objects, however, do get a no-arg constructor by default, thus
+they can be discovered.</p><p>For example, if you specify <code>-m com.example.webapp</code>
+on the command line, and you've placed <code>com.example.webapp.RedSuite</code> and <code>com.example.webapp.BlueSuite</code>
+on the runpath, then <code>Runner</code> will instantiate and execute both of those <code>Suite</code>s. The difference
+between <code>-m</code> and <code>-w</code> is that for <code>-m</code>, only <code>Suite</code>s that are direct members of the named path
+will be discovered. For <code>-w</code>, any <code>Suite</code>s whose fully qualified
+name begins with the specified path will be discovered. Thus, if <code>com.example.webapp.controllers.GreenSuite</code>
+exists on the runpath, invoking <code>Runner</code> with <code>-w com.example.webapp</code> will cause <code>GreenSuite</code>
+to be discovered, because its fully qualifed name begins with <code>"com.example.webapp"</code>. But if you invoke <code>Runner</code>
+with <code>-m com.example.webapp</code>, <code>GreenSuite</code> will <em>not</em> be discovered because it is directly
+a member of <code>com.example.webapp.controllers</code>, not <code>com.example.webapp</code>.</p><p>If you specify no <code>-s</code>, <code>-m</code>, or <code>-w</code> arguments on the command line to <code>Runner</code>, it will discover and execute all accessible <code>Suite</code>s
+in the runpath.</p><h4> Specifying TestNG XML config file paths </h4><p>If you specify one or more file paths with <code>-t</code>, <code>Runner</code> will create a <code>org.scalatest.testng.TestNGWrapperSuite</code>,
+passing in a <code>List</code> of the specified paths. When executed, the <code>TestNGWrapperSuite</code> will create one <code>TestNG</code> instance
+and pass each specified file path to it for running. If you include <code>-t</code> arguments, you must include TestNG's jar file on the class path or runpath.
+The <code>-t</code> argument will enable you to run existing <code>TestNG</code> tests, including tests written in Java, as part of a ScalaTest run.
+You need not use <code>-t</code> to run suites written in Scala that extend <code>TestNGSuite</code>. You can simply run such suites with
+<code>-s</code>, <code>-m</code>, or </code>-w</code> parameters.</p><h4> Specifying JUnit tests </h4><p>JUnit tests, including ones written in Java, may be run by specifying
+<code>-j classname</code>, where the classname is a valid JUnit class
+such as a TestCase, TestSuite, or a class implementing a static suite()
+method returning a TestSuite.</p><p>To use this option you must include a JUnit jar file on your classpath.</p></div><div class="toggleContainer block">
+          <span class="toggle">Linear Supertypes</span>
+          <div class="superTypes hiddenContent">AnyRef, <span name="scala.Any" class="extype">Any</span></div>
+        </div></div>
+        
+
+      <div id="template">
+
+        <div id="mbrsel">
+          <div id="textfilter"><span class="pre"></span><span class="input"><input accesskey="/" type="text" /></span><span class="post"></span></div>
+          <div id="order">
+                <span class="filtertype">Ordering</span>
+                <ol><li class="alpha in"><span>Alphabetic</span></li><li class="inherit out"><span>By inheritance</span></li></ol>
+              </div>
+          <div id="ancestors">
+                <span class="filtertype">Inherited</span>
+                <ol><li class="hideall out"><span>Hide All</span></li>
+                <li class="showall in"><span>Show all</span></li></ol>
+                <ol id="linearization"><li name="org.scalatest.tools.Runner" class="in"><span>Runner</span></li><li name="scala.AnyRef" class="in"><span>AnyRef</span></li><li name="scala.Any" class="in"><span>Any</span></li></ol>
+              </div>
+          <div id="visbl">
+              <span class="filtertype">Visibility</span>
+              <ol><li class="public in"><span>Public</span></li><li class="all out"><span>All</span></li></ol>
+            </div>
+        </div>
+
+        
+
+        
+        
+        
+
+        <div class="values members" id="values">
+              <h3>Value Members</h3>
+              <ol><li visbl="pub" name="scala.AnyRef#!=" data-isabs="false">
+      <a id="!=(AnyRef):Boolean"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">!=</span>
+        
+        <span class="params">(<span name="arg0">arg0: AnyRef</span>)</span><span class="result">: <span name="scala.Boolean" class="extype">Boolean</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>AnyRef</dd></dl></div>
+    </li><li visbl="pub" name="scala.Any#!=" data-isabs="false">
+      <a id="!=(Any):Boolean"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">!=</span>
+        
+        <span class="params">(<span name="arg0">arg0: <span name="scala.Any" class="extype">Any</span></span>)</span><span class="result">: <span name="scala.Boolean" class="extype">Boolean</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>Any</dd></dl></div>
+    </li><li visbl="pub" name="scala.AnyRef###" data-isabs="false">
+      <a id="##():Int"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">##</span>
+        
+        <span class="params">()</span><span class="result">: <span name="scala.Int" class="extype">Int</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>AnyRef → Any</dd></dl></div>
+    </li><li visbl="pub" name="scala.AnyRef#==" data-isabs="false">
+      <a id="==(AnyRef):Boolean"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">==</span>
+        
+        <span class="params">(<span name="arg0">arg0: AnyRef</span>)</span><span class="result">: <span name="scala.Boolean" class="extype">Boolean</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>AnyRef</dd></dl></div>
+    </li><li visbl="pub" name="scala.Any#==" data-isabs="false">
+      <a id="==(Any):Boolean"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">==</span>
+        
+        <span class="params">(<span name="arg0">arg0: <span name="scala.Any" class="extype">Any</span></span>)</span><span class="result">: <span name="scala.Boolean" class="extype">Boolean</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>Any</dd></dl></div>
+    </li><li visbl="pub" name="scala.Any#asInstanceOf" data-isabs="false">
+      <a id="asInstanceOf[T0]:T0"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">asInstanceOf</span>
+        <span class="tparams">[<span name="T0">T0</span>]</span>
+        <span class="result">: T0</span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>Any</dd></dl></div>
+    </li><li visbl="prt" name="scala.AnyRef#clone" data-isabs="false">
+      <a id="clone():AnyRef"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">clone</span>
+        
+        <span class="params">()</span><span class="result">: AnyRef</span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>protected[<a name="java.lang" class="extype" href="../../../java/lang/package.html">lang</a>] </dd><dt>Definition Classes</dt><dd>AnyRef</dd><dt>Annotations</dt><dd>
+                <span class="name">@throws</span><span class="args">()</span>
+              
+        </dd></dl></div>
+    </li><li visbl="pub" name="scala.AnyRef#eq" data-isabs="false">
+      <a id="eq(AnyRef):Boolean"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">eq</span>
+        
+        <span class="params">(<span name="arg0">arg0: AnyRef</span>)</span><span class="result">: <span name="scala.Boolean" class="extype">Boolean</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>AnyRef</dd></dl></div>
+    </li><li visbl="pub" name="scala.AnyRef#equals" data-isabs="false">
+      <a id="equals(Any):Boolean"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">equals</span>
+        
+        <span class="params">(<span name="arg0">arg0: <span name="scala.Any" class="extype">Any</span></span>)</span><span class="result">: <span name="scala.Boolean" class="extype">Boolean</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef → Any</dd></dl></div>
+    </li><li visbl="prt" name="scala.AnyRef#finalize" data-isabs="false">
+      <a id="finalize():Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">finalize</span>
+        
+        <span class="params">()</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>protected[<a name="java.lang" class="extype" href="../../../java/lang/package.html">lang</a>] </dd><dt>Definition Classes</dt><dd>AnyRef</dd><dt>Annotations</dt><dd>
+                <span class="name">@throws</span><span class="args">()</span>
+              
+        </dd></dl></div>
+    </li><li visbl="pub" name="scala.AnyRef#getClass" data-isabs="false">
+      <a id="getClass():java.lang.Class[_]"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">getClass</span>
+        
+        <span class="params">()</span><span class="result">: java.lang.Class[_]</span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>AnyRef</dd></dl></div>
+    </li><li visbl="pub" name="scala.AnyRef#hashCode" data-isabs="false">
+      <a id="hashCode():Int"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">hashCode</span>
+        
+        <span class="params">()</span><span class="result">: <span name="scala.Int" class="extype">Int</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef → Any</dd></dl></div>
+    </li><li visbl="pub" name="scala.Any#isInstanceOf" data-isabs="false">
+      <a id="isInstanceOf[T0]:Boolean"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">isInstanceOf</span>
+        <span class="tparams">[<span name="T0">T0</span>]</span>
+        <span class="result">: <span name="scala.Boolean" class="extype">Boolean</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>Any</dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.tools.Runner#main" data-isabs="false">
+      <a id="main(Array[String]):Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">main</span>
+        
+        <span class="params">(<span name="args">args: <span name="scala.Array" class="extype">Array</span>[String]</span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Runs a suite of tests, with optional GUI.</p><div class="fullcomment"><div class="comment cmt"><p>Runs a suite of tests, with optional GUI. See the main documentation for this singleton object for the details.
+</p></div></div>
+    </li><li visbl="pub" name="scala.AnyRef#ne" data-isabs="false">
+      <a id="ne(AnyRef):Boolean"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">ne</span>
+        
+        <span class="params">(<span name="arg0">arg0: AnyRef</span>)</span><span class="result">: <span name="scala.Boolean" class="extype">Boolean</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>AnyRef</dd></dl></div>
+    </li><li visbl="pub" name="scala.AnyRef#notify" data-isabs="false">
+      <a id="notify():Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">notify</span>
+        
+        <span class="params">()</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>AnyRef</dd></dl></div>
+    </li><li visbl="pub" name="scala.AnyRef#notifyAll" data-isabs="false">
+      <a id="notifyAll():Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">notifyAll</span>
+        
+        <span class="params">()</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>AnyRef</dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.tools.Runner#run" data-isabs="false">
+      <a id="run(Array[String]):Boolean"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">run</span>
+        
+        <span class="params">(<span name="args">args: <span name="scala.Array" class="extype">Array</span>[String]</span>)</span><span class="result">: <span name="scala.Boolean" class="extype">Boolean</span></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Runs a suite of tests, with optional GUI.</p><div class="fullcomment"><div class="comment cmt"><p>Runs a suite of tests, with optional GUI. See the main documentation for this singleton object for the details.
+The difference between this method and <code>main</code> is simply that this method will block until the run
+has completed, aborted, or been stopped, and return <code>true</code> if all tests executed and passed. In other
+words, if any test fails, or if any suite aborts, or if the run aborts or is stopped, this method will
+return <code>false</code>. This value is used, for example, by the ScalaTest ant task to determine whether
+to continue the build if <code>haltOnFailure</code> is set to <code>true</code>.
+</p></div><dl class="paramcmts block"><dt>returns</dt><dd class="cmt"><p>true if all tests were executed and passed.
+</p></dd></dl></div>
+    </li><li visbl="pub" name="scala.AnyRef#synchronized" data-isabs="false">
+      <a id="synchronized[T0](⇒ T0):T0"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">synchronized</span>
+        <span class="tparams">[<span name="T0">T0</span>]</span>
+        <span class="params">(<span name="arg0">arg0: ⇒ T0</span>)</span><span class="result">: T0</span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>AnyRef</dd></dl></div>
+    </li><li visbl="pub" name="scala.AnyRef#toString" data-isabs="false">
+      <a id="toString():String"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">toString</span>
+        
+        <span class="params">()</span><span class="result">: <span name="java.lang.String" class="extype">String</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef → Any</dd></dl></div>
+    </li><li visbl="pub" name="scala.AnyRef#wait" data-isabs="false">
+      <a id="wait():Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">wait</span>
+        
+        <span class="params">()</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>AnyRef</dd><dt>Annotations</dt><dd>
+                <span class="name">@throws</span><span class="args">()</span>
+              
+        </dd></dl></div>
+    </li><li visbl="pub" name="scala.AnyRef#wait" data-isabs="false">
+      <a id="wait(Long,Int):Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">wait</span>
+        
+        <span class="params">(<span name="arg0">arg0: <span name="scala.Long" class="extype">Long</span></span>, <span name="arg1">arg1: <span name="scala.Int" class="extype">Int</span></span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>AnyRef</dd><dt>Annotations</dt><dd>
+                <span class="name">@throws</span><span class="args">()</span>
+              
+        </dd></dl></div>
+    </li><li visbl="pub" name="scala.AnyRef#wait" data-isabs="false">
+      <a id="wait(Long):Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">wait</span>
+        
+        <span class="params">(<span name="arg0">arg0: <span name="scala.Long" class="extype">Long</span></span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>AnyRef</dd><dt>Annotations</dt><dd>
+                <span class="name">@throws</span><span class="args">()</span>
+              
+        </dd></dl></div>
+    </li></ol>
+            </div>
+
+        <div name="scala.AnyRef" class="parent">
+              <h3>Inherited from AnyRef</h3>
+            </div><div name="scala.Any" class="parent">
+              <h3>Inherited from <span name="scala.Any" class="extype">Any</span></h3>
+            </div>
+
+      </div>
+      
+      <div id="tooltip"></div>
+      
+    </body>
+      </html>

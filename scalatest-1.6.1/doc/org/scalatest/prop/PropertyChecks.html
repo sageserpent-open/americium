@@ -1,0 +1,1529 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html>
+        <head>
+          <title>org.scalatest.prop.PropertyChecks</title>
+          <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+          
+      <link type="text/css" media="screen" rel="stylesheet" href="../../../lib/template.css" />
+      <script type="text/javascript" src="../../../lib/jquery.js"></script>
+      <script type="text/javascript" src="../../../lib/jquery-ui.js"></script>
+      <script type="text/javascript" src="../../../lib/template.js"></script>
+      <script type="text/javascript" src="../../../lib/tools.tooltip.js"></script>
+    
+        </head>
+        <body class="type">
+      <div id="definition">
+        <a title="Go to companion" href="PropertyChecks$.html"><img src="../../../lib/trait_to_object_big.png" /></a>
+        <p id="owner"><a name="org" class="extype" href="../../package.html">org</a>.<a name="org.scalatest" class="extype" href="../package.html">scalatest</a>.<a name="org.scalatest.prop" class="extype" href="package.html">prop</a></p>
+        <h1><a title="Go to companion" href="PropertyChecks$.html">PropertyChecks</a></h1>
+      </div>
+
+      <h4 class="signature" id="signature">
+      <span class="kind">trait</span>
+      <span class="symbol"> 
+        <span class="name">PropertyChecks</span>
+        
+        <span class="result"> extends <a name="org.scalatest.prop.TableDrivenPropertyChecks" class="extype" href="TableDrivenPropertyChecks.html">TableDrivenPropertyChecks</a> with <a name="org.scalatest.prop.GeneratorDrivenPropertyChecks" class="extype" href="GeneratorDrivenPropertyChecks.html">GeneratorDrivenPropertyChecks</a></span>
+      </span>
+      </h4>
+      
+          <div class="fullcommenttop" id="comment"><div class="comment cmt"><p>Trait that facilitates property checks on data supplied by tables and generators.</p><p>This trait extends both <a href="TableDrivenPropertyChecks.html"><code>TableDrivenPropertyChecks</code></a> and
+<a href="GeneratorDrivenPropertyChecks.html"><code>GeneratorDrivenPropertyChecks</code></a>. Thus by mixing in
+this trait you can perform property checks on data supplied either by tables or generators. For the details of
+table- and generator-driven property checks, see the documentation for each by following the links above.</p><p>For a quick example of using both table and generator-driven property checks in the same suite of tests, however,
+imagine you want to test this <code>Fraction,</code> class:</p><p><pre class="stHighlighted">
+<span class="stReserved">class</span> <span class="stType">Fraction</span>(n: <span class="stType">Int</span>, d: <span class="stType">Int</span>) {
+<br />  require(d != <span class="stLiteral">0</span>)
+  require(d != Integer.MIN_VALUE)
+  require(n != Integer.MIN_VALUE)
+<br />  <span class="stReserved">val</span> numer = <span class="stReserved">if</span> (d &lt; <span class="stLiteral">0</span>) -<span class="stLiteral">1</span> * n <span class="stReserved">else</span> n
+  <span class="stReserved">val</span> denom = d.abs
+<br />  <span class="stReserved">override</span> <span class="stReserved">def</span> toString = numer + <span class="stQuotedString">&quot; / &quot;</span> + denom
+}
+</pre></p><p>If you mix in <code>PropertyChecks</code>, you could use a generator-driven property check to test that the passed values for numerator and
+denominator are properly normalized, like this:</p><p><pre class="stHighlighted">
+forAll { (n: <span class="stType">Int</span>, d: <span class="stType">Int</span>) =&gt;
+<br />  whenever (d != <span class="stLiteral">0</span> &amp;&amp; d != Integer.MIN_VALUE
+      &amp;&amp; n != Integer.MIN_VALUE) {
+<br />    <span class="stReserved">val</span> f = <span class="stReserved">new</span> <span class="stType">Fraction</span>(n, d)
+<br />    <span class="stReserved">if</span> (n &lt; <span class="stLiteral">0</span> &amp;&amp; d &lt; <span class="stLiteral">0</span> || n &gt; <span class="stLiteral">0</span> &amp;&amp; d &gt; <span class="stLiteral">0</span>)
+      f.numer should be &gt; <span class="stLiteral">0</span>
+    <span class="stReserved">else</span> <span class="stReserved">if</span> (n != <span class="stLiteral">0</span>)
+      f.numer should be &lt; <span class="stLiteral">0</span>
+    <span class="stReserved">else</span>
+      f.numer should be === <span class="stLiteral">0</span>
+<br />    f.denom should be &gt; <span class="stLiteral">0</span>
+  }
+}
+</pre></p><p>And you could use a table-driven property check to test that all combinations of invalid values passed to the <code>Fraction</code> constructor
+produce the expected <code>IllegalArgumentException</code>, like this:</p><p><pre class="stHighlighted">
+<span class="stReserved">val</span> invalidCombos =
+  <span class="stType">Table</span>(
+    (<span class="stQuotedString">&quot;n&quot;</span>,               <span class="stQuotedString">&quot;d&quot;</span>),
+    (Integer.MIN_VALUE, Integer.MIN_VALUE),
+    (<span class="stLiteral">1</span>,                 Integer.MIN_VALUE),
+    (Integer.MIN_VALUE, <span class="stLiteral">1</span>),
+    (Integer.MIN_VALUE, <span class="stLiteral">0</span>),
+    (<span class="stLiteral">1</span>,                 <span class="stLiteral">0</span>)
+  )
+<br />forAll (invalidCombos) { (n: <span class="stType">Int</span>, d: <span class="stType">Int</span>) =&gt;
+  evaluating {
+    <span class="stReserved">new</span> <span class="stType">Fraction</span>(n, d)
+  } should produce [<span class="stType">IllegalArgumentException</span>]
+}
+</pre>
+</p></div><div class="toggleContainer block">
+          <span class="toggle">Linear Supertypes</span>
+          <div class="superTypes hiddenContent"><a name="org.scalatest.prop.GeneratorDrivenPropertyChecks" class="extype" href="GeneratorDrivenPropertyChecks.html">GeneratorDrivenPropertyChecks</a>, <a name="org.scalatest.prop.Configuration" class="extype" href="Configuration.html">Configuration</a>, <a name="org.scalatest.prop.TableDrivenPropertyChecks" class="extype" href="TableDrivenPropertyChecks.html">TableDrivenPropertyChecks</a>, <a name="org.scalatest.prop.Tables" class="extype" href="Tables.html">Tables</a>, <a name="org.scalatest.prop.Whenever" class="extype" href="Whenever.html">Whenever</a>, AnyRef, <span name="scala.Any" class="extype">Any</span></div>
+        </div><div class="toggleContainer block">
+          <span class="toggle">Known Subclasses</span>
+          <div class="subClasses hiddenContent"><a name="org.scalatest.prop.PropertyChecks" class="extype" href="PropertyChecks$.html">PropertyChecks</a></div>
+        </div></div>
+        
+
+      <div id="template">
+
+        <div id="mbrsel">
+          <div id="textfilter"><span class="pre"></span><span class="input"><input accesskey="/" type="text" /></span><span class="post"></span></div>
+          <div id="order">
+                <span class="filtertype">Ordering</span>
+                <ol><li class="alpha in"><span>Alphabetic</span></li><li class="inherit out"><span>By inheritance</span></li></ol>
+              </div>
+          <div id="ancestors">
+                <span class="filtertype">Inherited</span>
+                <ol><li class="hideall out"><span>Hide All</span></li>
+                <li class="showall in"><span>Show all</span></li></ol>
+                <ol id="linearization"><li name="org.scalatest.prop.PropertyChecks" class="in"><span>PropertyChecks</span></li><li name="org.scalatest.prop.GeneratorDrivenPropertyChecks" class="in"><span>GeneratorDrivenPropertyChecks</span></li><li name="org.scalatest.prop.Configuration" class="in"><span>Configuration</span></li><li name="org.scalatest.prop.TableDrivenPropertyChecks" class="in"><span>TableDrivenPropertyChecks</span></li><li name="org.scalatest.prop.Tables" class="in"><span>Tables</span></li><li name="org.scalatest.prop.Whenever" class="in"><span>Whenever</span></li><li name="scala.AnyRef" class="in"><span>AnyRef</span></li><li name="scala.Any" class="in"><span>Any</span></li></ol>
+              </div>
+          <div id="visbl">
+              <span class="filtertype">Visibility</span>
+              <ol><li class="public in"><span>Public</span></li><li class="all out"><span>All</span></li></ol>
+            </div>
+        </div>
+
+        
+
+        <div class="types members" id="types">
+              <h3>Type Members</h3>
+              <ol><li visbl="pub" name="org.scalatest.prop.GeneratorDrivenPropertyChecks.ConfiguredPropertyCheck" data-isabs="false">
+      <a id="ConfiguredPropertyCheck:ConfiguredPropertyCheck"></a>
+      <h4 class="signature">
+      <span class="kind">class</span>
+      <span class="symbol"> 
+        <a href="GeneratorDrivenPropertyChecks$ConfiguredPropertyCheck.html"><span class="name">ConfiguredPropertyCheck</span></a>
+        
+        <span class="result"> extends AnyRef</span>
+      </span>
+      </h4>
+      <p class="comment cmt">Performs a configured property checks by applying property check functions passed to its <code>apply</code> methods to arguments
+supplied by implicitly passed generators, modifying the values in the
+<code>PropertyGenConfig</code> object passed implicitly to its <code>apply</code> methods with parameter values passed to its constructor.</p>
+    </li><li visbl="pub" name="org.scalatest.prop.Configuration.MaxDiscarded" data-isabs="false">
+      <a id="MaxDiscarded:MaxDiscarded"></a>
+      <h4 class="signature">
+      <span class="kind">case class</span>
+      <span class="symbol"> 
+        <a href="Configuration$MaxDiscarded.html"><span class="name">MaxDiscarded</span></a>
+        
+        <span class="params">(<span name="value">value: Int</span>)</span><span class="result"> extends PropertyCheckConfigParam with Product with Serializable</span>
+      </span>
+      </h4>
+      <p class="comment cmt">A <code>PropertyCheckConfigParam</code> that specifies the maximum number of discarded
+property evaluations allowed during property evaluation.</p>
+    </li><li visbl="pub" name="org.scalatest.prop.Configuration.MaxSize" data-isabs="false">
+      <a id="MaxSize:MaxSize"></a>
+      <h4 class="signature">
+      <span class="kind">case class</span>
+      <span class="symbol"> 
+        <a href="Configuration$MaxSize.html"><span class="name">MaxSize</span></a>
+        
+        <span class="params">(<span name="value">value: Int</span>)</span><span class="result"> extends PropertyCheckConfigParam with Product with Serializable</span>
+      </span>
+      </h4>
+      <p class="comment cmt">A <code>PropertyCheckConfigParam</code> that specifies the maximum size parameter to
+provide to ScalaCheck, which it will use when generating objects for which size matters (such as
+strings or lists).</p>
+    </li><li visbl="pub" name="org.scalatest.prop.Configuration.MinSize" data-isabs="false">
+      <a id="MinSize:MinSize"></a>
+      <h4 class="signature">
+      <span class="kind">case class</span>
+      <span class="symbol"> 
+        <a href="Configuration$MinSize.html"><span class="name">MinSize</span></a>
+        
+        <span class="params">(<span name="value">value: Int</span>)</span><span class="result"> extends PropertyCheckConfigParam with Product with Serializable</span>
+      </span>
+      </h4>
+      <p class="comment cmt">A <code>PropertyCheckConfigParam</code> that specifies the minimum size parameter to
+provide to ScalaCheck, which it will use when generating objects for which size matters (such as
+strings or lists).</p>
+    </li><li visbl="pub" name="org.scalatest.prop.Configuration.MinSuccessful" data-isabs="false">
+      <a id="MinSuccessful:MinSuccessful"></a>
+      <h4 class="signature">
+      <span class="kind">case class</span>
+      <span class="symbol"> 
+        <a href="Configuration$MinSuccessful.html"><span class="name">MinSuccessful</span></a>
+        
+        <span class="params">(<span name="value">value: Int</span>)</span><span class="result"> extends PropertyCheckConfigParam with Product with Serializable</span>
+      </span>
+      </h4>
+      <p class="comment cmt">A <code>PropertyCheckConfigParam</code> that specifies the minimum number of successful
+property evaluations required for the property to pass.</p>
+    </li><li visbl="pub" name="org.scalatest.prop.Configuration.PropertyCheckConfig" data-isabs="false">
+      <a id="PropertyCheckConfig:PropertyCheckConfig"></a>
+      <h4 class="signature">
+      <span class="kind">case class</span>
+      <span class="symbol"> 
+        <a href="Configuration$PropertyCheckConfig.html"><span class="name">PropertyCheckConfig</span></a>
+        
+        <span class="params">(<span name="minSuccessful">minSuccessful: Int</span>, <span name="maxDiscarded">maxDiscarded: Int</span>, <span name="minSize">minSize: Int</span>, <span name="maxSize">maxSize: Int</span>, <span name="workers">workers: Int</span>)</span><span class="result"> extends Product with Serializable</span>
+      </span>
+      </h4>
+      <p class="comment cmt">Configuration object for property checks.</p>
+    </li><li visbl="pub" name="org.scalatest.prop.Configuration.PropertyCheckConfigParam" data-isabs="true">
+      <a id="PropertyCheckConfigParam:PropertyCheckConfigParam"></a>
+      <h4 class="signature">
+      <span class="kind">class</span>
+      <span class="symbol"> 
+        <a href="Configuration$PropertyCheckConfigParam.html"><span class="name">PropertyCheckConfigParam</span></a>
+        
+        <span class="result"> extends AnyRef</span>
+      </span>
+      </h4>
+      <p class="comment cmt">Abstract class defining a family of configuration parameters for property checks.</p>
+    </li><li visbl="pub" name="org.scalatest.prop.Configuration.Workers" data-isabs="false">
+      <a id="Workers:Workers"></a>
+      <h4 class="signature">
+      <span class="kind">case class</span>
+      <span class="symbol"> 
+        <a href="Configuration$Workers.html"><span class="name">Workers</span></a>
+        
+        <span class="params">(<span name="value">value: Int</span>)</span><span class="result"> extends PropertyCheckConfigParam with Product with Serializable</span>
+      </span>
+      </h4>
+      <p class="comment cmt">A <code>PropertyCheckConfigParam</code> that specifies the number of worker threads
+to use when evaluating a property.</p>
+    </li></ol>
+            </div>
+        
+        
+
+        <div class="values members" id="values">
+              <h3>Value Members</h3>
+              <ol><li visbl="pub" name="scala.AnyRef#!=" data-isabs="false">
+      <a id="!=(AnyRef):Boolean"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">!=</span>
+        
+        <span class="params">(<span name="arg0">arg0: AnyRef</span>)</span><span class="result">: <span name="scala.Boolean" class="extype">Boolean</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>AnyRef</dd></dl></div>
+    </li><li visbl="pub" name="scala.Any#!=" data-isabs="false">
+      <a id="!=(Any):Boolean"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">!=</span>
+        
+        <span class="params">(<span name="arg0">arg0: <span name="scala.Any" class="extype">Any</span></span>)</span><span class="result">: <span name="scala.Boolean" class="extype">Boolean</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>Any</dd></dl></div>
+    </li><li visbl="pub" name="scala.AnyRef###" data-isabs="false">
+      <a id="##():Int"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">##</span>
+        
+        <span class="params">()</span><span class="result">: <span name="scala.Int" class="extype">Int</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>AnyRef → Any</dd></dl></div>
+    </li><li visbl="pub" name="scala.AnyRef#==" data-isabs="false">
+      <a id="==(AnyRef):Boolean"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">==</span>
+        
+        <span class="params">(<span name="arg0">arg0: AnyRef</span>)</span><span class="result">: <span name="scala.Boolean" class="extype">Boolean</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>AnyRef</dd></dl></div>
+    </li><li visbl="pub" name="scala.Any#==" data-isabs="false">
+      <a id="==(Any):Boolean"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">==</span>
+        
+        <span class="params">(<span name="arg0">arg0: <span name="scala.Any" class="extype">Any</span></span>)</span><span class="result">: <span name="scala.Boolean" class="extype">Boolean</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>Any</dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.prop.Tables.Table" data-isabs="false">
+      <a id="Table:Table"></a>
+      <h4 class="signature">
+      <span class="kind">object</span>
+      <span class="symbol"> 
+        <a href="Tables$Table$.html"><span class="name">Table</span></a>
+        
+        <span class="result"> extends AnyRef</span>
+      </span>
+      </h4>
+      <p class="comment cmt">Object containing one <code>apply</code> factory method for each <code>TableFor&lt;n&gt;</code> class.</p>
+    </li><li visbl="pub" name="scala.Any#asInstanceOf" data-isabs="false">
+      <a id="asInstanceOf[T0]:T0"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">asInstanceOf</span>
+        <span class="tparams">[<span name="T0">T0</span>]</span>
+        <span class="result">: T0</span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>Any</dd></dl></div>
+    </li><li visbl="prt" name="scala.AnyRef#clone" data-isabs="false">
+      <a id="clone():AnyRef"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">clone</span>
+        
+        <span class="params">()</span><span class="result">: AnyRef</span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>protected[<a name="java.lang" class="extype" href="../../../java/lang/package.html">lang</a>] </dd><dt>Definition Classes</dt><dd>AnyRef</dd><dt>Annotations</dt><dd>
+                <span class="name">@throws</span><span class="args">()</span>
+              
+        </dd></dl></div>
+    </li><li visbl="pub" name="scala.AnyRef#eq" data-isabs="false">
+      <a id="eq(AnyRef):Boolean"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">eq</span>
+        
+        <span class="params">(<span name="arg0">arg0: AnyRef</span>)</span><span class="result">: <span name="scala.Boolean" class="extype">Boolean</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>AnyRef</dd></dl></div>
+    </li><li visbl="pub" name="scala.AnyRef#equals" data-isabs="false">
+      <a id="equals(Any):Boolean"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">equals</span>
+        
+        <span class="params">(<span name="arg0">arg0: <span name="scala.Any" class="extype">Any</span></span>)</span><span class="result">: <span name="scala.Boolean" class="extype">Boolean</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef → Any</dd></dl></div>
+    </li><li visbl="prt" name="scala.AnyRef#finalize" data-isabs="false">
+      <a id="finalize():Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">finalize</span>
+        
+        <span class="params">()</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>protected[<a name="java.lang" class="extype" href="../../../java/lang/package.html">lang</a>] </dd><dt>Definition Classes</dt><dd>AnyRef</dd><dt>Annotations</dt><dd>
+                <span class="name">@throws</span><span class="args">()</span>
+              
+        </dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.prop.GeneratorDrivenPropertyChecks#forAll" data-isabs="false">
+      <a id="forAll[A, B, C, D, E, F]((Gen[A], String),(Gen[B], String),(Gen[C], String),(Gen[D], String),(Gen[E], String),(Gen[F], String),PropertyCheckConfigParam*)((A, B, C, D, E, F) ⇒ Unit)(PropertyCheckConfig,Shrink[A],Shrink[B],Shrink[C],Shrink[D],Shrink[E],Shrink[F]):Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">forAll</span>
+        <span class="tparams">[<span name="A">A</span>, <span name="B">B</span>, <span name="C">C</span>, <span name="D">D</span>, <span name="E">E</span>, <span name="F">F</span>]</span>
+        <span class="params">(<span name="genAndNameA">genAndNameA: (<span name="org.scalacheck.Gen" class="extype">Gen</span>[A], String)</span>, <span name="genAndNameB">genAndNameB: (<span name="org.scalacheck.Gen" class="extype">Gen</span>[B], String)</span>, <span name="genAndNameC">genAndNameC: (<span name="org.scalacheck.Gen" class="extype">Gen</span>[C], String)</span>, <span name="genAndNameD">genAndNameD: (<span name="org.scalacheck.Gen" class="extype">Gen</span>[D], String)</span>, <span name="genAndNameE">genAndNameE: (<span name="org.scalacheck.Gen" class="extype">Gen</span>[E], String)</span>, <span name="genAndNameF">genAndNameF: (<span name="org.scalacheck.Gen" class="extype">Gen</span>[F], String)</span>, <span name="configParams">configParams: <a name="org.scalatest.prop.Configuration.PropertyCheckConfigParam" class="extype" href="Configuration$PropertyCheckConfigParam.html">PropertyCheckConfigParam</a>*</span>)</span><span class="params">(<span name="fun">fun: (A, B, C, D, E, F) ⇒ <span name="scala.Unit" class="extype">Unit</span></span>)</span><span class="params">(<span class="implicit">implicit </span><span name="config">config: <a name="org.scalatest.prop.Configuration.PropertyCheckConfig" class="extype" href="Configuration$PropertyCheckConfig.html">PropertyCheckConfig</a></span>, <span name="shrA">shrA: <span name="org.scalacheck.Shrink" class="extype">Shrink</span>[A]</span>, <span name="shrB">shrB: <span name="org.scalacheck.Shrink" class="extype">Shrink</span>[B]</span>, <span name="shrC">shrC: <span name="org.scalacheck.Shrink" class="extype">Shrink</span>[C]</span>, <span name="shrD">shrD: <span name="org.scalacheck.Shrink" class="extype">Shrink</span>[D]</span>, <span name="shrE">shrE: <span name="org.scalacheck.Shrink" class="extype">Shrink</span>[E]</span>, <span name="shrF">shrF: <span name="org.scalacheck.Shrink" class="extype">Shrink</span>[F]</span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Performs a property check by applying the specified property check function to named arguments
+supplied by the specified generators.</p><div class="fullcomment"><div class="comment cmt"><p>Performs a property check by applying the specified property check function to named arguments
+supplied by the specified generators.</p><p>Here's an example:</p><p><pre class="stHighlighted">
+<span class="stReserved">import</span> org.scalacheck.Gen
+<br /><span class="stLineComment">// Define your own string generator:</span>
+<span class="stReserved">val</span> famousLastWords = <span class="stReserved">for</span> {
+  s &lt;- Gen.oneOf(<span class="stQuotedString">&quot;the&quot;</span>, <span class="stQuotedString">&quot;program&quot;</span>, <span class="stQuotedString">&quot;compiles&quot;</span>, <span class="stQuotedString">&quot;therefore&quot;</span>, <span class="stQuotedString">&quot;it&quot;</span>, <span class="stQuotedString">&quot;should&quot;</span>, <span class="stQuotedString">&quot;work&quot;</span>)
+} <span class="stReserved">yield</span> s
+<br />forAll ((famousLastWords, <span class="stQuotedString">&quot;a&quot;</span>), (famousLastWords, <span class="stQuotedString">&quot;b&quot;</span>), (famousLastWords, <span class="stQuotedString">&quot;c&quot;</span>), (famousLastWords, <span class="stQuotedString">&quot;d&quot;</span>), (famousLastWords, <span class="stQuotedString">&quot;e&quot;</span>), (famousLastWords, <span class="stQuotedString">&quot;f&quot;</span>)) { (a: <span class="stType">String</span>, b: <span class="stType">String</span>, c: <span class="stType">String</span>, d: <span class="stType">String</span>, e: <span class="stType">String</span>, f: <span class="stType">String</span>) =&gt;
+  a.length + b.length + c.length + d.length + e.length + f.length should equal ((a + b + c + d + e + f).length)
+}
+</pre>
+</p></div><dl class="paramcmts block"><dt class="param">fun</dt><dd class="cmt"><p>the property check function to apply to the generated arguments
+</p></dd></dl><dl class="attributes block"> <dt>Definition Classes</dt><dd><a name="org.scalatest.prop.GeneratorDrivenPropertyChecks" class="extype" href="GeneratorDrivenPropertyChecks.html">GeneratorDrivenPropertyChecks</a></dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.prop.GeneratorDrivenPropertyChecks#forAll" data-isabs="false">
+      <a id="forAll[A, B, C, D, E, F](Gen[A],Gen[B],Gen[C],Gen[D],Gen[E],Gen[F],PropertyCheckConfigParam*)((A, B, C, D, E, F) ⇒ Unit)(PropertyCheckConfig,Shrink[A],Shrink[B],Shrink[C],Shrink[D],Shrink[E],Shrink[F]):Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">forAll</span>
+        <span class="tparams">[<span name="A">A</span>, <span name="B">B</span>, <span name="C">C</span>, <span name="D">D</span>, <span name="E">E</span>, <span name="F">F</span>]</span>
+        <span class="params">(<span name="genA">genA: <span name="org.scalacheck.Gen" class="extype">Gen</span>[A]</span>, <span name="genB">genB: <span name="org.scalacheck.Gen" class="extype">Gen</span>[B]</span>, <span name="genC">genC: <span name="org.scalacheck.Gen" class="extype">Gen</span>[C]</span>, <span name="genD">genD: <span name="org.scalacheck.Gen" class="extype">Gen</span>[D]</span>, <span name="genE">genE: <span name="org.scalacheck.Gen" class="extype">Gen</span>[E]</span>, <span name="genF">genF: <span name="org.scalacheck.Gen" class="extype">Gen</span>[F]</span>, <span name="configParams">configParams: <a name="org.scalatest.prop.Configuration.PropertyCheckConfigParam" class="extype" href="Configuration$PropertyCheckConfigParam.html">PropertyCheckConfigParam</a>*</span>)</span><span class="params">(<span name="fun">fun: (A, B, C, D, E, F) ⇒ <span name="scala.Unit" class="extype">Unit</span></span>)</span><span class="params">(<span class="implicit">implicit </span><span name="config">config: <a name="org.scalatest.prop.Configuration.PropertyCheckConfig" class="extype" href="Configuration$PropertyCheckConfig.html">PropertyCheckConfig</a></span>, <span name="shrA">shrA: <span name="org.scalacheck.Shrink" class="extype">Shrink</span>[A]</span>, <span name="shrB">shrB: <span name="org.scalacheck.Shrink" class="extype">Shrink</span>[B]</span>, <span name="shrC">shrC: <span name="org.scalacheck.Shrink" class="extype">Shrink</span>[C]</span>, <span name="shrD">shrD: <span name="org.scalacheck.Shrink" class="extype">Shrink</span>[D]</span>, <span name="shrE">shrE: <span name="org.scalacheck.Shrink" class="extype">Shrink</span>[E]</span>, <span name="shrF">shrF: <span name="org.scalacheck.Shrink" class="extype">Shrink</span>[F]</span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Performs a property check by applying the specified property check function to arguments
+supplied by the specified generators.</p><div class="fullcomment"><div class="comment cmt"><p>Performs a property check by applying the specified property check function to arguments
+supplied by the specified generators.</p><p>Here's an example:</p><p><pre class="stHighlighted">
+<span class="stReserved">import</span> org.scalacheck.Gen
+<br /><span class="stLineComment">// Define your own string generator:</span>
+<span class="stReserved">val</span> famousLastWords = <span class="stReserved">for</span> {
+  s &lt;- Gen.oneOf(<span class="stQuotedString">&quot;the&quot;</span>, <span class="stQuotedString">&quot;program&quot;</span>, <span class="stQuotedString">&quot;compiles&quot;</span>, <span class="stQuotedString">&quot;therefore&quot;</span>, <span class="stQuotedString">&quot;it&quot;</span>, <span class="stQuotedString">&quot;should&quot;</span>, <span class="stQuotedString">&quot;work&quot;</span>)
+} <span class="stReserved">yield</span> s
+<br />forAll (famousLastWords, famousLastWords, famousLastWords, famousLastWords, famousLastWords, famousLastWords) { (a: <span class="stType">String</span>, b: <span class="stType">String</span>, c: <span class="stType">String</span>, d: <span class="stType">String</span>, e: <span class="stType">String</span>, f: <span class="stType">String</span>) =&gt;
+  a.length + b.length + c.length + d.length + e.length + f.length should equal ((a + b + c + d + e + f).length)
+}
+</pre>
+</p></div><dl class="paramcmts block"><dt class="param">fun</dt><dd class="cmt"><p>the property check function to apply to the generated arguments
+</p></dd></dl><dl class="attributes block"> <dt>Definition Classes</dt><dd><a name="org.scalatest.prop.GeneratorDrivenPropertyChecks" class="extype" href="GeneratorDrivenPropertyChecks.html">GeneratorDrivenPropertyChecks</a></dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.prop.GeneratorDrivenPropertyChecks#forAll" data-isabs="false">
+      <a id="forAll[A, B, C, D, E, F](String,String,String,String,String,String,PropertyCheckConfigParam*)((A, B, C, D, E, F) ⇒ Unit)(PropertyCheckConfig,Arbitrary[A],Shrink[A],Arbitrary[B],Shrink[B],Arbitrary[C],Shrink[C],Arbitrary[D],Shrink[D],Arbitrary[E],Shrink[E],Arbitrary[F],Shrink[F]):Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">forAll</span>
+        <span class="tparams">[<span name="A">A</span>, <span name="B">B</span>, <span name="C">C</span>, <span name="D">D</span>, <span name="E">E</span>, <span name="F">F</span>]</span>
+        <span class="params">(<span name="nameA">nameA: String</span>, <span name="nameB">nameB: String</span>, <span name="nameC">nameC: String</span>, <span name="nameD">nameD: String</span>, <span name="nameE">nameE: String</span>, <span name="nameF">nameF: String</span>, <span name="configParams">configParams: <a name="org.scalatest.prop.Configuration.PropertyCheckConfigParam" class="extype" href="Configuration$PropertyCheckConfigParam.html">PropertyCheckConfigParam</a>*</span>)</span><span class="params">(<span name="fun">fun: (A, B, C, D, E, F) ⇒ <span name="scala.Unit" class="extype">Unit</span></span>)</span><span class="params">(<span class="implicit">implicit </span><span name="config">config: <a name="org.scalatest.prop.Configuration.PropertyCheckConfig" class="extype" href="Configuration$PropertyCheckConfig.html">PropertyCheckConfig</a></span>, <span name="arbA">arbA: <span name="org.scalacheck.Arbitrary" class="extype">Arbitrary</span>[A]</span>, <span name="shrA">shrA: <span name="org.scalacheck.Shrink" class="extype">Shrink</span>[A]</span>, <span name="arbB">arbB: <span name="org.scalacheck.Arbitrary" class="extype">Arbitrary</span>[B]</span>, <span name="shrB">shrB: <span name="org.scalacheck.Shrink" class="extype">Shrink</span>[B]</span>, <span name="arbC">arbC: <span name="org.scalacheck.Arbitrary" class="extype">Arbitrary</span>[C]</span>, <span name="shrC">shrC: <span name="org.scalacheck.Shrink" class="extype">Shrink</span>[C]</span>, <span name="arbD">arbD: <span name="org.scalacheck.Arbitrary" class="extype">Arbitrary</span>[D]</span>, <span name="shrD">shrD: <span name="org.scalacheck.Shrink" class="extype">Shrink</span>[D]</span>, <span name="arbE">arbE: <span name="org.scalacheck.Arbitrary" class="extype">Arbitrary</span>[E]</span>, <span name="shrE">shrE: <span name="org.scalacheck.Shrink" class="extype">Shrink</span>[E]</span>, <span name="arbF">arbF: <span name="org.scalacheck.Arbitrary" class="extype">Arbitrary</span>[F]</span>, <span name="shrF">shrF: <span name="org.scalacheck.Shrink" class="extype">Shrink</span>[F]</span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Performs a property check by applying the specified property check function with the specified
+argument names to arguments supplied by implicitly passed generators.</p><div class="fullcomment"><div class="comment cmt"><p>Performs a property check by applying the specified property check function with the specified
+argument names to arguments supplied by implicitly passed generators.</p><p>Here's an example:</p><p><pre class="stHighlighted">
+forAll (<span class="stQuotedString">&quot;a&quot;</span>, <span class="stQuotedString">&quot;b&quot;</span>, <span class="stQuotedString">&quot;c&quot;</span>, <span class="stQuotedString">&quot;d&quot;</span>, <span class="stQuotedString">&quot;e&quot;</span>, <span class="stQuotedString">&quot;f&quot;</span>) { (a: <span class="stType">String</span>, b: <span class="stType">String</span>, c: <span class="stType">String</span>, d: <span class="stType">String</span>, e: <span class="stType">String</span>, f: <span class="stType">String</span>) =&gt;
+  a.length + b.length + c.length + d.length + e.length + f.length should equal ((a + b + c + d + e + f).length)
+}
+</pre>
+</p></div><dl class="paramcmts block"><dt class="param">fun</dt><dd class="cmt"><p>the property check function to apply to the generated arguments
+</p></dd></dl><dl class="attributes block"> <dt>Definition Classes</dt><dd><a name="org.scalatest.prop.GeneratorDrivenPropertyChecks" class="extype" href="GeneratorDrivenPropertyChecks.html">GeneratorDrivenPropertyChecks</a></dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.prop.GeneratorDrivenPropertyChecks#forAll" data-isabs="false">
+      <a id="forAll[A, B, C, D, E, F]((A, B, C, D, E, F) ⇒ Unit)(PropertyCheckConfig,Arbitrary[A],Shrink[A],Arbitrary[B],Shrink[B],Arbitrary[C],Shrink[C],Arbitrary[D],Shrink[D],Arbitrary[E],Shrink[E],Arbitrary[F],Shrink[F]):Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">forAll</span>
+        <span class="tparams">[<span name="A">A</span>, <span name="B">B</span>, <span name="C">C</span>, <span name="D">D</span>, <span name="E">E</span>, <span name="F">F</span>]</span>
+        <span class="params">(<span name="fun">fun: (A, B, C, D, E, F) ⇒ <span name="scala.Unit" class="extype">Unit</span></span>)</span><span class="params">(<span class="implicit">implicit </span><span name="config">config: <a name="org.scalatest.prop.Configuration.PropertyCheckConfig" class="extype" href="Configuration$PropertyCheckConfig.html">PropertyCheckConfig</a></span>, <span name="arbA">arbA: <span name="org.scalacheck.Arbitrary" class="extype">Arbitrary</span>[A]</span>, <span name="shrA">shrA: <span name="org.scalacheck.Shrink" class="extype">Shrink</span>[A]</span>, <span name="arbB">arbB: <span name="org.scalacheck.Arbitrary" class="extype">Arbitrary</span>[B]</span>, <span name="shrB">shrB: <span name="org.scalacheck.Shrink" class="extype">Shrink</span>[B]</span>, <span name="arbC">arbC: <span name="org.scalacheck.Arbitrary" class="extype">Arbitrary</span>[C]</span>, <span name="shrC">shrC: <span name="org.scalacheck.Shrink" class="extype">Shrink</span>[C]</span>, <span name="arbD">arbD: <span name="org.scalacheck.Arbitrary" class="extype">Arbitrary</span>[D]</span>, <span name="shrD">shrD: <span name="org.scalacheck.Shrink" class="extype">Shrink</span>[D]</span>, <span name="arbE">arbE: <span name="org.scalacheck.Arbitrary" class="extype">Arbitrary</span>[E]</span>, <span name="shrE">shrE: <span name="org.scalacheck.Shrink" class="extype">Shrink</span>[E]</span>, <span name="arbF">arbF: <span name="org.scalacheck.Arbitrary" class="extype">Arbitrary</span>[F]</span>, <span name="shrF">shrF: <span name="org.scalacheck.Shrink" class="extype">Shrink</span>[F]</span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Performs a property check by applying the specified property check function to arguments
+supplied by implicitly passed generators.</p><div class="fullcomment"><div class="comment cmt"><p>Performs a property check by applying the specified property check function to arguments
+supplied by implicitly passed generators.</p><p>Here's an example:</p><p><pre class="stHighlighted">
+forAll { (a: <span class="stType">String</span>, b: <span class="stType">String</span>, c: <span class="stType">String</span>, d: <span class="stType">String</span>, e: <span class="stType">String</span>, f: <span class="stType">String</span>) =&gt;
+  a.length + b.length + c.length + d.length + e.length + f.length should equal ((a + b + c + d + e + f).length)
+}
+</pre>
+</p></div><dl class="paramcmts block"><dt class="param">fun</dt><dd class="cmt"><p>the property check function to apply to the generated arguments
+</p></dd></dl><dl class="attributes block"> <dt>Definition Classes</dt><dd><a name="org.scalatest.prop.GeneratorDrivenPropertyChecks" class="extype" href="GeneratorDrivenPropertyChecks.html">GeneratorDrivenPropertyChecks</a></dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.prop.GeneratorDrivenPropertyChecks#forAll" data-isabs="false">
+      <a id="forAll[A, B, C, D, E]((Gen[A], String),(Gen[B], String),(Gen[C], String),(Gen[D], String),(Gen[E], String),PropertyCheckConfigParam*)((A, B, C, D, E) ⇒ Unit)(PropertyCheckConfig,Shrink[A],Shrink[B],Shrink[C],Shrink[D],Shrink[E]):Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">forAll</span>
+        <span class="tparams">[<span name="A">A</span>, <span name="B">B</span>, <span name="C">C</span>, <span name="D">D</span>, <span name="E">E</span>]</span>
+        <span class="params">(<span name="genAndNameA">genAndNameA: (<span name="org.scalacheck.Gen" class="extype">Gen</span>[A], String)</span>, <span name="genAndNameB">genAndNameB: (<span name="org.scalacheck.Gen" class="extype">Gen</span>[B], String)</span>, <span name="genAndNameC">genAndNameC: (<span name="org.scalacheck.Gen" class="extype">Gen</span>[C], String)</span>, <span name="genAndNameD">genAndNameD: (<span name="org.scalacheck.Gen" class="extype">Gen</span>[D], String)</span>, <span name="genAndNameE">genAndNameE: (<span name="org.scalacheck.Gen" class="extype">Gen</span>[E], String)</span>, <span name="configParams">configParams: <a name="org.scalatest.prop.Configuration.PropertyCheckConfigParam" class="extype" href="Configuration$PropertyCheckConfigParam.html">PropertyCheckConfigParam</a>*</span>)</span><span class="params">(<span name="fun">fun: (A, B, C, D, E) ⇒ <span name="scala.Unit" class="extype">Unit</span></span>)</span><span class="params">(<span class="implicit">implicit </span><span name="config">config: <a name="org.scalatest.prop.Configuration.PropertyCheckConfig" class="extype" href="Configuration$PropertyCheckConfig.html">PropertyCheckConfig</a></span>, <span name="shrA">shrA: <span name="org.scalacheck.Shrink" class="extype">Shrink</span>[A]</span>, <span name="shrB">shrB: <span name="org.scalacheck.Shrink" class="extype">Shrink</span>[B]</span>, <span name="shrC">shrC: <span name="org.scalacheck.Shrink" class="extype">Shrink</span>[C]</span>, <span name="shrD">shrD: <span name="org.scalacheck.Shrink" class="extype">Shrink</span>[D]</span>, <span name="shrE">shrE: <span name="org.scalacheck.Shrink" class="extype">Shrink</span>[E]</span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Performs a property check by applying the specified property check function to named arguments
+supplied by the specified generators.</p><div class="fullcomment"><div class="comment cmt"><p>Performs a property check by applying the specified property check function to named arguments
+supplied by the specified generators.</p><p>Here's an example:</p><p><pre class="stHighlighted">
+<span class="stReserved">import</span> org.scalacheck.Gen
+<br /><span class="stLineComment">// Define your own string generator:</span>
+<span class="stReserved">val</span> famousLastWords = <span class="stReserved">for</span> {
+  s &lt;- Gen.oneOf(<span class="stQuotedString">&quot;the&quot;</span>, <span class="stQuotedString">&quot;program&quot;</span>, <span class="stQuotedString">&quot;compiles&quot;</span>, <span class="stQuotedString">&quot;therefore&quot;</span>, <span class="stQuotedString">&quot;it&quot;</span>, <span class="stQuotedString">&quot;should&quot;</span>, <span class="stQuotedString">&quot;work&quot;</span>)
+} <span class="stReserved">yield</span> s
+<br />forAll ((famousLastWords, <span class="stQuotedString">&quot;a&quot;</span>), (famousLastWords, <span class="stQuotedString">&quot;b&quot;</span>), (famousLastWords, <span class="stQuotedString">&quot;c&quot;</span>), (famousLastWords, <span class="stQuotedString">&quot;d&quot;</span>), (famousLastWords, <span class="stQuotedString">&quot;e&quot;</span>)) { (a: <span class="stType">String</span>, b: <span class="stType">String</span>, c: <span class="stType">String</span>, d: <span class="stType">String</span>, e: <span class="stType">String</span>) =&gt;
+  a.length + b.length + c.length + d.length + e.length should equal ((a + b + c + d + e).length)
+}
+</pre>
+</p></div><dl class="paramcmts block"><dt class="param">fun</dt><dd class="cmt"><p>the property check function to apply to the generated arguments
+</p></dd></dl><dl class="attributes block"> <dt>Definition Classes</dt><dd><a name="org.scalatest.prop.GeneratorDrivenPropertyChecks" class="extype" href="GeneratorDrivenPropertyChecks.html">GeneratorDrivenPropertyChecks</a></dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.prop.GeneratorDrivenPropertyChecks#forAll" data-isabs="false">
+      <a id="forAll[A, B, C, D, E](Gen[A],Gen[B],Gen[C],Gen[D],Gen[E],PropertyCheckConfigParam*)((A, B, C, D, E) ⇒ Unit)(PropertyCheckConfig,Shrink[A],Shrink[B],Shrink[C],Shrink[D],Shrink[E]):Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">forAll</span>
+        <span class="tparams">[<span name="A">A</span>, <span name="B">B</span>, <span name="C">C</span>, <span name="D">D</span>, <span name="E">E</span>]</span>
+        <span class="params">(<span name="genA">genA: <span name="org.scalacheck.Gen" class="extype">Gen</span>[A]</span>, <span name="genB">genB: <span name="org.scalacheck.Gen" class="extype">Gen</span>[B]</span>, <span name="genC">genC: <span name="org.scalacheck.Gen" class="extype">Gen</span>[C]</span>, <span name="genD">genD: <span name="org.scalacheck.Gen" class="extype">Gen</span>[D]</span>, <span name="genE">genE: <span name="org.scalacheck.Gen" class="extype">Gen</span>[E]</span>, <span name="configParams">configParams: <a name="org.scalatest.prop.Configuration.PropertyCheckConfigParam" class="extype" href="Configuration$PropertyCheckConfigParam.html">PropertyCheckConfigParam</a>*</span>)</span><span class="params">(<span name="fun">fun: (A, B, C, D, E) ⇒ <span name="scala.Unit" class="extype">Unit</span></span>)</span><span class="params">(<span class="implicit">implicit </span><span name="config">config: <a name="org.scalatest.prop.Configuration.PropertyCheckConfig" class="extype" href="Configuration$PropertyCheckConfig.html">PropertyCheckConfig</a></span>, <span name="shrA">shrA: <span name="org.scalacheck.Shrink" class="extype">Shrink</span>[A]</span>, <span name="shrB">shrB: <span name="org.scalacheck.Shrink" class="extype">Shrink</span>[B]</span>, <span name="shrC">shrC: <span name="org.scalacheck.Shrink" class="extype">Shrink</span>[C]</span>, <span name="shrD">shrD: <span name="org.scalacheck.Shrink" class="extype">Shrink</span>[D]</span>, <span name="shrE">shrE: <span name="org.scalacheck.Shrink" class="extype">Shrink</span>[E]</span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Performs a property check by applying the specified property check function to arguments
+supplied by the specified generators.</p><div class="fullcomment"><div class="comment cmt"><p>Performs a property check by applying the specified property check function to arguments
+supplied by the specified generators.</p><p>Here's an example:</p><p><pre class="stHighlighted">
+<span class="stReserved">import</span> org.scalacheck.Gen
+<br /><span class="stLineComment">// Define your own string generator:</span>
+<span class="stReserved">val</span> famousLastWords = <span class="stReserved">for</span> {
+  s &lt;- Gen.oneOf(<span class="stQuotedString">&quot;the&quot;</span>, <span class="stQuotedString">&quot;program&quot;</span>, <span class="stQuotedString">&quot;compiles&quot;</span>, <span class="stQuotedString">&quot;therefore&quot;</span>, <span class="stQuotedString">&quot;it&quot;</span>, <span class="stQuotedString">&quot;should&quot;</span>, <span class="stQuotedString">&quot;work&quot;</span>)
+} <span class="stReserved">yield</span> s
+<br />forAll (famousLastWords, famousLastWords, famousLastWords, famousLastWords, famousLastWords) { (a: <span class="stType">String</span>, b: <span class="stType">String</span>, c: <span class="stType">String</span>, d: <span class="stType">String</span>, e: <span class="stType">String</span>) =&gt;
+  a.length + b.length + c.length + d.length + e.length should equal ((a + b + c + d + e).length)
+}
+</pre>
+</p></div><dl class="paramcmts block"><dt class="param">fun</dt><dd class="cmt"><p>the property check function to apply to the generated arguments
+</p></dd></dl><dl class="attributes block"> <dt>Definition Classes</dt><dd><a name="org.scalatest.prop.GeneratorDrivenPropertyChecks" class="extype" href="GeneratorDrivenPropertyChecks.html">GeneratorDrivenPropertyChecks</a></dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.prop.GeneratorDrivenPropertyChecks#forAll" data-isabs="false">
+      <a id="forAll[A, B, C, D, E](String,String,String,String,String,PropertyCheckConfigParam*)((A, B, C, D, E) ⇒ Unit)(PropertyCheckConfig,Arbitrary[A],Shrink[A],Arbitrary[B],Shrink[B],Arbitrary[C],Shrink[C],Arbitrary[D],Shrink[D],Arbitrary[E],Shrink[E]):Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">forAll</span>
+        <span class="tparams">[<span name="A">A</span>, <span name="B">B</span>, <span name="C">C</span>, <span name="D">D</span>, <span name="E">E</span>]</span>
+        <span class="params">(<span name="nameA">nameA: String</span>, <span name="nameB">nameB: String</span>, <span name="nameC">nameC: String</span>, <span name="nameD">nameD: String</span>, <span name="nameE">nameE: String</span>, <span name="configParams">configParams: <a name="org.scalatest.prop.Configuration.PropertyCheckConfigParam" class="extype" href="Configuration$PropertyCheckConfigParam.html">PropertyCheckConfigParam</a>*</span>)</span><span class="params">(<span name="fun">fun: (A, B, C, D, E) ⇒ <span name="scala.Unit" class="extype">Unit</span></span>)</span><span class="params">(<span class="implicit">implicit </span><span name="config">config: <a name="org.scalatest.prop.Configuration.PropertyCheckConfig" class="extype" href="Configuration$PropertyCheckConfig.html">PropertyCheckConfig</a></span>, <span name="arbA">arbA: <span name="org.scalacheck.Arbitrary" class="extype">Arbitrary</span>[A]</span>, <span name="shrA">shrA: <span name="org.scalacheck.Shrink" class="extype">Shrink</span>[A]</span>, <span name="arbB">arbB: <span name="org.scalacheck.Arbitrary" class="extype">Arbitrary</span>[B]</span>, <span name="shrB">shrB: <span name="org.scalacheck.Shrink" class="extype">Shrink</span>[B]</span>, <span name="arbC">arbC: <span name="org.scalacheck.Arbitrary" class="extype">Arbitrary</span>[C]</span>, <span name="shrC">shrC: <span name="org.scalacheck.Shrink" class="extype">Shrink</span>[C]</span>, <span name="arbD">arbD: <span name="org.scalacheck.Arbitrary" class="extype">Arbitrary</span>[D]</span>, <span name="shrD">shrD: <span name="org.scalacheck.Shrink" class="extype">Shrink</span>[D]</span>, <span name="arbE">arbE: <span name="org.scalacheck.Arbitrary" class="extype">Arbitrary</span>[E]</span>, <span name="shrE">shrE: <span name="org.scalacheck.Shrink" class="extype">Shrink</span>[E]</span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Performs a property check by applying the specified property check function with the specified
+argument names to arguments supplied by implicitly passed generators.</p><div class="fullcomment"><div class="comment cmt"><p>Performs a property check by applying the specified property check function with the specified
+argument names to arguments supplied by implicitly passed generators.</p><p>Here's an example:</p><p><pre class="stHighlighted">
+forAll (<span class="stQuotedString">&quot;a&quot;</span>, <span class="stQuotedString">&quot;b&quot;</span>, <span class="stQuotedString">&quot;c&quot;</span>, <span class="stQuotedString">&quot;d&quot;</span>, <span class="stQuotedString">&quot;e&quot;</span>) { (a: <span class="stType">String</span>, b: <span class="stType">String</span>, c: <span class="stType">String</span>, d: <span class="stType">String</span>, e: <span class="stType">String</span>) =&gt;
+  a.length + b.length + c.length + d.length + e.length should equal ((a + b + c + d + e).length)
+}
+</pre>
+</p></div><dl class="paramcmts block"><dt class="param">fun</dt><dd class="cmt"><p>the property check function to apply to the generated arguments
+</p></dd></dl><dl class="attributes block"> <dt>Definition Classes</dt><dd><a name="org.scalatest.prop.GeneratorDrivenPropertyChecks" class="extype" href="GeneratorDrivenPropertyChecks.html">GeneratorDrivenPropertyChecks</a></dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.prop.GeneratorDrivenPropertyChecks#forAll" data-isabs="false">
+      <a id="forAll[A, B, C, D, E]((A, B, C, D, E) ⇒ Unit)(PropertyCheckConfig,Arbitrary[A],Shrink[A],Arbitrary[B],Shrink[B],Arbitrary[C],Shrink[C],Arbitrary[D],Shrink[D],Arbitrary[E],Shrink[E]):Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">forAll</span>
+        <span class="tparams">[<span name="A">A</span>, <span name="B">B</span>, <span name="C">C</span>, <span name="D">D</span>, <span name="E">E</span>]</span>
+        <span class="params">(<span name="fun">fun: (A, B, C, D, E) ⇒ <span name="scala.Unit" class="extype">Unit</span></span>)</span><span class="params">(<span class="implicit">implicit </span><span name="config">config: <a name="org.scalatest.prop.Configuration.PropertyCheckConfig" class="extype" href="Configuration$PropertyCheckConfig.html">PropertyCheckConfig</a></span>, <span name="arbA">arbA: <span name="org.scalacheck.Arbitrary" class="extype">Arbitrary</span>[A]</span>, <span name="shrA">shrA: <span name="org.scalacheck.Shrink" class="extype">Shrink</span>[A]</span>, <span name="arbB">arbB: <span name="org.scalacheck.Arbitrary" class="extype">Arbitrary</span>[B]</span>, <span name="shrB">shrB: <span name="org.scalacheck.Shrink" class="extype">Shrink</span>[B]</span>, <span name="arbC">arbC: <span name="org.scalacheck.Arbitrary" class="extype">Arbitrary</span>[C]</span>, <span name="shrC">shrC: <span name="org.scalacheck.Shrink" class="extype">Shrink</span>[C]</span>, <span name="arbD">arbD: <span name="org.scalacheck.Arbitrary" class="extype">Arbitrary</span>[D]</span>, <span name="shrD">shrD: <span name="org.scalacheck.Shrink" class="extype">Shrink</span>[D]</span>, <span name="arbE">arbE: <span name="org.scalacheck.Arbitrary" class="extype">Arbitrary</span>[E]</span>, <span name="shrE">shrE: <span name="org.scalacheck.Shrink" class="extype">Shrink</span>[E]</span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Performs a property check by applying the specified property check function to arguments
+supplied by implicitly passed generators.</p><div class="fullcomment"><div class="comment cmt"><p>Performs a property check by applying the specified property check function to arguments
+supplied by implicitly passed generators.</p><p>Here's an example:</p><p><pre class="stHighlighted">
+forAll { (a: <span class="stType">String</span>, b: <span class="stType">String</span>, c: <span class="stType">String</span>, d: <span class="stType">String</span>, e: <span class="stType">String</span>) =&gt;
+  a.length + b.length + c.length + d.length + e.length should equal ((a + b + c + d + e).length)
+}
+</pre>
+</p></div><dl class="paramcmts block"><dt class="param">fun</dt><dd class="cmt"><p>the property check function to apply to the generated arguments
+</p></dd></dl><dl class="attributes block"> <dt>Definition Classes</dt><dd><a name="org.scalatest.prop.GeneratorDrivenPropertyChecks" class="extype" href="GeneratorDrivenPropertyChecks.html">GeneratorDrivenPropertyChecks</a></dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.prop.GeneratorDrivenPropertyChecks#forAll" data-isabs="false">
+      <a id="forAll[A, B, C, D]((Gen[A], String),(Gen[B], String),(Gen[C], String),(Gen[D], String),PropertyCheckConfigParam*)((A, B, C, D) ⇒ Unit)(PropertyCheckConfig,Shrink[A],Shrink[B],Shrink[C],Shrink[D]):Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">forAll</span>
+        <span class="tparams">[<span name="A">A</span>, <span name="B">B</span>, <span name="C">C</span>, <span name="D">D</span>]</span>
+        <span class="params">(<span name="genAndNameA">genAndNameA: (<span name="org.scalacheck.Gen" class="extype">Gen</span>[A], String)</span>, <span name="genAndNameB">genAndNameB: (<span name="org.scalacheck.Gen" class="extype">Gen</span>[B], String)</span>, <span name="genAndNameC">genAndNameC: (<span name="org.scalacheck.Gen" class="extype">Gen</span>[C], String)</span>, <span name="genAndNameD">genAndNameD: (<span name="org.scalacheck.Gen" class="extype">Gen</span>[D], String)</span>, <span name="configParams">configParams: <a name="org.scalatest.prop.Configuration.PropertyCheckConfigParam" class="extype" href="Configuration$PropertyCheckConfigParam.html">PropertyCheckConfigParam</a>*</span>)</span><span class="params">(<span name="fun">fun: (A, B, C, D) ⇒ <span name="scala.Unit" class="extype">Unit</span></span>)</span><span class="params">(<span class="implicit">implicit </span><span name="config">config: <a name="org.scalatest.prop.Configuration.PropertyCheckConfig" class="extype" href="Configuration$PropertyCheckConfig.html">PropertyCheckConfig</a></span>, <span name="shrA">shrA: <span name="org.scalacheck.Shrink" class="extype">Shrink</span>[A]</span>, <span name="shrB">shrB: <span name="org.scalacheck.Shrink" class="extype">Shrink</span>[B]</span>, <span name="shrC">shrC: <span name="org.scalacheck.Shrink" class="extype">Shrink</span>[C]</span>, <span name="shrD">shrD: <span name="org.scalacheck.Shrink" class="extype">Shrink</span>[D]</span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Performs a property check by applying the specified property check function to named arguments
+supplied by the specified generators.</p><div class="fullcomment"><div class="comment cmt"><p>Performs a property check by applying the specified property check function to named arguments
+supplied by the specified generators.</p><p>Here's an example:</p><p><pre class="stHighlighted">
+<span class="stReserved">import</span> org.scalacheck.Gen
+<br /><span class="stLineComment">// Define your own string generator:</span>
+<span class="stReserved">val</span> famousLastWords = <span class="stReserved">for</span> {
+  s &lt;- Gen.oneOf(<span class="stQuotedString">&quot;the&quot;</span>, <span class="stQuotedString">&quot;program&quot;</span>, <span class="stQuotedString">&quot;compiles&quot;</span>, <span class="stQuotedString">&quot;therefore&quot;</span>, <span class="stQuotedString">&quot;it&quot;</span>, <span class="stQuotedString">&quot;should&quot;</span>, <span class="stQuotedString">&quot;work&quot;</span>)
+} <span class="stReserved">yield</span> s
+<br />forAll ((famousLastWords, <span class="stQuotedString">&quot;a&quot;</span>), (famousLastWords, <span class="stQuotedString">&quot;b&quot;</span>), (famousLastWords, <span class="stQuotedString">&quot;c&quot;</span>), (famousLastWords, <span class="stQuotedString">&quot;d&quot;</span>)) { (a: <span class="stType">String</span>, b: <span class="stType">String</span>, c: <span class="stType">String</span>, d: <span class="stType">String</span>) =&gt;
+  a.length + b.length + c.length + d.length should equal ((a + b + c + d).length)
+}
+</pre>
+</p></div><dl class="paramcmts block"><dt class="param">fun</dt><dd class="cmt"><p>the property check function to apply to the generated arguments
+</p></dd></dl><dl class="attributes block"> <dt>Definition Classes</dt><dd><a name="org.scalatest.prop.GeneratorDrivenPropertyChecks" class="extype" href="GeneratorDrivenPropertyChecks.html">GeneratorDrivenPropertyChecks</a></dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.prop.GeneratorDrivenPropertyChecks#forAll" data-isabs="false">
+      <a id="forAll[A, B, C, D](Gen[A],Gen[B],Gen[C],Gen[D],PropertyCheckConfigParam*)((A, B, C, D) ⇒ Unit)(PropertyCheckConfig,Shrink[A],Shrink[B],Shrink[C],Shrink[D]):Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">forAll</span>
+        <span class="tparams">[<span name="A">A</span>, <span name="B">B</span>, <span name="C">C</span>, <span name="D">D</span>]</span>
+        <span class="params">(<span name="genA">genA: <span name="org.scalacheck.Gen" class="extype">Gen</span>[A]</span>, <span name="genB">genB: <span name="org.scalacheck.Gen" class="extype">Gen</span>[B]</span>, <span name="genC">genC: <span name="org.scalacheck.Gen" class="extype">Gen</span>[C]</span>, <span name="genD">genD: <span name="org.scalacheck.Gen" class="extype">Gen</span>[D]</span>, <span name="configParams">configParams: <a name="org.scalatest.prop.Configuration.PropertyCheckConfigParam" class="extype" href="Configuration$PropertyCheckConfigParam.html">PropertyCheckConfigParam</a>*</span>)</span><span class="params">(<span name="fun">fun: (A, B, C, D) ⇒ <span name="scala.Unit" class="extype">Unit</span></span>)</span><span class="params">(<span class="implicit">implicit </span><span name="config">config: <a name="org.scalatest.prop.Configuration.PropertyCheckConfig" class="extype" href="Configuration$PropertyCheckConfig.html">PropertyCheckConfig</a></span>, <span name="shrA">shrA: <span name="org.scalacheck.Shrink" class="extype">Shrink</span>[A]</span>, <span name="shrB">shrB: <span name="org.scalacheck.Shrink" class="extype">Shrink</span>[B]</span>, <span name="shrC">shrC: <span name="org.scalacheck.Shrink" class="extype">Shrink</span>[C]</span>, <span name="shrD">shrD: <span name="org.scalacheck.Shrink" class="extype">Shrink</span>[D]</span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Performs a property check by applying the specified property check function to arguments
+supplied by the specified generators.</p><div class="fullcomment"><div class="comment cmt"><p>Performs a property check by applying the specified property check function to arguments
+supplied by the specified generators.</p><p>Here's an example:</p><p><pre class="stHighlighted">
+<span class="stReserved">import</span> org.scalacheck.Gen
+<br /><span class="stLineComment">// Define your own string generator:</span>
+<span class="stReserved">val</span> famousLastWords = <span class="stReserved">for</span> {
+  s &lt;- Gen.oneOf(<span class="stQuotedString">&quot;the&quot;</span>, <span class="stQuotedString">&quot;program&quot;</span>, <span class="stQuotedString">&quot;compiles&quot;</span>, <span class="stQuotedString">&quot;therefore&quot;</span>, <span class="stQuotedString">&quot;it&quot;</span>, <span class="stQuotedString">&quot;should&quot;</span>, <span class="stQuotedString">&quot;work&quot;</span>)
+} <span class="stReserved">yield</span> s
+<br />forAll (famousLastWords, famousLastWords, famousLastWords, famousLastWords) { (a: <span class="stType">String</span>, b: <span class="stType">String</span>, c: <span class="stType">String</span>, d: <span class="stType">String</span>) =&gt;
+  a.length + b.length + c.length + d.length should equal ((a + b + c + d).length)
+}
+</pre>
+</p></div><dl class="paramcmts block"><dt class="param">fun</dt><dd class="cmt"><p>the property check function to apply to the generated arguments
+</p></dd></dl><dl class="attributes block"> <dt>Definition Classes</dt><dd><a name="org.scalatest.prop.GeneratorDrivenPropertyChecks" class="extype" href="GeneratorDrivenPropertyChecks.html">GeneratorDrivenPropertyChecks</a></dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.prop.GeneratorDrivenPropertyChecks#forAll" data-isabs="false">
+      <a id="forAll[A, B, C, D](String,String,String,String,PropertyCheckConfigParam*)((A, B, C, D) ⇒ Unit)(PropertyCheckConfig,Arbitrary[A],Shrink[A],Arbitrary[B],Shrink[B],Arbitrary[C],Shrink[C],Arbitrary[D],Shrink[D]):Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">forAll</span>
+        <span class="tparams">[<span name="A">A</span>, <span name="B">B</span>, <span name="C">C</span>, <span name="D">D</span>]</span>
+        <span class="params">(<span name="nameA">nameA: String</span>, <span name="nameB">nameB: String</span>, <span name="nameC">nameC: String</span>, <span name="nameD">nameD: String</span>, <span name="configParams">configParams: <a name="org.scalatest.prop.Configuration.PropertyCheckConfigParam" class="extype" href="Configuration$PropertyCheckConfigParam.html">PropertyCheckConfigParam</a>*</span>)</span><span class="params">(<span name="fun">fun: (A, B, C, D) ⇒ <span name="scala.Unit" class="extype">Unit</span></span>)</span><span class="params">(<span class="implicit">implicit </span><span name="config">config: <a name="org.scalatest.prop.Configuration.PropertyCheckConfig" class="extype" href="Configuration$PropertyCheckConfig.html">PropertyCheckConfig</a></span>, <span name="arbA">arbA: <span name="org.scalacheck.Arbitrary" class="extype">Arbitrary</span>[A]</span>, <span name="shrA">shrA: <span name="org.scalacheck.Shrink" class="extype">Shrink</span>[A]</span>, <span name="arbB">arbB: <span name="org.scalacheck.Arbitrary" class="extype">Arbitrary</span>[B]</span>, <span name="shrB">shrB: <span name="org.scalacheck.Shrink" class="extype">Shrink</span>[B]</span>, <span name="arbC">arbC: <span name="org.scalacheck.Arbitrary" class="extype">Arbitrary</span>[C]</span>, <span name="shrC">shrC: <span name="org.scalacheck.Shrink" class="extype">Shrink</span>[C]</span>, <span name="arbD">arbD: <span name="org.scalacheck.Arbitrary" class="extype">Arbitrary</span>[D]</span>, <span name="shrD">shrD: <span name="org.scalacheck.Shrink" class="extype">Shrink</span>[D]</span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Performs a property check by applying the specified property check function with the specified
+argument names to arguments supplied by implicitly passed generators.</p><div class="fullcomment"><div class="comment cmt"><p>Performs a property check by applying the specified property check function with the specified
+argument names to arguments supplied by implicitly passed generators.</p><p>Here's an example:</p><p><pre class="stHighlighted">
+forAll (<span class="stQuotedString">&quot;a&quot;</span>, <span class="stQuotedString">&quot;b&quot;</span>, <span class="stQuotedString">&quot;c&quot;</span>, <span class="stQuotedString">&quot;d&quot;</span>) { (a: <span class="stType">String</span>, b: <span class="stType">String</span>, c: <span class="stType">String</span>, d: <span class="stType">String</span>) =&gt;
+  a.length + b.length + c.length + d.length should equal ((a + b + c + d).length)
+}
+</pre>
+</p></div><dl class="paramcmts block"><dt class="param">fun</dt><dd class="cmt"><p>the property check function to apply to the generated arguments
+</p></dd></dl><dl class="attributes block"> <dt>Definition Classes</dt><dd><a name="org.scalatest.prop.GeneratorDrivenPropertyChecks" class="extype" href="GeneratorDrivenPropertyChecks.html">GeneratorDrivenPropertyChecks</a></dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.prop.GeneratorDrivenPropertyChecks#forAll" data-isabs="false">
+      <a id="forAll[A, B, C, D]((A, B, C, D) ⇒ Unit)(PropertyCheckConfig,Arbitrary[A],Shrink[A],Arbitrary[B],Shrink[B],Arbitrary[C],Shrink[C],Arbitrary[D],Shrink[D]):Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">forAll</span>
+        <span class="tparams">[<span name="A">A</span>, <span name="B">B</span>, <span name="C">C</span>, <span name="D">D</span>]</span>
+        <span class="params">(<span name="fun">fun: (A, B, C, D) ⇒ <span name="scala.Unit" class="extype">Unit</span></span>)</span><span class="params">(<span class="implicit">implicit </span><span name="config">config: <a name="org.scalatest.prop.Configuration.PropertyCheckConfig" class="extype" href="Configuration$PropertyCheckConfig.html">PropertyCheckConfig</a></span>, <span name="arbA">arbA: <span name="org.scalacheck.Arbitrary" class="extype">Arbitrary</span>[A]</span>, <span name="shrA">shrA: <span name="org.scalacheck.Shrink" class="extype">Shrink</span>[A]</span>, <span name="arbB">arbB: <span name="org.scalacheck.Arbitrary" class="extype">Arbitrary</span>[B]</span>, <span name="shrB">shrB: <span name="org.scalacheck.Shrink" class="extype">Shrink</span>[B]</span>, <span name="arbC">arbC: <span name="org.scalacheck.Arbitrary" class="extype">Arbitrary</span>[C]</span>, <span name="shrC">shrC: <span name="org.scalacheck.Shrink" class="extype">Shrink</span>[C]</span>, <span name="arbD">arbD: <span name="org.scalacheck.Arbitrary" class="extype">Arbitrary</span>[D]</span>, <span name="shrD">shrD: <span name="org.scalacheck.Shrink" class="extype">Shrink</span>[D]</span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Performs a property check by applying the specified property check function to arguments
+supplied by implicitly passed generators.</p><div class="fullcomment"><div class="comment cmt"><p>Performs a property check by applying the specified property check function to arguments
+supplied by implicitly passed generators.</p><p>Here's an example:</p><p><pre class="stHighlighted">
+forAll { (a: <span class="stType">String</span>, b: <span class="stType">String</span>, c: <span class="stType">String</span>, d: <span class="stType">String</span>) =&gt;
+  a.length + b.length + c.length + d.length should equal ((a + b + c + d).length)
+}
+</pre>
+</p></div><dl class="paramcmts block"><dt class="param">fun</dt><dd class="cmt"><p>the property check function to apply to the generated arguments
+</p></dd></dl><dl class="attributes block"> <dt>Definition Classes</dt><dd><a name="org.scalatest.prop.GeneratorDrivenPropertyChecks" class="extype" href="GeneratorDrivenPropertyChecks.html">GeneratorDrivenPropertyChecks</a></dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.prop.GeneratorDrivenPropertyChecks#forAll" data-isabs="false">
+      <a id="forAll[A, B, C]((Gen[A], String),(Gen[B], String),(Gen[C], String),PropertyCheckConfigParam*)((A, B, C) ⇒ Unit)(PropertyCheckConfig,Shrink[A],Shrink[B],Shrink[C]):Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">forAll</span>
+        <span class="tparams">[<span name="A">A</span>, <span name="B">B</span>, <span name="C">C</span>]</span>
+        <span class="params">(<span name="genAndNameA">genAndNameA: (<span name="org.scalacheck.Gen" class="extype">Gen</span>[A], String)</span>, <span name="genAndNameB">genAndNameB: (<span name="org.scalacheck.Gen" class="extype">Gen</span>[B], String)</span>, <span name="genAndNameC">genAndNameC: (<span name="org.scalacheck.Gen" class="extype">Gen</span>[C], String)</span>, <span name="configParams">configParams: <a name="org.scalatest.prop.Configuration.PropertyCheckConfigParam" class="extype" href="Configuration$PropertyCheckConfigParam.html">PropertyCheckConfigParam</a>*</span>)</span><span class="params">(<span name="fun">fun: (A, B, C) ⇒ <span name="scala.Unit" class="extype">Unit</span></span>)</span><span class="params">(<span class="implicit">implicit </span><span name="config">config: <a name="org.scalatest.prop.Configuration.PropertyCheckConfig" class="extype" href="Configuration$PropertyCheckConfig.html">PropertyCheckConfig</a></span>, <span name="shrA">shrA: <span name="org.scalacheck.Shrink" class="extype">Shrink</span>[A]</span>, <span name="shrB">shrB: <span name="org.scalacheck.Shrink" class="extype">Shrink</span>[B]</span>, <span name="shrC">shrC: <span name="org.scalacheck.Shrink" class="extype">Shrink</span>[C]</span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Performs a property check by applying the specified property check function to named arguments
+supplied by the specified generators.</p><div class="fullcomment"><div class="comment cmt"><p>Performs a property check by applying the specified property check function to named arguments
+supplied by the specified generators.</p><p>Here's an example:</p><p><pre class="stHighlighted">
+<span class="stReserved">import</span> org.scalacheck.Gen
+<br /><span class="stLineComment">// Define your own string generator:</span>
+<span class="stReserved">val</span> famousLastWords = <span class="stReserved">for</span> {
+  s &lt;- Gen.oneOf(<span class="stQuotedString">&quot;the&quot;</span>, <span class="stQuotedString">&quot;program&quot;</span>, <span class="stQuotedString">&quot;compiles&quot;</span>, <span class="stQuotedString">&quot;therefore&quot;</span>, <span class="stQuotedString">&quot;it&quot;</span>, <span class="stQuotedString">&quot;should&quot;</span>, <span class="stQuotedString">&quot;work&quot;</span>)
+} <span class="stReserved">yield</span> s
+<br />forAll ((famousLastWords, <span class="stQuotedString">&quot;a&quot;</span>), (famousLastWords, <span class="stQuotedString">&quot;b&quot;</span>), (famousLastWords, <span class="stQuotedString">&quot;c&quot;</span>)) { (a: <span class="stType">String</span>, b: <span class="stType">String</span>, c: <span class="stType">String</span>) =&gt;
+  a.length + b.length + c.length should equal ((a + b + c).length)
+}
+</pre>
+</p></div><dl class="paramcmts block"><dt class="param">fun</dt><dd class="cmt"><p>the property check function to apply to the generated arguments
+</p></dd></dl><dl class="attributes block"> <dt>Definition Classes</dt><dd><a name="org.scalatest.prop.GeneratorDrivenPropertyChecks" class="extype" href="GeneratorDrivenPropertyChecks.html">GeneratorDrivenPropertyChecks</a></dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.prop.GeneratorDrivenPropertyChecks#forAll" data-isabs="false">
+      <a id="forAll[A, B, C](Gen[A],Gen[B],Gen[C],PropertyCheckConfigParam*)((A, B, C) ⇒ Unit)(PropertyCheckConfig,Shrink[A],Shrink[B],Shrink[C]):Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">forAll</span>
+        <span class="tparams">[<span name="A">A</span>, <span name="B">B</span>, <span name="C">C</span>]</span>
+        <span class="params">(<span name="genA">genA: <span name="org.scalacheck.Gen" class="extype">Gen</span>[A]</span>, <span name="genB">genB: <span name="org.scalacheck.Gen" class="extype">Gen</span>[B]</span>, <span name="genC">genC: <span name="org.scalacheck.Gen" class="extype">Gen</span>[C]</span>, <span name="configParams">configParams: <a name="org.scalatest.prop.Configuration.PropertyCheckConfigParam" class="extype" href="Configuration$PropertyCheckConfigParam.html">PropertyCheckConfigParam</a>*</span>)</span><span class="params">(<span name="fun">fun: (A, B, C) ⇒ <span name="scala.Unit" class="extype">Unit</span></span>)</span><span class="params">(<span class="implicit">implicit </span><span name="config">config: <a name="org.scalatest.prop.Configuration.PropertyCheckConfig" class="extype" href="Configuration$PropertyCheckConfig.html">PropertyCheckConfig</a></span>, <span name="shrA">shrA: <span name="org.scalacheck.Shrink" class="extype">Shrink</span>[A]</span>, <span name="shrB">shrB: <span name="org.scalacheck.Shrink" class="extype">Shrink</span>[B]</span>, <span name="shrC">shrC: <span name="org.scalacheck.Shrink" class="extype">Shrink</span>[C]</span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Performs a property check by applying the specified property check function to arguments
+supplied by the specified generators.</p><div class="fullcomment"><div class="comment cmt"><p>Performs a property check by applying the specified property check function to arguments
+supplied by the specified generators.</p><p>Here's an example:</p><p><pre class="stHighlighted">
+<span class="stReserved">import</span> org.scalacheck.Gen
+<br /><span class="stLineComment">// Define your own string generator:</span>
+<span class="stReserved">val</span> famousLastWords = <span class="stReserved">for</span> {
+  s &lt;- Gen.oneOf(<span class="stQuotedString">&quot;the&quot;</span>, <span class="stQuotedString">&quot;program&quot;</span>, <span class="stQuotedString">&quot;compiles&quot;</span>, <span class="stQuotedString">&quot;therefore&quot;</span>, <span class="stQuotedString">&quot;it&quot;</span>, <span class="stQuotedString">&quot;should&quot;</span>, <span class="stQuotedString">&quot;work&quot;</span>)
+} <span class="stReserved">yield</span> s
+<br />forAll (famousLastWords, famousLastWords, famousLastWords) { (a: <span class="stType">String</span>, b: <span class="stType">String</span>, c: <span class="stType">String</span>) =&gt;
+  a.length + b.length + c.length should equal ((a + b + c).length)
+}
+</pre>
+</p></div><dl class="paramcmts block"><dt class="param">fun</dt><dd class="cmt"><p>the property check function to apply to the generated arguments
+</p></dd></dl><dl class="attributes block"> <dt>Definition Classes</dt><dd><a name="org.scalatest.prop.GeneratorDrivenPropertyChecks" class="extype" href="GeneratorDrivenPropertyChecks.html">GeneratorDrivenPropertyChecks</a></dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.prop.GeneratorDrivenPropertyChecks#forAll" data-isabs="false">
+      <a id="forAll[A, B, C](String,String,String,PropertyCheckConfigParam*)((A, B, C) ⇒ Unit)(PropertyCheckConfig,Arbitrary[A],Shrink[A],Arbitrary[B],Shrink[B],Arbitrary[C],Shrink[C]):Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">forAll</span>
+        <span class="tparams">[<span name="A">A</span>, <span name="B">B</span>, <span name="C">C</span>]</span>
+        <span class="params">(<span name="nameA">nameA: String</span>, <span name="nameB">nameB: String</span>, <span name="nameC">nameC: String</span>, <span name="configParams">configParams: <a name="org.scalatest.prop.Configuration.PropertyCheckConfigParam" class="extype" href="Configuration$PropertyCheckConfigParam.html">PropertyCheckConfigParam</a>*</span>)</span><span class="params">(<span name="fun">fun: (A, B, C) ⇒ <span name="scala.Unit" class="extype">Unit</span></span>)</span><span class="params">(<span class="implicit">implicit </span><span name="config">config: <a name="org.scalatest.prop.Configuration.PropertyCheckConfig" class="extype" href="Configuration$PropertyCheckConfig.html">PropertyCheckConfig</a></span>, <span name="arbA">arbA: <span name="org.scalacheck.Arbitrary" class="extype">Arbitrary</span>[A]</span>, <span name="shrA">shrA: <span name="org.scalacheck.Shrink" class="extype">Shrink</span>[A]</span>, <span name="arbB">arbB: <span name="org.scalacheck.Arbitrary" class="extype">Arbitrary</span>[B]</span>, <span name="shrB">shrB: <span name="org.scalacheck.Shrink" class="extype">Shrink</span>[B]</span>, <span name="arbC">arbC: <span name="org.scalacheck.Arbitrary" class="extype">Arbitrary</span>[C]</span>, <span name="shrC">shrC: <span name="org.scalacheck.Shrink" class="extype">Shrink</span>[C]</span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Performs a property check by applying the specified property check function with the specified
+argument names to arguments supplied by implicitly passed generators.</p><div class="fullcomment"><div class="comment cmt"><p>Performs a property check by applying the specified property check function with the specified
+argument names to arguments supplied by implicitly passed generators.</p><p>Here's an example:</p><p><pre class="stHighlighted">
+forAll (<span class="stQuotedString">&quot;a&quot;</span>, <span class="stQuotedString">&quot;b&quot;</span>, <span class="stQuotedString">&quot;c&quot;</span>) { (a: <span class="stType">String</span>, b: <span class="stType">String</span>, c: <span class="stType">String</span>) =&gt;
+  a.length + b.length + c.length should equal ((a + b + c).length)
+}
+</pre>
+</p></div><dl class="paramcmts block"><dt class="param">fun</dt><dd class="cmt"><p>the property check function to apply to the generated arguments
+</p></dd></dl><dl class="attributes block"> <dt>Definition Classes</dt><dd><a name="org.scalatest.prop.GeneratorDrivenPropertyChecks" class="extype" href="GeneratorDrivenPropertyChecks.html">GeneratorDrivenPropertyChecks</a></dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.prop.GeneratorDrivenPropertyChecks#forAll" data-isabs="false">
+      <a id="forAll[A, B, C]((A, B, C) ⇒ Unit)(PropertyCheckConfig,Arbitrary[A],Shrink[A],Arbitrary[B],Shrink[B],Arbitrary[C],Shrink[C]):Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">forAll</span>
+        <span class="tparams">[<span name="A">A</span>, <span name="B">B</span>, <span name="C">C</span>]</span>
+        <span class="params">(<span name="fun">fun: (A, B, C) ⇒ <span name="scala.Unit" class="extype">Unit</span></span>)</span><span class="params">(<span class="implicit">implicit </span><span name="config">config: <a name="org.scalatest.prop.Configuration.PropertyCheckConfig" class="extype" href="Configuration$PropertyCheckConfig.html">PropertyCheckConfig</a></span>, <span name="arbA">arbA: <span name="org.scalacheck.Arbitrary" class="extype">Arbitrary</span>[A]</span>, <span name="shrA">shrA: <span name="org.scalacheck.Shrink" class="extype">Shrink</span>[A]</span>, <span name="arbB">arbB: <span name="org.scalacheck.Arbitrary" class="extype">Arbitrary</span>[B]</span>, <span name="shrB">shrB: <span name="org.scalacheck.Shrink" class="extype">Shrink</span>[B]</span>, <span name="arbC">arbC: <span name="org.scalacheck.Arbitrary" class="extype">Arbitrary</span>[C]</span>, <span name="shrC">shrC: <span name="org.scalacheck.Shrink" class="extype">Shrink</span>[C]</span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Performs a property check by applying the specified property check function to arguments
+supplied by implicitly passed generators.</p><div class="fullcomment"><div class="comment cmt"><p>Performs a property check by applying the specified property check function to arguments
+supplied by implicitly passed generators.</p><p>Here's an example:</p><p><pre class="stHighlighted">
+forAll { (a: <span class="stType">String</span>, b: <span class="stType">String</span>, c: <span class="stType">String</span>) =&gt;
+  a.length + b.length + c.length should equal ((a + b + c).length)
+}
+</pre>
+</p></div><dl class="paramcmts block"><dt class="param">fun</dt><dd class="cmt"><p>the property check function to apply to the generated arguments
+</p></dd></dl><dl class="attributes block"> <dt>Definition Classes</dt><dd><a name="org.scalatest.prop.GeneratorDrivenPropertyChecks" class="extype" href="GeneratorDrivenPropertyChecks.html">GeneratorDrivenPropertyChecks</a></dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.prop.GeneratorDrivenPropertyChecks#forAll" data-isabs="false">
+      <a id="forAll[A, B]((Gen[A], String),(Gen[B], String),PropertyCheckConfigParam*)((A, B) ⇒ Unit)(PropertyCheckConfig,Shrink[A],Shrink[B]):Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">forAll</span>
+        <span class="tparams">[<span name="A">A</span>, <span name="B">B</span>]</span>
+        <span class="params">(<span name="genAndNameA">genAndNameA: (<span name="org.scalacheck.Gen" class="extype">Gen</span>[A], String)</span>, <span name="genAndNameB">genAndNameB: (<span name="org.scalacheck.Gen" class="extype">Gen</span>[B], String)</span>, <span name="configParams">configParams: <a name="org.scalatest.prop.Configuration.PropertyCheckConfigParam" class="extype" href="Configuration$PropertyCheckConfigParam.html">PropertyCheckConfigParam</a>*</span>)</span><span class="params">(<span name="fun">fun: (A, B) ⇒ <span name="scala.Unit" class="extype">Unit</span></span>)</span><span class="params">(<span class="implicit">implicit </span><span name="config">config: <a name="org.scalatest.prop.Configuration.PropertyCheckConfig" class="extype" href="Configuration$PropertyCheckConfig.html">PropertyCheckConfig</a></span>, <span name="shrA">shrA: <span name="org.scalacheck.Shrink" class="extype">Shrink</span>[A]</span>, <span name="shrB">shrB: <span name="org.scalacheck.Shrink" class="extype">Shrink</span>[B]</span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Performs a property check by applying the specified property check function to named arguments
+supplied by the specified generators.</p><div class="fullcomment"><div class="comment cmt"><p>Performs a property check by applying the specified property check function to named arguments
+supplied by the specified generators.</p><p>Here's an example:</p><p><pre class="stHighlighted">
+<span class="stReserved">import</span> org.scalacheck.Gen
+<br /><span class="stLineComment">// Define your own string generator:</span>
+<span class="stReserved">val</span> famousLastWords = <span class="stReserved">for</span> {
+  s &lt;- Gen.oneOf(<span class="stQuotedString">&quot;the&quot;</span>, <span class="stQuotedString">&quot;program&quot;</span>, <span class="stQuotedString">&quot;compiles&quot;</span>, <span class="stQuotedString">&quot;therefore&quot;</span>, <span class="stQuotedString">&quot;it&quot;</span>, <span class="stQuotedString">&quot;should&quot;</span>, <span class="stQuotedString">&quot;work&quot;</span>)
+} <span class="stReserved">yield</span> s
+<br />forAll ((famousLastWords, <span class="stQuotedString">&quot;a&quot;</span>), (famousLastWords, <span class="stQuotedString">&quot;b&quot;</span>)) { (a: <span class="stType">String</span>, b: <span class="stType">String</span>) =&gt;
+  a.length + b.length should equal ((a + b).length)
+}
+</pre>
+</p></div><dl class="paramcmts block"><dt class="param">fun</dt><dd class="cmt"><p>the property check function to apply to the generated arguments
+</p></dd></dl><dl class="attributes block"> <dt>Definition Classes</dt><dd><a name="org.scalatest.prop.GeneratorDrivenPropertyChecks" class="extype" href="GeneratorDrivenPropertyChecks.html">GeneratorDrivenPropertyChecks</a></dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.prop.GeneratorDrivenPropertyChecks#forAll" data-isabs="false">
+      <a id="forAll[A, B](Gen[A],Gen[B],PropertyCheckConfigParam*)((A, B) ⇒ Unit)(PropertyCheckConfig,Shrink[A],Shrink[B]):Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">forAll</span>
+        <span class="tparams">[<span name="A">A</span>, <span name="B">B</span>]</span>
+        <span class="params">(<span name="genA">genA: <span name="org.scalacheck.Gen" class="extype">Gen</span>[A]</span>, <span name="genB">genB: <span name="org.scalacheck.Gen" class="extype">Gen</span>[B]</span>, <span name="configParams">configParams: <a name="org.scalatest.prop.Configuration.PropertyCheckConfigParam" class="extype" href="Configuration$PropertyCheckConfigParam.html">PropertyCheckConfigParam</a>*</span>)</span><span class="params">(<span name="fun">fun: (A, B) ⇒ <span name="scala.Unit" class="extype">Unit</span></span>)</span><span class="params">(<span class="implicit">implicit </span><span name="config">config: <a name="org.scalatest.prop.Configuration.PropertyCheckConfig" class="extype" href="Configuration$PropertyCheckConfig.html">PropertyCheckConfig</a></span>, <span name="shrA">shrA: <span name="org.scalacheck.Shrink" class="extype">Shrink</span>[A]</span>, <span name="shrB">shrB: <span name="org.scalacheck.Shrink" class="extype">Shrink</span>[B]</span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Performs a property check by applying the specified property check function to arguments
+supplied by the specified generators.</p><div class="fullcomment"><div class="comment cmt"><p>Performs a property check by applying the specified property check function to arguments
+supplied by the specified generators.</p><p>Here's an example:</p><p><pre class="stHighlighted">
+<span class="stReserved">import</span> org.scalacheck.Gen
+<br /><span class="stLineComment">// Define your own string generator:</span>
+<span class="stReserved">val</span> famousLastWords = <span class="stReserved">for</span> {
+  s &lt;- Gen.oneOf(<span class="stQuotedString">&quot;the&quot;</span>, <span class="stQuotedString">&quot;program&quot;</span>, <span class="stQuotedString">&quot;compiles&quot;</span>, <span class="stQuotedString">&quot;therefore&quot;</span>, <span class="stQuotedString">&quot;it&quot;</span>, <span class="stQuotedString">&quot;should&quot;</span>, <span class="stQuotedString">&quot;work&quot;</span>)
+} <span class="stReserved">yield</span> s
+<br />forAll (famousLastWords, famousLastWords) { (a: <span class="stType">String</span>, b: <span class="stType">String</span>) =&gt;
+  a.length + b.length should equal ((a + b).length)
+}
+</pre>
+</p></div><dl class="paramcmts block"><dt class="param">fun</dt><dd class="cmt"><p>the property check function to apply to the generated arguments
+</p></dd></dl><dl class="attributes block"> <dt>Definition Classes</dt><dd><a name="org.scalatest.prop.GeneratorDrivenPropertyChecks" class="extype" href="GeneratorDrivenPropertyChecks.html">GeneratorDrivenPropertyChecks</a></dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.prop.GeneratorDrivenPropertyChecks#forAll" data-isabs="false">
+      <a id="forAll[A, B](String,String,PropertyCheckConfigParam*)((A, B) ⇒ Unit)(PropertyCheckConfig,Arbitrary[A],Shrink[A],Arbitrary[B],Shrink[B]):Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">forAll</span>
+        <span class="tparams">[<span name="A">A</span>, <span name="B">B</span>]</span>
+        <span class="params">(<span name="nameA">nameA: String</span>, <span name="nameB">nameB: String</span>, <span name="configParams">configParams: <a name="org.scalatest.prop.Configuration.PropertyCheckConfigParam" class="extype" href="Configuration$PropertyCheckConfigParam.html">PropertyCheckConfigParam</a>*</span>)</span><span class="params">(<span name="fun">fun: (A, B) ⇒ <span name="scala.Unit" class="extype">Unit</span></span>)</span><span class="params">(<span class="implicit">implicit </span><span name="config">config: <a name="org.scalatest.prop.Configuration.PropertyCheckConfig" class="extype" href="Configuration$PropertyCheckConfig.html">PropertyCheckConfig</a></span>, <span name="arbA">arbA: <span name="org.scalacheck.Arbitrary" class="extype">Arbitrary</span>[A]</span>, <span name="shrA">shrA: <span name="org.scalacheck.Shrink" class="extype">Shrink</span>[A]</span>, <span name="arbB">arbB: <span name="org.scalacheck.Arbitrary" class="extype">Arbitrary</span>[B]</span>, <span name="shrB">shrB: <span name="org.scalacheck.Shrink" class="extype">Shrink</span>[B]</span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Performs a property check by applying the specified property check function with the specified
+argument names to arguments supplied by implicitly passed generators.</p><div class="fullcomment"><div class="comment cmt"><p>Performs a property check by applying the specified property check function with the specified
+argument names to arguments supplied by implicitly passed generators.</p><p>Here's an example:</p><p><pre class="stHighlighted">
+forAll (<span class="stQuotedString">&quot;a&quot;</span>, <span class="stQuotedString">&quot;b&quot;</span>) { (a: <span class="stType">String</span>, b: <span class="stType">String</span>) =&gt;
+  a.length + b.length should equal ((a + b).length)
+}
+</pre>
+</p></div><dl class="paramcmts block"><dt class="param">fun</dt><dd class="cmt"><p>the property check function to apply to the generated arguments
+</p></dd></dl><dl class="attributes block"> <dt>Definition Classes</dt><dd><a name="org.scalatest.prop.GeneratorDrivenPropertyChecks" class="extype" href="GeneratorDrivenPropertyChecks.html">GeneratorDrivenPropertyChecks</a></dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.prop.GeneratorDrivenPropertyChecks#forAll" data-isabs="false">
+      <a id="forAll[A, B]((A, B) ⇒ Unit)(PropertyCheckConfig,Arbitrary[A],Shrink[A],Arbitrary[B],Shrink[B]):Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">forAll</span>
+        <span class="tparams">[<span name="A">A</span>, <span name="B">B</span>]</span>
+        <span class="params">(<span name="fun">fun: (A, B) ⇒ <span name="scala.Unit" class="extype">Unit</span></span>)</span><span class="params">(<span class="implicit">implicit </span><span name="config">config: <a name="org.scalatest.prop.Configuration.PropertyCheckConfig" class="extype" href="Configuration$PropertyCheckConfig.html">PropertyCheckConfig</a></span>, <span name="arbA">arbA: <span name="org.scalacheck.Arbitrary" class="extype">Arbitrary</span>[A]</span>, <span name="shrA">shrA: <span name="org.scalacheck.Shrink" class="extype">Shrink</span>[A]</span>, <span name="arbB">arbB: <span name="org.scalacheck.Arbitrary" class="extype">Arbitrary</span>[B]</span>, <span name="shrB">shrB: <span name="org.scalacheck.Shrink" class="extype">Shrink</span>[B]</span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Performs a property check by applying the specified property check function to arguments
+supplied by implicitly passed generators.</p><div class="fullcomment"><div class="comment cmt"><p>Performs a property check by applying the specified property check function to arguments
+supplied by implicitly passed generators.</p><p>Here's an example:</p><p><pre class="stHighlighted">
+forAll { (a: <span class="stType">String</span>, b: <span class="stType">String</span>) =&gt;
+  a.length + b.length should equal ((a + b).length)
+}
+</pre>
+</p></div><dl class="paramcmts block"><dt class="param">fun</dt><dd class="cmt"><p>the property check function to apply to the generated arguments
+</p></dd></dl><dl class="attributes block"> <dt>Definition Classes</dt><dd><a name="org.scalatest.prop.GeneratorDrivenPropertyChecks" class="extype" href="GeneratorDrivenPropertyChecks.html">GeneratorDrivenPropertyChecks</a></dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.prop.GeneratorDrivenPropertyChecks#forAll" data-isabs="false">
+      <a id="forAll[A]((Gen[A], String),PropertyCheckConfigParam*)((A) ⇒ Unit)(PropertyCheckConfig,Shrink[A]):Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">forAll</span>
+        <span class="tparams">[<span name="A">A</span>]</span>
+        <span class="params">(<span name="genAndNameA">genAndNameA: (<span name="org.scalacheck.Gen" class="extype">Gen</span>[A], String)</span>, <span name="configParams">configParams: <a name="org.scalatest.prop.Configuration.PropertyCheckConfigParam" class="extype" href="Configuration$PropertyCheckConfigParam.html">PropertyCheckConfigParam</a>*</span>)</span><span class="params">(<span name="fun">fun: (A) ⇒ <span name="scala.Unit" class="extype">Unit</span></span>)</span><span class="params">(<span class="implicit">implicit </span><span name="config">config: <a name="org.scalatest.prop.Configuration.PropertyCheckConfig" class="extype" href="Configuration$PropertyCheckConfig.html">PropertyCheckConfig</a></span>, <span name="shrA">shrA: <span name="org.scalacheck.Shrink" class="extype">Shrink</span>[A]</span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Performs a property check by applying the specified property check function to named arguments
+supplied by the specified generators.</p><div class="fullcomment"><div class="comment cmt"><p>Performs a property check by applying the specified property check function to named arguments
+supplied by the specified generators.</p><p>Here's an example:</p><p><pre class="stHighlighted">
+<span class="stReserved">import</span> org.scalacheck.Gen
+<br /><span class="stLineComment">// Define your own string generator:</span>
+<span class="stReserved">val</span> famousLastWords = <span class="stReserved">for</span> {
+  s &lt;- Gen.oneOf(<span class="stQuotedString">&quot;the&quot;</span>, <span class="stQuotedString">&quot;program&quot;</span>, <span class="stQuotedString">&quot;compiles&quot;</span>, <span class="stQuotedString">&quot;therefore&quot;</span>, <span class="stQuotedString">&quot;it&quot;</span>, <span class="stQuotedString">&quot;should&quot;</span>, <span class="stQuotedString">&quot;work&quot;</span>)
+} <span class="stReserved">yield</span> s
+<br />forAll ((famousLastWords, <span class="stQuotedString">&quot;a&quot;</span>)) { (a: <span class="stType">String</span>) =&gt;
+  a.length should equal ((a).length)
+}
+</pre>
+</p></div><dl class="paramcmts block"><dt class="param">fun</dt><dd class="cmt"><p>the property check function to apply to the generated arguments
+</p></dd></dl><dl class="attributes block"> <dt>Definition Classes</dt><dd><a name="org.scalatest.prop.GeneratorDrivenPropertyChecks" class="extype" href="GeneratorDrivenPropertyChecks.html">GeneratorDrivenPropertyChecks</a></dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.prop.GeneratorDrivenPropertyChecks#forAll" data-isabs="false">
+      <a id="forAll[A](Gen[A],PropertyCheckConfigParam*)((A) ⇒ Unit)(PropertyCheckConfig,Shrink[A]):Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">forAll</span>
+        <span class="tparams">[<span name="A">A</span>]</span>
+        <span class="params">(<span name="genA">genA: <span name="org.scalacheck.Gen" class="extype">Gen</span>[A]</span>, <span name="configParams">configParams: <a name="org.scalatest.prop.Configuration.PropertyCheckConfigParam" class="extype" href="Configuration$PropertyCheckConfigParam.html">PropertyCheckConfigParam</a>*</span>)</span><span class="params">(<span name="fun">fun: (A) ⇒ <span name="scala.Unit" class="extype">Unit</span></span>)</span><span class="params">(<span class="implicit">implicit </span><span name="config">config: <a name="org.scalatest.prop.Configuration.PropertyCheckConfig" class="extype" href="Configuration$PropertyCheckConfig.html">PropertyCheckConfig</a></span>, <span name="shrA">shrA: <span name="org.scalacheck.Shrink" class="extype">Shrink</span>[A]</span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Performs a property check by applying the specified property check function to arguments
+supplied by the specified generators.</p><div class="fullcomment"><div class="comment cmt"><p>Performs a property check by applying the specified property check function to arguments
+supplied by the specified generators.</p><p>Here's an example:</p><p><pre class="stHighlighted">
+<span class="stReserved">import</span> org.scalacheck.Gen
+<br /><span class="stLineComment">// Define your own string generator:</span>
+<span class="stReserved">val</span> famousLastWords = <span class="stReserved">for</span> {
+  s &lt;- Gen.oneOf(<span class="stQuotedString">&quot;the&quot;</span>, <span class="stQuotedString">&quot;program&quot;</span>, <span class="stQuotedString">&quot;compiles&quot;</span>, <span class="stQuotedString">&quot;therefore&quot;</span>, <span class="stQuotedString">&quot;it&quot;</span>, <span class="stQuotedString">&quot;should&quot;</span>, <span class="stQuotedString">&quot;work&quot;</span>)
+} <span class="stReserved">yield</span> s
+<br />forAll (famousLastWords) { (a: <span class="stType">String</span>) =&gt;
+  a.length should equal ((a).length)
+}
+</pre>
+</p></div><dl class="paramcmts block"><dt class="param">fun</dt><dd class="cmt"><p>the property check function to apply to the generated arguments
+</p></dd></dl><dl class="attributes block"> <dt>Definition Classes</dt><dd><a name="org.scalatest.prop.GeneratorDrivenPropertyChecks" class="extype" href="GeneratorDrivenPropertyChecks.html">GeneratorDrivenPropertyChecks</a></dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.prop.GeneratorDrivenPropertyChecks#forAll" data-isabs="false">
+      <a id="forAll[A](String,PropertyCheckConfigParam*)((A) ⇒ Unit)(PropertyCheckConfig,Arbitrary[A],Shrink[A]):Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">forAll</span>
+        <span class="tparams">[<span name="A">A</span>]</span>
+        <span class="params">(<span name="nameA">nameA: String</span>, <span name="configParams">configParams: <a name="org.scalatest.prop.Configuration.PropertyCheckConfigParam" class="extype" href="Configuration$PropertyCheckConfigParam.html">PropertyCheckConfigParam</a>*</span>)</span><span class="params">(<span name="fun">fun: (A) ⇒ <span name="scala.Unit" class="extype">Unit</span></span>)</span><span class="params">(<span class="implicit">implicit </span><span name="config">config: <a name="org.scalatest.prop.Configuration.PropertyCheckConfig" class="extype" href="Configuration$PropertyCheckConfig.html">PropertyCheckConfig</a></span>, <span name="arbA">arbA: <span name="org.scalacheck.Arbitrary" class="extype">Arbitrary</span>[A]</span>, <span name="shrA">shrA: <span name="org.scalacheck.Shrink" class="extype">Shrink</span>[A]</span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Performs a property check by applying the specified property check function with the specified
+argument names to arguments supplied by implicitly passed generators.</p><div class="fullcomment"><div class="comment cmt"><p>Performs a property check by applying the specified property check function with the specified
+argument names to arguments supplied by implicitly passed generators.</p><p>Here's an example:</p><p><pre class="stHighlighted">
+forAll (<span class="stQuotedString">&quot;a&quot;</span>) { (a: <span class="stType">String</span>) =&gt;
+  a.length should equal ((a).length)
+}
+</pre>
+</p></div><dl class="paramcmts block"><dt class="param">fun</dt><dd class="cmt"><p>the property check function to apply to the generated arguments
+</p></dd></dl><dl class="attributes block"> <dt>Definition Classes</dt><dd><a name="org.scalatest.prop.GeneratorDrivenPropertyChecks" class="extype" href="GeneratorDrivenPropertyChecks.html">GeneratorDrivenPropertyChecks</a></dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.prop.GeneratorDrivenPropertyChecks#forAll" data-isabs="false">
+      <a id="forAll[A]((A) ⇒ Unit)(PropertyCheckConfig,Arbitrary[A],Shrink[A]):Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">forAll</span>
+        <span class="tparams">[<span name="A">A</span>]</span>
+        <span class="params">(<span name="fun">fun: (A) ⇒ <span name="scala.Unit" class="extype">Unit</span></span>)</span><span class="params">(<span class="implicit">implicit </span><span name="config">config: <a name="org.scalatest.prop.Configuration.PropertyCheckConfig" class="extype" href="Configuration$PropertyCheckConfig.html">PropertyCheckConfig</a></span>, <span name="arbA">arbA: <span name="org.scalacheck.Arbitrary" class="extype">Arbitrary</span>[A]</span>, <span name="shrA">shrA: <span name="org.scalacheck.Shrink" class="extype">Shrink</span>[A]</span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Performs a property check by applying the specified property check function to arguments
+supplied by implicitly passed generators.</p><div class="fullcomment"><div class="comment cmt"><p>Performs a property check by applying the specified property check function to arguments
+supplied by implicitly passed generators.</p><p>Here's an example:</p><p><pre class="stHighlighted">
+forAll { (a: <span class="stType">String</span>) =&gt;
+  a.length should equal ((a).length)
+}
+</pre>
+</p></div><dl class="paramcmts block"><dt class="param">fun</dt><dd class="cmt"><p>the property check function to apply to the generated arguments
+</p></dd></dl><dl class="attributes block"> <dt>Definition Classes</dt><dd><a name="org.scalatest.prop.GeneratorDrivenPropertyChecks" class="extype" href="GeneratorDrivenPropertyChecks.html">GeneratorDrivenPropertyChecks</a></dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.prop.GeneratorDrivenPropertyChecks#forAll" data-isabs="false">
+      <a id="forAll(PropertyCheckConfigParam*):ConfiguredPropertyCheck"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">forAll</span>
+        
+        <span class="params">(<span name="configParams">configParams: <a name="org.scalatest.prop.Configuration.PropertyCheckConfigParam" class="extype" href="Configuration$PropertyCheckConfigParam.html">PropertyCheckConfigParam</a>*</span>)</span><span class="result">: <a name="org.scalatest.prop.GeneratorDrivenPropertyChecks.ConfiguredPropertyCheck" class="extype" href="GeneratorDrivenPropertyChecks$ConfiguredPropertyCheck.html">ConfiguredPropertyCheck</a></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Performs a property check by applying the specified property check function to arguments
+supplied by implicitly passed generators, modifying the values in the implicitly passed
+<code>PropertyGenConfig</code> object with explicitly passed parameter values.</p><div class="fullcomment"><div class="comment cmt"><p>Performs a property check by applying the specified property check function to arguments
+supplied by implicitly passed generators, modifying the values in the implicitly passed
+<code>PropertyGenConfig</code> object with explicitly passed parameter values.</p><p>This method creates a <code>ConfiguredPropertyCheck</code> object that has six overloaded apply methods
+that take a function. Thus it is used with functions of all six arities.
+Here are some examples:</p><p><pre class="stHighlighted">
+forAll (minSize(<span class="stLiteral">1</span>), maxSize(<span class="stLiteral">10</span>)) { (a: <span class="stType">String</span>) =&gt;
+  a.length should equal ((a).length)
+}
+<br />forAll (minSize(<span class="stLiteral">1</span>), maxSize(<span class="stLiteral">10</span>)) { (a: <span class="stType">String</span>, b: <span class="stType">String</span>) =&gt;
+  a.length + b.length should equal ((a + b).length)
+}
+<br />forAll (minSize(<span class="stLiteral">1</span>), maxSize(<span class="stLiteral">10</span>)) { (a: <span class="stType">String</span>, b: <span class="stType">String</span>, c: <span class="stType">String</span>) =&gt;
+  a.length + b.length + c.length should equal ((a + b + c).length)
+}
+<br />forAll (minSize(<span class="stLiteral">1</span>), maxSize(<span class="stLiteral">10</span>)) { (a: <span class="stType">String</span>, b: <span class="stType">String</span>, c: <span class="stType">String</span>, d: <span class="stType">String</span>) =&gt;
+  a.length + b.length + c.length + d.length should equal ((a + b + c + d).length)
+}
+<br />forAll (minSize(<span class="stLiteral">1</span>), maxSize(<span class="stLiteral">10</span>)) { (a: <span class="stType">String</span>, b: <span class="stType">String</span>, c: <span class="stType">String</span>, d: <span class="stType">String</span>, e: <span class="stType">String</span>) =&gt;
+  a.length + b.length + c.length + d.length + e.length should equal ((a + b + c + d + e).length)
+}
+<br />forAll (minSize(<span class="stLiteral">1</span>), maxSize(<span class="stLiteral">10</span>)) { (a: <span class="stType">String</span>, b: <span class="stType">String</span>, c: <span class="stType">String</span>, d: <span class="stType">String</span>, e: <span class="stType">String</span>, f: <span class="stType">String</span>) =&gt;
+  a.length + b.length + c.length + d.length + e.length + f.length should equal ((a + b + c + d + e + f).length)
+}
+</pre>
+</p></div><dl class="paramcmts block"><dt class="param">configParams</dt><dd class="cmt"><p>a variable length list of <code>PropertyCheckConfigParam</code> objects that should override corresponding
+  values in the <code>PropertyCheckConfig</code> implicitly passed to the <code>apply</code> methods of the <code>ConfiguredPropertyCheck</code>
+  object returned by this method.
+</p></dd></dl><dl class="attributes block"> <dt>Definition Classes</dt><dd><a name="org.scalatest.prop.GeneratorDrivenPropertyChecks" class="extype" href="GeneratorDrivenPropertyChecks.html">GeneratorDrivenPropertyChecks</a></dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.prop.TableDrivenPropertyChecks#forAll" data-isabs="false">
+      <a id="forAll[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V](TableFor22[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V])((A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V) ⇒ Unit):Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">forAll</span>
+        <span class="tparams">[<span name="A">A</span>, <span name="B">B</span>, <span name="C">C</span>, <span name="D">D</span>, <span name="E">E</span>, <span name="F">F</span>, <span name="G">G</span>, <span name="H">H</span>, <span name="I">I</span>, <span name="J">J</span>, <span name="K">K</span>, <span name="L">L</span>, <span name="M">M</span>, <span name="N">N</span>, <span name="O">O</span>, <span name="P">P</span>, <span name="Q">Q</span>, <span name="R">R</span>, <span name="S">S</span>, <span name="T">T</span>, <span name="U">U</span>, <span name="V">V</span>]</span>
+        <span class="params">(<span name="table">table: <a name="org.scalatest.prop.TableFor22" class="extype" href="TableFor22.html">TableFor22</a>[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V]</span>)</span><span class="params">(<span name="fun">fun: (A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V) ⇒ <span name="scala.Unit" class="extype">Unit</span></span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Performs a property check by applying the specified property check function to each row
+of the specified <code>TableFor22</code>.</p><div class="fullcomment"><div class="comment cmt"><p>Performs a property check by applying the specified property check function to each row
+of the specified <code>TableFor22</code>.
+</p></div><dl class="paramcmts block"><dt class="param">table</dt><dd class="cmt"><p>the table of data with which to perform the property check</p></dd><dt class="param">fun</dt><dd class="cmt"><p>the property check function to apply to each row of data in the table
+</p></dd></dl><dl class="attributes block"> <dt>Definition Classes</dt><dd><a name="org.scalatest.prop.TableDrivenPropertyChecks" class="extype" href="TableDrivenPropertyChecks.html">TableDrivenPropertyChecks</a></dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.prop.TableDrivenPropertyChecks#forAll" data-isabs="false">
+      <a id="forAll[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U](TableFor21[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U])((A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U) ⇒ Unit):Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">forAll</span>
+        <span class="tparams">[<span name="A">A</span>, <span name="B">B</span>, <span name="C">C</span>, <span name="D">D</span>, <span name="E">E</span>, <span name="F">F</span>, <span name="G">G</span>, <span name="H">H</span>, <span name="I">I</span>, <span name="J">J</span>, <span name="K">K</span>, <span name="L">L</span>, <span name="M">M</span>, <span name="N">N</span>, <span name="O">O</span>, <span name="P">P</span>, <span name="Q">Q</span>, <span name="R">R</span>, <span name="S">S</span>, <span name="T">T</span>, <span name="U">U</span>]</span>
+        <span class="params">(<span name="table">table: <a name="org.scalatest.prop.TableFor21" class="extype" href="TableFor21.html">TableFor21</a>[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U]</span>)</span><span class="params">(<span name="fun">fun: (A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U) ⇒ <span name="scala.Unit" class="extype">Unit</span></span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Performs a property check by applying the specified property check function to each row
+of the specified <code>TableFor21</code>.</p><div class="fullcomment"><div class="comment cmt"><p>Performs a property check by applying the specified property check function to each row
+of the specified <code>TableFor21</code>.
+</p></div><dl class="paramcmts block"><dt class="param">table</dt><dd class="cmt"><p>the table of data with which to perform the property check</p></dd><dt class="param">fun</dt><dd class="cmt"><p>the property check function to apply to each row of data in the table
+</p></dd></dl><dl class="attributes block"> <dt>Definition Classes</dt><dd><a name="org.scalatest.prop.TableDrivenPropertyChecks" class="extype" href="TableDrivenPropertyChecks.html">TableDrivenPropertyChecks</a></dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.prop.TableDrivenPropertyChecks#forAll" data-isabs="false">
+      <a id="forAll[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T](TableFor20[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T])((A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T) ⇒ Unit):Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">forAll</span>
+        <span class="tparams">[<span name="A">A</span>, <span name="B">B</span>, <span name="C">C</span>, <span name="D">D</span>, <span name="E">E</span>, <span name="F">F</span>, <span name="G">G</span>, <span name="H">H</span>, <span name="I">I</span>, <span name="J">J</span>, <span name="K">K</span>, <span name="L">L</span>, <span name="M">M</span>, <span name="N">N</span>, <span name="O">O</span>, <span name="P">P</span>, <span name="Q">Q</span>, <span name="R">R</span>, <span name="S">S</span>, <span name="T">T</span>]</span>
+        <span class="params">(<span name="table">table: <a name="org.scalatest.prop.TableFor20" class="extype" href="TableFor20.html">TableFor20</a>[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T]</span>)</span><span class="params">(<span name="fun">fun: (A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T) ⇒ <span name="scala.Unit" class="extype">Unit</span></span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Performs a property check by applying the specified property check function to each row
+of the specified <code>TableFor20</code>.</p><div class="fullcomment"><div class="comment cmt"><p>Performs a property check by applying the specified property check function to each row
+of the specified <code>TableFor20</code>.
+</p></div><dl class="paramcmts block"><dt class="param">table</dt><dd class="cmt"><p>the table of data with which to perform the property check</p></dd><dt class="param">fun</dt><dd class="cmt"><p>the property check function to apply to each row of data in the table
+</p></dd></dl><dl class="attributes block"> <dt>Definition Classes</dt><dd><a name="org.scalatest.prop.TableDrivenPropertyChecks" class="extype" href="TableDrivenPropertyChecks.html">TableDrivenPropertyChecks</a></dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.prop.TableDrivenPropertyChecks#forAll" data-isabs="false">
+      <a id="forAll[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S](TableFor19[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S])((A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S) ⇒ Unit):Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">forAll</span>
+        <span class="tparams">[<span name="A">A</span>, <span name="B">B</span>, <span name="C">C</span>, <span name="D">D</span>, <span name="E">E</span>, <span name="F">F</span>, <span name="G">G</span>, <span name="H">H</span>, <span name="I">I</span>, <span name="J">J</span>, <span name="K">K</span>, <span name="L">L</span>, <span name="M">M</span>, <span name="N">N</span>, <span name="O">O</span>, <span name="P">P</span>, <span name="Q">Q</span>, <span name="R">R</span>, <span name="S">S</span>]</span>
+        <span class="params">(<span name="table">table: <a name="org.scalatest.prop.TableFor19" class="extype" href="TableFor19.html">TableFor19</a>[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S]</span>)</span><span class="params">(<span name="fun">fun: (A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S) ⇒ <span name="scala.Unit" class="extype">Unit</span></span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Performs a property check by applying the specified property check function to each row
+of the specified <code>TableFor19</code>.</p><div class="fullcomment"><div class="comment cmt"><p>Performs a property check by applying the specified property check function to each row
+of the specified <code>TableFor19</code>.
+</p></div><dl class="paramcmts block"><dt class="param">table</dt><dd class="cmt"><p>the table of data with which to perform the property check</p></dd><dt class="param">fun</dt><dd class="cmt"><p>the property check function to apply to each row of data in the table
+</p></dd></dl><dl class="attributes block"> <dt>Definition Classes</dt><dd><a name="org.scalatest.prop.TableDrivenPropertyChecks" class="extype" href="TableDrivenPropertyChecks.html">TableDrivenPropertyChecks</a></dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.prop.TableDrivenPropertyChecks#forAll" data-isabs="false">
+      <a id="forAll[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R](TableFor18[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R])((A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R) ⇒ Unit):Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">forAll</span>
+        <span class="tparams">[<span name="A">A</span>, <span name="B">B</span>, <span name="C">C</span>, <span name="D">D</span>, <span name="E">E</span>, <span name="F">F</span>, <span name="G">G</span>, <span name="H">H</span>, <span name="I">I</span>, <span name="J">J</span>, <span name="K">K</span>, <span name="L">L</span>, <span name="M">M</span>, <span name="N">N</span>, <span name="O">O</span>, <span name="P">P</span>, <span name="Q">Q</span>, <span name="R">R</span>]</span>
+        <span class="params">(<span name="table">table: <a name="org.scalatest.prop.TableFor18" class="extype" href="TableFor18.html">TableFor18</a>[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R]</span>)</span><span class="params">(<span name="fun">fun: (A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R) ⇒ <span name="scala.Unit" class="extype">Unit</span></span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Performs a property check by applying the specified property check function to each row
+of the specified <code>TableFor18</code>.</p><div class="fullcomment"><div class="comment cmt"><p>Performs a property check by applying the specified property check function to each row
+of the specified <code>TableFor18</code>.
+</p></div><dl class="paramcmts block"><dt class="param">table</dt><dd class="cmt"><p>the table of data with which to perform the property check</p></dd><dt class="param">fun</dt><dd class="cmt"><p>the property check function to apply to each row of data in the table
+</p></dd></dl><dl class="attributes block"> <dt>Definition Classes</dt><dd><a name="org.scalatest.prop.TableDrivenPropertyChecks" class="extype" href="TableDrivenPropertyChecks.html">TableDrivenPropertyChecks</a></dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.prop.TableDrivenPropertyChecks#forAll" data-isabs="false">
+      <a id="forAll[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q](TableFor17[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q])((A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q) ⇒ Unit):Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">forAll</span>
+        <span class="tparams">[<span name="A">A</span>, <span name="B">B</span>, <span name="C">C</span>, <span name="D">D</span>, <span name="E">E</span>, <span name="F">F</span>, <span name="G">G</span>, <span name="H">H</span>, <span name="I">I</span>, <span name="J">J</span>, <span name="K">K</span>, <span name="L">L</span>, <span name="M">M</span>, <span name="N">N</span>, <span name="O">O</span>, <span name="P">P</span>, <span name="Q">Q</span>]</span>
+        <span class="params">(<span name="table">table: <a name="org.scalatest.prop.TableFor17" class="extype" href="TableFor17.html">TableFor17</a>[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q]</span>)</span><span class="params">(<span name="fun">fun: (A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q) ⇒ <span name="scala.Unit" class="extype">Unit</span></span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Performs a property check by applying the specified property check function to each row
+of the specified <code>TableFor17</code>.</p><div class="fullcomment"><div class="comment cmt"><p>Performs a property check by applying the specified property check function to each row
+of the specified <code>TableFor17</code>.
+</p></div><dl class="paramcmts block"><dt class="param">table</dt><dd class="cmt"><p>the table of data with which to perform the property check</p></dd><dt class="param">fun</dt><dd class="cmt"><p>the property check function to apply to each row of data in the table
+</p></dd></dl><dl class="attributes block"> <dt>Definition Classes</dt><dd><a name="org.scalatest.prop.TableDrivenPropertyChecks" class="extype" href="TableDrivenPropertyChecks.html">TableDrivenPropertyChecks</a></dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.prop.TableDrivenPropertyChecks#forAll" data-isabs="false">
+      <a id="forAll[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P](TableFor16[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P])((A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P) ⇒ Unit):Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">forAll</span>
+        <span class="tparams">[<span name="A">A</span>, <span name="B">B</span>, <span name="C">C</span>, <span name="D">D</span>, <span name="E">E</span>, <span name="F">F</span>, <span name="G">G</span>, <span name="H">H</span>, <span name="I">I</span>, <span name="J">J</span>, <span name="K">K</span>, <span name="L">L</span>, <span name="M">M</span>, <span name="N">N</span>, <span name="O">O</span>, <span name="P">P</span>]</span>
+        <span class="params">(<span name="table">table: <a name="org.scalatest.prop.TableFor16" class="extype" href="TableFor16.html">TableFor16</a>[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P]</span>)</span><span class="params">(<span name="fun">fun: (A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P) ⇒ <span name="scala.Unit" class="extype">Unit</span></span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Performs a property check by applying the specified property check function to each row
+of the specified <code>TableFor16</code>.</p><div class="fullcomment"><div class="comment cmt"><p>Performs a property check by applying the specified property check function to each row
+of the specified <code>TableFor16</code>.
+</p></div><dl class="paramcmts block"><dt class="param">table</dt><dd class="cmt"><p>the table of data with which to perform the property check</p></dd><dt class="param">fun</dt><dd class="cmt"><p>the property check function to apply to each row of data in the table
+</p></dd></dl><dl class="attributes block"> <dt>Definition Classes</dt><dd><a name="org.scalatest.prop.TableDrivenPropertyChecks" class="extype" href="TableDrivenPropertyChecks.html">TableDrivenPropertyChecks</a></dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.prop.TableDrivenPropertyChecks#forAll" data-isabs="false">
+      <a id="forAll[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O](TableFor15[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O])((A, B, C, D, E, F, G, H, I, J, K, L, M, N, O) ⇒ Unit):Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">forAll</span>
+        <span class="tparams">[<span name="A">A</span>, <span name="B">B</span>, <span name="C">C</span>, <span name="D">D</span>, <span name="E">E</span>, <span name="F">F</span>, <span name="G">G</span>, <span name="H">H</span>, <span name="I">I</span>, <span name="J">J</span>, <span name="K">K</span>, <span name="L">L</span>, <span name="M">M</span>, <span name="N">N</span>, <span name="O">O</span>]</span>
+        <span class="params">(<span name="table">table: <a name="org.scalatest.prop.TableFor15" class="extype" href="TableFor15.html">TableFor15</a>[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O]</span>)</span><span class="params">(<span name="fun">fun: (A, B, C, D, E, F, G, H, I, J, K, L, M, N, O) ⇒ <span name="scala.Unit" class="extype">Unit</span></span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Performs a property check by applying the specified property check function to each row
+of the specified <code>TableFor15</code>.</p><div class="fullcomment"><div class="comment cmt"><p>Performs a property check by applying the specified property check function to each row
+of the specified <code>TableFor15</code>.
+</p></div><dl class="paramcmts block"><dt class="param">table</dt><dd class="cmt"><p>the table of data with which to perform the property check</p></dd><dt class="param">fun</dt><dd class="cmt"><p>the property check function to apply to each row of data in the table
+</p></dd></dl><dl class="attributes block"> <dt>Definition Classes</dt><dd><a name="org.scalatest.prop.TableDrivenPropertyChecks" class="extype" href="TableDrivenPropertyChecks.html">TableDrivenPropertyChecks</a></dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.prop.TableDrivenPropertyChecks#forAll" data-isabs="false">
+      <a id="forAll[A, B, C, D, E, F, G, H, I, J, K, L, M, N](TableFor14[A, B, C, D, E, F, G, H, I, J, K, L, M, N])((A, B, C, D, E, F, G, H, I, J, K, L, M, N) ⇒ Unit):Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">forAll</span>
+        <span class="tparams">[<span name="A">A</span>, <span name="B">B</span>, <span name="C">C</span>, <span name="D">D</span>, <span name="E">E</span>, <span name="F">F</span>, <span name="G">G</span>, <span name="H">H</span>, <span name="I">I</span>, <span name="J">J</span>, <span name="K">K</span>, <span name="L">L</span>, <span name="M">M</span>, <span name="N">N</span>]</span>
+        <span class="params">(<span name="table">table: <a name="org.scalatest.prop.TableFor14" class="extype" href="TableFor14.html">TableFor14</a>[A, B, C, D, E, F, G, H, I, J, K, L, M, N]</span>)</span><span class="params">(<span name="fun">fun: (A, B, C, D, E, F, G, H, I, J, K, L, M, N) ⇒ <span name="scala.Unit" class="extype">Unit</span></span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Performs a property check by applying the specified property check function to each row
+of the specified <code>TableFor14</code>.</p><div class="fullcomment"><div class="comment cmt"><p>Performs a property check by applying the specified property check function to each row
+of the specified <code>TableFor14</code>.
+</p></div><dl class="paramcmts block"><dt class="param">table</dt><dd class="cmt"><p>the table of data with which to perform the property check</p></dd><dt class="param">fun</dt><dd class="cmt"><p>the property check function to apply to each row of data in the table
+</p></dd></dl><dl class="attributes block"> <dt>Definition Classes</dt><dd><a name="org.scalatest.prop.TableDrivenPropertyChecks" class="extype" href="TableDrivenPropertyChecks.html">TableDrivenPropertyChecks</a></dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.prop.TableDrivenPropertyChecks#forAll" data-isabs="false">
+      <a id="forAll[A, B, C, D, E, F, G, H, I, J, K, L, M](TableFor13[A, B, C, D, E, F, G, H, I, J, K, L, M])((A, B, C, D, E, F, G, H, I, J, K, L, M) ⇒ Unit):Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">forAll</span>
+        <span class="tparams">[<span name="A">A</span>, <span name="B">B</span>, <span name="C">C</span>, <span name="D">D</span>, <span name="E">E</span>, <span name="F">F</span>, <span name="G">G</span>, <span name="H">H</span>, <span name="I">I</span>, <span name="J">J</span>, <span name="K">K</span>, <span name="L">L</span>, <span name="M">M</span>]</span>
+        <span class="params">(<span name="table">table: <a name="org.scalatest.prop.TableFor13" class="extype" href="TableFor13.html">TableFor13</a>[A, B, C, D, E, F, G, H, I, J, K, L, M]</span>)</span><span class="params">(<span name="fun">fun: (A, B, C, D, E, F, G, H, I, J, K, L, M) ⇒ <span name="scala.Unit" class="extype">Unit</span></span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Performs a property check by applying the specified property check function to each row
+of the specified <code>TableFor13</code>.</p><div class="fullcomment"><div class="comment cmt"><p>Performs a property check by applying the specified property check function to each row
+of the specified <code>TableFor13</code>.
+</p></div><dl class="paramcmts block"><dt class="param">table</dt><dd class="cmt"><p>the table of data with which to perform the property check</p></dd><dt class="param">fun</dt><dd class="cmt"><p>the property check function to apply to each row of data in the table
+</p></dd></dl><dl class="attributes block"> <dt>Definition Classes</dt><dd><a name="org.scalatest.prop.TableDrivenPropertyChecks" class="extype" href="TableDrivenPropertyChecks.html">TableDrivenPropertyChecks</a></dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.prop.TableDrivenPropertyChecks#forAll" data-isabs="false">
+      <a id="forAll[A, B, C, D, E, F, G, H, I, J, K, L](TableFor12[A, B, C, D, E, F, G, H, I, J, K, L])((A, B, C, D, E, F, G, H, I, J, K, L) ⇒ Unit):Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">forAll</span>
+        <span class="tparams">[<span name="A">A</span>, <span name="B">B</span>, <span name="C">C</span>, <span name="D">D</span>, <span name="E">E</span>, <span name="F">F</span>, <span name="G">G</span>, <span name="H">H</span>, <span name="I">I</span>, <span name="J">J</span>, <span name="K">K</span>, <span name="L">L</span>]</span>
+        <span class="params">(<span name="table">table: <a name="org.scalatest.prop.TableFor12" class="extype" href="TableFor12.html">TableFor12</a>[A, B, C, D, E, F, G, H, I, J, K, L]</span>)</span><span class="params">(<span name="fun">fun: (A, B, C, D, E, F, G, H, I, J, K, L) ⇒ <span name="scala.Unit" class="extype">Unit</span></span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Performs a property check by applying the specified property check function to each row
+of the specified <code>TableFor12</code>.</p><div class="fullcomment"><div class="comment cmt"><p>Performs a property check by applying the specified property check function to each row
+of the specified <code>TableFor12</code>.
+</p></div><dl class="paramcmts block"><dt class="param">table</dt><dd class="cmt"><p>the table of data with which to perform the property check</p></dd><dt class="param">fun</dt><dd class="cmt"><p>the property check function to apply to each row of data in the table
+</p></dd></dl><dl class="attributes block"> <dt>Definition Classes</dt><dd><a name="org.scalatest.prop.TableDrivenPropertyChecks" class="extype" href="TableDrivenPropertyChecks.html">TableDrivenPropertyChecks</a></dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.prop.TableDrivenPropertyChecks#forAll" data-isabs="false">
+      <a id="forAll[A, B, C, D, E, F, G, H, I, J, K](TableFor11[A, B, C, D, E, F, G, H, I, J, K])((A, B, C, D, E, F, G, H, I, J, K) ⇒ Unit):Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">forAll</span>
+        <span class="tparams">[<span name="A">A</span>, <span name="B">B</span>, <span name="C">C</span>, <span name="D">D</span>, <span name="E">E</span>, <span name="F">F</span>, <span name="G">G</span>, <span name="H">H</span>, <span name="I">I</span>, <span name="J">J</span>, <span name="K">K</span>]</span>
+        <span class="params">(<span name="table">table: <a name="org.scalatest.prop.TableFor11" class="extype" href="TableFor11.html">TableFor11</a>[A, B, C, D, E, F, G, H, I, J, K]</span>)</span><span class="params">(<span name="fun">fun: (A, B, C, D, E, F, G, H, I, J, K) ⇒ <span name="scala.Unit" class="extype">Unit</span></span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Performs a property check by applying the specified property check function to each row
+of the specified <code>TableFor11</code>.</p><div class="fullcomment"><div class="comment cmt"><p>Performs a property check by applying the specified property check function to each row
+of the specified <code>TableFor11</code>.
+</p></div><dl class="paramcmts block"><dt class="param">table</dt><dd class="cmt"><p>the table of data with which to perform the property check</p></dd><dt class="param">fun</dt><dd class="cmt"><p>the property check function to apply to each row of data in the table
+</p></dd></dl><dl class="attributes block"> <dt>Definition Classes</dt><dd><a name="org.scalatest.prop.TableDrivenPropertyChecks" class="extype" href="TableDrivenPropertyChecks.html">TableDrivenPropertyChecks</a></dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.prop.TableDrivenPropertyChecks#forAll" data-isabs="false">
+      <a id="forAll[A, B, C, D, E, F, G, H, I, J](TableFor10[A, B, C, D, E, F, G, H, I, J])((A, B, C, D, E, F, G, H, I, J) ⇒ Unit):Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">forAll</span>
+        <span class="tparams">[<span name="A">A</span>, <span name="B">B</span>, <span name="C">C</span>, <span name="D">D</span>, <span name="E">E</span>, <span name="F">F</span>, <span name="G">G</span>, <span name="H">H</span>, <span name="I">I</span>, <span name="J">J</span>]</span>
+        <span class="params">(<span name="table">table: <a name="org.scalatest.prop.TableFor10" class="extype" href="TableFor10.html">TableFor10</a>[A, B, C, D, E, F, G, H, I, J]</span>)</span><span class="params">(<span name="fun">fun: (A, B, C, D, E, F, G, H, I, J) ⇒ <span name="scala.Unit" class="extype">Unit</span></span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Performs a property check by applying the specified property check function to each row
+of the specified <code>TableFor10</code>.</p><div class="fullcomment"><div class="comment cmt"><p>Performs a property check by applying the specified property check function to each row
+of the specified <code>TableFor10</code>.
+</p></div><dl class="paramcmts block"><dt class="param">table</dt><dd class="cmt"><p>the table of data with which to perform the property check</p></dd><dt class="param">fun</dt><dd class="cmt"><p>the property check function to apply to each row of data in the table
+</p></dd></dl><dl class="attributes block"> <dt>Definition Classes</dt><dd><a name="org.scalatest.prop.TableDrivenPropertyChecks" class="extype" href="TableDrivenPropertyChecks.html">TableDrivenPropertyChecks</a></dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.prop.TableDrivenPropertyChecks#forAll" data-isabs="false">
+      <a id="forAll[A, B, C, D, E, F, G, H, I](TableFor9[A, B, C, D, E, F, G, H, I])((A, B, C, D, E, F, G, H, I) ⇒ Unit):Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">forAll</span>
+        <span class="tparams">[<span name="A">A</span>, <span name="B">B</span>, <span name="C">C</span>, <span name="D">D</span>, <span name="E">E</span>, <span name="F">F</span>, <span name="G">G</span>, <span name="H">H</span>, <span name="I">I</span>]</span>
+        <span class="params">(<span name="table">table: <a name="org.scalatest.prop.TableFor9" class="extype" href="TableFor9.html">TableFor9</a>[A, B, C, D, E, F, G, H, I]</span>)</span><span class="params">(<span name="fun">fun: (A, B, C, D, E, F, G, H, I) ⇒ <span name="scala.Unit" class="extype">Unit</span></span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Performs a property check by applying the specified property check function to each row
+of the specified <code>TableFor9</code>.</p><div class="fullcomment"><div class="comment cmt"><p>Performs a property check by applying the specified property check function to each row
+of the specified <code>TableFor9</code>.
+</p></div><dl class="paramcmts block"><dt class="param">table</dt><dd class="cmt"><p>the table of data with which to perform the property check</p></dd><dt class="param">fun</dt><dd class="cmt"><p>the property check function to apply to each row of data in the table
+</p></dd></dl><dl class="attributes block"> <dt>Definition Classes</dt><dd><a name="org.scalatest.prop.TableDrivenPropertyChecks" class="extype" href="TableDrivenPropertyChecks.html">TableDrivenPropertyChecks</a></dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.prop.TableDrivenPropertyChecks#forAll" data-isabs="false">
+      <a id="forAll[A, B, C, D, E, F, G, H](TableFor8[A, B, C, D, E, F, G, H])((A, B, C, D, E, F, G, H) ⇒ Unit):Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">forAll</span>
+        <span class="tparams">[<span name="A">A</span>, <span name="B">B</span>, <span name="C">C</span>, <span name="D">D</span>, <span name="E">E</span>, <span name="F">F</span>, <span name="G">G</span>, <span name="H">H</span>]</span>
+        <span class="params">(<span name="table">table: <a name="org.scalatest.prop.TableFor8" class="extype" href="TableFor8.html">TableFor8</a>[A, B, C, D, E, F, G, H]</span>)</span><span class="params">(<span name="fun">fun: (A, B, C, D, E, F, G, H) ⇒ <span name="scala.Unit" class="extype">Unit</span></span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Performs a property check by applying the specified property check function to each row
+of the specified <code>TableFor8</code>.</p><div class="fullcomment"><div class="comment cmt"><p>Performs a property check by applying the specified property check function to each row
+of the specified <code>TableFor8</code>.
+</p></div><dl class="paramcmts block"><dt class="param">table</dt><dd class="cmt"><p>the table of data with which to perform the property check</p></dd><dt class="param">fun</dt><dd class="cmt"><p>the property check function to apply to each row of data in the table
+</p></dd></dl><dl class="attributes block"> <dt>Definition Classes</dt><dd><a name="org.scalatest.prop.TableDrivenPropertyChecks" class="extype" href="TableDrivenPropertyChecks.html">TableDrivenPropertyChecks</a></dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.prop.TableDrivenPropertyChecks#forAll" data-isabs="false">
+      <a id="forAll[A, B, C, D, E, F, G](TableFor7[A, B, C, D, E, F, G])((A, B, C, D, E, F, G) ⇒ Unit):Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">forAll</span>
+        <span class="tparams">[<span name="A">A</span>, <span name="B">B</span>, <span name="C">C</span>, <span name="D">D</span>, <span name="E">E</span>, <span name="F">F</span>, <span name="G">G</span>]</span>
+        <span class="params">(<span name="table">table: <a name="org.scalatest.prop.TableFor7" class="extype" href="TableFor7.html">TableFor7</a>[A, B, C, D, E, F, G]</span>)</span><span class="params">(<span name="fun">fun: (A, B, C, D, E, F, G) ⇒ <span name="scala.Unit" class="extype">Unit</span></span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Performs a property check by applying the specified property check function to each row
+of the specified <code>TableFor7</code>.</p><div class="fullcomment"><div class="comment cmt"><p>Performs a property check by applying the specified property check function to each row
+of the specified <code>TableFor7</code>.
+</p></div><dl class="paramcmts block"><dt class="param">table</dt><dd class="cmt"><p>the table of data with which to perform the property check</p></dd><dt class="param">fun</dt><dd class="cmt"><p>the property check function to apply to each row of data in the table
+</p></dd></dl><dl class="attributes block"> <dt>Definition Classes</dt><dd><a name="org.scalatest.prop.TableDrivenPropertyChecks" class="extype" href="TableDrivenPropertyChecks.html">TableDrivenPropertyChecks</a></dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.prop.TableDrivenPropertyChecks#forAll" data-isabs="false">
+      <a id="forAll[A, B, C, D, E, F](TableFor6[A, B, C, D, E, F])((A, B, C, D, E, F) ⇒ Unit):Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">forAll</span>
+        <span class="tparams">[<span name="A">A</span>, <span name="B">B</span>, <span name="C">C</span>, <span name="D">D</span>, <span name="E">E</span>, <span name="F">F</span>]</span>
+        <span class="params">(<span name="table">table: <a name="org.scalatest.prop.TableFor6" class="extype" href="TableFor6.html">TableFor6</a>[A, B, C, D, E, F]</span>)</span><span class="params">(<span name="fun">fun: (A, B, C, D, E, F) ⇒ <span name="scala.Unit" class="extype">Unit</span></span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Performs a property check by applying the specified property check function to each row
+of the specified <code>TableFor6</code>.</p><div class="fullcomment"><div class="comment cmt"><p>Performs a property check by applying the specified property check function to each row
+of the specified <code>TableFor6</code>.
+</p></div><dl class="paramcmts block"><dt class="param">table</dt><dd class="cmt"><p>the table of data with which to perform the property check</p></dd><dt class="param">fun</dt><dd class="cmt"><p>the property check function to apply to each row of data in the table
+</p></dd></dl><dl class="attributes block"> <dt>Definition Classes</dt><dd><a name="org.scalatest.prop.TableDrivenPropertyChecks" class="extype" href="TableDrivenPropertyChecks.html">TableDrivenPropertyChecks</a></dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.prop.TableDrivenPropertyChecks#forAll" data-isabs="false">
+      <a id="forAll[A, B, C, D, E](TableFor5[A, B, C, D, E])((A, B, C, D, E) ⇒ Unit):Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">forAll</span>
+        <span class="tparams">[<span name="A">A</span>, <span name="B">B</span>, <span name="C">C</span>, <span name="D">D</span>, <span name="E">E</span>]</span>
+        <span class="params">(<span name="table">table: <a name="org.scalatest.prop.TableFor5" class="extype" href="TableFor5.html">TableFor5</a>[A, B, C, D, E]</span>)</span><span class="params">(<span name="fun">fun: (A, B, C, D, E) ⇒ <span name="scala.Unit" class="extype">Unit</span></span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Performs a property check by applying the specified property check function to each row
+of the specified <code>TableFor5</code>.</p><div class="fullcomment"><div class="comment cmt"><p>Performs a property check by applying the specified property check function to each row
+of the specified <code>TableFor5</code>.
+</p></div><dl class="paramcmts block"><dt class="param">table</dt><dd class="cmt"><p>the table of data with which to perform the property check</p></dd><dt class="param">fun</dt><dd class="cmt"><p>the property check function to apply to each row of data in the table
+</p></dd></dl><dl class="attributes block"> <dt>Definition Classes</dt><dd><a name="org.scalatest.prop.TableDrivenPropertyChecks" class="extype" href="TableDrivenPropertyChecks.html">TableDrivenPropertyChecks</a></dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.prop.TableDrivenPropertyChecks#forAll" data-isabs="false">
+      <a id="forAll[A, B, C, D](TableFor4[A, B, C, D])((A, B, C, D) ⇒ Unit):Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">forAll</span>
+        <span class="tparams">[<span name="A">A</span>, <span name="B">B</span>, <span name="C">C</span>, <span name="D">D</span>]</span>
+        <span class="params">(<span name="table">table: <a name="org.scalatest.prop.TableFor4" class="extype" href="TableFor4.html">TableFor4</a>[A, B, C, D]</span>)</span><span class="params">(<span name="fun">fun: (A, B, C, D) ⇒ <span name="scala.Unit" class="extype">Unit</span></span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Performs a property check by applying the specified property check function to each row
+of the specified <code>TableFor4</code>.</p><div class="fullcomment"><div class="comment cmt"><p>Performs a property check by applying the specified property check function to each row
+of the specified <code>TableFor4</code>.
+</p></div><dl class="paramcmts block"><dt class="param">table</dt><dd class="cmt"><p>the table of data with which to perform the property check</p></dd><dt class="param">fun</dt><dd class="cmt"><p>the property check function to apply to each row of data in the table
+</p></dd></dl><dl class="attributes block"> <dt>Definition Classes</dt><dd><a name="org.scalatest.prop.TableDrivenPropertyChecks" class="extype" href="TableDrivenPropertyChecks.html">TableDrivenPropertyChecks</a></dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.prop.TableDrivenPropertyChecks#forAll" data-isabs="false">
+      <a id="forAll[A, B, C](TableFor3[A, B, C])((A, B, C) ⇒ Unit):Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">forAll</span>
+        <span class="tparams">[<span name="A">A</span>, <span name="B">B</span>, <span name="C">C</span>]</span>
+        <span class="params">(<span name="table">table: <a name="org.scalatest.prop.TableFor3" class="extype" href="TableFor3.html">TableFor3</a>[A, B, C]</span>)</span><span class="params">(<span name="fun">fun: (A, B, C) ⇒ <span name="scala.Unit" class="extype">Unit</span></span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Performs a property check by applying the specified property check function to each row
+of the specified <code>TableFor3</code>.</p><div class="fullcomment"><div class="comment cmt"><p>Performs a property check by applying the specified property check function to each row
+of the specified <code>TableFor3</code>.
+</p></div><dl class="paramcmts block"><dt class="param">table</dt><dd class="cmt"><p>the table of data with which to perform the property check</p></dd><dt class="param">fun</dt><dd class="cmt"><p>the property check function to apply to each row of data in the table
+</p></dd></dl><dl class="attributes block"> <dt>Definition Classes</dt><dd><a name="org.scalatest.prop.TableDrivenPropertyChecks" class="extype" href="TableDrivenPropertyChecks.html">TableDrivenPropertyChecks</a></dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.prop.TableDrivenPropertyChecks#forAll" data-isabs="false">
+      <a id="forAll[A, B](TableFor2[A, B])((A, B) ⇒ Unit):Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">forAll</span>
+        <span class="tparams">[<span name="A">A</span>, <span name="B">B</span>]</span>
+        <span class="params">(<span name="table">table: <a name="org.scalatest.prop.TableFor2" class="extype" href="TableFor2.html">TableFor2</a>[A, B]</span>)</span><span class="params">(<span name="fun">fun: (A, B) ⇒ <span name="scala.Unit" class="extype">Unit</span></span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Performs a property check by applying the specified property check function to each row
+of the specified <code>TableFor2</code>.</p><div class="fullcomment"><div class="comment cmt"><p>Performs a property check by applying the specified property check function to each row
+of the specified <code>TableFor2</code>.
+</p></div><dl class="paramcmts block"><dt class="param">table</dt><dd class="cmt"><p>the table of data with which to perform the property check</p></dd><dt class="param">fun</dt><dd class="cmt"><p>the property check function to apply to each row of data in the table
+</p></dd></dl><dl class="attributes block"> <dt>Definition Classes</dt><dd><a name="org.scalatest.prop.TableDrivenPropertyChecks" class="extype" href="TableDrivenPropertyChecks.html">TableDrivenPropertyChecks</a></dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.prop.TableDrivenPropertyChecks#forAll" data-isabs="false">
+      <a id="forAll[A](TableFor1[A])((A) ⇒ Unit):Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">forAll</span>
+        <span class="tparams">[<span name="A">A</span>]</span>
+        <span class="params">(<span name="table">table: <a name="org.scalatest.prop.TableFor1" class="extype" href="TableFor1.html">TableFor1</a>[A]</span>)</span><span class="params">(<span name="fun">fun: (A) ⇒ <span name="scala.Unit" class="extype">Unit</span></span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Performs a property check by applying the specified property check function to each row
+of the specified <code>TableFor1</code>.</p><div class="fullcomment"><div class="comment cmt"><p>Performs a property check by applying the specified property check function to each row
+of the specified <code>TableFor1</code>.
+</p></div><dl class="paramcmts block"><dt class="param">table</dt><dd class="cmt"><p>the table of data with which to perform the property check</p></dd><dt class="param">fun</dt><dd class="cmt"><p>the property check function to apply to each row of data in the table
+</p></dd></dl><dl class="attributes block"> <dt>Definition Classes</dt><dd><a name="org.scalatest.prop.TableDrivenPropertyChecks" class="extype" href="TableDrivenPropertyChecks.html">TableDrivenPropertyChecks</a></dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.prop.Configuration#generatorDrivenConfig" data-isabs="false">
+      <a id="generatorDrivenConfig:PropertyCheckConfig"></a>
+      <h4 class="signature">
+      <span class="kind">implicit val</span>
+      <span class="symbol"> 
+        <span class="name">generatorDrivenConfig</span>
+        
+        <span class="result">: <a name="org.scalatest.prop.Configuration.PropertyCheckConfig" class="extype" href="Configuration$PropertyCheckConfig.html">PropertyCheckConfig</a></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Implicit <code>PropertyCheckConfig</code> value providing default configuration values.</p><div class="fullcomment"><div class="comment cmt"><p>Implicit <code>PropertyCheckConfig</code> value providing default configuration values.
+</p></div><dl class="attributes block"> <dt>Attributes</dt><dd>implicit </dd><dt>Definition Classes</dt><dd><a name="org.scalatest.prop.Configuration" class="extype" href="Configuration.html">Configuration</a></dd></dl></div>
+    </li><li visbl="pub" name="scala.AnyRef#getClass" data-isabs="false">
+      <a id="getClass():java.lang.Class[_]"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">getClass</span>
+        
+        <span class="params">()</span><span class="result">: java.lang.Class[_]</span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>AnyRef</dd></dl></div>
+    </li><li visbl="pub" name="scala.AnyRef#hashCode" data-isabs="false">
+      <a id="hashCode():Int"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">hashCode</span>
+        
+        <span class="params">()</span><span class="result">: <span name="scala.Int" class="extype">Int</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef → Any</dd></dl></div>
+    </li><li visbl="pub" name="scala.Any#isInstanceOf" data-isabs="false">
+      <a id="isInstanceOf[T0]:Boolean"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">isInstanceOf</span>
+        <span class="tparams">[<span name="T0">T0</span>]</span>
+        <span class="result">: <span name="scala.Boolean" class="extype">Boolean</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>Any</dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.prop.Configuration#maxDiscarded" data-isabs="false">
+      <a id="maxDiscarded(Int):MaxDiscarded"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">maxDiscarded</span>
+        
+        <span class="params">(<span name="value">value: <span name="scala.Int" class="extype">Int</span></span>)</span><span class="result">: <a name="org.scalatest.prop.Configuration.MaxDiscarded" class="extype" href="Configuration$MaxDiscarded.html">MaxDiscarded</a></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Returns a <code>MaxDiscarded</code> property check configuration parameter containing the passed value, which specifies the maximum number of discarded
+property evaluations allowed during property evaluation.</p><div class="fullcomment"><div class="comment cmt"><p>Returns a <code>MaxDiscarded</code> property check configuration parameter containing the passed value, which specifies the maximum number of discarded
+property evaluations allowed during property evaluation.
+</p></div><dl class="attributes block"> <dt>Definition Classes</dt><dd><a name="org.scalatest.prop.Configuration" class="extype" href="Configuration.html">Configuration</a></dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.prop.Configuration#maxSize" data-isabs="false">
+      <a id="maxSize(Int):MaxSize"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">maxSize</span>
+        
+        <span class="params">(<span name="value">value: <span name="scala.Int" class="extype">Int</span></span>)</span><span class="result">: <a name="org.scalatest.prop.Configuration.MaxSize" class="extype" href="Configuration$MaxSize.html">MaxSize</a></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Returns a <code>MaxSize</code> property check configuration parameter containing the passed value, which specifies the maximum size parameter to
+provide to ScalaCheck, which it will use when generating objects for which size matters (such as
+strings or lists).</p><div class="fullcomment"><div class="comment cmt"><p>Returns a <code>MaxSize</code> property check configuration parameter containing the passed value, which specifies the maximum size parameter to
+provide to ScalaCheck, which it will use when generating objects for which size matters (such as
+strings or lists).</p><p>Note that the maximum size should be greater than or equal to the minimum size. This requirement is
+enforced by the <code>PropertyCheckConfig</code> constructor and the <code>forAll</code> methods of
+traits <code>PropertyChecks</code> and <code>Checkers</code>. In other words, it is enforced at the point
+both a maximum and minimum size are provided together.</p></div><dl class="attributes block"> <dt>Definition Classes</dt><dd><a name="org.scalatest.prop.Configuration" class="extype" href="Configuration.html">Configuration</a></dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.prop.Configuration#minSize" data-isabs="false">
+      <a id="minSize(Int):MinSize"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">minSize</span>
+        
+        <span class="params">(<span name="value">value: <span name="scala.Int" class="extype">Int</span></span>)</span><span class="result">: <a name="org.scalatest.prop.Configuration.MinSize" class="extype" href="Configuration$MinSize.html">MinSize</a></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Returns a <code>MinSize</code> property check configuration parameter containing the passed value, which specifies the minimum size parameter to
+provide to ScalaCheck, which it will use when generating objects for which size matters (such as
+strings or lists).</p><div class="fullcomment"><div class="comment cmt"><p>Returns a <code>MinSize</code> property check configuration parameter containing the passed value, which specifies the minimum size parameter to
+provide to ScalaCheck, which it will use when generating objects for which size matters (such as
+strings or lists).
+</p></div><dl class="attributes block"> <dt>Definition Classes</dt><dd><a name="org.scalatest.prop.Configuration" class="extype" href="Configuration.html">Configuration</a></dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.prop.Configuration#minSuccessful" data-isabs="false">
+      <a id="minSuccessful(Int):MinSuccessful"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">minSuccessful</span>
+        
+        <span class="params">(<span name="value">value: <span name="scala.Int" class="extype">Int</span></span>)</span><span class="result">: <a name="org.scalatest.prop.Configuration.MinSuccessful" class="extype" href="Configuration$MinSuccessful.html">MinSuccessful</a></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Returns a <code>MinSuccessful</code> property check configuration parameter containing the passed value, which specifies the minimum number of successful
+property evaluations required for the property to pass.</p><div class="fullcomment"><div class="comment cmt"><p>Returns a <code>MinSuccessful</code> property check configuration parameter containing the passed value, which specifies the minimum number of successful
+property evaluations required for the property to pass.
+</p></div><dl class="attributes block"> <dt>Definition Classes</dt><dd><a name="org.scalatest.prop.Configuration" class="extype" href="Configuration.html">Configuration</a></dd></dl></div>
+    </li><li visbl="pub" name="scala.AnyRef#ne" data-isabs="false">
+      <a id="ne(AnyRef):Boolean"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">ne</span>
+        
+        <span class="params">(<span name="arg0">arg0: AnyRef</span>)</span><span class="result">: <span name="scala.Boolean" class="extype">Boolean</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>AnyRef</dd></dl></div>
+    </li><li visbl="pub" name="scala.AnyRef#notify" data-isabs="false">
+      <a id="notify():Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">notify</span>
+        
+        <span class="params">()</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>AnyRef</dd></dl></div>
+    </li><li visbl="pub" name="scala.AnyRef#notifyAll" data-isabs="false">
+      <a id="notifyAll():Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">notifyAll</span>
+        
+        <span class="params">()</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>AnyRef</dd></dl></div>
+    </li><li visbl="pub" name="scala.AnyRef#synchronized" data-isabs="false">
+      <a id="synchronized[T0](⇒ T0):T0"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">synchronized</span>
+        <span class="tparams">[<span name="T0">T0</span>]</span>
+        <span class="params">(<span name="arg0">arg0: ⇒ T0</span>)</span><span class="result">: T0</span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>AnyRef</dd></dl></div>
+    </li><li visbl="pub" name="scala.AnyRef#toString" data-isabs="false">
+      <a id="toString():String"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">toString</span>
+        
+        <span class="params">()</span><span class="result">: <span name="java.lang.String" class="extype">String</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef → Any</dd></dl></div>
+    </li><li visbl="pub" name="scala.AnyRef#wait" data-isabs="false">
+      <a id="wait():Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">wait</span>
+        
+        <span class="params">()</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>AnyRef</dd><dt>Annotations</dt><dd>
+                <span class="name">@throws</span><span class="args">()</span>
+              
+        </dd></dl></div>
+    </li><li visbl="pub" name="scala.AnyRef#wait" data-isabs="false">
+      <a id="wait(Long,Int):Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">wait</span>
+        
+        <span class="params">(<span name="arg0">arg0: <span name="scala.Long" class="extype">Long</span></span>, <span name="arg1">arg1: <span name="scala.Int" class="extype">Int</span></span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>AnyRef</dd><dt>Annotations</dt><dd>
+                <span class="name">@throws</span><span class="args">()</span>
+              
+        </dd></dl></div>
+    </li><li visbl="pub" name="scala.AnyRef#wait" data-isabs="false">
+      <a id="wait(Long):Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">wait</span>
+        
+        <span class="params">(<span name="arg0">arg0: <span name="scala.Long" class="extype">Long</span></span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>AnyRef</dd><dt>Annotations</dt><dd>
+                <span class="name">@throws</span><span class="args">()</span>
+              
+        </dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.prop.Whenever#whenever" data-isabs="false">
+      <a id="whenever(Boolean)(⇒ Unit):Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">whenever</span>
+        
+        <span class="params">(<span name="condition">condition: <span name="scala.Boolean" class="extype">Boolean</span></span>)</span><span class="params">(<span name="fun">fun: ⇒ <span name="scala.Unit" class="extype">Unit</span></span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Evaluates the passed code block if the passed boolean condition is true, else throws <code>DiscardedEvaluationException</code>.</p><div class="fullcomment"><div class="comment cmt"><p>Evaluates the passed code block if the passed boolean condition is true, else throws <code>DiscardedEvaluationException</code>.</p><p>The <code>whenever</code> method can be used inside property check functions to discard invocations of the function with
+data for which it is known the property would fail. For example, given the following <code>Fraction</code> class:</p><p><pre class="stHighlighted">
+<span class="stReserved">class</span> <span class="stType">Fraction</span>(n: <span class="stType">Int</span>, d: <span class="stType">Int</span>) {
+<br />  require(d != <span class="stLiteral">0</span>)
+  require(d != Integer.MIN_VALUE)
+  require(n != Integer.MIN_VALUE)
+<br />  <span class="stReserved">val</span> numer = <span class="stReserved">if</span> (d &lt; <span class="stLiteral">0</span>) -<span class="stLiteral">1</span> * n <span class="stReserved">else</span> n
+  <span class="stReserved">val</span> denom = d.abs
+<br />  <span class="stReserved">override</span> <span class="stReserved">def</span> toString = numer + <span class="stQuotedString">&quot; / &quot;</span> + denom
+}
+</pre></p><p><pre class="stHighlighted">
+<span class="stReserved">import</span> org.scalatest.prop.TableDrivenPropertyChecks._
+<br /><span class="stReserved">val</span> fractions =
+  <span class="stType">Table</span>(
+    (<span class="stQuotedString">&quot;n&quot;</span>, <span class="stQuotedString">&quot;d&quot;</span>),
+    (  <span class="stLiteral">1</span>,   <span class="stLiteral">2</span>),
+    ( -<span class="stLiteral">1</span>,   <span class="stLiteral">2</span>),
+    (  <span class="stLiteral">1</span>,  -<span class="stLiteral">2</span>),
+    ( -<span class="stLiteral">1</span>,  -<span class="stLiteral">2</span>),
+    (  <span class="stLiteral">3</span>,   <span class="stLiteral">1</span>),
+    ( -<span class="stLiteral">3</span>,   <span class="stLiteral">1</span>),
+    ( -<span class="stLiteral">3</span>,   <span class="stLiteral">0</span>),
+    (  <span class="stLiteral">3</span>,  -<span class="stLiteral">1</span>),
+    (  <span class="stLiteral">3</span>,  Integer.MIN_VALUE),
+    (Integer.MIN_VALUE, <span class="stLiteral">3</span>),
+    ( -<span class="stLiteral">3</span>,  -<span class="stLiteral">1</span>)
+  )
+</pre></p><p>Imagine you wanted to check a property against this class with data that includes some
+value that are rejected by the constructor, such as a denominator of zero, which should
+result in an <code>IllegalArgumentException</code>. You could use <code>whenever</code>
+to discard any rows in the <code>fraction</code> that represent illegal arguments, like this:</p><p><pre class="stHighlighted">
+<span class="stReserved">import</span> org.scalatest.matchers.ShouldMatchers._
+<br />forAll (fractions) { (n: <span class="stType">Int</span>, d: <span class="stType">Int</span>) =&gt;
+<br />  whenever (d != <span class="stLiteral">0</span> &amp;&amp; d != Integer.MIN_VALUE
+      &amp;&amp; n != Integer.MIN_VALUE) {
+<br />    <span class="stReserved">val</span> f = <span class="stReserved">new</span> <span class="stType">Fraction</span>(n, d)
+<br />    <span class="stReserved">if</span> (n &lt; <span class="stLiteral">0</span> &amp;&amp; d &lt; <span class="stLiteral">0</span> || n &gt; <span class="stLiteral">0</span> &amp;&amp; d &gt; <span class="stLiteral">0</span>)
+      f.numer should be &gt; <span class="stLiteral">0</span>
+    <span class="stReserved">else</span> <span class="stReserved">if</span> (n != <span class="stLiteral">0</span>)
+      f.numer should be &lt; <span class="stLiteral">0</span>
+    <span class="stReserved">else</span>
+      f.numer should be === <span class="stLiteral">0</span>
+<br />    f.denom should be &gt; <span class="stLiteral">0</span>
+  }
+}
+</pre></p><p>In this example, rows 6, 8, and 9 have values that would cause a false to be passed
+to <code>whenever</code>. (For example, in row 6, <code>d</code> is 0, which means <code>d</code> <code>!=</code> <code>0</code>
+will be false.) For those rows, <code>whenever</code> will throw <code>DiscardedEvaluationException</code>,
+which will cause the <code>forAll</code> method to discard that row.</p></div><dl class="paramcmts block"><dt class="param">condition</dt><dd class="cmt"><p>the boolean condition that determines whether <code>whenever</code> will evaluate the
+   <code>fun</code> function (<code>condition</code> is true) or throws <code>DiscardedEvaluationException</code> (<code>condition</code> is false)</p></dd><dt class="param">fun</dt><dd class="cmt"><p>the function to evaluate if the specified <code>condition</code> is true
+</p></dd></dl><dl class="attributes block"> <dt>Definition Classes</dt><dd><a name="org.scalatest.prop.Whenever" class="extype" href="Whenever.html">Whenever</a></dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.prop.Configuration#workers" data-isabs="false">
+      <a id="workers(Int):Workers"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">workers</span>
+        
+        <span class="params">(<span name="value">value: <span name="scala.Int" class="extype">Int</span></span>)</span><span class="result">: <a name="org.scalatest.prop.Configuration.Workers" class="extype" href="Configuration$Workers.html">Workers</a></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Returns a <code>Workers</code> property check configuration parameter containing the passed value, which specifies the number of worker threads
+to use when evaluating a property.</p><div class="fullcomment"><div class="comment cmt"><p>Returns a <code>Workers</code> property check configuration parameter containing the passed value, which specifies the number of worker threads
+to use when evaluating a property.
+</p></div><dl class="attributes block"> <dt>Definition Classes</dt><dd><a name="org.scalatest.prop.Configuration" class="extype" href="Configuration.html">Configuration</a></dd></dl></div>
+    </li></ol>
+            </div>
+
+        <div name="org.scalatest.prop.GeneratorDrivenPropertyChecks" class="parent">
+              <h3>Inherited from <a name="org.scalatest.prop.GeneratorDrivenPropertyChecks" class="extype" href="GeneratorDrivenPropertyChecks.html">GeneratorDrivenPropertyChecks</a></h3>
+            </div><div name="org.scalatest.prop.Configuration" class="parent">
+              <h3>Inherited from <a name="org.scalatest.prop.Configuration" class="extype" href="Configuration.html">Configuration</a></h3>
+            </div><div name="org.scalatest.prop.TableDrivenPropertyChecks" class="parent">
+              <h3>Inherited from <a name="org.scalatest.prop.TableDrivenPropertyChecks" class="extype" href="TableDrivenPropertyChecks.html">TableDrivenPropertyChecks</a></h3>
+            </div><div name="org.scalatest.prop.Tables" class="parent">
+              <h3>Inherited from <a name="org.scalatest.prop.Tables" class="extype" href="Tables.html">Tables</a></h3>
+            </div><div name="org.scalatest.prop.Whenever" class="parent">
+              <h3>Inherited from <a name="org.scalatest.prop.Whenever" class="extype" href="Whenever.html">Whenever</a></h3>
+            </div><div name="scala.AnyRef" class="parent">
+              <h3>Inherited from AnyRef</h3>
+            </div><div name="scala.Any" class="parent">
+              <h3>Inherited from <span name="scala.Any" class="extype">Any</span></h3>
+            </div>
+
+      </div>
+      
+      <div id="tooltip"></div>
+      
+    </body>
+      </html>

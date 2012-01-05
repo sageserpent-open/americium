@@ -1,0 +1,473 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html>
+        <head>
+          <title>org.scalatest.AbstractSuite</title>
+          <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+          
+      <link type="text/css" media="screen" rel="stylesheet" href="../../lib/template.css" />
+      <script type="text/javascript" src="../../lib/jquery.js"></script>
+      <script type="text/javascript" src="../../lib/jquery-ui.js"></script>
+      <script type="text/javascript" src="../../lib/template.js"></script>
+      <script type="text/javascript" src="../../lib/tools.tooltip.js"></script>
+    
+        </head>
+        <body class="type">
+      <div id="definition">
+        <img src="../../lib/trait_big.png" />
+        <p id="owner"><a name="org" class="extype" href="../package.html">org</a>.<a name="org.scalatest" class="extype" href="package.html">scalatest</a></p>
+        <h1>AbstractSuite</h1>
+      </div>
+
+      <h4 class="signature" id="signature">
+      <span class="kind">trait</span>
+      <span class="symbol"> 
+        <span class="name">AbstractSuite</span>
+        
+        <span class="result"> extends AnyRef</span>
+      </span>
+      </h4>
+      
+          <div class="fullcommenttop" id="comment"><div class="comment cmt"><p>Trait that defines abstract methods that are implemented in <code>Suite</code> that can
+be overriden in stackable modification traits.</p><p>The main purpose of <code>AbstractSuite</code> is to differentiate core <code>Suite</code>
+traits, such as <code>Suite</code>, <code>FunSuite</code>, and <code>Spec</code> from stackable
+modification traits for <code>Suite</code>s such as <code>BeforeAndAfterEach</code>, <code>OneInstancePerTest</code>,
+and <code>ParallelNestedSuiteExecution</code>. Because these stackable traits extend <code>AbstractSuite</code>
+instead of <code>Suite</code>, you can't define a suite by simply extending one of the stackable traits:</p><p><pre class="stHighlighted">
+<span class="stReserved">class</span> <span class="stType">MySuite</span> <span class="stReserved">extends</span> <span class="stType">BeforeAndAfterEach</span> <span class="stLineComment">// Won't compile</span>
+</pre></p><p>Instead, you need to extend a core <code>Suite</code> trait and mix the stackable <code>BeforeAndAfterEach</code> trait
+into that, like this:</p><p><pre class="stHighlighted">
+<span class="stReserved">class</span> <span class="stType">MySuite</span> <span class="stReserved">extends</span> <span class="stType">FunSuite</span> <span class="stReserved">with</span> <span class="stType">BeforeAndAfterEach</span> <span class="stLineComment">// Compiles fine</span>
+</pre>
+</p></div><dl class="attributes block"> <dt>Self Type</dt><dd><a name="org.scalatest.Suite" class="extype" href="Suite.html">Suite</a></dd></dl><div class="toggleContainer block">
+          <span class="toggle">Linear Supertypes</span>
+          <div class="superTypes hiddenContent">AnyRef, <span name="scala.Any" class="extype">Any</span></div>
+        </div><div class="toggleContainer block">
+          <span class="toggle">Known Subclasses</span>
+          <div class="subClasses hiddenContent"><a name="org.scalatest.BeforeAndAfter" class="extype" href="BeforeAndAfter.html">BeforeAndAfter</a>, <a name="org.scalatest.BeforeAndAfterAll" class="extype" href="BeforeAndAfterAll.html">BeforeAndAfterAll</a>, <a name="org.scalatest.BeforeAndAfterAllFunctions" class="extype" href="BeforeAndAfterAllFunctions.html">BeforeAndAfterAllFunctions</a>, <a name="org.scalatest.BeforeAndAfterEach" class="extype" href="BeforeAndAfterEach.html">BeforeAndAfterEach</a>, <a name="org.scalatest.BeforeAndAfterEachFunctions" class="extype" href="BeforeAndAfterEachFunctions.html">BeforeAndAfterEachFunctions</a>, <a name="org.scalatest.concurrent.ConductorMethods" class="extype" href="concurrent/ConductorMethods.html">ConductorMethods</a>, <a name="org.scalatest.FeatureSpec" class="extype" href="FeatureSpec.html">FeatureSpec</a>, <a name="org.scalatest.fixture.FixtureFeatureSpec" class="extype" href="fixture/FixtureFeatureSpec.html">FixtureFeatureSpec</a>, <a name="org.scalatest.fixture.FixtureFlatSpec" class="extype" href="fixture/FixtureFlatSpec.html">FixtureFlatSpec</a>, <a name="org.scalatest.fixture.FixtureFreeSpec" class="extype" href="fixture/FixtureFreeSpec.html">FixtureFreeSpec</a>, <a name="org.scalatest.fixture.FixtureFunSuite" class="extype" href="fixture/FixtureFunSuite.html">FixtureFunSuite</a>, <a name="org.scalatest.fixture.FixturePropSpec" class="extype" href="fixture/FixturePropSpec.html">FixturePropSpec</a>, <a name="org.scalatest.fixture.FixtureSpec" class="extype" href="fixture/FixtureSpec.html">FixtureSpec</a>, <a name="org.scalatest.fixture.FixtureSuite" class="extype" href="fixture/FixtureSuite.html">FixtureSuite</a>, <a name="org.scalatest.fixture.FixtureWordSpec" class="extype" href="fixture/FixtureWordSpec.html">FixtureWordSpec</a>, <a name="org.scalatest.FlatSpec" class="extype" href="FlatSpec.html">FlatSpec</a>, <a name="org.scalatest.FreeSpec" class="extype" href="FreeSpec.html">FreeSpec</a>, <a name="org.scalatest.FunSuite" class="extype" href="FunSuite.html">FunSuite</a>, <a name="org.scalatest.junit.JUnit3Suite" class="extype" href="junit/JUnit3Suite.html">JUnit3Suite</a>, <a name="org.scalatest.junit.JUnitSuite" class="extype" href="junit/JUnitSuite.html">JUnitSuite</a>, <a name="org.scalatest.junit.JUnitWrapperSuite" class="extype" href="junit/JUnitWrapperSuite.html">JUnitWrapperSuite</a>, <a name="org.scalatest.fixture.MultipleFixtureFeatureSpec" class="extype" href="fixture/MultipleFixtureFeatureSpec.html">MultipleFixtureFeatureSpec</a>, <a name="org.scalatest.fixture.MultipleFixtureFlatSpec" class="extype" href="fixture/MultipleFixtureFlatSpec.html">MultipleFixtureFlatSpec</a>, <a name="org.scalatest.fixture.MultipleFixtureFreeSpec" class="extype" href="fixture/MultipleFixtureFreeSpec.html">MultipleFixtureFreeSpec</a>, <a name="org.scalatest.fixture.MultipleFixtureFunSuite" class="extype" href="fixture/MultipleFixtureFunSuite.html">MultipleFixtureFunSuite</a>, <a name="org.scalatest.fixture.MultipleFixturePropSpec" class="extype" href="fixture/MultipleFixturePropSpec.html">MultipleFixturePropSpec</a>, <a name="org.scalatest.fixture.MultipleFixtureSpec" class="extype" href="fixture/MultipleFixtureSpec.html">MultipleFixtureSpec</a>, <a name="org.scalatest.fixture.MultipleFixtureWordSpec" class="extype" href="fixture/MultipleFixtureWordSpec.html">MultipleFixtureWordSpec</a>, <a name="org.scalatest.OneInstancePerTest" class="extype" href="OneInstancePerTest.html">OneInstancePerTest</a>, <a name="org.scalatest.ParallelTestExecution" class="extype" href="ParallelTestExecution.html">ParallelTestExecution</a>, <a name="org.scalatest.PropSpec" class="extype" href="PropSpec.html">PropSpec</a>, <a name="org.scalatest.SequentialNestedSuiteExecution" class="extype" href="SequentialNestedSuiteExecution.html">SequentialNestedSuiteExecution</a>, <a name="org.scalatest.SeveredStackTraces" class="extype" href="SeveredStackTraces.html">SeveredStackTraces</a>, <a name="org.scalatest.Spec" class="extype" href="Spec.html">Spec</a>, <a name="org.scalatest.Specs" class="extype" href="Specs.html">Specs</a>, <a name="org.scalatest.Suite" class="extype" href="Suite.html">Suite</a>, <a name="org.scalatest.Suites" class="extype" href="Suites.html">Suites</a>, <a name="org.scalatest.SuperSuite" class="extype" href="SuperSuite.html">SuperSuite</a>, <a name="org.scalatest.testng.TestNGSuite" class="extype" href="testng/TestNGSuite.html">TestNGSuite</a>, <a name="org.scalatest.testng.TestNGWrapperSuite" class="extype" href="testng/TestNGWrapperSuite.html">TestNGWrapperSuite</a>, <a name="org.scalatest.WordSpec" class="extype" href="WordSpec.html">WordSpec</a></div>
+        </div></div>
+        
+
+      <div id="template">
+
+        <div id="mbrsel">
+          <div id="textfilter"><span class="pre"></span><span class="input"><input accesskey="/" type="text" /></span><span class="post"></span></div>
+          <div id="order">
+                <span class="filtertype">Ordering</span>
+                <ol><li class="alpha in"><span>Alphabetic</span></li><li class="inherit out"><span>By inheritance</span></li></ol>
+              </div>
+          <div id="ancestors">
+                <span class="filtertype">Inherited</span>
+                <ol><li class="hideall out"><span>Hide All</span></li>
+                <li class="showall in"><span>Show all</span></li></ol>
+                <ol id="linearization"><li name="org.scalatest.AbstractSuite" class="in"><span>AbstractSuite</span></li><li name="scala.AnyRef" class="in"><span>AnyRef</span></li><li name="scala.Any" class="in"><span>Any</span></li></ol>
+              </div>
+          <div id="visbl">
+              <span class="filtertype">Visibility</span>
+              <ol><li class="public in"><span>Public</span></li><li class="all out"><span>All</span></li></ol>
+            </div>
+        </div>
+
+        
+
+        
+        
+        <div class="values members" id="values">
+              <h3>Abstract Value Members</h3>
+              <ol><li visbl="pub" name="org.scalatest.AbstractSuite#expectedTestCount" data-isabs="true">
+      <a id="expectedTestCount(Filter):Int"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">expectedTestCount</span>
+        
+        <span class="params">(<span name="filter">filter: <a name="org.scalatest.Filter" class="extype" href="Filter.html">Filter</a></span>)</span><span class="result">: <span name="scala.Int" class="extype">Int</span></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">The total number of tests that are expected to run when this <code>Suite</code>'s <code>run</code> method is invoked.</p><div class="fullcomment"><div class="comment cmt"><p>The total number of tests that are expected to run when this <code>Suite</code>'s <code>run</code> method is invoked.
+</p></div><dl class="paramcmts block"><dt class="param">filter</dt><dd class="cmt"><p>a <code>Filter</code> with which to filter tests to count based on their tags
+</p></dd></dl><dl class="attributes block"> <dt>Attributes</dt><dd>abstract </dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.AbstractSuite#nestedSuites" data-isabs="true">
+      <a id="nestedSuites:List[Suite]"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">nestedSuites</span>
+        
+        <span class="result">: List[<a name="org.scalatest.Suite" class="extype" href="Suite.html">Suite</a>]</span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">A <code>List</code> of this <code>Suite</code> object's nested <code>Suite</code>s.</p><div class="fullcomment"><div class="comment cmt"><p>A <code>List</code> of this <code>Suite</code> object's nested <code>Suite</code>s. If this <code>Suite</code> contains no nested <code>Suite</code>s,
+this method returns an empty <code>List</code>.
+</p></div><dl class="attributes block"> <dt>Attributes</dt><dd>abstract </dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.AbstractSuite#run" data-isabs="true">
+      <a id="run(Option[String],Reporter,Stopper,Filter,Map[String, Any],Option[Distributor],Tracker):Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">run</span>
+        
+        <span class="params">(<span name="testName">testName: <span name="scala.Option" class="extype">Option</span>[String]</span>, <span name="reporter">reporter: <a name="org.scalatest.Reporter" class="extype" href="Reporter.html">Reporter</a></span>, <span name="stopper">stopper: <a name="org.scalatest.Stopper" class="extype" href="Stopper.html">Stopper</a></span>, <span name="filter">filter: <a name="org.scalatest.Filter" class="extype" href="Filter.html">Filter</a></span>, <span name="configMap">configMap: Map[String, <span name="scala.Any" class="extype">Any</span>]</span>, <span name="distributor">distributor: <span name="scala.Option" class="extype">Option</span>[<a name="org.scalatest.Distributor" class="extype" href="Distributor.html">Distributor</a>]</span>, <span name="tracker">tracker: <a name="org.scalatest.Tracker" class="extype" href="Tracker.html">Tracker</a></span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Runs this suite of tests.</p><div class="fullcomment"><div class="comment cmt"><p>Runs this suite of tests.
+</p></div><dl class="paramcmts block"><dt class="param">testName</dt><dd class="cmt"><p>an optional name of one test to execute. If <code>None</code>, all relevant tests should be executed.
+                I.e., <code>None</code> acts like a wildcard that means execute all relevant tests in this <code>Suite</code>.</p></dd><dt class="param">reporter</dt><dd class="cmt"><p>the <code>Reporter</code> to which results will be reported</p></dd><dt class="param">stopper</dt><dd class="cmt"><p>the <code>Stopper</code> that will be consulted to determine whether to stop execution early.</p></dd><dt class="param">filter</dt><dd class="cmt"><p>a <code>Filter</code> with which to filter tests based on their tags</p></dd><dt class="param">configMap</dt><dd class="cmt"><p>a <code>Map</code> of key-value pairs that can be used by the executing <code>Suite</code> of tests.</p></dd><dt class="param">distributor</dt><dd class="cmt"><p>an optional <code>Distributor</code>, into which to put nested <code>Suite</code>s to be executed
+             by another entity, such as concurrently by a pool of threads. If <code>None</code>, nested <code>Suite</code>s will be executed sequentially.</p></dd><dt class="param">tracker</dt><dd class="cmt"><p>a <code>Tracker</code> tracking <code>Ordinal</code>s being fired by the current thread.
+</p></dd></dl><dl class="attributes block"> <dt>Attributes</dt><dd>abstract </dd></dl></div>
+    </li><li visbl="prt" name="org.scalatest.AbstractSuite#runNestedSuites" data-isabs="true">
+      <a id="runNestedSuites(Reporter,Stopper,Filter,Map[String, Any],Option[Distributor],Tracker):Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">runNestedSuites</span>
+        
+        <span class="params">(<span name="reporter">reporter: <a name="org.scalatest.Reporter" class="extype" href="Reporter.html">Reporter</a></span>, <span name="stopper">stopper: <a name="org.scalatest.Stopper" class="extype" href="Stopper.html">Stopper</a></span>, <span name="filter">filter: <a name="org.scalatest.Filter" class="extype" href="Filter.html">Filter</a></span>, <span name="configMap">configMap: Map[String, <span name="scala.Any" class="extype">Any</span>]</span>, <span name="distributor">distributor: <span name="scala.Option" class="extype">Option</span>[<a name="org.scalatest.Distributor" class="extype" href="Distributor.html">Distributor</a>]</span>, <span name="tracker">tracker: <a name="org.scalatest.Tracker" class="extype" href="Tracker.html">Tracker</a></span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Runs zero to many of this suite's nested suites.</p><div class="fullcomment"><div class="comment cmt"><p>Runs zero to many of this suite's nested suites.
+</p></div><dl class="paramcmts block"><dt class="param">reporter</dt><dd class="cmt"><p>the <code>Reporter</code> to which results will be reported</p></dd><dt class="param">stopper</dt><dd class="cmt"><p>the <code>Stopper</code> that will be consulted to determine whether to stop execution early.</p></dd><dt class="param">filter</dt><dd class="cmt"><p>a <code>Filter</code> with which to filter tests based on their tags</p></dd><dt class="param">configMap</dt><dd class="cmt"><p>a <code>Map</code> of key-value pairs that can be used by the executing <code>Suite</code> of tests.</p></dd><dt class="param">distributor</dt><dd class="cmt"><p>an optional <code>Distributor</code>, into which to put nested <code>Suite</code>s to be run
+             by another entity, such as concurrently by a pool of threads. If <code>None</code>, nested <code>Suite</code>s will be run sequentially.</p></dd><dt class="param">tracker</dt><dd class="cmt"><p>a <code>Tracker</code> tracking <code>Ordinal</code>s being fired by the current thread.
+</p></dd></dl><dl class="attributes block"> <dt>Attributes</dt><dd>protected abstract </dd></dl></div>
+    </li><li visbl="prt" name="org.scalatest.AbstractSuite#runTest" data-isabs="true">
+      <a id="runTest(String,Reporter,Stopper,Map[String, Any],Tracker):Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">runTest</span>
+        
+        <span class="params">(<span name="testName">testName: String</span>, <span name="reporter">reporter: <a name="org.scalatest.Reporter" class="extype" href="Reporter.html">Reporter</a></span>, <span name="stopper">stopper: <a name="org.scalatest.Stopper" class="extype" href="Stopper.html">Stopper</a></span>, <span name="configMap">configMap: Map[String, <span name="scala.Any" class="extype">Any</span>]</span>, <span name="tracker">tracker: <a name="org.scalatest.Tracker" class="extype" href="Tracker.html">Tracker</a></span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Runs a test.</p><div class="fullcomment"><div class="comment cmt"><p>Runs a test.
+</p></div><dl class="paramcmts block"><dt class="param">testName</dt><dd class="cmt"><p>the name of one test to execute.</p></dd><dt class="param">reporter</dt><dd class="cmt"><p>the <code>Reporter</code> to which results will be reported</p></dd><dt class="param">stopper</dt><dd class="cmt"><p>the <code>Stopper</code> that will be consulted to determine whether to stop execution early.</p></dd><dt class="param">configMap</dt><dd class="cmt"><p>a <code>Map</code> of key-value pairs that can be used by the executing <code>Suite</code> of tests.</p></dd><dt class="param">tracker</dt><dd class="cmt"><p>a <code>Tracker</code> tracking <code>Ordinal</code>s being fired by the current thread.
+</p></dd></dl><dl class="attributes block"> <dt>Attributes</dt><dd>protected abstract </dd></dl></div>
+    </li><li visbl="prt" name="org.scalatest.AbstractSuite#runTests" data-isabs="true">
+      <a id="runTests(Option[String],Reporter,Stopper,Filter,Map[String, Any],Option[Distributor],Tracker):Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">runTests</span>
+        
+        <span class="params">(<span name="testName">testName: <span name="scala.Option" class="extype">Option</span>[String]</span>, <span name="reporter">reporter: <a name="org.scalatest.Reporter" class="extype" href="Reporter.html">Reporter</a></span>, <span name="stopper">stopper: <a name="org.scalatest.Stopper" class="extype" href="Stopper.html">Stopper</a></span>, <span name="filter">filter: <a name="org.scalatest.Filter" class="extype" href="Filter.html">Filter</a></span>, <span name="configMap">configMap: Map[String, <span name="scala.Any" class="extype">Any</span>]</span>, <span name="distributor">distributor: <span name="scala.Option" class="extype">Option</span>[<a name="org.scalatest.Distributor" class="extype" href="Distributor.html">Distributor</a>]</span>, <span name="tracker">tracker: <a name="org.scalatest.Tracker" class="extype" href="Tracker.html">Tracker</a></span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Runs zero to many of this suite's tests.</p><div class="fullcomment"><div class="comment cmt"><p>Runs zero to many of this suite's tests.
+</p></div><dl class="paramcmts block"><dt class="param">testName</dt><dd class="cmt"><p>an optional name of one test to run. If <code>None</code>, all relevant tests should be run.
+                I.e., <code>None</code> acts like a wildcard that means run all relevant tests in this <code>Suite</code>.</p></dd><dt class="param">reporter</dt><dd class="cmt"><p>the <code>Reporter</code> to which results will be reported</p></dd><dt class="param">stopper</dt><dd class="cmt"><p>the <code>Stopper</code> that will be consulted to determine whether to stop execution early.</p></dd><dt class="param">filter</dt><dd class="cmt"><p>a <code>Filter</code> with which to filter tests based on their tags</p></dd><dt class="param">configMap</dt><dd class="cmt"><p>a <code>Map</code> of key-value pairs that can be used by the executing <code>Suite</code> of tests.</p></dd><dt class="param">distributor</dt><dd class="cmt"><p>an optional <code>Distributor</code>, into which instances of this <code>Suite</code> class
+             that are responsible for executing individual tests contained in this </code>Suite</code>, or groups of this <code>Suite</code>'s
+             tests, may be placed so as to be run
+             by another entity, such as concurrently by a pool of threads.</p></dd><dt class="param">tracker</dt><dd class="cmt"><p>a <code>Tracker</code> tracking <code>Ordinal</code>s being fired by the current thread.</p></dd></dl><dl class="attributes block"> <dt>Attributes</dt><dd>protected abstract </dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.AbstractSuite#tags" data-isabs="true">
+      <a id="tags:Map[String, Set[String]]"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">tags</span>
+        
+        <span class="result">: Map[String, Set[String]]</span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">A <code>Map</code> whose keys are <code>String</code> tag names with which tests in this <code>Suite</code> are marked, and
+whose values are the <code>Set</code> of test names marked with each tag.</p><div class="fullcomment"><div class="comment cmt"><p>A <code>Map</code> whose keys are <code>String</code> tag names with which tests in this <code>Suite</code> are marked, and
+whose values are the <code>Set</code> of test names marked with each tag.  If this <code>Suite</code> contains no tags, this
+method returns an empty <code>Map</code>.</p><p>Subclasses may implement this method to define and/or discover tags in a custom manner, but overriding method implementations
+should never return an empty <code>Set</code> as a value. If a tag has no tests, its name should not appear as a key in the
+returned <code>Map</code>.</p></div><dl class="attributes block"> <dt>Attributes</dt><dd>abstract </dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.AbstractSuite#testNames" data-isabs="true">
+      <a id="testNames:Set[String]"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">testNames</span>
+        
+        <span class="result">: Set[String]</span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">An <code>Set</code> of test names.</p><div class="fullcomment"><div class="comment cmt"><p>An <code>Set</code> of test names. If this <code>Suite</code> contains no tests, this method returns an empty <code>Set</code>.</p><p>Although subclass and subtrait implementations of this method may return a <code>Set</code> whose iterator produces <code>String</code>
+test names in a well-defined order, the contract of this method does not required a defined order. Subclasses are free to
+implement this method and return test names in either a defined or undefined order.</p></div><dl class="attributes block"> <dt>Attributes</dt><dd>abstract </dd></dl></div>
+    </li><li visbl="prt" name="org.scalatest.AbstractSuite#withFixture" data-isabs="true">
+      <a id="withFixture(NoArgTest):Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">withFixture</span>
+        
+        <span class="params">(<span name="test">test: <a name="org.scalatest.Suite.NoArgTest" class="extype" href="Suite$NoArgTest.html">NoArgTest</a></span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Runs the passed test function with a fixture established by this method.</p><div class="fullcomment"><div class="comment cmt"><p>Runs the passed test function with a fixture established by this method.</p><p>This method should set up the fixture needed by the tests of the
+current suite, invoke the test function, and if needed, perform any clean
+up needed after the test completes. Because the <code>NoArgTest</code> function
+passed to this method takes no parameters, preparing the fixture will require
+side effects, such as reassigning instance <code>var</code>s in this <code>Suite</code> or initializing
+a globally accessible external database. If you want to avoid reassigning instance <code>var</code>s
+you can use <a href="FixtureSuite.html">FixtureSuite</a>.</p></div><dl class="paramcmts block"><dt class="param">test</dt><dd class="cmt"><p>the no-arg test function to run with a fixture
+</p></dd></dl><dl class="attributes block"> <dt>Attributes</dt><dd>protected abstract </dd></dl></div>
+    </li></ol>
+            </div>
+
+        <div class="values members" id="values">
+              <h3>Concrete Value Members</h3>
+              <ol><li visbl="pub" name="scala.AnyRef#!=" data-isabs="false">
+      <a id="!=(AnyRef):Boolean"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">!=</span>
+        
+        <span class="params">(<span name="arg0">arg0: AnyRef</span>)</span><span class="result">: <span name="scala.Boolean" class="extype">Boolean</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>AnyRef</dd></dl></div>
+    </li><li visbl="pub" name="scala.Any#!=" data-isabs="false">
+      <a id="!=(Any):Boolean"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">!=</span>
+        
+        <span class="params">(<span name="arg0">arg0: <span name="scala.Any" class="extype">Any</span></span>)</span><span class="result">: <span name="scala.Boolean" class="extype">Boolean</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>Any</dd></dl></div>
+    </li><li visbl="pub" name="scala.AnyRef###" data-isabs="false">
+      <a id="##():Int"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">##</span>
+        
+        <span class="params">()</span><span class="result">: <span name="scala.Int" class="extype">Int</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>AnyRef → Any</dd></dl></div>
+    </li><li visbl="pub" name="scala.AnyRef#==" data-isabs="false">
+      <a id="==(AnyRef):Boolean"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">==</span>
+        
+        <span class="params">(<span name="arg0">arg0: AnyRef</span>)</span><span class="result">: <span name="scala.Boolean" class="extype">Boolean</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>AnyRef</dd></dl></div>
+    </li><li visbl="pub" name="scala.Any#==" data-isabs="false">
+      <a id="==(Any):Boolean"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">==</span>
+        
+        <span class="params">(<span name="arg0">arg0: <span name="scala.Any" class="extype">Any</span></span>)</span><span class="result">: <span name="scala.Boolean" class="extype">Boolean</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>Any</dd></dl></div>
+    </li><li visbl="pub" name="scala.Any#asInstanceOf" data-isabs="false">
+      <a id="asInstanceOf[T0]:T0"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">asInstanceOf</span>
+        <span class="tparams">[<span name="T0">T0</span>]</span>
+        <span class="result">: T0</span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>Any</dd></dl></div>
+    </li><li visbl="prt" name="scala.AnyRef#clone" data-isabs="false">
+      <a id="clone():AnyRef"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">clone</span>
+        
+        <span class="params">()</span><span class="result">: AnyRef</span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>protected[<a name="java.lang" class="extype" href="../../java/lang/package.html">lang</a>] </dd><dt>Definition Classes</dt><dd>AnyRef</dd><dt>Annotations</dt><dd>
+                <span class="name">@throws</span><span class="args">()</span>
+              
+        </dd></dl></div>
+    </li><li visbl="pub" name="scala.AnyRef#eq" data-isabs="false">
+      <a id="eq(AnyRef):Boolean"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">eq</span>
+        
+        <span class="params">(<span name="arg0">arg0: AnyRef</span>)</span><span class="result">: <span name="scala.Boolean" class="extype">Boolean</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>AnyRef</dd></dl></div>
+    </li><li visbl="pub" name="scala.AnyRef#equals" data-isabs="false">
+      <a id="equals(Any):Boolean"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">equals</span>
+        
+        <span class="params">(<span name="arg0">arg0: <span name="scala.Any" class="extype">Any</span></span>)</span><span class="result">: <span name="scala.Boolean" class="extype">Boolean</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef → Any</dd></dl></div>
+    </li><li visbl="prt" name="scala.AnyRef#finalize" data-isabs="false">
+      <a id="finalize():Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">finalize</span>
+        
+        <span class="params">()</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>protected[<a name="java.lang" class="extype" href="../../java/lang/package.html">lang</a>] </dd><dt>Definition Classes</dt><dd>AnyRef</dd><dt>Annotations</dt><dd>
+                <span class="name">@throws</span><span class="args">()</span>
+              
+        </dd></dl></div>
+    </li><li visbl="pub" name="scala.AnyRef#getClass" data-isabs="false">
+      <a id="getClass():java.lang.Class[_]"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">getClass</span>
+        
+        <span class="params">()</span><span class="result">: java.lang.Class[_]</span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>AnyRef</dd></dl></div>
+    </li><li visbl="pub" name="scala.AnyRef#hashCode" data-isabs="false">
+      <a id="hashCode():Int"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">hashCode</span>
+        
+        <span class="params">()</span><span class="result">: <span name="scala.Int" class="extype">Int</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef → Any</dd></dl></div>
+    </li><li visbl="pub" name="scala.Any#isInstanceOf" data-isabs="false">
+      <a id="isInstanceOf[T0]:Boolean"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">isInstanceOf</span>
+        <span class="tparams">[<span name="T0">T0</span>]</span>
+        <span class="result">: <span name="scala.Boolean" class="extype">Boolean</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>Any</dd></dl></div>
+    </li><li visbl="pub" name="scala.AnyRef#ne" data-isabs="false">
+      <a id="ne(AnyRef):Boolean"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">ne</span>
+        
+        <span class="params">(<span name="arg0">arg0: AnyRef</span>)</span><span class="result">: <span name="scala.Boolean" class="extype">Boolean</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>AnyRef</dd></dl></div>
+    </li><li visbl="pub" name="scala.AnyRef#notify" data-isabs="false">
+      <a id="notify():Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">notify</span>
+        
+        <span class="params">()</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>AnyRef</dd></dl></div>
+    </li><li visbl="pub" name="scala.AnyRef#notifyAll" data-isabs="false">
+      <a id="notifyAll():Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">notifyAll</span>
+        
+        <span class="params">()</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>AnyRef</dd></dl></div>
+    </li><li visbl="pub" name="scala.AnyRef#synchronized" data-isabs="false">
+      <a id="synchronized[T0](⇒ T0):T0"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">synchronized</span>
+        <span class="tparams">[<span name="T0">T0</span>]</span>
+        <span class="params">(<span name="arg0">arg0: ⇒ T0</span>)</span><span class="result">: T0</span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>AnyRef</dd></dl></div>
+    </li><li visbl="pub" name="scala.AnyRef#toString" data-isabs="false">
+      <a id="toString():String"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">toString</span>
+        
+        <span class="params">()</span><span class="result">: <span name="java.lang.String" class="extype">String</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef → Any</dd></dl></div>
+    </li><li visbl="pub" name="scala.AnyRef#wait" data-isabs="false">
+      <a id="wait():Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">wait</span>
+        
+        <span class="params">()</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>AnyRef</dd><dt>Annotations</dt><dd>
+                <span class="name">@throws</span><span class="args">()</span>
+              
+        </dd></dl></div>
+    </li><li visbl="pub" name="scala.AnyRef#wait" data-isabs="false">
+      <a id="wait(Long,Int):Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">wait</span>
+        
+        <span class="params">(<span name="arg0">arg0: <span name="scala.Long" class="extype">Long</span></span>, <span name="arg1">arg1: <span name="scala.Int" class="extype">Int</span></span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>AnyRef</dd><dt>Annotations</dt><dd>
+                <span class="name">@throws</span><span class="args">()</span>
+              
+        </dd></dl></div>
+    </li><li visbl="pub" name="scala.AnyRef#wait" data-isabs="false">
+      <a id="wait(Long):Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">wait</span>
+        
+        <span class="params">(<span name="arg0">arg0: <span name="scala.Long" class="extype">Long</span></span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>AnyRef</dd><dt>Annotations</dt><dd>
+                <span class="name">@throws</span><span class="args">()</span>
+              
+        </dd></dl></div>
+    </li></ol>
+            </div>
+
+        <div name="scala.AnyRef" class="parent">
+              <h3>Inherited from AnyRef</h3>
+            </div><div name="scala.Any" class="parent">
+              <h3>Inherited from <span name="scala.Any" class="extype">Any</span></h3>
+            </div>
+
+      </div>
+      
+      <div id="tooltip"></div>
+      
+    </body>
+      </html>

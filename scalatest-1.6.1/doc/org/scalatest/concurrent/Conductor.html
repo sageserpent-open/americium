@@ -1,0 +1,627 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html>
+        <head>
+          <title>org.scalatest.concurrent.Conductor</title>
+          <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+          
+      <link type="text/css" media="screen" rel="stylesheet" href="../../../lib/template.css" />
+      <script type="text/javascript" src="../../../lib/jquery.js"></script>
+      <script type="text/javascript" src="../../../lib/jquery-ui.js"></script>
+      <script type="text/javascript" src="../../../lib/template.js"></script>
+      <script type="text/javascript" src="../../../lib/tools.tooltip.js"></script>
+    
+        </head>
+        <body class="type">
+      <div id="definition">
+        <img src="../../../lib/class_big.png" />
+        <p id="owner"><a name="org" class="extype" href="../../package.html">org</a>.<a name="org.scalatest" class="extype" href="../package.html">scalatest</a>.<a name="org.scalatest.concurrent" class="extype" href="package.html">concurrent</a></p>
+        <h1>Conductor</h1>
+      </div>
+
+      <h4 class="signature" id="signature">
+      <span class="kind">class</span>
+      <span class="symbol"> 
+        <span class="name">Conductor</span>
+        
+        <span class="result"> extends AnyRef</span>
+      </span>
+      </h4>
+      
+          <div class="fullcommenttop" id="comment"><div class="comment cmt"><p>Class that facilitates the testing of classes, traits, and libraries designed
+to be used by multiple threads concurrently.</p><p>A <code>Conductor</code> conducts a multi-threaded scenario by maintaining
+a clock of &quot;beats.&quot; Beats are numbered starting with 0. You can ask a
+<code>Conductor</code> to run threads that interact with the class, trait,
+or library (the <em>subject</em>)
+you want to test. A thread can call the <code>Conductor</code>'s
+<code>waitForBeat</code> method, which will cause the thread to block
+until that beat has been reached. The <code>Conductor</code> will advance
+the beat only when all threads participating in the test are blocked. By
+tying the timing of thread activities to specific beats, you can write
+tests for concurrent systems that have deterministic interleavings of
+threads.</p><p>A <code>Conductor</code> object has a three-phase lifecycle. It begins its life
+in the <em>setup</em> phase. During this phase, you can start threads by
+invoking the <code>thread</code> method on the <code>Conductor</code>.
+When <code>conduct</code> is invoked on a <code>Conductor</code>, it enters
+the <em>conducting</em> phase. During this phase it conducts the one multi-threaded
+scenario it was designed to conduct. After all participating threads have exited, either by
+returning normally or throwing an exception, the <code>conduct</code> method
+will complete, either by returning normally or throwing an exception. As soon as
+the <code>conduct</code> method completes, the <code>Conductor</code>
+enters its <em>defunct</em> phase. Once the <code>Conductor</code> has conducted
+a multi-threaded scenario, it is defunct and can't be reused. To run the same test again,
+you'll need to create a new instance of <code>Conductor</code>.</p><p>Here's an example of the use of <code>Conductor</code> to test the <code>ArrayBlockingQueue</code>
+class from <code>java.util.concurrent</code>:</p><p><pre class="stHighlighted">
+<span class="stReserved">import</span> org.scalatest.fixture.FunSuite
+<span class="stReserved">import</span> org.scalatest.matchers.ShouldMatchers
+<span class="stReserved">import</span> java.util.concurrent.ArrayBlockingQueue
+<br /><span class="stReserved">class</span> <span class="stType">ArrayBlockingQueueSuite</span> <span class="stReserved">extends</span> <span class="stType">FunSuite</span> <span class="stReserved">with</span> <span class="stType">ShouldMatchers</span> {
+<br />  test(<span class="stQuotedString">&quot;calling put on a full queue blocks the producer thread&quot;</span>) {
+<br />    <span class="stReserved">val</span> conductor = <span class="stReserved">new</span> <span class="stType">Conductor</span>
+    <span class="stReserved">import</span> conductor._
+<br />    <span class="stReserved">val</span> buf = <span class="stReserved">new</span> <span class="stType">ArrayBlockingQueue[Int]</span>(<span class="stLiteral">1</span>)
+<br />    thread(<span class="stQuotedString">&quot;producer&quot;</span>) {
+      buf put <span class="stLiteral">42</span>
+      buf put <span class="stLiteral">17</span>
+      beat should be (<span class="stLiteral">1</span>)
+    }
+<br />    thread(<span class="stQuotedString">&quot;consumer&quot;</span>) {
+      waitForBeat(<span class="stLiteral">1</span>)
+      buf.take should be (<span class="stLiteral">42</span>)
+      buf.take should be (<span class="stLiteral">17</span>)
+    }
+<br />    whenFinished {
+      buf should be (<span class="stQuotedString">'empty</span>)
+    }
+  }
+}
+</pre></p><p>When the test shown is run, it will create one thread named <em>producer</em> and another named
+<em>consumer</em>. The producer thread will eventually execute the code passed as a by-name
+parameter to <code>thread("producer")</code>:</p><p><pre class="stHighlighted">
+buf put <span class="stLiteral">42</span>
+buf put <span class="stLiteral">17</span>
+beat should be (<span class="stLiteral">1</span>)
+</pre></p><p>Similarly, the consumer thread will eventually execute the code passed as a by-name parameter
+to <code>thread("consumer")</code>:</p><p><pre class="stHighlighted">
+waitForBeat(<span class="stLiteral">1</span>)
+buf.take should be (<span class="stLiteral">42</span>)
+buf.take should be (<span class="stLiteral">17</span>)
+</pre></p><p>The <code>thread</code> calls create the threads and starts them, but they will not immediately
+execute the by-name parameter passed to them. They will first block, waiting for the <code>Conductor</code>
+to give them a green light to proceed.</p><p>The next call in the test is <code>whenFinished</code>. This method will first call <code>conduct</code> on
+the <code>Conductor</code>, which will wait until all threads that were created (in this case, producer and consumer) are
+at the &quot;starting line&quot;, <em>i.e.</em>, they have all started and are blocked, waiting on the green light.
+The <code>conduct</code> method will then give these threads the green light and they will
+all start executing their blocks concurrently.</p><p>When the threads are given the green light, the beat is 0. The first thing the producer thread does is put 42 in
+into the queue. As the queue is empty at this point, this succeeds. The producer thread next attempts to put a 17
+into the queue, but because the queue has size 1, this can't succeed until the consumer thread has read the 42
+from the queue. This hasn't happened yet, so producer blocks. Meanwhile, the consumer thread's first act is to
+call <code>waitForBeat(1)</code>. Because the beat starts out at 0, this call will block the consumer thread.
+As a result, once the producer thread has executed <code>buf put 17</code> and the consumer thread has executed
+<code>waitForBeat(1)</code>, both threads will be blocked.</p><p>The <code>Conductor</code> maintains a clock that wakes up periodically and checks to see if all threads
+participating in the multi-threaded scenario (in this case, producer and consumer) are blocked. If so, it
+increments the beat. Thus sometime later the beat will be incremented, from 0 to 1. Because consumer was
+waiting for beat 1, it will wake up (<em>i.e.</em>, the <code>waitForBeat(1)</code> call will return) and
+execute the next line of code in its block, <code>buf.take should be (42)</code>. This will succeed, because
+the producer thread had previously (during beat 0) put 42 into the queue. This act will also make
+producer runnable again, because it was blocked on the second <code>put</code>, which was waiting for another
+thread to read that 42.</p><p>Now both threads are unblocked and able to execute their next statement. The order is
+non-deterministic, and can even be simultaneous if running on multiple cores. If the <code>consumer</code> thread
+happens to execute <code>buf.take should be (17)</code> first, it will block (<code>buf.take</code> will not return), because the queue is
+at that point empty. At some point later, the producer thread will execute <code>buf put 17</code>, which will
+unblock the consumer thread. Again both threads will be runnable and the order non-deterministic and
+possibly simulataneous. The producer thread may charge ahead and run its next statement, <code>beat should be (1)</code>.
+This will succeed because the beat is indeed 1 at this point. As this is the last statement in the producer's block,
+the producer thread will exit normally (it won't throw an exception). At some point later the consumer thread will
+be allowed to complete its last statement, the <code>buf.take</code> call will return 17. The consumer thread will
+execute <code>17 should be (17)</code>. This will succeed and as this was the last statement in its block, the consumer will return
+normally.</p><p>If either the producer or consumer thread had completed abruptbly with an exception, the <code>conduct</code> method
+(which was called by <code>whenFinished</code>) would have completed abruptly with an exception to indicate the test
+failed. However, since both threads returned normally, <code>conduct</code> will return. Because <code>conduct</code> doesn't
+throw an exception, <code>whenFinished</code> will execute the block of code passed as a by-name parameter to it: <code>buf should be ('empty)</code>.
+This will succeed, because the queue is indeed empty at this point. The <code>whenFinished</code> method will then return, and
+because the <code>whenFinished</code> call was the last statement in the test and it didn't throw an exception, the test completes successfully.</p><p>This test tests <code>ArrayBlockingQueue</code>, to make sure it works as expected. If there were a bug in <code>ArrayBlockingQueue</code>
+such as a <code>put</code> called on a full queue didn't block, but instead overwrote the previous value, this test would detect
+it. However, if there were a bug in <code>ArrayBlockingQueue</code> such that a call to <code>take</code> called on an empty queue
+never blocked and always returned 0, this test might not detect it. The reason is that whether the consumer thread will ever call
+<code>take</code> on an empty queue during this test is non-deterministic. It depends on how the threads get scheduled during beat 1.
+What is deterministic in this test, because the consumer thread blocks during beat 0, is that the producer thread will definitely
+attempt to write to a full queue. To make sure the other scenario is tested, you'd need a different test:</p><p><pre class="stHighlighted">
+test(<span class="stQuotedString">&quot;calling take on an empty queue blocks the consumer thread&quot;</span>) {
+<br />  <span class="stReserved">val</span> conductor = <span class="stReserved">new</span> <span class="stType">Conductor</span>
+  <span class="stReserved">import</span> conductor._
+<br />  <span class="stReserved">val</span> buf = <span class="stReserved">new</span> <span class="stType">ArrayBlockingQueue[Int]</span>(<span class="stLiteral">1</span>)
+<br />  thread(<span class="stQuotedString">&quot;producer&quot;</span>) {
+    waitForBeat(<span class="stLiteral">1</span>)
+    buf put <span class="stLiteral">42</span>
+    buf put <span class="stLiteral">17</span>
+  }
+<br />  thread(<span class="stQuotedString">&quot;consumer&quot;</span>) {
+    buf.take should be (<span class="stLiteral">42</span>)
+    buf.take should be (<span class="stLiteral">17</span>)
+    beat should be (<span class="stLiteral">1</span>)
+  }
+<br />  whenFinished {
+    buf should be (<span class="stQuotedString">'empty</span>)
+  }
+}
+</pre></p><p>In this test, the producer thread will block, waiting for beat 1. The consumer thread will invoke <code>buf.take</code>
+as its first act. This will block, because the queue is empty. Because both threads are blocked, the <code>Conductor</code>
+will at some point later increment the beat to 1. This will awaken the producer thread. It will return from its
+<code>waitForBeat(1)</code> call and execute <code>buf put 42</code>. This will unblock the consumer thread, which will
+take the 42, and so on.</p><p>The problem that <code>Conductor</code> is designed to address is the difficulty, caused by the non-deterministic nature
+of thread scheduling, of testing classes, traits, and libraries that are intended to be used by multiple threads.
+If you just create a test in which one thread reads from an <code>ArrayBlockingQueue</code> and
+another writes to it, you can't be sure that you have tested all possible interleavings of threads, no matter
+how many times you run the test. The purpose of <code>Conductor</code>
+is to enable you to write tests with deterministic interleavings of threads. If you write one test for each possible
+interleaving of threads, then you can be sure you have all the scenarios tested. The two tests shown here, for example,
+ensure that both the scenario in which a producer thread tries to write to a full queue and the scenario in which a
+consumer thread tries to take from an empty queue are tested.</p><p>Class <code>Conductor</code> was inspired by the
+<a href="http://www.cs.umd.edu/projects/PL/multithreadedtc/">MultithreadedTC project</a>,
+created by Bill Pugh and Nat Ayewah of the University of Maryland.</p><p>Although useful, bear in mind that a <code>Conductor</code>'s results are not guaranteed to be
+accurate 100% of the time. The reason is that it uses <code>java.lang.Thread</code>'s <code>getState</code> method to
+decide when to advance the beat. This kind of use is advised against in the Javadoc documentation for
+<code>getState</code>, which says, &quot;This method is designed for use in monitoring of the system state, not for
+synchronization.&quot; In short, sometimes the return value of <code>getState</code may be inacurrate, which in turn means
+that sometimes a <code>Conductor</code> may decide to advance the beat too early.</p></div><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd></dl><div class="toggleContainer block">
+          <span class="toggle">Linear Supertypes</span>
+          <div class="superTypes hiddenContent">AnyRef, <span name="scala.Any" class="extype">Any</span></div>
+        </div></div>
+        
+
+      <div id="template">
+
+        <div id="mbrsel">
+          <div id="textfilter"><span class="pre"></span><span class="input"><input accesskey="/" type="text" /></span><span class="post"></span></div>
+          <div id="order">
+                <span class="filtertype">Ordering</span>
+                <ol><li class="alpha in"><span>Alphabetic</span></li><li class="inherit out"><span>By inheritance</span></li></ol>
+              </div>
+          <div id="ancestors">
+                <span class="filtertype">Inherited</span>
+                <ol><li class="hideall out"><span>Hide All</span></li>
+                <li class="showall in"><span>Show all</span></li></ol>
+                <ol id="linearization"><li name="org.scalatest.concurrent.Conductor" class="in"><span>Conductor</span></li><li name="scala.AnyRef" class="in"><span>AnyRef</span></li><li name="scala.Any" class="in"><span>Any</span></li></ol>
+              </div>
+          <div id="visbl">
+              <span class="filtertype">Visibility</span>
+              <ol><li class="public in"><span>Public</span></li><li class="all out"><span>All</span></li></ol>
+            </div>
+        </div>
+
+        <div class="members" id="constructors">
+              <h3>Instance Constructors</h3>
+              <ol><li visbl="pub" name="org.scalatest.concurrent.Conductor#this" data-isabs="false">
+      <a id="this:Conductor"></a>
+      <h4 class="signature">
+      <span class="kind">new</span>
+      <span class="symbol"> 
+        <span class="name">Conductor</span>
+        
+        <span class="params">()</span>
+      </span>
+      </h4>
+      
+    </li></ol>
+            </div>
+
+        
+        
+        
+
+        <div class="values members" id="values">
+              <h3>Value Members</h3>
+              <ol><li visbl="pub" name="scala.AnyRef#!=" data-isabs="false">
+      <a id="!=(AnyRef):Boolean"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">!=</span>
+        
+        <span class="params">(<span name="arg0">arg0: AnyRef</span>)</span><span class="result">: <span name="scala.Boolean" class="extype">Boolean</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>AnyRef</dd></dl></div>
+    </li><li visbl="pub" name="scala.Any#!=" data-isabs="false">
+      <a id="!=(Any):Boolean"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">!=</span>
+        
+        <span class="params">(<span name="arg0">arg0: <span name="scala.Any" class="extype">Any</span></span>)</span><span class="result">: <span name="scala.Boolean" class="extype">Boolean</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>Any</dd></dl></div>
+    </li><li visbl="pub" name="scala.AnyRef###" data-isabs="false">
+      <a id="##():Int"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">##</span>
+        
+        <span class="params">()</span><span class="result">: <span name="scala.Int" class="extype">Int</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>AnyRef → Any</dd></dl></div>
+    </li><li visbl="pub" name="scala.AnyRef#==" data-isabs="false">
+      <a id="==(AnyRef):Boolean"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">==</span>
+        
+        <span class="params">(<span name="arg0">arg0: AnyRef</span>)</span><span class="result">: <span name="scala.Boolean" class="extype">Boolean</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>AnyRef</dd></dl></div>
+    </li><li visbl="pub" name="scala.Any#==" data-isabs="false">
+      <a id="==(Any):Boolean"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">==</span>
+        
+        <span class="params">(<span name="arg0">arg0: <span name="scala.Any" class="extype">Any</span></span>)</span><span class="result">: <span name="scala.Boolean" class="extype">Boolean</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>Any</dd></dl></div>
+    </li><li visbl="pub" name="scala.Any#asInstanceOf" data-isabs="false">
+      <a id="asInstanceOf[T0]:T0"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">asInstanceOf</span>
+        <span class="tparams">[<span name="T0">T0</span>]</span>
+        <span class="result">: T0</span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>Any</dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.concurrent.Conductor#beat" data-isabs="false">
+      <a id="beat:Int"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">beat</span>
+        
+        <span class="result">: <span name="scala.Int" class="extype">Int</span></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">The current value of the thread clock.</p><div class="fullcomment"><div class="comment cmt"><p>The current value of the thread clock.
+</p></div><dl class="paramcmts block"><dt>returns</dt><dd class="cmt"><p>the current beat value
+</p></dd></dl></div>
+    </li><li visbl="prt" name="scala.AnyRef#clone" data-isabs="false">
+      <a id="clone():AnyRef"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">clone</span>
+        
+        <span class="params">()</span><span class="result">: AnyRef</span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>protected[<a name="java.lang" class="extype" href="../../../java/lang/package.html">lang</a>] </dd><dt>Definition Classes</dt><dd>AnyRef</dd><dt>Annotations</dt><dd>
+                <span class="name">@throws</span><span class="args">()</span>
+              
+        </dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.concurrent.Conductor#conduct" data-isabs="false">
+      <a id="conduct(Int,Int):Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">conduct</span>
+        
+        <span class="params">(<span name="clockPeriod">clockPeriod: <span name="scala.Int" class="extype">Int</span></span>, <span name="timeout">timeout: <span name="scala.Int" class="extype">Int</span></span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Conducts a multithreaded test with the specified clock period (in milliseconds)
+and timeout (in seconds).</p><div class="fullcomment"><div class="comment cmt"><p>Conducts a multithreaded test with the specified clock period (in milliseconds)
+and timeout (in seconds).</p><p>A <code>Conductor</code> instance maintains an internal clock, which will wake up
+periodically and check to see if it should advance the beat, abort the test, or go back to sleep.
+It sleeps <code>clockPeriod</code> milliseconds each time. It will abort the test
+if either deadlock is suspected or the beat has not advanced for the number of
+seconds specified as <code>timeout</code>. Suspected deadlock will be declared if
+for some number of consecutive clock cycles, all test threads are in the <code>BLOCKED</code> or
+<code>WAITING</code> states and none of them are waiting for a beat.</p></div><dl class="paramcmts block"><dt class="param">clockPeriod</dt><dd class="cmt"><p>The period (in ms) the clock will sleep each time it sleeps</p></dd><dt class="param">timeout</dt><dd class="cmt"><p>The maximum allowed time between successive advances of the beat. If this time
+   is exceeded, the Conductor will abort the test.</p></dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.concurrent.Conductor#conduct" data-isabs="false">
+      <a id="conduct():Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">conduct</span>
+        
+        <span class="params">()</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Conducts a multithreaded test with a default clock period of 10 milliseconds
+and default run limit of 5 seconds.</p>
+    </li><li visbl="pub" name="org.scalatest.concurrent.Conductor#conductingHasBegun" data-isabs="false">
+      <a id="conductingHasBegun:Boolean"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">conductingHasBegun</span>
+        
+        <span class="result">: <span name="scala.Boolean" class="extype">Boolean</span></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Indicates whether either of the two overloaded <code>conduct</code> methods
+have been invoked.</p><div class="fullcomment"><div class="comment cmt"><p>Indicates whether either of the two overloaded <code>conduct</code> methods
+have been invoked.</p><p>This method returns true if either <code>conduct</code> method has been invoked. The
+<code>conduct</code> method may have returned or not. (In other words, a <code>true</code>
+result from this method does not mean the <code>conduct</code> method has returned,
+just that it was already been invoked and,therefore, the multi-threaded scenario it
+conducts has definitely begun.)</p></div></div>
+    </li><li visbl="pub" name="scala.AnyRef#eq" data-isabs="false">
+      <a id="eq(AnyRef):Boolean"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">eq</span>
+        
+        <span class="params">(<span name="arg0">arg0: AnyRef</span>)</span><span class="result">: <span name="scala.Boolean" class="extype">Boolean</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>AnyRef</dd></dl></div>
+    </li><li visbl="pub" name="scala.AnyRef#equals" data-isabs="false">
+      <a id="equals(Any):Boolean"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">equals</span>
+        
+        <span class="params">(<span name="arg0">arg0: <span name="scala.Any" class="extype">Any</span></span>)</span><span class="result">: <span name="scala.Boolean" class="extype">Boolean</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef → Any</dd></dl></div>
+    </li><li visbl="prt" name="scala.AnyRef#finalize" data-isabs="false">
+      <a id="finalize():Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">finalize</span>
+        
+        <span class="params">()</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>protected[<a name="java.lang" class="extype" href="../../../java/lang/package.html">lang</a>] </dd><dt>Definition Classes</dt><dd>AnyRef</dd><dt>Annotations</dt><dd>
+                <span class="name">@throws</span><span class="args">()</span>
+              
+        </dd></dl></div>
+    </li><li visbl="pub" name="scala.AnyRef#getClass" data-isabs="false">
+      <a id="getClass():java.lang.Class[_]"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">getClass</span>
+        
+        <span class="params">()</span><span class="result">: java.lang.Class[_]</span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>AnyRef</dd></dl></div>
+    </li><li visbl="pub" name="scala.AnyRef#hashCode" data-isabs="false">
+      <a id="hashCode():Int"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">hashCode</span>
+        
+        <span class="params">()</span><span class="result">: <span name="scala.Int" class="extype">Int</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef → Any</dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.concurrent.Conductor#isConductorFrozen" data-isabs="false">
+      <a id="isConductorFrozen:Boolean"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">isConductorFrozen</span>
+        
+        <span class="result">: <span name="scala.Boolean" class="extype">Boolean</span></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Indicates whether the conductor has been frozen.</p><div class="fullcomment"><div class="comment cmt"><p>Indicates whether the conductor has been frozen.</p><p>Note: The only way a thread
+can freeze the conductor is by calling <code>withConductorFrozen</code>.</p></div></div>
+    </li><li visbl="pub" name="scala.Any#isInstanceOf" data-isabs="false">
+      <a id="isInstanceOf[T0]:Boolean"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">isInstanceOf</span>
+        <span class="tparams">[<span name="T0">T0</span>]</span>
+        <span class="result">: <span name="scala.Boolean" class="extype">Boolean</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>Any</dd></dl></div>
+    </li><li visbl="pub" name="scala.AnyRef#ne" data-isabs="false">
+      <a id="ne(AnyRef):Boolean"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">ne</span>
+        
+        <span class="params">(<span name="arg0">arg0: AnyRef</span>)</span><span class="result">: <span name="scala.Boolean" class="extype">Boolean</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>AnyRef</dd></dl></div>
+    </li><li visbl="pub" name="scala.AnyRef#notify" data-isabs="false">
+      <a id="notify():Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">notify</span>
+        
+        <span class="params">()</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>AnyRef</dd></dl></div>
+    </li><li visbl="pub" name="scala.AnyRef#notifyAll" data-isabs="false">
+      <a id="notifyAll():Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">notifyAll</span>
+        
+        <span class="params">()</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>AnyRef</dd></dl></div>
+    </li><li visbl="pub" name="scala.AnyRef#synchronized" data-isabs="false">
+      <a id="synchronized[T0](⇒ T0):T0"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">synchronized</span>
+        <span class="tparams">[<span name="T0">T0</span>]</span>
+        <span class="params">(<span name="arg0">arg0: ⇒ T0</span>)</span><span class="result">: T0</span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>AnyRef</dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.concurrent.Conductor#thread" data-isabs="false">
+      <a id="thread(String)(⇒ Unit):Thread"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">thread</span>
+        
+        <span class="params">(<span name="name">name: String</span>)</span><span class="params">(<span name="fun">fun: ⇒ <span name="scala.Unit" class="extype">Unit</span></span>)</span><span class="result">: <span name="java.lang.Thread" class="extype">Thread</span></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Creates a new thread with the specified name that will execute the specified function.</p><div class="fullcomment"><div class="comment cmt"><p>Creates a new thread with the specified name that will execute the specified function.</p><p>This method may be safely called by any thread.</p></div><dl class="paramcmts block"><dt class="param">name</dt><dd class="cmt"><p>the name of the newly created thread</p></dd><dt class="param">fun</dt><dd class="cmt"><p>the function to be executed by the newly created thread</p></dd><dt>returns</dt><dd class="cmt"><p>the newly created thread
+</p></dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.concurrent.Conductor#thread" data-isabs="false">
+      <a id="thread(⇒ Unit):Thread"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">thread</span>
+        
+        <span class="params">(<span name="fun">fun: ⇒ <span name="scala.Unit" class="extype">Unit</span></span>)</span><span class="result">: <span name="java.lang.Thread" class="extype">Thread</span></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Creates a new thread that will execute the specified function.</p><div class="fullcomment"><div class="comment cmt"><p>Creates a new thread that will execute the specified function.</p><p>The name of the thread will be of the form Conductor-Thread-N, where N is some integer.</p><p>This method may be safely called by any thread.</p></div><dl class="paramcmts block"><dt class="param">fun</dt><dd class="cmt"><p>the function to be executed by the newly created thread</p></dd><dt>returns</dt><dd class="cmt"><p>the newly created thread
+</p></dd></dl></div>
+    </li><li visbl="pub" name="scala.AnyRef#toString" data-isabs="false">
+      <a id="toString():String"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">toString</span>
+        
+        <span class="params">()</span><span class="result">: <span name="java.lang.String" class="extype">String</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef → Any</dd></dl></div>
+    </li><li visbl="pub" name="scala.AnyRef#wait" data-isabs="false">
+      <a id="wait():Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">wait</span>
+        
+        <span class="params">()</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>AnyRef</dd><dt>Annotations</dt><dd>
+                <span class="name">@throws</span><span class="args">()</span>
+              
+        </dd></dl></div>
+    </li><li visbl="pub" name="scala.AnyRef#wait" data-isabs="false">
+      <a id="wait(Long,Int):Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">wait</span>
+        
+        <span class="params">(<span name="arg0">arg0: <span name="scala.Long" class="extype">Long</span></span>, <span name="arg1">arg1: <span name="scala.Int" class="extype">Int</span></span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>AnyRef</dd><dt>Annotations</dt><dd>
+                <span class="name">@throws</span><span class="args">()</span>
+              
+        </dd></dl></div>
+    </li><li visbl="pub" name="scala.AnyRef#wait" data-isabs="false">
+      <a id="wait(Long):Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">wait</span>
+        
+        <span class="params">(<span name="arg0">arg0: <span name="scala.Long" class="extype">Long</span></span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>AnyRef</dd><dt>Annotations</dt><dd>
+                <span class="name">@throws</span><span class="args">()</span>
+              
+        </dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.concurrent.Conductor#waitForBeat" data-isabs="false">
+      <a id="waitForBeat(Int):Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">waitForBeat</span>
+        
+        <span class="params">(<span name="beat">beat: <span name="scala.Int" class="extype">Int</span></span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Blocks the current thread until the thread beat reaches the
+specified value, at which point the current thread will be unblocked.</p><div class="fullcomment"><div class="comment cmt"><p>Blocks the current thread until the thread beat reaches the
+specified value, at which point the current thread will be unblocked.
+</p></div><dl class="paramcmts block"><dt class="param">beat</dt><dd class="cmt"><p>the tick value to wait for</p></dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.concurrent.Conductor#whenFinished" data-isabs="false">
+      <a id="whenFinished(⇒ Unit):Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">whenFinished</span>
+        
+        <span class="params">(<span name="fun">fun: ⇒ <span name="scala.Unit" class="extype">Unit</span></span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Invokes <code>conduct</code> and after <code>conduct</code> method returns,
+if <code>conduct</code> returns normally (<em>i.e.</em>, without throwing
+an exception), invokes the passed function.</p><div class="fullcomment"><div class="comment cmt"><p>Invokes <code>conduct</code> and after <code>conduct</code> method returns,
+if <code>conduct</code> returns normally (<em>i.e.</em>, without throwing
+an exception), invokes the passed function.</p><p>If <code>conduct</code> completes abruptly with an exception, this method
+will complete abruptly with the same exception and not execute the passed
+function.</p><p>This method must be called by the thread that instantiated this <code>Conductor</code>,
+and that same thread will invoke <code>conduct</code> and, if it returns noramlly, execute
+the passed function.</p><p>Because <code>whenFinished</code> invokes <code>conduct</code>, it can only be invoked
+once on a <code>Conductor</code> instance. As a result, if you need to pass a block of
+code to <code>whenFinished</code> it should be the last statement of your test. If you
+don't have a block of code that needs to be run once all the threads have finished
+successfully, then you can simply invoke <code>conduct</code> and never invoke
+<code>whenFinished</code>.</p></div><dl class="paramcmts block"><dt class="param">fun</dt><dd class="cmt"><p>the function to execute after <code>conduct</code> call returns</p></dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.concurrent.Conductor#withConductorFrozen" data-isabs="false">
+      <a id="withConductorFrozen[T](⇒ T):Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">withConductorFrozen</span>
+        <span class="tparams">[<span name="T">T</span>]</span>
+        <span class="params">(<span name="fun">fun: ⇒ T</span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Executes the passed function with the <code>Conductor</code> <em>frozen</em> so that it
+won't advance the clock.</p><div class="fullcomment"><div class="comment cmt"><p>Executes the passed function with the <code>Conductor</code> <em>frozen</em> so that it
+won't advance the clock.</p><p>While the <code>Conductor</code> is frozen, the beat will not advance. Once the
+passed function has completed executing, the <code>Conductor</code> will be unfrozen
+so that the beat will advance when all threads are blocked, as normal.</p></div><dl class="paramcmts block"><dt class="param">fun</dt><dd class="cmt"><p>the function to execute while the <code>Conductor</code> is frozen.
+</p></dd></dl></div>
+    </li></ol>
+            </div>
+
+        <div name="scala.AnyRef" class="parent">
+              <h3>Inherited from AnyRef</h3>
+            </div><div name="scala.Any" class="parent">
+              <h3>Inherited from <span name="scala.Any" class="extype">Any</span></h3>
+            </div>
+
+      </div>
+      
+      <div id="tooltip"></div>
+      
+    </body>
+      </html>

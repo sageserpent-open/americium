@@ -1,0 +1,550 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html>
+        <head>
+          <title>org.scalatest.matchers.Matcher</title>
+          <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+          
+      <link type="text/css" media="screen" rel="stylesheet" href="../../../lib/template.css" />
+      <script type="text/javascript" src="../../../lib/jquery.js"></script>
+      <script type="text/javascript" src="../../../lib/jquery-ui.js"></script>
+      <script type="text/javascript" src="../../../lib/template.js"></script>
+      <script type="text/javascript" src="../../../lib/tools.tooltip.js"></script>
+    
+        </head>
+        <body class="type">
+      <div id="definition">
+        <a title="Go to companion" href="Matcher$.html"><img src="../../../lib/trait_to_object_big.png" /></a>
+        <p id="owner"><a name="org" class="extype" href="../../package.html">org</a>.<a name="org.scalatest" class="extype" href="../package.html">scalatest</a>.<a name="org.scalatest.matchers" class="extype" href="package.html">matchers</a></p>
+        <h1><a title="Go to companion" href="Matcher$.html">Matcher</a></h1>
+      </div>
+
+      <h4 class="signature" id="signature">
+      <span class="kind">trait</span>
+      <span class="symbol"> 
+        <span class="name">Matcher</span>
+        <span class="tparams">[<span name="T">-T</span>]</span>
+        <span class="result"> extends (T) ⇒ <a name="org.scalatest.matchers.MatchResult" class="extype" href="MatchResult.html">MatchResult</a></span>
+      </span>
+      </h4>
+      
+          <div class="fullcommenttop" id="comment"><div class="comment cmt"><p>Trait extended by objects that can match a value of the specified type. The value to match is
+passed to the matcher's <code>apply</code> method. The result is a <code>MatchResult</code>.
+A matcher is, therefore, a function from the specified type, <code>T</code>, to a <code>MatchResult</code>.</p><h4> Creating custom matchers </h4><p><em>Note: We are planning on adding some new matchers to ScalaTest in a future release, and would like your feedback.
+Please let us know if you have felt the need for a matcher ScalaTest doesn't yet provide, whether or
+not you wrote a custom matcher for it. Please email your feedback to bill AT artima.com.</em></p><p>If none of the built-in matcher syntax satisfies a particular need you have, you can create
+custom <code>Matcher</code>s that allow
+you to place your own syntax directly after <code>should</code> or <code>must</code>. For example, class <code>java.io.File</code> has a method <code>exists</code>, which
+indicates whether a file of a certain path and name exists. Because the <code>exists</code> method takes no parameters and returns <code>Boolean</code>,
+you can call it using <code>be</code> with a symbol or <code>BePropertyMatcher</code>, yielding assertions like:</p><p><pre class="stHighlighted">
+file should be (<span class="stQuotedString">'exists</span>)  <span class="stLineComment">// using a symbol</span>
+file should be (inExistance)   <span class="stLineComment">// using a BePropertyMatcher</span>
+</pre></p><p>Although these expressions will achieve your goal of throwing a <code>TestFailedException</code> if the file does not exist, they don't produce
+the most readable code because the English is either incorrect or awkward. In this case, you might want to create a
+custom <code>Matcher[java.io.File]</code>
+named <code>exist</code>, which you could then use to write expressions like:</p><p><pre class="stHighlighted">
+<span class="stLineComment">// using a plain-old Matcher</span>
+file should exist
+file should not (exist)
+file should (exist and have (<span class="stQuotedString">'name</span> (<span class="stQuotedString">&quot;temp.txt&quot;</span>)))
+</pre></p><p>One good way to organize custom matchers is to place them inside one or more
+traits that you can then mix into the suites or specs that need them. Here's an example:</p><p><pre class="stHighlighted">
+<span class="stReserved">trait</span> <span class="stType">CustomMatchers</span> {
+<br />  <span class="stReserved">class</span> <span class="stType">FileExistsMatcher</span> <span class="stReserved">extends</span> <span class="stType">Matcher[java.io.File]</span> {
+<br />    <span class="stReserved">def</span> apply(left: <span class="stType">java.io.File</span>) = {
+<br />      <span class="stReserved">val</span> fileOrDir = <span class="stReserved">if</span> (left.isFile) <span class="stQuotedString">&quot;file&quot;</span> <span class="stReserved">else</span> <span class="stQuotedString">&quot;directory&quot;</span>
+<br />      <span class="stReserved">val</span> failureMessageSuffix =
+        fileOrDir + <span class="stQuotedString">&quot; named &quot;</span> + left.getName + <span class="stQuotedString">&quot; did not exist&quot;</span>
+<br />      <span class="stReserved">val</span> negatedFailureMessageSuffix =
+        fileOrDir + <span class="stQuotedString">&quot; named &quot;</span> + left.getName + <span class="stQuotedString">&quot; existed&quot;</span>
+<br />      <span class="stType">MatchResult</span>(
+        left.exists,
+        <span class="stQuotedString">&quot;The &quot;</span> + failureMessageSuffix,
+        <span class="stQuotedString">&quot;The &quot;</span> + negatedFailureMessageSuffix,
+        <span class="stQuotedString">&quot;the &quot;</span> + failureMessageSuffix,
+        <span class="stQuotedString">&quot;the &quot;</span> + negatedFailureMessageSuffix
+      )
+    }
+  }
+<br />  <span class="stReserved">val</span> exist = <span class="stReserved">new</span> <span class="stType">FileExistsMatcher</span>
+}
+<br /><span class="stLineComment">// Make them easy to import with:</span>
+<span class="stLineComment">// import CustomMatchers._</span>
+<span class="stReserved">object</span> <span class="stType">CustomMatchers</span> <span class="stReserved">extends</span> <span class="stType">CustomMatchers</span>
+</pre></p><p>Note: the <code>CustomMatchers</code> companion object exists to make it easy to bring the
+matchers defined in this trait into scope via importing, instead of mixing in the trait. The ability
+to import them is useful, for example, when you want to use the matchers defined in a trait in the Scala interpreter console.</p><p>This trait contains one matcher class, <code>FileExistsMatcher</code>, and a <code>val</code> named <code>exist</code> that refers to
+an instance of <code>FileExistsMatcher</code>. Because the class extends <code>Matcher[java.io.File]</code>,
+the compiler will only allow it be used to match against instances of <code>java.io.File</code>. A matcher must declare an
+<code>apply</code> method that takes the type decared in <code>Matcher</code>'s type parameter, in this case <code>java.io.File</code>.
+The apply method will return a <code>MatchResult</code> whose <code>matches</code> field will indicate whether the match succeeded.
+The <code>failureMessage</code> field will provide a programmer-friendly error message indicating, in the event of a match failure, what caused
+the match to fail.</p><p>The <code>FileExistsMatcher</code> matcher in this example determines success by calling <code>exists</code> on the passed <code>java.io.File</code>. It
+does this in the first argument passed to the <code>MatchResult</code> factory method:</p><p><pre class="stHighlighted">
+left.exists,
+</pre></p><p>In other words, if the file exists, this matcher matches.
+The next argument to <code>MatchResult</code>'s factory method produces the failure message string:</p><p><pre class="stHighlighted">
+<span class="stQuotedString">&quot;The &quot;</span> + failureMessageSuffix,
+</pre></p><p>If the passed <code>java.io.File</code> is a file (not a directory) and has the name <code>temp.txt</code>, for example, the failure
+message would be:</p><p><pre>
+The file named temp.txt did not exist
+</pre></p><p>For more information on the fields in a <code>MatchResult</code>, including the subsequent three fields that follow the failure message,
+please see the documentation for <a href="MatchResult.html"><code>MatchResult</code></a>.</p><p>Given the <code>CustomMatchers</code> trait as defined above, you can use the <code>exist</code> syntax in any suite or spec in
+which you mix in the trait:</p><p><pre class="stHighlighted">
+<span class="stReserved">class</span> <span class="stType">ExampleSpec</span> <span class="stReserved">extends</span> <span class="stType">Spec</span> <span class="stReserved">with</span> <span class="stType">ShouldMatchers</span> <span class="stReserved">with</span> <span class="stType">CustomMatchers</span> {
+<br />  describe(<span class="stQuotedString">&quot;A temp file&quot;</span>) {
+<br />    it(<span class="stQuotedString">&quot;should be created and deleted&quot;</span>) {
+<br />      <span class="stReserved">val</span> tempFile = java.io.File.createTempFile(<span class="stQuotedString">&quot;delete&quot;</span>, <span class="stQuotedString">&quot;me&quot;</span>)
+<br />      <span class="stReserved">try</span> {
+        <span class="stLineComment">// At this point the temp file should exist</span>
+        tempFile should exist
+      }
+      <span class="stReserved">finally</span> {
+        tempFile.delete()
+      }
+<br />      <span class="stLineComment">// At this point it should not exist</span>
+      tempFile should not (exist)
+    }
+  }
+}
+</pre></p><p>Note that when you use custom <code>Matcher</code>s, you will need to put parentheses around the custom matcher when if follows <code>not</code>,
+as shown in the last assertion above: <code>tempFile should not (exist)</code>.</p><p><a name="otherways"> </a></p><h4> Other ways to create matchers </h4><p>There are other ways to create new matchers besides defining one as shown above. For example, you would normally check to ensure
+an option is defined like this:</p><p><pre class="stHighlighted">
+<span class="stType">Some</span>(<span class="stQuotedString">&quot;hi&quot;</span>) should be (<span class="stQuotedString">'defined</span>)
+</pre></p><p>If you wanted to get rid of the tick mark, you could simply define <code>defined</code> like this:</p><p><pre class="stHighlighted">
+<span class="stReserved">val</span> defined = <span class="stQuotedString">'defined</span>
+</pre></p><p>Now you can check that an option is defined without the tick mark:</p><p><pre class="stHighlighted">
+<span class="stType">Some</span>(<span class="stQuotedString">&quot;hi&quot;</span>) should be (defined)
+</pre></p><p>Perhaps after using that for a while, you realize you're tired of typing the parentheses. You could
+get rid of them with another one-liner:</p><p><pre class="stHighlighted">
+<span class="stReserved">val</span> beDefined = be (defined)
+</pre></p><p>Now you can check that an option is defined without the tick mark or the parentheses:</p><p><pre class="stHighlighted">
+<span class="stType">Some</span>(<span class="stQuotedString">&quot;hi&quot;</span>) should beDefined
+</pre></p><p>You can also use ScalaTest matchers' logical operators to combine existing matchers into new ones, like this:</p><p><pre class="stHighlighted">
+<span class="stReserved">val</span> beWithinTolerance = be &gt;= <span class="stLiteral">0</span> and be &lt;= <span class="stLiteral">10</span>
+</pre></p><p>Now you could check that a number is within the tolerance (in this case, between 0 and 10, inclusive), like this:</p><p><pre class="stHighlighted">
+num should beWithinTolerance
+</pre></p><p>When defining a full blown matcher, one shorthand is to use one of the factory methods in <code>Matcher</code>'s companion
+object. For example, instead of writing this:</p><p><pre class="stHighlighted">
+<span class="stReserved">val</span> beOdd =
+  <span class="stReserved">new</span> <span class="stType">Matcher[Int]</span> {
+    <span class="stReserved">def</span> apply(left: <span class="stType">Int</span>) =
+      <span class="stType">MatchResult</span>(
+        left % <span class="stLiteral">2</span> == <span class="stLiteral">1</span>,
+        left + <span class="stQuotedString">&quot; was not odd&quot;</span>,
+        left + <span class="stQuotedString">&quot; was odd&quot;</span>
+      )
+  }
+</pre></p><p>You could alternately write this:</p><p><pre class="stHighlighted">
+<span class="stReserved">val</span> beOdd =
+  <span class="stType">Matcher</span> { (left: <span class="stType">Int</span>) =&gt;
+    <span class="stType">MatchResult</span>(
+      left % <span class="stLiteral">2</span> == <span class="stLiteral">1</span>,
+      left + <span class="stQuotedString">&quot; was not odd&quot;</span>,
+      left + <span class="stQuotedString">&quot; was odd&quot;</span>
+    )
+  }
+</pre></p><p>Either way you define the <code>beOdd</code> matcher, you could use it like this:</p><p><pre class="stHighlighted">
+<span class="stLiteral">3</span> should beOdd
+<span class="stLiteral">4</span> should not (beOdd)
+</pre></p><p>You can also compose matchers. If for some odd reason, you wanted a <code>Matcher[String]</code> that
+checked whether a string, when converted to an <code>Int</code>,
+was odd, you could make one by composing <code>beOdd</code> with
+a function that converts a string to an <code>Int</code>, like this:</p><p><pre class="stHighlighted">
+<span class="stReserved">val</span> beOddAsInt = beOdd compose { (s: <span class="stType">String</span>) =&gt; s.toInt }
+</pre></p><p>Now you have a <code>Matcher[String]</code> whose <code>apply</code> method first
+invokes the converter function to convert the passed string to an <code>Int</code>,
+then passes the resulting <code>Int</code> to <code>beOdd</code>. Thus, you could use
+<code>beOddAsInt</code> like this:</p><p><pre class="stHighlighted">
+<span class="stQuotedString">&quot;3&quot;</span> should beOddAsInt
+<span class="stQuotedString">&quot;4&quot;</span> should not (beOddAsInt)
+</pre></p><h4> Matcher's variance </h4><p><code>Matcher</code> is contravariant in its type parameter, <code>T</code>, to make its use more flexible.
+As an example, consider the hierarchy:</p><p><pre class="stHighlighted">
+<span class="stReserved">class</span> <span class="stType">Fruit</span>
+<span class="stReserved">class</span> <span class="stType">Orange</span> <span class="stReserved">extends</span> <span class="stType">Fruit</span>
+<span class="stReserved">class</span> <span class="stType">ValenciaOrange</span> <span class="stReserved">extends</span> <span class="stType">Orange</span>
+</pre></p><p>Given an orange:</p><p><pre class="stHighlighted">
+<span class="stReserved">val</span> orange = <span class="stType">Orange</span>
+</pre></p><p>The expression &quot;<code>orange should</code>&quot; will, via an implicit conversion in <code>ShouldMatchers</code>,
+result in an object that has a <code>should</code>
+method that takes a <code>Matcher[Orange]</code>. If the static type of the matcher being passed to <code>should</code> is
+<code>Matcher[Valencia]</code> it shouldn't (and won't) compile. The reason it shouldn't compile is that
+the left value is an <code>Orange</code>, but not necessarily a <code>Valencia</code>, and a
+<code>Matcher[Valencia]</code> only knows how to match against a <code>Valencia</code>. The reason
+it won't compile is given that <code>Matcher</code> is contravariant in its type parameter, <code>T</code>, a
+<code>Matcher[Valencia]</code> is <em>not</em> a subtype of <code>Matcher[Orange]</code>.</p><p>By contrast, if the static type of the matcher being passed to <code>should</code> is <code>Matcher[Fruit]</code>,
+it should (and will) compile. The reason it <em>should</em> compile is that given the left value is an <code>Orange</code>,
+it is also a <code>Fruit</code>, and a <code>Matcher[Fruit]</code> knows how to match against <code>Fruit</code>s.
+The reason it <em>will</em> compile is that given  that <code>Matcher</code> is contravariant in its type parameter, <code>T</code>, a
+<code>Matcher[Fruit]</code> is indeed a subtype of <code>Matcher[Orange]</code>.</p></div><dl class="attributes block"> <dt>Self Type</dt><dd><a name="org.scalatest.matchers.Matcher" class="extype" href="">Matcher</a>[T]</dd></dl><div class="toggleContainer block">
+          <span class="toggle">Linear Supertypes</span>
+          <div class="superTypes hiddenContent">(T) ⇒ <a name="org.scalatest.matchers.MatchResult" class="extype" href="MatchResult.html">MatchResult</a>, AnyRef, <span name="scala.Any" class="extype">Any</span></div>
+        </div></div>
+        
+
+      <div id="template">
+
+        <div id="mbrsel">
+          <div id="textfilter"><span class="pre"></span><span class="input"><input accesskey="/" type="text" /></span><span class="post"></span></div>
+          <div id="order">
+                <span class="filtertype">Ordering</span>
+                <ol><li class="alpha in"><span>Alphabetic</span></li><li class="inherit out"><span>By inheritance</span></li></ol>
+              </div>
+          <div id="ancestors">
+                <span class="filtertype">Inherited</span>
+                <ol><li class="hideall out"><span>Hide All</span></li>
+                <li class="showall in"><span>Show all</span></li></ol>
+                <ol id="linearization"><li name="org.scalatest.matchers.Matcher" class="in"><span>Matcher</span></li><li name="scala.Function1" class="in"><span>Function1</span></li><li name="scala.AnyRef" class="in"><span>AnyRef</span></li><li name="scala.Any" class="in"><span>Any</span></li></ol>
+              </div>
+          <div id="visbl">
+              <span class="filtertype">Visibility</span>
+              <ol><li class="public in"><span>Public</span></li><li class="all out"><span>All</span></li></ol>
+            </div>
+        </div>
+
+        
+
+        
+        
+        <div class="values members" id="values">
+              <h3>Abstract Value Members</h3>
+              <ol><li visbl="pub" name="org.scalatest.matchers.Matcher#apply" data-isabs="true">
+      <a id="apply(T):MatchResult"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">apply</span>
+        
+        <span class="params">(<span name="left">left: T</span>)</span><span class="result">: <a name="org.scalatest.matchers.MatchResult" class="extype" href="MatchResult.html">MatchResult</a></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Check to see if the specified object, <code>left</code>, matches, and report the result in
+the returned <code>MatchResult</code>.</p><div class="fullcomment"><div class="comment cmt"><p>Check to see if the specified object, <code>left</code>, matches, and report the result in
+the returned <code>MatchResult</code>. The parameter is named <code>left</code>, because it is
+usually the value to the left of a <code>should</code> or <code>must</code> invocation. For example,
+in:</p><p><pre class="stHighlighted">
+list should equal (<span class="stType">List</span>(<span class="stLiteral">1</span>, <span class="stLiteral">2</span>, <span class="stLiteral">3</span>))
+</pre></p><p>The <code>equal (List(1, 2, 3))</code> expression results in a matcher that holds a reference to the
+right value, <code>List(1, 2, 3)</code>. The <code>should</code> method invokes <code>apply</code>
+on this matcher, passing in <code>list</code>, which is therefore the &quot;<code>left</code>&quot; value. The
+matcher will compare the <code>list</code> (the <code>left</code> value) with <code>List(1, 2, 3)</code> (the right
+value), and report the result in the returned <code>MatchResult</code>.
+</p></div><dl class="paramcmts block"><dt class="param">left</dt><dd class="cmt"><p>the value against which to match</p></dd><dt>returns</dt><dd class="cmt"><p>the <code>MatchResult</code> that represents the result of the match
+</p></dd></dl><dl class="attributes block"> <dt>Attributes</dt><dd>abstract </dd><dt>Definition Classes</dt><dd><a name="org.scalatest.matchers.Matcher" class="extype" href="">Matcher</a> → Function1</dd></dl></div>
+    </li></ol>
+            </div>
+
+        <div class="values members" id="values">
+              <h3>Concrete Value Members</h3>
+              <ol><li visbl="pub" name="scala.AnyRef#!=" data-isabs="false">
+      <a id="!=(AnyRef):Boolean"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">!=</span>
+        
+        <span class="params">(<span name="arg0">arg0: AnyRef</span>)</span><span class="result">: <span name="scala.Boolean" class="extype">Boolean</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>AnyRef</dd></dl></div>
+    </li><li visbl="pub" name="scala.Any#!=" data-isabs="false">
+      <a id="!=(Any):Boolean"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">!=</span>
+        
+        <span class="params">(<span name="arg0">arg0: <span name="scala.Any" class="extype">Any</span></span>)</span><span class="result">: <span name="scala.Boolean" class="extype">Boolean</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>Any</dd></dl></div>
+    </li><li visbl="pub" name="scala.AnyRef###" data-isabs="false">
+      <a id="##():Int"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">##</span>
+        
+        <span class="params">()</span><span class="result">: <span name="scala.Int" class="extype">Int</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>AnyRef → Any</dd></dl></div>
+    </li><li visbl="pub" name="scala.AnyRef#==" data-isabs="false">
+      <a id="==(AnyRef):Boolean"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">==</span>
+        
+        <span class="params">(<span name="arg0">arg0: AnyRef</span>)</span><span class="result">: <span name="scala.Boolean" class="extype">Boolean</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>AnyRef</dd></dl></div>
+    </li><li visbl="pub" name="scala.Any#==" data-isabs="false">
+      <a id="==(Any):Boolean"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">==</span>
+        
+        <span class="params">(<span name="arg0">arg0: <span name="scala.Any" class="extype">Any</span></span>)</span><span class="result">: <span name="scala.Boolean" class="extype">Boolean</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>Any</dd></dl></div>
+    </li><li visbl="pub" name="scala.Function1#andThen" data-isabs="false">
+      <a id="andThen[A]((MatchResult) ⇒ A):(T) ⇒ A"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">andThen</span>
+        <span class="tparams">[<span name="A">A</span>]</span>
+        <span class="params">(<span name="g">g: (<a name="org.scalatest.matchers.MatchResult" class="extype" href="MatchResult.html">MatchResult</a>) ⇒ A</span>)</span><span class="result">: (T) ⇒ A</span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>Function1</dd></dl></div>
+    </li><li visbl="pub" name="scala.Any#asInstanceOf" data-isabs="false">
+      <a id="asInstanceOf[T0]:T0"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">asInstanceOf</span>
+        <span class="tparams">[<span name="T0">T0</span>]</span>
+        <span class="result">: T0</span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>Any</dd></dl></div>
+    </li><li visbl="prt" name="scala.AnyRef#clone" data-isabs="false">
+      <a id="clone():AnyRef"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">clone</span>
+        
+        <span class="params">()</span><span class="result">: AnyRef</span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>protected[<a name="java.lang" class="extype" href="../../../java/lang/package.html">lang</a>] </dd><dt>Definition Classes</dt><dd>AnyRef</dd><dt>Annotations</dt><dd>
+                <span class="name">@throws</span><span class="args">()</span>
+              
+        </dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.matchers.Matcher#compose" data-isabs="false">
+      <a id="compose[U]((U) ⇒ T):Matcher[U]"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">compose</span>
+        <span class="tparams">[<span name="U">U</span>]</span>
+        <span class="params">(<span name="g">g: (U) ⇒ T</span>)</span><span class="result">: <a name="org.scalatest.matchers.Matcher" class="extype" href="">Matcher</a>[U]</span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Compose this matcher with the passed function, returning a new matcher.</p><div class="fullcomment"><div class="comment cmt"><p>Compose this matcher with the passed function, returning a new matcher.</p><p>This method overrides <code>compose</code> on <code>Function1</code> to
+return a more specific function type of <code>Matcher</code>. For example, given
+a <code>beOdd</code> matcher defined like this:</p><p><pre class="stHighlighted">
+<span class="stReserved">val</span> beOdd =
+  <span class="stReserved">new</span> <span class="stType">Matcher[Int]</span> {
+    <span class="stReserved">def</span> apply(left: <span class="stType">Int</span>) =
+      <span class="stType">MatchResult</span>(
+        left % <span class="stLiteral">2</span> == <span class="stLiteral">1</span>,
+        left + <span class="stQuotedString">&quot; was not odd&quot;</span>,
+        left + <span class="stQuotedString">&quot; was odd&quot;</span>
+      )
+  }
+</pre></p><p>You could use <code>beOdd</code> like this:</p><p><pre class="stHighlighted">
+<span class="stLiteral">3</span> should beOdd
+<span class="stLiteral">4</span> should not (beOdd)
+</pre></p><p>If for some odd reason, you wanted a <code>Matcher[String]</code> that
+checked whether a string, when converted to an <code>Int</code>,
+was odd, you could make one by composing <code>beOdd</code> with
+a function that converts a string to an <code>Int</code>, like this:</p><p><pre class="stHighlighted">
+<span class="stReserved">val</span> beOddAsInt = beOdd compose { (s: <span class="stType">String</span>) =&gt; s.toInt }
+</pre></p><p>Now you have a <code>Matcher[String]</code> whose <code>apply</code> method first
+invokes the converter function to convert the passed string to an <code>Int</code>,
+then passes the resulting <code>Int</code> to <code>beOdd</code>. Thus, you could use
+<code>beOddAsInt</code> like this:</p><p><pre class="stHighlighted">
+<span class="stQuotedString">&quot;3&quot;</span> should beOddAsInt
+<span class="stQuotedString">&quot;4&quot;</span> should not (beOddAsInt)
+</pre>
+</p></div><dl class="attributes block"> <dt>Definition Classes</dt><dd><a name="org.scalatest.matchers.Matcher" class="extype" href="">Matcher</a> → Function1</dd></dl></div>
+    </li><li visbl="pub" name="scala.AnyRef#eq" data-isabs="false">
+      <a id="eq(AnyRef):Boolean"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">eq</span>
+        
+        <span class="params">(<span name="arg0">arg0: AnyRef</span>)</span><span class="result">: <span name="scala.Boolean" class="extype">Boolean</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>AnyRef</dd></dl></div>
+    </li><li visbl="pub" name="scala.AnyRef#equals" data-isabs="false">
+      <a id="equals(Any):Boolean"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">equals</span>
+        
+        <span class="params">(<span name="arg0">arg0: <span name="scala.Any" class="extype">Any</span></span>)</span><span class="result">: <span name="scala.Boolean" class="extype">Boolean</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef → Any</dd></dl></div>
+    </li><li visbl="prt" name="scala.AnyRef#finalize" data-isabs="false">
+      <a id="finalize():Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">finalize</span>
+        
+        <span class="params">()</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>protected[<a name="java.lang" class="extype" href="../../../java/lang/package.html">lang</a>] </dd><dt>Definition Classes</dt><dd>AnyRef</dd><dt>Annotations</dt><dd>
+                <span class="name">@throws</span><span class="args">()</span>
+              
+        </dd></dl></div>
+    </li><li visbl="pub" name="scala.AnyRef#getClass" data-isabs="false">
+      <a id="getClass():java.lang.Class[_]"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">getClass</span>
+        
+        <span class="params">()</span><span class="result">: java.lang.Class[_]</span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>AnyRef</dd></dl></div>
+    </li><li visbl="pub" name="scala.AnyRef#hashCode" data-isabs="false">
+      <a id="hashCode():Int"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">hashCode</span>
+        
+        <span class="params">()</span><span class="result">: <span name="scala.Int" class="extype">Int</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef → Any</dd></dl></div>
+    </li><li visbl="pub" name="scala.Any#isInstanceOf" data-isabs="false">
+      <a id="isInstanceOf[T0]:Boolean"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">isInstanceOf</span>
+        <span class="tparams">[<span name="T0">T0</span>]</span>
+        <span class="result">: <span name="scala.Boolean" class="extype">Boolean</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>Any</dd></dl></div>
+    </li><li visbl="pub" name="scala.AnyRef#ne" data-isabs="false">
+      <a id="ne(AnyRef):Boolean"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">ne</span>
+        
+        <span class="params">(<span name="arg0">arg0: AnyRef</span>)</span><span class="result">: <span name="scala.Boolean" class="extype">Boolean</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>AnyRef</dd></dl></div>
+    </li><li visbl="pub" name="scala.AnyRef#notify" data-isabs="false">
+      <a id="notify():Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">notify</span>
+        
+        <span class="params">()</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>AnyRef</dd></dl></div>
+    </li><li visbl="pub" name="scala.AnyRef#notifyAll" data-isabs="false">
+      <a id="notifyAll():Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">notifyAll</span>
+        
+        <span class="params">()</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>AnyRef</dd></dl></div>
+    </li><li visbl="pub" name="scala.AnyRef#synchronized" data-isabs="false">
+      <a id="synchronized[T0](⇒ T0):T0"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">synchronized</span>
+        <span class="tparams">[<span name="T0">T0</span>]</span>
+        <span class="params">(<span name="arg0">arg0: ⇒ T0</span>)</span><span class="result">: T0</span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>AnyRef</dd></dl></div>
+    </li><li visbl="pub" name="scala.Function1#toString" data-isabs="false">
+      <a id="toString():String"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">toString</span>
+        
+        <span class="params">()</span><span class="result">: <span name="java.lang.String" class="extype">String</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>Function1 → AnyRef → Any</dd></dl></div>
+    </li><li visbl="pub" name="scala.AnyRef#wait" data-isabs="false">
+      <a id="wait():Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">wait</span>
+        
+        <span class="params">()</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>AnyRef</dd><dt>Annotations</dt><dd>
+                <span class="name">@throws</span><span class="args">()</span>
+              
+        </dd></dl></div>
+    </li><li visbl="pub" name="scala.AnyRef#wait" data-isabs="false">
+      <a id="wait(Long,Int):Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">wait</span>
+        
+        <span class="params">(<span name="arg0">arg0: <span name="scala.Long" class="extype">Long</span></span>, <span name="arg1">arg1: <span name="scala.Int" class="extype">Int</span></span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>AnyRef</dd><dt>Annotations</dt><dd>
+                <span class="name">@throws</span><span class="args">()</span>
+              
+        </dd></dl></div>
+    </li><li visbl="pub" name="scala.AnyRef#wait" data-isabs="false">
+      <a id="wait(Long):Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">wait</span>
+        
+        <span class="params">(<span name="arg0">arg0: <span name="scala.Long" class="extype">Long</span></span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>AnyRef</dd><dt>Annotations</dt><dd>
+                <span class="name">@throws</span><span class="args">()</span>
+              
+        </dd></dl></div>
+    </li></ol>
+            </div>
+
+        <div name="scala.Function1" class="parent">
+              <h3>Inherited from (T) ⇒ <a name="org.scalatest.matchers.MatchResult" class="extype" href="MatchResult.html">MatchResult</a></h3>
+            </div><div name="scala.AnyRef" class="parent">
+              <h3>Inherited from AnyRef</h3>
+            </div><div name="scala.Any" class="parent">
+              <h3>Inherited from <span name="scala.Any" class="extype">Any</span></h3>
+            </div>
+
+      </div>
+      
+      <div id="tooltip"></div>
+      
+    </body>
+      </html>

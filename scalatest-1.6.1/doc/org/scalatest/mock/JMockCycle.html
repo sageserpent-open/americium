@@ -1,0 +1,497 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html>
+        <head>
+          <title>org.scalatest.mock.JMockCycle</title>
+          <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+          
+      <link type="text/css" media="screen" rel="stylesheet" href="../../../lib/template.css" />
+      <script type="text/javascript" src="../../../lib/jquery.js"></script>
+      <script type="text/javascript" src="../../../lib/jquery-ui.js"></script>
+      <script type="text/javascript" src="../../../lib/template.js"></script>
+      <script type="text/javascript" src="../../../lib/tools.tooltip.js"></script>
+    
+        </head>
+        <body class="type">
+      <div id="definition">
+        <img src="../../../lib/class_big.png" />
+        <p id="owner"><a name="org" class="extype" href="../../package.html">org</a>.<a name="org.scalatest" class="extype" href="../package.html">scalatest</a>.<a name="org.scalatest.mock" class="extype" href="package.html">mock</a></p>
+        <h1>JMockCycle</h1>
+      </div>
+
+      <h4 class="signature" id="signature">
+      <span class="kind">class</span>
+      <span class="symbol"> 
+        <span class="name">JMockCycle</span>
+        
+        <span class="result"> extends AnyRef</span>
+      </span>
+      </h4>
+      
+          <div class="fullcommenttop" id="comment"><div class="comment cmt"><p>Class that wraps and manages the lifecycle of a single <code>org.jmock.Mockery</code> context object,
+provides some basic syntax sugar for using <a href="http://www.jmock.org/" target="_blank">JMock</a>
+in Scala.</p><p>Using the JMock API directly, you first need a <code>Mockery</code> context object:</p><p><pre class="stHighlighted">
+<span class="stReserved">val</span> context = <span class="stReserved">new</span> <span class="stType">Mockery</span>
+</pre></p><p>JMockCycle uses jMock's ClassImposterizer to support mocking of classes, so the following line
+would also be needed if you wanted that functionality as well:</p><p><pre class="stHighlighted">
+context.setImposteriser(ClassImposteriser.INSTANCE)
+</pre></p><p>When using this class, you would instead create an instance of this class (which will create and
+wrap a <code>Mockery</code> object) and import its members, like this:</p><p><pre class="stHighlighted">
+<span class="stReserved">val</span> cycle = <span class="stReserved">new</span> <span class="stType">JMockCycle</span>
+<span class="stReserved">import</span> cycle._
+</pre></p><p>Using the JMock API directly, you would create a mock object like this:</p><p><pre class="stHighlighted">
+<span class="stReserved">val</span> mockCollaborator = context.mock(classOf[<span class="stType">Collaborator</span>])
+</pre></p><p>Having imported the members of an instance of this class, you can shorten that to:</p><p><pre class="stHighlighted">
+<span class="stReserved">val</span> mockCollaborator = mock[<span class="stType">Collaborator</span>]
+</pre></p><p>After creating mocks, you set expectations on them, using syntax like this:</p><p><pre class="stHighlighted">
+context.checking(
+  <span class="stReserved">new</span> <span class="stType">Expectations</span>() {
+    oneOf (mockCollaborator).documentAdded(<span class="stQuotedString">&quot;Document&quot;</span>)
+    exactly(<span class="stLiteral">3</span>).of (mockCollaborator).documentChanged(<span class="stQuotedString">&quot;Document&quot;</span>)
+   }
+ )
+</pre></p><p>Having imported the members of an instance of this class, you can shorten this step to:</p><p><pre class="stHighlighted">
+expecting { e =&gt; <span class="stReserved">import</span> e._
+  oneOf (mockCollaborator).documentAdded(<span class="stQuotedString">&quot;Document&quot;</span>)
+  exactly(<span class="stLiteral">3</span>).of (mockCollaborator).documentChanged(<span class="stQuotedString">&quot;Document&quot;</span>)
+}
+</pre></p><p>The <code>expecting</code> method will create a new <code>Expectations</code> object, pass it into
+the function you provide, which sets the expectations. After the function returns, the <code>expecting</code>
+method will pass the <code>Expectations</code> object to the <code>checking</code>
+method of its internal <code>Mockery</code> context.</p><p>The <code>expecting</code> method passes an instance of class
+<code>org.scalatest.mock.JMockExpectations</code> to the function you pass into
+<code>expectations</code>. <code>JMockExpectations</code> extends <code>org.jmock.Expectations</code> and
+adds several overloaded <code>withArg</code> methods. These <code>withArg</code> methods simply
+invoke corresponding <code>with</code> methods on themselves. Because <code>with</code> is
+a keyword in Scala, to invoke these directly you must surround them in back ticks, like this:</p><p><pre class="stHighlighted">
+oneOf (mockCollaborator).documentAdded(<code>&lt;span class=&quot;stReserved&quot;&gt;with&lt;/span&gt;</code>(<span class="stQuotedString">&quot;Document&quot;</span>))
+</pre></p><p>By importing the members of the passed <code>JMockExpectations</code> object, you can
+instead call <code>withArg</code> with no back ticks needed:</p><p><pre class="stHighlighted">
+oneOf (mockCollaborator).documentAdded(withArg(<span class="stQuotedString">&quot;Document&quot;</span>))
+</pre></p><p>Once you've set expectations on the mock objects, when using the JMock API directly, you use the mock, then invoke
+<code>assertIsSatisfied</code> on the <code>Mockery</code> context to make sure the mock
+was used in accordance with the expectations you set on it. Here's how that looks:</p><p><pre class="stHighlighted">
+classUnderTest.addDocument(<span class="stQuotedString">&quot;Document&quot;</span>, <span class="stReserved">new</span> <span class="stType">Array[Byte]</span>(<span class="stLiteral">0</span>))
+classUnderTest.addDocument(<span class="stQuotedString">&quot;Document&quot;</span>, <span class="stReserved">new</span> <span class="stType">Array[Byte]</span>(<span class="stLiteral">0</span>))
+classUnderTest.addDocument(<span class="stQuotedString">&quot;Document&quot;</span>, <span class="stReserved">new</span> <span class="stType">Array[Byte]</span>(<span class="stLiteral">0</span>))
+classUnderTest.addDocument(<span class="stQuotedString">&quot;Document&quot;</span>, <span class="stReserved">new</span> <span class="stType">Array[Byte]</span>(<span class="stLiteral">0</span>))
+context.assertIsSatisfied()
+</pre></p><p>This class enables you to use the following, more declarative syntax instead:</p><p><pre class="stHighlighted">
+whenExecuting {
+  classUnderTest.addDocument(<span class="stQuotedString">&quot;Document&quot;</span>, <span class="stReserved">new</span> <span class="stType">Array[Byte]</span>(<span class="stLiteral">0</span>))
+  classUnderTest.addDocument(<span class="stQuotedString">&quot;Document&quot;</span>, <span class="stReserved">new</span> <span class="stType">Array[Byte]</span>(<span class="stLiteral">0</span>))
+  classUnderTest.addDocument(<span class="stQuotedString">&quot;Document&quot;</span>, <span class="stReserved">new</span> <span class="stType">Array[Byte]</span>(<span class="stLiteral">0</span>))
+  classUnderTest.addDocument(<span class="stQuotedString">&quot;Document&quot;</span>, <span class="stReserved">new</span> <span class="stType">Array[Byte]</span>(<span class="stLiteral">0</span>))
+}
+</pre></p><p>The <code>whenExecuting</code> method will execute the passed function, then
+invoke <code>assertIsSatisfied</code> on its internal <code>Mockery</code>
+context object.</p><p>To summarize, here's what a typical test using <code>JMockCycle</code> looks like:</p><p><pre class="stHighlighted">
+<span class="stReserved">val</span> cycle = <span class="stReserved">new</span> <span class="stType">JMockCycle</span>
+<span class="stReserved">import</span> cycle._
+<br /><span class="stReserved">val</span> mockCollaborator = mock[<span class="stType">Collaborator</span>]
+<br />expecting { e =&gt; <span class="stReserved">import</span> e._
+  oneOf (mockCollaborator).documentAdded(<span class="stQuotedString">&quot;Document&quot;</span>)
+  exactly(<span class="stLiteral">3</span>).of (mockCollaborator).documentChanged(<span class="stQuotedString">&quot;Document&quot;</span>)
+}
+<br />whenExecuting {
+  classUnderTest.addDocument(<span class="stQuotedString">&quot;Document&quot;</span>, <span class="stReserved">new</span> <span class="stType">Array[Byte]</span>(<span class="stLiteral">0</span>))
+  classUnderTest.addDocument(<span class="stQuotedString">&quot;Document&quot;</span>, <span class="stReserved">new</span> <span class="stType">Array[Byte]</span>(<span class="stLiteral">0</span>))
+  classUnderTest.addDocument(<span class="stQuotedString">&quot;Document&quot;</span>, <span class="stReserved">new</span> <span class="stType">Array[Byte]</span>(<span class="stLiteral">0</span>))
+  classUnderTest.addDocument(<span class="stQuotedString">&quot;Document&quot;</span>, <span class="stReserved">new</span> <span class="stType">Array[Byte]</span>(<span class="stLiteral">0</span>))
+}
+</pre></p><p>ScalaTest also provides a <a href="JMockCycleFixture.html"><code>JMockCycleFixture</code></a> trait, which
+will pass a new <code>JMockCycle</code> into each test that needs one.</p></div><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd></dl><div class="toggleContainer block">
+          <span class="toggle">Linear Supertypes</span>
+          <div class="superTypes hiddenContent">AnyRef, <span name="scala.Any" class="extype">Any</span></div>
+        </div></div>
+        
+
+      <div id="template">
+
+        <div id="mbrsel">
+          <div id="textfilter"><span class="pre"></span><span class="input"><input accesskey="/" type="text" /></span><span class="post"></span></div>
+          <div id="order">
+                <span class="filtertype">Ordering</span>
+                <ol><li class="alpha in"><span>Alphabetic</span></li><li class="inherit out"><span>By inheritance</span></li></ol>
+              </div>
+          <div id="ancestors">
+                <span class="filtertype">Inherited</span>
+                <ol><li class="hideall out"><span>Hide All</span></li>
+                <li class="showall in"><span>Show all</span></li></ol>
+                <ol id="linearization"><li name="org.scalatest.mock.JMockCycle" class="in"><span>JMockCycle</span></li><li name="scala.AnyRef" class="in"><span>AnyRef</span></li><li name="scala.Any" class="in"><span>Any</span></li></ol>
+              </div>
+          <div id="visbl">
+              <span class="filtertype">Visibility</span>
+              <ol><li class="public in"><span>Public</span></li><li class="all out"><span>All</span></li></ol>
+            </div>
+        </div>
+
+        <div class="members" id="constructors">
+              <h3>Instance Constructors</h3>
+              <ol><li visbl="pub" name="org.scalatest.mock.JMockCycle#this" data-isabs="false">
+      <a id="this:JMockCycle"></a>
+      <h4 class="signature">
+      <span class="kind">new</span>
+      <span class="symbol"> 
+        <span class="name">JMockCycle</span>
+        
+        <span class="params">()</span>
+      </span>
+      </h4>
+      
+    </li></ol>
+            </div>
+
+        
+        
+        
+
+        <div class="values members" id="values">
+              <h3>Value Members</h3>
+              <ol><li visbl="pub" name="scala.AnyRef#!=" data-isabs="false">
+      <a id="!=(AnyRef):Boolean"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">!=</span>
+        
+        <span class="params">(<span name="arg0">arg0: AnyRef</span>)</span><span class="result">: <span name="scala.Boolean" class="extype">Boolean</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>AnyRef</dd></dl></div>
+    </li><li visbl="pub" name="scala.Any#!=" data-isabs="false">
+      <a id="!=(Any):Boolean"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">!=</span>
+        
+        <span class="params">(<span name="arg0">arg0: <span name="scala.Any" class="extype">Any</span></span>)</span><span class="result">: <span name="scala.Boolean" class="extype">Boolean</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>Any</dd></dl></div>
+    </li><li visbl="pub" name="scala.AnyRef###" data-isabs="false">
+      <a id="##():Int"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">##</span>
+        
+        <span class="params">()</span><span class="result">: <span name="scala.Int" class="extype">Int</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>AnyRef → Any</dd></dl></div>
+    </li><li visbl="pub" name="scala.AnyRef#==" data-isabs="false">
+      <a id="==(AnyRef):Boolean"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">==</span>
+        
+        <span class="params">(<span name="arg0">arg0: AnyRef</span>)</span><span class="result">: <span name="scala.Boolean" class="extype">Boolean</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>AnyRef</dd></dl></div>
+    </li><li visbl="pub" name="scala.Any#==" data-isabs="false">
+      <a id="==(Any):Boolean"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">==</span>
+        
+        <span class="params">(<span name="arg0">arg0: <span name="scala.Any" class="extype">Any</span></span>)</span><span class="result">: <span name="scala.Boolean" class="extype">Boolean</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>Any</dd></dl></div>
+    </li><li visbl="pub" name="scala.Any#asInstanceOf" data-isabs="false">
+      <a id="asInstanceOf[T0]:T0"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">asInstanceOf</span>
+        <span class="tparams">[<span name="T0">T0</span>]</span>
+        <span class="result">: T0</span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>Any</dd></dl></div>
+    </li><li visbl="prt" name="scala.AnyRef#clone" data-isabs="false">
+      <a id="clone():AnyRef"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">clone</span>
+        
+        <span class="params">()</span><span class="result">: AnyRef</span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>protected[<a name="java.lang" class="extype" href="../../../java/lang/package.html">lang</a>] </dd><dt>Definition Classes</dt><dd>AnyRef</dd><dt>Annotations</dt><dd>
+                <span class="name">@throws</span><span class="args">()</span>
+              
+        </dd></dl></div>
+    </li><li visbl="pub" name="scala.AnyRef#eq" data-isabs="false">
+      <a id="eq(AnyRef):Boolean"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">eq</span>
+        
+        <span class="params">(<span name="arg0">arg0: AnyRef</span>)</span><span class="result">: <span name="scala.Boolean" class="extype">Boolean</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>AnyRef</dd></dl></div>
+    </li><li visbl="pub" name="scala.AnyRef#equals" data-isabs="false">
+      <a id="equals(Any):Boolean"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">equals</span>
+        
+        <span class="params">(<span name="arg0">arg0: <span name="scala.Any" class="extype">Any</span></span>)</span><span class="result">: <span name="scala.Boolean" class="extype">Boolean</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef → Any</dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.mock.JMockCycle#expecting" data-isabs="false">
+      <a id="expecting((JMockExpectations) ⇒ Unit):Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">expecting</span>
+        
+        <span class="params">(<span name="fun">fun: (<a name="org.scalatest.mock.JMockExpectations" class="extype" href="JMockExpectations.html">JMockExpectations</a>) ⇒ <span name="scala.Unit" class="extype">Unit</span></span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Sets expectations on mock objects.</p><div class="fullcomment"><div class="comment cmt"><p>Sets expectations on mock objects.</p><p>After creating mocks, you set expectations on them, using syntax like this:</p><p><pre class="stHighlighted">
+context.checking(
+  <span class="stReserved">new</span> <span class="stType">Expectations</span>() {
+    oneOf (mockCollaborator).documentAdded(<span class="stQuotedString">&quot;Document&quot;</span>)
+    exactly(<span class="stLiteral">3</span>).of (mockCollaborator).documentChanged(<span class="stQuotedString">&quot;Document&quot;</span>)
+   }
+ )
+</pre></p><p>Having imported the members of an instance of this class, you can shorten this step to:</p><p><pre class="stHighlighted">
+expecting { e =&gt; <span class="stReserved">import</span> e._
+  oneOf (mockCollaborator).documentAdded(<span class="stQuotedString">&quot;Document&quot;</span>)
+  exactly(<span class="stLiteral">3</span>).of (mockCollaborator).documentChanged(<span class="stQuotedString">&quot;Document&quot;</span>)
+}
+</pre></p><p>The <code>expecting</code> method will create a new <code>Expectations</code> object, pass it into
+the function you provide, which sets the expectations. After the function returns, the <code>expecting</code>
+method will pass the <code>Expectations</code> object to the <code>checking</code>
+method of its internal <code>Mockery</code> context.</p><p>This method passes an instance of class <code>org.scalatest.mock.JMockExpectations</code> to the
+passed function. <code>JMockExpectations</code> extends <code>org.jmock.Expectations</code> and
+adds several overloaded <code>withArg</code> methods. These <code>withArg</code> methods simply
+invoke corresponding <code>with</code> methods on themselves. Because <code>with</code> is
+a keyword in Scala, to invoke these directly you must surround them in back ticks, like this:</p><p><pre class="stHighlighted">
+oneOf (mockCollaborator).documentAdded(<code>&lt;span class=&quot;stReserved&quot;&gt;with&lt;/span&gt;</code>(<span class="stQuotedString">&quot;Document&quot;</span>))
+</pre></p><p>By importing the members of the passed <code>JMockExpectations</code> object, you can
+instead call <code>withArg</code> with no back ticks needed:</p><p><pre class="stHighlighted">
+oneOf (mockCollaborator).documentAdded(withArg(<span class="stQuotedString">&quot;Document&quot;</span>))
+</pre>
+</p></div><dl class="paramcmts block"><dt class="param">fun</dt><dd class="cmt"><p>a function that sets expectations on the passed <code>JMockExpectations</code>
+   object
+</p></dd></dl></div>
+    </li><li visbl="prt" name="scala.AnyRef#finalize" data-isabs="false">
+      <a id="finalize():Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">finalize</span>
+        
+        <span class="params">()</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>protected[<a name="java.lang" class="extype" href="../../../java/lang/package.html">lang</a>] </dd><dt>Definition Classes</dt><dd>AnyRef</dd><dt>Annotations</dt><dd>
+                <span class="name">@throws</span><span class="args">()</span>
+              
+        </dd></dl></div>
+    </li><li visbl="pub" name="scala.AnyRef#getClass" data-isabs="false">
+      <a id="getClass():java.lang.Class[_]"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">getClass</span>
+        
+        <span class="params">()</span><span class="result">: java.lang.Class[_]</span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>AnyRef</dd></dl></div>
+    </li><li visbl="pub" name="scala.AnyRef#hashCode" data-isabs="false">
+      <a id="hashCode():Int"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">hashCode</span>
+        
+        <span class="params">()</span><span class="result">: <span name="scala.Int" class="extype">Int</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef → Any</dd></dl></div>
+    </li><li visbl="pub" name="scala.Any#isInstanceOf" data-isabs="false">
+      <a id="isInstanceOf[T0]:Boolean"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">isInstanceOf</span>
+        <span class="tparams">[<span name="T0">T0</span>]</span>
+        <span class="result">: <span name="scala.Boolean" class="extype">Boolean</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>Any</dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.mock.JMockCycle#mock" data-isabs="false">
+      <a id="mock[T&lt;:AnyRef](Manifest[T]):T"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">mock</span>
+        <span class="tparams">[<span name="T">T &lt;: AnyRef</span>]</span>
+        <span class="params">(<span class="implicit">implicit </span><span name="manifest">manifest: <span name="scala.reflect.Manifest" class="extype">Manifest</span>[T]</span>)</span><span class="result">: T</span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Invokes the <code>mock</code> method on this <code>JMockCycle</code>'s internal
+<code>Mockery</code> context object, passing in a class instance for the
+specified type parameter.</p><div class="fullcomment"><div class="comment cmt"><p>Invokes the <code>mock</code> method on this <code>JMockCycle</code>'s internal
+<code>Mockery</code> context object, passing in a class instance for the
+specified type parameter.</p><p>Using the JMock API directly, you create a mock with:</p><p><pre class="stHighlighted">
+<span class="stReserved">val</span> mockCollaborator = context.mock(classOf[<span class="stType">Collaborator</span>])
+</pre></p><p>Having imported the members of an instance of this class, you can shorten that to:</p><p><pre class="stHighlighted">
+<span class="stReserved">val</span> mockCollaborator = mock[<span class="stType">Collaborator</span>]
+</pre>
+</p></div></div>
+    </li><li visbl="pub" name="scala.AnyRef#ne" data-isabs="false">
+      <a id="ne(AnyRef):Boolean"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">ne</span>
+        
+        <span class="params">(<span name="arg0">arg0: AnyRef</span>)</span><span class="result">: <span name="scala.Boolean" class="extype">Boolean</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>AnyRef</dd></dl></div>
+    </li><li visbl="pub" name="scala.AnyRef#notify" data-isabs="false">
+      <a id="notify():Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">notify</span>
+        
+        <span class="params">()</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>AnyRef</dd></dl></div>
+    </li><li visbl="pub" name="scala.AnyRef#notifyAll" data-isabs="false">
+      <a id="notifyAll():Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">notifyAll</span>
+        
+        <span class="params">()</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>AnyRef</dd></dl></div>
+    </li><li visbl="pub" name="scala.AnyRef#synchronized" data-isabs="false">
+      <a id="synchronized[T0](⇒ T0):T0"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">synchronized</span>
+        <span class="tparams">[<span name="T0">T0</span>]</span>
+        <span class="params">(<span name="arg0">arg0: ⇒ T0</span>)</span><span class="result">: T0</span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>AnyRef</dd></dl></div>
+    </li><li visbl="pub" name="scala.AnyRef#toString" data-isabs="false">
+      <a id="toString():String"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">toString</span>
+        
+        <span class="params">()</span><span class="result">: <span name="java.lang.String" class="extype">String</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef → Any</dd></dl></div>
+    </li><li visbl="pub" name="scala.AnyRef#wait" data-isabs="false">
+      <a id="wait():Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">wait</span>
+        
+        <span class="params">()</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>AnyRef</dd><dt>Annotations</dt><dd>
+                <span class="name">@throws</span><span class="args">()</span>
+              
+        </dd></dl></div>
+    </li><li visbl="pub" name="scala.AnyRef#wait" data-isabs="false">
+      <a id="wait(Long,Int):Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">wait</span>
+        
+        <span class="params">(<span name="arg0">arg0: <span name="scala.Long" class="extype">Long</span></span>, <span name="arg1">arg1: <span name="scala.Int" class="extype">Int</span></span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>AnyRef</dd><dt>Annotations</dt><dd>
+                <span class="name">@throws</span><span class="args">()</span>
+              
+        </dd></dl></div>
+    </li><li visbl="pub" name="scala.AnyRef#wait" data-isabs="false">
+      <a id="wait(Long):Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">wait</span>
+        
+        <span class="params">(<span name="arg0">arg0: <span name="scala.Long" class="extype">Long</span></span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>AnyRef</dd><dt>Annotations</dt><dd>
+                <span class="name">@throws</span><span class="args">()</span>
+              
+        </dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.mock.JMockCycle#whenExecuting" data-isabs="false">
+      <a id="whenExecuting(⇒ Unit):Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">whenExecuting</span>
+        
+        <span class="params">(<span name="fun">fun: ⇒ <span name="scala.Unit" class="extype">Unit</span></span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Executes code using mocks with expectations set.</p><div class="fullcomment"><div class="comment cmt"><p>Executes code using mocks with expectations set.</p><p>Once you've set expectations on the mock objects, when using the JMock API directly, you use the mock, then invoke
+<code>assertIsSatisfied</code> on the <code>Mockery</code> context to make sure the mock
+was used in accordance with the expectations you set on it. Here's how that looks:</p><p><pre class="stHighlighted">
+classUnderTest.addDocument(<span class="stQuotedString">&quot;Document&quot;</span>, <span class="stReserved">new</span> <span class="stType">Array[Byte]</span>(<span class="stLiteral">0</span>))
+classUnderTest.addDocument(<span class="stQuotedString">&quot;Document&quot;</span>, <span class="stReserved">new</span> <span class="stType">Array[Byte]</span>(<span class="stLiteral">0</span>))
+classUnderTest.addDocument(<span class="stQuotedString">&quot;Document&quot;</span>, <span class="stReserved">new</span> <span class="stType">Array[Byte]</span>(<span class="stLiteral">0</span>))
+classUnderTest.addDocument(<span class="stQuotedString">&quot;Document&quot;</span>, <span class="stReserved">new</span> <span class="stType">Array[Byte]</span>(<span class="stLiteral">0</span>))
+context.assertIsSatisfied()
+</pre></p><p>This class enables you to use the following, more declarative syntax instead:</p><p><pre class="stHighlighted">
+whenExecuting {
+  classUnderTest.addDocument(<span class="stQuotedString">&quot;Document&quot;</span>, <span class="stReserved">new</span> <span class="stType">Array[Byte]</span>(<span class="stLiteral">0</span>))
+  classUnderTest.addDocument(<span class="stQuotedString">&quot;Document&quot;</span>, <span class="stReserved">new</span> <span class="stType">Array[Byte]</span>(<span class="stLiteral">0</span>))
+  classUnderTest.addDocument(<span class="stQuotedString">&quot;Document&quot;</span>, <span class="stReserved">new</span> <span class="stType">Array[Byte]</span>(<span class="stLiteral">0</span>))
+  classUnderTest.addDocument(<span class="stQuotedString">&quot;Document&quot;</span>, <span class="stReserved">new</span> <span class="stType">Array[Byte]</span>(<span class="stLiteral">0</span>))
+}
+</pre></p><p>The <code>whenExecuting</code> method will execute the passed function, then
+invoke <code>assertIsSatisfied</code> on its internal <code>Mockery</code>
+context object.</p></div><dl class="paramcmts block"><dt class="param">fun</dt><dd class="cmt"><p>the code to execute under previously set expectations</p></dd></dl></div>
+    </li></ol>
+            </div>
+
+        <div name="scala.AnyRef" class="parent">
+              <h3>Inherited from AnyRef</h3>
+            </div><div name="scala.Any" class="parent">
+              <h3>Inherited from <span name="scala.Any" class="extype">Any</span></h3>
+            </div>
+
+      </div>
+      
+      <div id="tooltip"></div>
+      
+    </body>
+      </html>

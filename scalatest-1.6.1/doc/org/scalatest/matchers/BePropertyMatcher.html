@@ -1,0 +1,425 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html>
+        <head>
+          <title>org.scalatest.matchers.BePropertyMatcher</title>
+          <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+          
+      <link type="text/css" media="screen" rel="stylesheet" href="../../../lib/template.css" />
+      <script type="text/javascript" src="../../../lib/jquery.js"></script>
+      <script type="text/javascript" src="../../../lib/jquery-ui.js"></script>
+      <script type="text/javascript" src="../../../lib/template.js"></script>
+      <script type="text/javascript" src="../../../lib/tools.tooltip.js"></script>
+    
+        </head>
+        <body class="type">
+      <div id="definition">
+        <a title="Go to companion" href="BePropertyMatcher$.html"><img src="../../../lib/trait_to_object_big.png" /></a>
+        <p id="owner"><a name="org" class="extype" href="../../package.html">org</a>.<a name="org.scalatest" class="extype" href="../package.html">scalatest</a>.<a name="org.scalatest.matchers" class="extype" href="package.html">matchers</a></p>
+        <h1><a title="Go to companion" href="BePropertyMatcher$.html">BePropertyMatcher</a></h1>
+      </div>
+
+      <h4 class="signature" id="signature">
+      <span class="kind">trait</span>
+      <span class="symbol"> 
+        <span class="name">BePropertyMatcher</span>
+        <span class="tparams">[<span name="T">-T</span>]</span>
+        <span class="result"> extends (T) ⇒ <a name="org.scalatest.matchers.BePropertyMatchResult" class="extype" href="BePropertyMatchResult.html">BePropertyMatchResult</a></span>
+      </span>
+      </h4>
+      
+          <div class="fullcommenttop" id="comment"><div class="comment cmt"><p>Trait extended by matcher objects, which may appear after the word <code>be</code>, that can match against a <code>Boolean</code>
+property. The match will succeed if and only if the <code>Boolean</code> property equals <code>true</code>.
+The object containing the property, which must be of the type specified by the <code>BePropertyMatcher</code>'s type
+parameter <code>T</code>, is passed to the <code>BePropertyMatcher</code>'s
+<code>apply</code> method. The result is a <code>BePropertyMatchResult</code>.
+A <code>BePropertyMatcher</code> is, therefore, a function from the specified type, <code>T</code>, to
+a <code>BePropertyMatchResult</code>.</p><p>Although <code>BePropertyMatcher</code>
+and <code>Matcher</code> represent similar concepts, they have no inheritance relationship
+because <code>Matcher</code> is intended for use right after <code>should</code> or <code>must</code>
+whereas <code>BePropertyMatcher</code> is intended for use right after <code>be</code>.</p><p>A <code>BePropertyMatcher</code> essentially allows you to write statically typed <code>Boolean</code>
+property assertions similar to the dynamic ones that use symbols:</p><p><pre class="stHighlighted">
+tempFile should be a (<span class="stQuotedString">'file</span>) <span class="stLineComment">// dynamic: uses reflection</span>
+tempFile should be a (file)  <span class="stLineComment">// type safe: only works on Files; no reflection used</span>
+</pre></p><p>One good way to organize custom matchers is to place them inside one or more traits that
+you can then mix into the suites or specs that need them. Here's an example that
+includes two <code>BePropertyMatcher</code>s:</p><p><pre class="stHighlighted">
+<span class="stReserved">trait</span> <span class="stType">CustomMatchers</span> {
+<br />  <span class="stReserved">class</span> <span class="stType">FileBePropertyMatcher</span> <span class="stReserved">extends</span> <span class="stType">BePropertyMatcher[java.io.File]</span> {
+    <span class="stReserved">def</span> apply(left: <span class="stType">java.io.File</span>) = <span class="stType">BePropertyMatchResult</span>(left.isFile, <span class="stQuotedString">&quot;file&quot;</span>)
+  }
+<br />  <span class="stReserved">class</span> <span class="stType">DirectoryBePropertyMatcher</span> <span class="stReserved">extends</span> <span class="stType">BePropertyMatcher[java.io.File]</span> {
+    <span class="stReserved">def</span> apply(left: <span class="stType">java.io.File</span>) = <span class="stType">BePropertyMatchResult</span>(left.isDirectory, <span class="stQuotedString">&quot;directory&quot;</span>)
+  }
+<br />  <span class="stReserved">val</span> file = <span class="stReserved">new</span> <span class="stType">FileBePropertyMatcher</span>
+  <span class="stReserved">val</span> directory = <span class="stReserved">new</span> <span class="stType">DirectoryBePropertyMatcher</span>
+}
+</pre></p><p>Because the type parameter of these two <code>BePropertyMatcher</code>s is <code>java.io.File</code>, they
+can only be used with instances of that type. (The compiler will enforce this.) All they do is create a
+<code>BePropertyMatchResult</code> whose <code>matches</code> field is <code>true</code> if and only if the <code>Boolean</code> property
+is <code>true</code>. The second field, <code>propertyName</code>, is simply the string name of the property.
+The <code>file</code> and <code>directory</code> <code>val</code>s create variables that can be used in
+matcher expressions that test whether a <code>java.io.File</code> is a file or a directory. Here's an example:</p><p><pre class="stHighlighted">
+<span class="stReserved">class</span> <span class="stType">ExampleSpec</span> <span class="stReserved">extends</span> <span class="stType">Spec</span> <span class="stReserved">with</span> <span class="stType">ShouldMatchers</span> <span class="stReserved">with</span> <span class="stType">CustomMatchers</span> {
+<br />  describe(<span class="stQuotedString">&quot;A temp file&quot;</span>) {
+<br />    it(<span class="stQuotedString">&quot;should be a file, not a directory&quot;</span>) {
+<br />      <span class="stReserved">val</span> tempFile = java.io.File.createTempFile(<span class="stQuotedString">&quot;delete&quot;</span>, <span class="stQuotedString">&quot;me&quot;</span>)
+<br />      <span class="stReserved">try</span> {
+        tempFile should be a (file)
+        tempFile should not be a (directory)
+      }
+      <span class="stReserved">finally</span> {
+        tempFile.delete()
+      }
+    }
+  }
+}
+</pre></p><p>These matches should succeed, but if for example the first match, <code>tempFile should be a (file)</code>, were to fail, you would get an error message like:</p><p><pre class="stExamples">
+/tmp/delme1234me was not a file
+</pre></p><p>For more information on <code>BePropertyMatchResult</code> and the meaning of its fields, please
+see the documentation for <a href="BePropertyMatchResult.html"><code>BePropertyMatchResult</code></a>. To understand why <code>BePropertyMatcher</code>
+is contravariant in its type parameter, see the section entitled &quot;Matcher's variance&quot; in the
+documentation for <a href="Matcher.html"><code>Matcher</code></a>.</p></div><dl class="attributes block"> <dt>Self Type</dt><dd><a name="org.scalatest.matchers.BePropertyMatcher" class="extype" href="">BePropertyMatcher</a>[T]</dd></dl><div class="toggleContainer block">
+          <span class="toggle">Linear Supertypes</span>
+          <div class="superTypes hiddenContent">(T) ⇒ <a name="org.scalatest.matchers.BePropertyMatchResult" class="extype" href="BePropertyMatchResult.html">BePropertyMatchResult</a>, AnyRef, <span name="scala.Any" class="extype">Any</span></div>
+        </div></div>
+        
+
+      <div id="template">
+
+        <div id="mbrsel">
+          <div id="textfilter"><span class="pre"></span><span class="input"><input accesskey="/" type="text" /></span><span class="post"></span></div>
+          <div id="order">
+                <span class="filtertype">Ordering</span>
+                <ol><li class="alpha in"><span>Alphabetic</span></li><li class="inherit out"><span>By inheritance</span></li></ol>
+              </div>
+          <div id="ancestors">
+                <span class="filtertype">Inherited</span>
+                <ol><li class="hideall out"><span>Hide All</span></li>
+                <li class="showall in"><span>Show all</span></li></ol>
+                <ol id="linearization"><li name="org.scalatest.matchers.BePropertyMatcher" class="in"><span>BePropertyMatcher</span></li><li name="scala.Function1" class="in"><span>Function1</span></li><li name="scala.AnyRef" class="in"><span>AnyRef</span></li><li name="scala.Any" class="in"><span>Any</span></li></ol>
+              </div>
+          <div id="visbl">
+              <span class="filtertype">Visibility</span>
+              <ol><li class="public in"><span>Public</span></li><li class="all out"><span>All</span></li></ol>
+            </div>
+        </div>
+
+        
+
+        
+        
+        <div class="values members" id="values">
+              <h3>Abstract Value Members</h3>
+              <ol><li visbl="pub" name="org.scalatest.matchers.BePropertyMatcher#apply" data-isabs="true">
+      <a id="apply(T):BePropertyMatchResult"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">apply</span>
+        
+        <span class="params">(<span name="objectWithProperty">objectWithProperty: T</span>)</span><span class="result">: <a name="org.scalatest.matchers.BePropertyMatchResult" class="extype" href="BePropertyMatchResult.html">BePropertyMatchResult</a></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Check to see if a <code>Boolean</code> property on the specified object, <code>objectWithProperty</code>, matches its
+expected value, and report the result in
+the returned <code>BePropertyMatchResult</code>.</p><div class="fullcomment"><div class="comment cmt"><p>Check to see if a <code>Boolean</code> property on the specified object, <code>objectWithProperty</code>, matches its
+expected value, and report the result in
+the returned <code>BePropertyMatchResult</code>. The <code>objectWithProperty</code> is
+usually the value to the left of a <code>should</code> or <code>must</code> invocation. For example, <code>tempFile</code>
+would be passed as the <code>objectWithProperty</code> in:</p><p><pre class="stHighlighted">
+tempFile should be a (file)
+</pre>
+</p></div><dl class="paramcmts block"><dt class="param">objectWithProperty</dt><dd class="cmt"><p>the object with the <code>Boolean</code> property against which to match</p></dd><dt>returns</dt><dd class="cmt"><p>the <code>BePropertyMatchResult</code> that represents the result of the match
+</p></dd></dl><dl class="attributes block"> <dt>Attributes</dt><dd>abstract </dd><dt>Definition Classes</dt><dd><a name="org.scalatest.matchers.BePropertyMatcher" class="extype" href="">BePropertyMatcher</a> → Function1</dd></dl></div>
+    </li></ol>
+            </div>
+
+        <div class="values members" id="values">
+              <h3>Concrete Value Members</h3>
+              <ol><li visbl="pub" name="scala.AnyRef#!=" data-isabs="false">
+      <a id="!=(AnyRef):Boolean"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">!=</span>
+        
+        <span class="params">(<span name="arg0">arg0: AnyRef</span>)</span><span class="result">: <span name="scala.Boolean" class="extype">Boolean</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>AnyRef</dd></dl></div>
+    </li><li visbl="pub" name="scala.Any#!=" data-isabs="false">
+      <a id="!=(Any):Boolean"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">!=</span>
+        
+        <span class="params">(<span name="arg0">arg0: <span name="scala.Any" class="extype">Any</span></span>)</span><span class="result">: <span name="scala.Boolean" class="extype">Boolean</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>Any</dd></dl></div>
+    </li><li visbl="pub" name="scala.AnyRef###" data-isabs="false">
+      <a id="##():Int"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">##</span>
+        
+        <span class="params">()</span><span class="result">: <span name="scala.Int" class="extype">Int</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>AnyRef → Any</dd></dl></div>
+    </li><li visbl="pub" name="scala.AnyRef#==" data-isabs="false">
+      <a id="==(AnyRef):Boolean"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">==</span>
+        
+        <span class="params">(<span name="arg0">arg0: AnyRef</span>)</span><span class="result">: <span name="scala.Boolean" class="extype">Boolean</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>AnyRef</dd></dl></div>
+    </li><li visbl="pub" name="scala.Any#==" data-isabs="false">
+      <a id="==(Any):Boolean"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">==</span>
+        
+        <span class="params">(<span name="arg0">arg0: <span name="scala.Any" class="extype">Any</span></span>)</span><span class="result">: <span name="scala.Boolean" class="extype">Boolean</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>Any</dd></dl></div>
+    </li><li visbl="pub" name="scala.Function1#andThen" data-isabs="false">
+      <a id="andThen[A]((BePropertyMatchResult) ⇒ A):(T) ⇒ A"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">andThen</span>
+        <span class="tparams">[<span name="A">A</span>]</span>
+        <span class="params">(<span name="g">g: (<a name="org.scalatest.matchers.BePropertyMatchResult" class="extype" href="BePropertyMatchResult.html">BePropertyMatchResult</a>) ⇒ A</span>)</span><span class="result">: (T) ⇒ A</span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>Function1</dd></dl></div>
+    </li><li visbl="pub" name="scala.Any#asInstanceOf" data-isabs="false">
+      <a id="asInstanceOf[T0]:T0"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">asInstanceOf</span>
+        <span class="tparams">[<span name="T0">T0</span>]</span>
+        <span class="result">: T0</span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>Any</dd></dl></div>
+    </li><li visbl="prt" name="scala.AnyRef#clone" data-isabs="false">
+      <a id="clone():AnyRef"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">clone</span>
+        
+        <span class="params">()</span><span class="result">: AnyRef</span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>protected[<a name="java.lang" class="extype" href="../../../java/lang/package.html">lang</a>] </dd><dt>Definition Classes</dt><dd>AnyRef</dd><dt>Annotations</dt><dd>
+                <span class="name">@throws</span><span class="args">()</span>
+              
+        </dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.matchers.BePropertyMatcher#compose" data-isabs="false">
+      <a id="compose[U]((U) ⇒ T):BePropertyMatcher[U]"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">compose</span>
+        <span class="tparams">[<span name="U">U</span>]</span>
+        <span class="params">(<span name="g">g: (U) ⇒ T</span>)</span><span class="result">: <a name="org.scalatest.matchers.BePropertyMatcher" class="extype" href="">BePropertyMatcher</a>[U]</span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Compose this <code>BePropertyMatcher</code> with the passed function, returning a new <code>BePropertyMatcher</code>.</p><div class="fullcomment"><div class="comment cmt"><p>Compose this <code>BePropertyMatcher</code> with the passed function, returning a new <code>BePropertyMatcher</code>.</p><p>This method overrides <code>compose</code> on <code>Function1</code> to
+return a more specific function type of <code>BePropertyMatcher</code>.</p></div><dl class="attributes block"> <dt>Definition Classes</dt><dd><a name="org.scalatest.matchers.BePropertyMatcher" class="extype" href="">BePropertyMatcher</a> → Function1</dd></dl></div>
+    </li><li visbl="pub" name="scala.AnyRef#eq" data-isabs="false">
+      <a id="eq(AnyRef):Boolean"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">eq</span>
+        
+        <span class="params">(<span name="arg0">arg0: AnyRef</span>)</span><span class="result">: <span name="scala.Boolean" class="extype">Boolean</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>AnyRef</dd></dl></div>
+    </li><li visbl="pub" name="scala.AnyRef#equals" data-isabs="false">
+      <a id="equals(Any):Boolean"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">equals</span>
+        
+        <span class="params">(<span name="arg0">arg0: <span name="scala.Any" class="extype">Any</span></span>)</span><span class="result">: <span name="scala.Boolean" class="extype">Boolean</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef → Any</dd></dl></div>
+    </li><li visbl="prt" name="scala.AnyRef#finalize" data-isabs="false">
+      <a id="finalize():Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">finalize</span>
+        
+        <span class="params">()</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>protected[<a name="java.lang" class="extype" href="../../../java/lang/package.html">lang</a>] </dd><dt>Definition Classes</dt><dd>AnyRef</dd><dt>Annotations</dt><dd>
+                <span class="name">@throws</span><span class="args">()</span>
+              
+        </dd></dl></div>
+    </li><li visbl="pub" name="scala.AnyRef#getClass" data-isabs="false">
+      <a id="getClass():java.lang.Class[_]"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">getClass</span>
+        
+        <span class="params">()</span><span class="result">: java.lang.Class[_]</span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>AnyRef</dd></dl></div>
+    </li><li visbl="pub" name="scala.AnyRef#hashCode" data-isabs="false">
+      <a id="hashCode():Int"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">hashCode</span>
+        
+        <span class="params">()</span><span class="result">: <span name="scala.Int" class="extype">Int</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef → Any</dd></dl></div>
+    </li><li visbl="pub" name="scala.Any#isInstanceOf" data-isabs="false">
+      <a id="isInstanceOf[T0]:Boolean"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">isInstanceOf</span>
+        <span class="tparams">[<span name="T0">T0</span>]</span>
+        <span class="result">: <span name="scala.Boolean" class="extype">Boolean</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>Any</dd></dl></div>
+    </li><li visbl="pub" name="scala.AnyRef#ne" data-isabs="false">
+      <a id="ne(AnyRef):Boolean"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">ne</span>
+        
+        <span class="params">(<span name="arg0">arg0: AnyRef</span>)</span><span class="result">: <span name="scala.Boolean" class="extype">Boolean</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>AnyRef</dd></dl></div>
+    </li><li visbl="pub" name="scala.AnyRef#notify" data-isabs="false">
+      <a id="notify():Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">notify</span>
+        
+        <span class="params">()</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>AnyRef</dd></dl></div>
+    </li><li visbl="pub" name="scala.AnyRef#notifyAll" data-isabs="false">
+      <a id="notifyAll():Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">notifyAll</span>
+        
+        <span class="params">()</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>AnyRef</dd></dl></div>
+    </li><li visbl="pub" name="scala.AnyRef#synchronized" data-isabs="false">
+      <a id="synchronized[T0](⇒ T0):T0"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">synchronized</span>
+        <span class="tparams">[<span name="T0">T0</span>]</span>
+        <span class="params">(<span name="arg0">arg0: ⇒ T0</span>)</span><span class="result">: T0</span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>AnyRef</dd></dl></div>
+    </li><li visbl="pub" name="scala.Function1#toString" data-isabs="false">
+      <a id="toString():String"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">toString</span>
+        
+        <span class="params">()</span><span class="result">: <span name="java.lang.String" class="extype">String</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>Function1 → AnyRef → Any</dd></dl></div>
+    </li><li visbl="pub" name="scala.AnyRef#wait" data-isabs="false">
+      <a id="wait():Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">wait</span>
+        
+        <span class="params">()</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>AnyRef</dd><dt>Annotations</dt><dd>
+                <span class="name">@throws</span><span class="args">()</span>
+              
+        </dd></dl></div>
+    </li><li visbl="pub" name="scala.AnyRef#wait" data-isabs="false">
+      <a id="wait(Long,Int):Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">wait</span>
+        
+        <span class="params">(<span name="arg0">arg0: <span name="scala.Long" class="extype">Long</span></span>, <span name="arg1">arg1: <span name="scala.Int" class="extype">Int</span></span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>AnyRef</dd><dt>Annotations</dt><dd>
+                <span class="name">@throws</span><span class="args">()</span>
+              
+        </dd></dl></div>
+    </li><li visbl="pub" name="scala.AnyRef#wait" data-isabs="false">
+      <a id="wait(Long):Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">wait</span>
+        
+        <span class="params">(<span name="arg0">arg0: <span name="scala.Long" class="extype">Long</span></span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>AnyRef</dd><dt>Annotations</dt><dd>
+                <span class="name">@throws</span><span class="args">()</span>
+              
+        </dd></dl></div>
+    </li></ol>
+            </div>
+
+        <div name="scala.Function1" class="parent">
+              <h3>Inherited from (T) ⇒ <a name="org.scalatest.matchers.BePropertyMatchResult" class="extype" href="BePropertyMatchResult.html">BePropertyMatchResult</a></h3>
+            </div><div name="scala.AnyRef" class="parent">
+              <h3>Inherited from AnyRef</h3>
+            </div><div name="scala.Any" class="parent">
+              <h3>Inherited from <span name="scala.Any" class="extype">Any</span></h3>
+            </div>
+
+      </div>
+      
+      <div id="tooltip"></div>
+      
+    </body>
+      </html>

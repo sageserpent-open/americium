@@ -1,0 +1,958 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html>
+        <head>
+          <title>org.scalatest</title>
+          <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+          
+      <link type="text/css" media="screen" rel="stylesheet" href="../../lib/template.css" />
+      <script type="text/javascript" src="../../lib/jquery.js"></script>
+      <script type="text/javascript" src="../../lib/jquery-ui.js"></script>
+      <script type="text/javascript" src="../../lib/template.js"></script>
+      <script type="text/javascript" src="../../lib/tools.tooltip.js"></script>
+    
+        </head>
+        <body class="value">
+      <div id="definition">
+        <img src="../../lib/package_big.png" />
+        <p id="owner"><a name="org" class="extype" href="../package.html">org</a></p>
+        <h1>scalatest</h1>
+      </div>
+
+      <h4 class="signature" id="signature">
+      <span class="kind">package</span>
+      <span class="symbol"> 
+        <span class="name">scalatest</span>
+        
+        
+      </span>
+      </h4>
+      
+          <div class="fullcommenttop" id="comment"><div class="comment cmt"><p>ScalaTest's main traits, classes, and other members, including members supporting ScalaTest's DSL for the Scala interpreter.
+</p></div></div>
+        
+
+      <div id="template">
+
+        <div id="mbrsel">
+          <div id="textfilter"><span class="pre"></span><span class="input"><input accesskey="/" type="text" /></span><span class="post"></span></div>
+          
+          
+          <div id="visbl">
+              <span class="filtertype">Visibility</span>
+              <ol><li class="public in"><span>Public</span></li><li class="all out"><span>All</span></li></ol>
+            </div>
+        </div>
+
+        
+
+        <div class="types members" id="types">
+              <h3>Type Members</h3>
+              <ol><li visbl="pub" name="org.scalatest.AbstractSuite" data-isabs="true">
+      <a id="AbstractSuite:AbstractSuite"></a>
+      <h4 class="signature">
+      <span class="kind">trait</span>
+      <span class="symbol"> 
+        <a href="AbstractSuite.html"><span class="name">AbstractSuite</span></a>
+        
+        <span class="result"> extends AnyRef</span>
+      </span>
+      </h4>
+      <p class="comment cmt">Trait that defines abstract methods that are implemented in <code>Suite</code> that can
+be overriden in stackable modification traits.</p>
+    </li><li visbl="pub" name="org.scalatest.Assertions" data-isabs="true">
+      <a id="Assertions:Assertions"></a>
+      <h4 class="signature">
+      <span class="kind">trait</span>
+      <span class="symbol"> 
+        <a href="Assertions.html"><span class="name">Assertions</span></a>
+        
+        <span class="result"> extends AnyRef</span>
+      </span>
+      </h4>
+      <p class="comment cmt">Trait that contains ScalaTest's basic assertion methods.</p>
+    </li><li visbl="pub" name="org.scalatest.BeforeAndAfter" data-isabs="true">
+      <a id="BeforeAndAfter:BeforeAndAfter"></a>
+      <h4 class="signature">
+      <span class="kind">trait</span>
+      <span class="symbol"> 
+        <a href="BeforeAndAfter.html"><span class="name">BeforeAndAfter</span></a>
+        
+        <span class="result"> extends AbstractSuite</span>
+      </span>
+      </h4>
+      <p class="comment cmt">Trait that can be mixed into suites that need code executed before and after
+running each test.</p>
+    </li><li visbl="pub" name="org.scalatest.BeforeAndAfterAll" data-isabs="true">
+      <a id="BeforeAndAfterAll:BeforeAndAfterAll"></a>
+      <h4 class="signature">
+      <span class="kind">trait</span>
+      <span class="symbol"> 
+        <a href="BeforeAndAfterAll.html"><span class="name">BeforeAndAfterAll</span></a>
+        
+        <span class="result"> extends AbstractSuite</span>
+      </span>
+      </h4>
+      <p class="comment cmt">Trait that can be mixed into suites that need methods invoked before and after executing the
+suite.</p>
+    </li><li visbl="pub" name="org.scalatest.BeforeAndAfterEach" data-isabs="true">
+      <a id="BeforeAndAfterEach:BeforeAndAfterEach"></a>
+      <h4 class="signature">
+      <span class="kind">trait</span>
+      <span class="symbol"> 
+        <a href="BeforeAndAfterEach.html"><span class="name">BeforeAndAfterEach</span></a>
+        
+        <span class="result"> extends AbstractSuite</span>
+      </span>
+      </h4>
+      <p class="comment cmt">Trait that can be mixed into suites that need methods invoked before and after
+running each test.</p>
+    </li><li visbl="pub" name="org.scalatest.Distributor" data-isabs="true">
+      <a id="Distributor:Distributor"></a>
+      <h4 class="signature">
+      <span class="kind">trait</span>
+      <span class="symbol"> 
+        <a href="Distributor.html"><span class="name">Distributor</span></a>
+        
+        <span class="result"> extends AnyRef</span>
+      </span>
+      </h4>
+      <p class="comment cmt">Trait whose instances facilitate parallel execution of <code>Suite</code>s.</p>
+    </li><li visbl="pub" name="org.scalatest.DuplicateTestNameException" data-isabs="false">
+      <a id="DuplicateTestNameException:DuplicateTestNameException"></a>
+      <h4 class="signature">
+      <span class="kind">class</span>
+      <span class="symbol"> 
+        <a href="DuplicateTestNameException.html"><span class="name">DuplicateTestNameException</span></a>
+        
+        <span class="result"> extends StackDepthException</span>
+      </span>
+      </h4>
+      <p class="comment cmt">Exception that indicates an attempt was made to register a test that had the same name as a test
+already registered in the same suite.</p>
+    </li><li visbl="pub" name="org.scalatest.FailureOf" data-isabs="true">
+      <a id="FailureOf:FailureOf"></a>
+      <h4 class="signature">
+      <span class="kind">trait</span>
+      <span class="symbol"> 
+        <a href="FailureOf.html"><span class="name">FailureOf</span></a>
+        
+        <span class="result"> extends AnyRef</span>
+      </span>
+      </h4>
+      <p class="comment cmt">Trait that contains the <code>failureOf</code> method, which captures an exception thrown by a passed code block and
+returns it wrapped in a <code>Some</code>, or returns <code>None</code> if no exception is thrown.</p>
+    </li><li visbl="pub" name="org.scalatest.FeatureSpec" data-isabs="true">
+      <a id="FeatureSpec:FeatureSpec"></a>
+      <h4 class="signature">
+      <span class="kind">trait</span>
+      <span class="symbol"> 
+        <a href="FeatureSpec.html"><span class="name">FeatureSpec</span></a>
+        
+        <span class="result"> extends Suite</span>
+      </span>
+      </h4>
+      <p class="comment cmt">A suite of tests in which each test represents one <em>scenario</em> of a <em>feature</em>.</p>
+    </li><li visbl="pub" name="org.scalatest.Filter" data-isabs="false">
+      <a id="Filter:Filter"></a>
+      <h4 class="signature">
+      <span class="kind">class</span>
+      <span class="symbol"> 
+        <a href="Filter.html"><span class="name">Filter</span></a>
+        
+        <span class="result"> extends (Set[String], Map[String, Set[String]]) ⇒ List[(String, Boolean)]</span>
+      </span>
+      </h4>
+      <p class="comment cmt">Filter whose <code>apply</code> method determines which of the passed tests to run and ignore based on tags to include and exclude passed as
+as class parameters.</p>
+    </li><li visbl="pub" name="org.scalatest.FlatSpec" data-isabs="true">
+      <a id="FlatSpec:FlatSpec"></a>
+      <h4 class="signature">
+      <span class="kind">trait</span>
+      <span class="symbol"> 
+        <a href="FlatSpec.html"><span class="name">FlatSpec</span></a>
+        
+        <span class="result"> extends Suite with ShouldVerb with MustVerb with CanVerb</span>
+      </span>
+      </h4>
+      <p class="comment cmt">Trait that facilitates a &#8220;behavior-driven&#8221; style of development (BDD), in which tests
+are combined with text that specifies the behavior the tests verify.</&#8221;</&#8220;</p>
+    </li><li visbl="pub" name="org.scalatest.FreeSpec" data-isabs="true">
+      <a id="FreeSpec:FreeSpec"></a>
+      <h4 class="signature">
+      <span class="kind">trait</span>
+      <span class="symbol"> 
+        <a href="FreeSpec.html"><span class="name">FreeSpec</span></a>
+        
+        <span class="result"> extends Suite</span>
+      </span>
+      </h4>
+      <p class="comment cmt">Trait that facilitates a &#8220;behavior-driven&#8221; style of development (BDD), in which tests
+are nested inside text clauses denoted with the dash operator (<code>-</code>).</&#8221;</&#8220;</p>
+    </li><li visbl="pub" name="org.scalatest.FunSuite" data-isabs="true">
+      <a id="FunSuite:FunSuite"></a>
+      <h4 class="signature">
+      <span class="kind">trait</span>
+      <span class="symbol"> 
+        <a href="FunSuite.html"><span class="name">FunSuite</span></a>
+        
+        <span class="result"> extends Suite</span>
+      </span>
+      </h4>
+      <p class="comment cmt">A suite of tests in which each test is represented as a function value.</p>
+    </li><li visbl="pub" name="org.scalatest.GivenWhenThen" data-isabs="true">
+      <a id="GivenWhenThen:GivenWhenThen"></a>
+      <h4 class="signature">
+      <span class="kind">trait</span>
+      <span class="symbol"> 
+        <a href="GivenWhenThen.html"><span class="name">GivenWhenThen</span></a>
+        
+        <span class="result"> extends AnyRef</span>
+      </span>
+      </h4>
+      <p class="comment cmt">Trait that contains methods named <code>given</code>, <code>when</code>, <code>then</code>, and <code>and</code>,
+which take a string message and implicit <code>Informer</code>, and forward the message to the informer.</p>
+    </li><li visbl="pub" name="org.scalatest.Informer" data-isabs="true">
+      <a id="Informer:Informer"></a>
+      <h4 class="signature">
+      <span class="kind">trait</span>
+      <span class="symbol"> 
+        <a href="Informer.html"><span class="name">Informer</span></a>
+        
+        <span class="result"> extends (String) ⇒ Unit</span>
+      </span>
+      </h4>
+      <p class="comment cmt">Trait to which custom information about a running suite of tests can be reported.</p>
+    </li><li visbl="pub" name="org.scalatest.ModifiableMessage" data-isabs="true">
+      <a id="ModifiableMessage:ModifiableMessage[T]"></a>
+      <h4 class="signature">
+      <span class="kind">trait</span>
+      <span class="symbol"> 
+        <a href="ModifiableMessage.html"><span class="name">ModifiableMessage</span></a>
+        <span class="tparams">[<span name="T">T &lt;: Throwable</span>]</span>
+        <span class="result"> extends AnyRef</span>
+      </span>
+      </h4>
+      <p class="comment cmt">Trait implemented by exception types that can modify their detail message.</p>
+    </li><li visbl="pub" name="org.scalatest.NotAllowedException" data-isabs="false">
+      <a id="NotAllowedException:NotAllowedException"></a>
+      <h4 class="signature">
+      <span class="kind">class</span>
+      <span class="symbol"> 
+        <a href="NotAllowedException.html"><span class="name">NotAllowedException</span></a>
+        
+        <span class="result"> extends StackDepthException</span>
+      </span>
+      </h4>
+      <p class="comment cmt">Exception that indicates something was attempted in test code that is not allowed.</p>
+    </li><li visbl="pub" name="org.scalatest.OneInstancePerTest" data-isabs="true">
+      <a id="OneInstancePerTest:OneInstancePerTest"></a>
+      <h4 class="signature">
+      <span class="kind">trait</span>
+      <span class="symbol"> 
+        <a href="OneInstancePerTest.html"><span class="name">OneInstancePerTest</span></a>
+        
+        <span class="result"> extends AbstractSuite</span>
+      </span>
+      </h4>
+      <p class="comment cmt">Trait that facilitates a style of testing in which each test is run in its own instance
+of the suite class to isolate each test from the side effects of the other tests in the
+suite.</p>
+    </li><li visbl="pub" name="org.scalatest.ParallelTestExecution" data-isabs="true">
+      <a id="ParallelTestExecution:ParallelTestExecution"></a>
+      <h4 class="signature">
+      <span class="kind">trait</span>
+      <span class="symbol"> 
+        <a href="ParallelTestExecution.html"><span class="name">ParallelTestExecution</span></a>
+        
+        <span class="result"> extends OneInstancePerTest</span>
+      </span>
+      </h4>
+      <p class="comment cmt">Trait that causes that the tests of any suite it is mixed into to be run in parallel if
+a <code>Distributor</code> is passed to <code>runTests</code>.</p>
+    </li><li visbl="pub" name="org.scalatest.PendingNothing" data-isabs="false">
+      <a id="PendingNothing:PendingNothing"></a>
+      <h4 class="signature">
+      <span class="kind">class</span>
+      <span class="symbol"> 
+        <a href="PendingNothing.html"><span class="name">PendingNothing</span></a>
+        
+        <span class="result"> extends AnyRef</span>
+      </span>
+      </h4>
+      <p class="comment cmt">Type that is used as the return type of the <code>pending</code> method in class
+<code>Suite</code>, which always completes abruptly with a
+<code>TestPendingException</code>.</p>
+    </li><li visbl="pub" name="org.scalatest.PrivateMethodTester" data-isabs="true">
+      <a id="PrivateMethodTester:PrivateMethodTester"></a>
+      <h4 class="signature">
+      <span class="kind">trait</span>
+      <span class="symbol"> 
+        <a href="PrivateMethodTester.html"><span class="name">PrivateMethodTester</span></a>
+        
+        <span class="result"> extends AnyRef</span>
+      </span>
+      </h4>
+      <p class="comment cmt">Trait that facilitates the testing of private methods.</p>
+    </li><li visbl="pub" name="org.scalatest.PropSpec" data-isabs="true">
+      <a id="PropSpec:PropSpec"></a>
+      <h4 class="signature">
+      <span class="kind">trait</span>
+      <span class="symbol"> 
+        <a href="PropSpec.html"><span class="name">PropSpec</span></a>
+        
+        <span class="result"> extends Suite</span>
+      </span>
+      </h4>
+      <p class="comment cmt">A suite of property-based tests.</p>
+    </li><li visbl="pub" name="org.scalatest.Reporter" data-isabs="true">
+      <a id="Reporter:Reporter"></a>
+      <h4 class="signature">
+      <span class="kind">trait</span>
+      <span class="symbol"> 
+        <a href="Reporter.html"><span class="name">Reporter</span></a>
+        
+        <span class="result"> extends AnyRef</span>
+      </span>
+      </h4>
+      <p class="comment cmt">Trait whose instances collect the results of a running
+suite of tests and presents those results in some way to the user.</p>
+    </li><li visbl="pub" name="org.scalatest.Rerunner" data-isabs="true">
+      <a id="Rerunner:Rerunner"></a>
+      <h4 class="signature">
+      <span class="kind">trait</span>
+      <span class="symbol"> 
+        <a href="Rerunner.html"><span class="name">Rerunner</span></a>
+        
+        <span class="result"> extends AnyRef</span>
+      </span>
+      </h4>
+      <p class="comment cmt">Trait whose instances can rerun tests or other entities (such as suites).</p>
+    </li><li visbl="pub" name="org.scalatest.ResourcefulReporter" data-isabs="true">
+      <a id="ResourcefulReporter:ResourcefulReporter"></a>
+      <h4 class="signature">
+      <span class="kind">trait</span>
+      <span class="symbol"> 
+        <a href="ResourcefulReporter.html"><span class="name">ResourcefulReporter</span></a>
+        
+        <span class="result"> extends Reporter</span>
+      </span>
+      </h4>
+      <p class="comment cmt">Subtrait of <code>Reporter</code> that contains a <code>dispose</code> method for
+releasing any finite, non-memory resources, such as file handles, held by the
+<code>Reporter</code>.</p>
+    </li><li visbl="pub" name="org.scalatest.SequentialNestedSuiteExecution" data-isabs="true">
+      <a id="SequentialNestedSuiteExecution:SequentialNestedSuiteExecution"></a>
+      <h4 class="signature">
+      <span class="kind">trait</span>
+      <span class="symbol"> 
+        <a href="SequentialNestedSuiteExecution.html"><span class="name">SequentialNestedSuiteExecution</span></a>
+        
+        <span class="result"> extends AbstractSuite</span>
+      </span>
+      </h4>
+      <p class="comment cmt">Trait that causes that the nested suites of any suite it is mixed into to be run sequentially even if
+a <code>Distributor</code> is passed to <code>runNestedSuites</code>.</p>
+    </li><li visbl="pub" name="org.scalatest.SeveredStackTraces" data-isabs="true">
+      <a id="SeveredStackTraces:SeveredStackTraces"></a>
+      <h4 class="signature">
+      <span class="kind">trait</span>
+      <span class="symbol"> 
+        <a href="SeveredStackTraces.html"><span class="name">SeveredStackTraces</span></a>
+        
+        <span class="result"> extends AbstractSuite</span>
+      </span>
+      </h4>
+      <p class="comment cmt">Trait that causes <code>StackDepth</code> exceptions thrown by a running test (such as <code>TestFailedException</code>s) to have
+the exception's stack trace severed at the stack depth.</p>
+    </li><li visbl="pub" name="org.scalatest.Shell" data-isabs="true">
+      <a id="Shell:Shell"></a>
+      <h4 class="signature">
+      <span class="kind">trait</span>
+      <span class="symbol"> 
+        <a href="Shell.html"><span class="name">Shell</span></a>
+        
+        <span class="result"> extends AnyRef</span>
+      </span>
+      </h4>
+      <p class="comment cmt">Trait whose instances provide a <code>run</code> method and configuration fields that implement
+the <em>ScalaTest shell</em>: its DSL for the Scala interpreter.</p>
+    </li><li visbl="pub" name="org.scalatest.Spec" data-isabs="true">
+      <a id="Spec:Spec"></a>
+      <h4 class="signature">
+      <span class="kind">trait</span>
+      <span class="symbol"> 
+        <a href="Spec.html"><span class="name">Spec</span></a>
+        
+        <span class="result"> extends Suite</span>
+      </span>
+      </h4>
+      <p class="comment cmt">Trait that facilitates a &#8220;behavior-driven&#8221; style of development (BDD), in which tests
+are combined with text that specifies the behavior the tests verify.</&#8221;</&#8220;</p>
+    </li><li visbl="pub" name="org.scalatest.Specs" data-isabs="false">
+      <a id="Specs:Specs"></a>
+      <h4 class="signature">
+      <span class="kind">class</span>
+      <span class="symbol"> 
+        <a href="Specs.html"><span class="name">Specs</span></a>
+        
+        <span class="result"> extends Suite</span>
+      </span>
+      </h4>
+      <p class="comment cmt">A <code>Suite</code> class that takes zero to many (likely specification-style) <code>Suite</code>s,
+ which will be returned from its <code>nestedSuites</code> method.</p>
+    </li><li visbl="pub" name="org.scalatest.StackDepth" data-isabs="true">
+      <a id="StackDepth:StackDepth"></a>
+      <h4 class="signature">
+      <span class="kind">trait</span>
+      <span class="symbol"> 
+        <a href="StackDepth.html"><span class="name">StackDepth</span></a>
+        
+        <span class="result"> extends AnyRef</span>
+      </span>
+      </h4>
+      <p class="comment cmt">Trait that encapsulates the information required of an exception thrown by ScalaTest's assertions
+and matchers, which includes a stack depth at which the failing line of test code resides.</p>
+    </li><li visbl="pub" name="org.scalatest.StackDepthException" data-isabs="true">
+      <a id="StackDepthException:StackDepthException"></a>
+      <h4 class="signature">
+      <span class="kind">class</span>
+      <span class="symbol"> 
+        <a href="StackDepthException.html"><span class="name">StackDepthException</span></a>
+        
+        <span class="result"> extends RuntimeException with StackDepth</span>
+      </span>
+      </h4>
+      <p class="comment cmt">Exception class that encapsulates information about the stack depth at which the line of code that failed resides,
+so that information can be presented to the user that makes it quick to find the failing line of code.</p>
+    </li><li visbl="pub" name="org.scalatest.Stopper" data-isabs="true">
+      <a id="Stopper:Stopper"></a>
+      <h4 class="signature">
+      <span class="kind">trait</span>
+      <span class="symbol"> 
+        <a href="Stopper.html"><span class="name">Stopper</span></a>
+        
+        <span class="result"> extends AnyRef</span>
+      </span>
+      </h4>
+      <p class="comment cmt">Trait whose instances can indicate whether a stop has been requested.</p>
+    </li><li visbl="pub" name="org.scalatest.Suite" data-isabs="true">
+      <a id="Suite:Suite"></a>
+      <h4 class="signature">
+      <span class="kind">trait</span>
+      <span class="symbol"> 
+        <a href="Suite.html"><span class="name">Suite</span></a>
+        
+        <span class="result"> extends Assertions with AbstractSuite</span>
+      </span>
+      </h4>
+      <p class="comment cmt">A suite of tests.</p>
+    </li><li visbl="pub" name="org.scalatest.Suites" data-isabs="false">
+      <a id="Suites:Suites"></a>
+      <h4 class="signature">
+      <span class="kind">class</span>
+      <span class="symbol"> 
+        <a href="Suites.html"><span class="name">Suites</span></a>
+        
+        <span class="result"> extends Suite</span>
+      </span>
+      </h4>
+      <p class="comment cmt">A <code>Suite</code> class that takes zero to many <code>Suite</code>s,
+ which will be returned from its <code>nestedSuites</code> method.</p>
+    </li><li visbl="pub" name="org.scalatest.Tag" data-isabs="false">
+      <a id="Tag:Tag"></a>
+      <h4 class="signature">
+      <span class="kind">class</span>
+      <span class="symbol"> 
+        <a href="Tag.html"><span class="name">Tag</span></a>
+        
+        <span class="result"> extends AnyRef</span>
+      </span>
+      </h4>
+      <p class="comment cmt">Class whose subclasses can be used to tag tests in types <code>FunSuite</code>,
+<code>Spec</code>, <code>FlatSpec</code>, <code>WordSpec</code>, <code>FeatureSpec</code>, and their
+sister traits in the <code>org.scalatest.fixture</code> package.</p>
+    </li><li visbl="pub" name="org.scalatest.TestFailedException" data-isabs="false">
+      <a id="TestFailedException:TestFailedException"></a>
+      <h4 class="signature">
+      <span class="kind">class</span>
+      <span class="symbol"> 
+        <a href="TestFailedException.html"><span class="name">TestFailedException</span></a>
+        
+        <span class="result"> extends StackDepthException with ModifiableMessage[TestFailedException]</span>
+      </span>
+      </h4>
+      <p class="comment cmt">Exception that indicates a test failed.</p>
+    </li><li visbl="pub" name="org.scalatest.TestPendingException" data-isabs="false">
+      <a id="TestPendingException:TestPendingException"></a>
+      <h4 class="signature">
+      <span class="kind">class</span>
+      <span class="symbol"> 
+        <a href="TestPendingException.html"><span class="name">TestPendingException</span></a>
+        
+        <span class="result"> extends RuntimeException</span>
+      </span>
+      </h4>
+      <p class="comment cmt">Exception thrown to indicate a test is pending.</p>
+    </li><li visbl="pub" name="org.scalatest.TestRegistrationClosedException" data-isabs="false">
+      <a id="TestRegistrationClosedException:TestRegistrationClosedException"></a>
+      <h4 class="signature">
+      <span class="kind">class</span>
+      <span class="symbol"> 
+        <a href="TestRegistrationClosedException.html"><span class="name">TestRegistrationClosedException</span></a>
+        
+        <span class="result"> extends StackDepthException</span>
+      </span>
+      </h4>
+      <p class="comment cmt">Exception that indicates an action that is only allowed during a suite's test registration phase,
+such as registering a test to run or ignore, was attempted after registration had already closed.</p>
+    </li><li visbl="pub" name="org.scalatest.Tracker" data-isabs="false">
+      <a id="Tracker:Tracker"></a>
+      <h4 class="signature">
+      <span class="kind">class</span>
+      <span class="symbol"> 
+        <a href="Tracker.html"><span class="name">Tracker</span></a>
+        
+        <span class="result"> extends AnyRef</span>
+      </span>
+      </h4>
+      <p class="comment cmt">Class that tracks the progress of a series of <code>Ordinal</code>s produced by invoking
+<code>next</code> and <code>nextNewOldPair</code> on the current <code>Ordinal</code>.</p>
+    </li><li visbl="pub" name="org.scalatest.WordSpec" data-isabs="true">
+      <a id="WordSpec:WordSpec"></a>
+      <h4 class="signature">
+      <span class="kind">trait</span>
+      <span class="symbol"> 
+        <a href="WordSpec.html"><span class="name">WordSpec</span></a>
+        
+        <span class="result"> extends Suite with ShouldVerb with MustVerb with CanVerb</span>
+      </span>
+      </h4>
+      <p class="comment cmt">Trait that facilitates a &#8220;behavior-driven&#8221; style of development (BDD), in which tests
+are combined with text that specifies the behavior the tests verify.</&#8221;</&#8220;</p>
+    </li><li visbl="pub" name="org.scalatest.BeforeAndAfterAllFunctions" data-isabs="true">
+      <a id="BeforeAndAfterAllFunctions:BeforeAndAfterAllFunctions"></a>
+      <h4 class="signature">
+      <span class="kind">trait</span>
+      <span class="symbol"> 
+        <a href="BeforeAndAfterAllFunctions.html"><span class="name deprecated">BeforeAndAfterAllFunctions</span></a>
+        
+        <span class="result"> extends AbstractSuite</span>
+      </span>
+      </h4>
+      <p class="comment cmt"><b>Trait <code>BeforeAndAfterAllFunctions</code> has been deprecated and will be removed in a future version of ScalaTest. Please
+use trait <code>BeforeAndAfterAll</code> instead.</b></p>
+    </li><li visbl="pub" name="org.scalatest.BeforeAndAfterEachFunctions" data-isabs="true">
+      <a id="BeforeAndAfterEachFunctions:BeforeAndAfterEachFunctions"></a>
+      <h4 class="signature">
+      <span class="kind">trait</span>
+      <span class="symbol"> 
+        <a href="BeforeAndAfterEachFunctions.html"><span class="name deprecated">BeforeAndAfterEachFunctions</span></a>
+        
+        <span class="result"> extends AbstractSuite</span>
+      </span>
+      </h4>
+      <p class="comment cmt"><b>Trait <code>BeforeAndAfterEachFunctions</code> has been deprecated and will be removed in a future version of ScalaTest. Please
+use trait <code>BeforeAndAfter</code> instead.</b></p>
+    </li><li visbl="pub" name="org.scalatest.SuperSuite" data-isabs="false">
+      <a id="SuperSuite:SuperSuite"></a>
+      <h4 class="signature">
+      <span class="kind">class</span>
+      <span class="symbol"> 
+        <a href="SuperSuite.html"><span class="name deprecated">SuperSuite</span></a>
+        
+        <span class="result"> extends Suites</span>
+      </span>
+      </h4>
+      <p class="comment cmt"><strong>SuperSuite has been deprecated and will be removed in a future
+release of ScalaTest. Please change any uses of <code>SuperSuite</code>
+to a corresponding use of <a href="Suites.html"><code>Suites</code></a> or <a href="Specs.html"><code>Specs</code></a> instead.</strong>
+</p>
+    </li></ol>
+            </div>
+        
+        
+
+        <div class="values members" id="values">
+              <h3>Value Members</h3>
+              <ol><li visbl="pub" name="org.scalatest.Assertions" data-isabs="false">
+      <a id="Assertions:Assertions"></a>
+      <h4 class="signature">
+      <span class="kind">object</span>
+      <span class="symbol"> 
+        <a href="Assertions$.html"><span class="name">Assertions</span></a>
+        
+        <span class="result"> extends Assertions</span>
+      </span>
+      </h4>
+      <p class="comment cmt">Companion object that facilitates the importing of <code>Assertions</code> members as
+an alternative to mixing it in.</p>
+    </li><li visbl="pub" name="org.scalatest.Distributor" data-isabs="false">
+      <a id="Distributor:Distributor"></a>
+      <h4 class="signature">
+      <span class="kind">object</span>
+      <span class="symbol"> 
+        <a href="Distributor$.html"><span class="name">Distributor</span></a>
+        
+        <span class="result"> extends AnyRef</span>
+      </span>
+      </h4>
+      <p class="comment cmt">Companion object to Distributor that holds a deprecated implicit conversion.</p>
+    </li><li visbl="pub" name="org.scalatest.FailureOf" data-isabs="false">
+      <a id="FailureOf:FailureOf"></a>
+      <h4 class="signature">
+      <span class="kind">object</span>
+      <span class="symbol"> 
+        <a href="FailureOf$.html"><span class="name">FailureOf</span></a>
+        
+        <span class="result"> extends FailureOf</span>
+      </span>
+      </h4>
+      <p class="comment cmt">Companion object that facilitates the importing of <code>FailureOf</code>'s method as
+an alternative to mixing it in.</p>
+    </li><li visbl="pub" name="org.scalatest.Filter" data-isabs="false">
+      <a id="Filter:Filter"></a>
+      <h4 class="signature">
+      <span class="kind">object</span>
+      <span class="symbol"> 
+        <a href="Filter$.html"><span class="name">Filter</span></a>
+        
+        <span class="result"> extends AnyRef</span>
+      </span>
+      </h4>
+      
+    </li><li visbl="pub" name="org.scalatest.GivenWhenThen" data-isabs="false">
+      <a id="GivenWhenThen:GivenWhenThen"></a>
+      <h4 class="signature">
+      <span class="kind">object</span>
+      <span class="symbol"> 
+        <a href="GivenWhenThen$.html"><span class="name">GivenWhenThen</span></a>
+        
+        <span class="result"> extends GivenWhenThen</span>
+      </span>
+      </h4>
+      <p class="comment cmt">Companion object that facilitates the importing of <code>GivenWhenThen</code> members as
+an alternative to mixing it in.</p>
+    </li><li visbl="pub" name="org.scalatest.PrivateMethodTester" data-isabs="false">
+      <a id="PrivateMethodTester:PrivateMethodTester"></a>
+      <h4 class="signature">
+      <span class="kind">object</span>
+      <span class="symbol"> 
+        <a href="PrivateMethodTester$.html"><span class="name">PrivateMethodTester</span></a>
+        
+        <span class="result"> extends PrivateMethodTester</span>
+      </span>
+      </h4>
+      <p class="comment cmt">Companion object that facilitates the importing of <code>PrivateMethodTester</code> members as
+an alternative to mixing it in.</p>
+    </li><li visbl="pub" name="org.scalatest.Reporter" data-isabs="false">
+      <a id="Reporter:Reporter"></a>
+      <h4 class="signature">
+      <span class="kind">object</span>
+      <span class="symbol"> 
+        <a href="Reporter$.html"><span class="name">Reporter</span></a>
+        
+        <span class="result"> extends AnyRef</span>
+      </span>
+      </h4>
+      <p class="comment cmt">Companion object to Reporter that holds a deprecated implicit conversion.</p>
+    </li><li visbl="pub" name="org.scalatest.Rerunner" data-isabs="false">
+      <a id="Rerunner:Rerunner"></a>
+      <h4 class="signature">
+      <span class="kind">object</span>
+      <span class="symbol"> 
+        <a href="Rerunner$.html"><span class="name">Rerunner</span></a>
+        
+        <span class="result"> extends AnyRef</span>
+      </span>
+      </h4>
+      <p class="comment cmt">Companion object to Rerunner that holds a deprecated implicit conversion.</p>
+    </li><li visbl="pub" name="org.scalatest.Specs" data-isabs="false">
+      <a id="Specs:Specs"></a>
+      <h4 class="signature">
+      <span class="kind">object</span>
+      <span class="symbol"> 
+        <a href="Specs$.html"><span class="name">Specs</span></a>
+        
+        <span class="result"> extends AnyRef</span>
+      </span>
+      </h4>
+      <p class="comment cmt">Companion object to class <code>Specs</code> that offers an <code>apply</code> factory method
+for creating a <code>Specs</code> instance.</p>
+    </li><li visbl="pub" name="org.scalatest.Stopper" data-isabs="false">
+      <a id="Stopper:Stopper"></a>
+      <h4 class="signature">
+      <span class="kind">object</span>
+      <span class="symbol"> 
+        <a href="Stopper$.html"><span class="name">Stopper</span></a>
+        
+        <span class="result"> extends AnyRef</span>
+      </span>
+      </h4>
+      <p class="comment cmt">Companion object to Stopper that holds a deprecated implicit conversion.</p>
+    </li><li visbl="pub" name="org.scalatest.Suites" data-isabs="false">
+      <a id="Suites:Suites"></a>
+      <h4 class="signature">
+      <span class="kind">object</span>
+      <span class="symbol"> 
+        <a href="Suites$.html"><span class="name">Suites</span></a>
+        
+        <span class="result"> extends AnyRef</span>
+      </span>
+      </h4>
+      <p class="comment cmt">Companion object to class <code>Suites</code> that offers an <code>apply</code> factory method
+for creating a <code>Suites</code> instance.</p>
+    </li><li visbl="pub" name="org.scalatest.Tag" data-isabs="false">
+      <a id="Tag:Tag"></a>
+      <h4 class="signature">
+      <span class="kind">object</span>
+      <span class="symbol"> 
+        <a href="Tag$.html"><span class="name">Tag</span></a>
+        
+        <span class="result"> extends AnyRef</span>
+      </span>
+      </h4>
+      <p class="comment cmt">Companion object for <code>Tag</code>, which offers a factory method.</p>
+    </li><li visbl="pub" name="org.scalatest.package#color" data-isabs="false">
+      <a id="color:Shell"></a>
+      <h4 class="signature">
+      <span class="kind">lazy val</span>
+      <span class="symbol"> 
+        <span class="name">color</span>
+        
+        <span class="result">: <a name="org.scalatest.Shell" class="extype" href="Shell.html">Shell</a></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Returns a copy of this <code>Shell</code> with <code>colorPassed</code> configuration parameter set to <code>true</code>.</p><div class="fullcomment"><div class="comment cmt"><p>Returns a copy of this <code>Shell</code> with <code>colorPassed</code> configuration parameter set to <code>true</code>.
+</p></div><dl class="attributes block"> <dt>Definition Classes</dt><dd><a name="org.scalatest.package" class="extype" href="package$.html">package</a></dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.concurrent" data-isabs="false">
+      <a id="concurrent:concurrent"></a>
+      <h4 class="signature">
+      <span class="kind">package</span>
+      <span class="symbol"> 
+        <a href="concurrent/package.html"><span class="name">concurrent</span></a>
+        
+        
+      </span>
+      </h4>
+      
+    </li><li visbl="pub" name="org.scalatest.package#durations" data-isabs="false">
+      <a id="durations:Shell"></a>
+      <h4 class="signature">
+      <span class="kind">lazy val</span>
+      <span class="symbol"> 
+        <span class="name">durations</span>
+        
+        <span class="result">: <a name="org.scalatest.Shell" class="extype" href="Shell.html">Shell</a></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Returns a copy of this <code>Shell</code> with <code>durationsPassed</code> configuration parameter set to <code>true</code>.</p><div class="fullcomment"><div class="comment cmt"><p>Returns a copy of this <code>Shell</code> with <code>durationsPassed</code> configuration parameter set to <code>true</code>.
+</p></div><dl class="attributes block"> <dt>Definition Classes</dt><dd><a name="org.scalatest.package" class="extype" href="package$.html">package</a></dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.events" data-isabs="false">
+      <a id="events:events"></a>
+      <h4 class="signature">
+      <span class="kind">package</span>
+      <span class="symbol"> 
+        <a href="events/package.html"><span class="name">events</span></a>
+        
+        
+      </span>
+      </h4>
+      
+    </li><li visbl="pub" name="org.scalatest.fixture" data-isabs="false">
+      <a id="fixture:fixture"></a>
+      <h4 class="signature">
+      <span class="kind">package</span>
+      <span class="symbol"> 
+        <a href="fixture/package.html"><span class="name">fixture</span></a>
+        
+        
+      </span>
+      </h4>
+      
+    </li><li visbl="pub" name="org.scalatest.package#fullstacks" data-isabs="false">
+      <a id="fullstacks:Shell"></a>
+      <h4 class="signature">
+      <span class="kind">lazy val</span>
+      <span class="symbol"> 
+        <span class="name">fullstacks</span>
+        
+        <span class="result">: <a name="org.scalatest.Shell" class="extype" href="Shell.html">Shell</a></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Returns a copy of this <code>Shell</code> with <code>fullStacksPassed</code> configuration parameter set to <code>true</code>.</p><div class="fullcomment"><div class="comment cmt"><p>Returns a copy of this <code>Shell</code> with <code>fullStacksPassed</code> configuration parameter set to <code>true</code>.
+</p></div><dl class="attributes block"> <dt>Definition Classes</dt><dd><a name="org.scalatest.package" class="extype" href="package$.html">package</a></dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.junit" data-isabs="false">
+      <a id="junit:junit"></a>
+      <h4 class="signature">
+      <span class="kind">package</span>
+      <span class="symbol"> 
+        <a href="junit/package.html"><span class="name">junit</span></a>
+        
+        
+      </span>
+      </h4>
+      
+    </li><li visbl="pub" name="org.scalatest.matchers" data-isabs="false">
+      <a id="matchers:matchers"></a>
+      <h4 class="signature">
+      <span class="kind">package</span>
+      <span class="symbol"> 
+        <a href="matchers/package.html"><span class="name">matchers</span></a>
+        
+        
+      </span>
+      </h4>
+      
+    </li><li visbl="pub" name="org.scalatest.mock" data-isabs="false">
+      <a id="mock:mock"></a>
+      <h4 class="signature">
+      <span class="kind">package</span>
+      <span class="symbol"> 
+        <a href="mock/package.html"><span class="name">mock</span></a>
+        
+        
+      </span>
+      </h4>
+      
+    </li><li visbl="pub" name="org.scalatest.package#nocolor" data-isabs="false">
+      <a id="nocolor:Shell"></a>
+      <h4 class="signature">
+      <span class="kind">lazy val</span>
+      <span class="symbol"> 
+        <span class="name">nocolor</span>
+        
+        <span class="result">: <a name="org.scalatest.Shell" class="extype" href="Shell.html">Shell</a></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Returns a copy of this <code>Shell</code> with <code>colorPassed</code> configuration parameter set to <code>false</code>.</p><div class="fullcomment"><div class="comment cmt"><p>Returns a copy of this <code>Shell</code> with <code>colorPassed</code> configuration parameter set to <code>false</code>.
+</p></div><dl class="attributes block"> <dt>Definition Classes</dt><dd><a name="org.scalatest.package" class="extype" href="package$.html">package</a></dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.package#nodurations" data-isabs="false">
+      <a id="nodurations:Shell"></a>
+      <h4 class="signature">
+      <span class="kind">lazy val</span>
+      <span class="symbol"> 
+        <span class="name">nodurations</span>
+        
+        <span class="result">: <a name="org.scalatest.Shell" class="extype" href="Shell.html">Shell</a></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Returns a copy of this <code>Shell</code> with <code>durationsPassed</code> configuration parameter set to <code>false</code>.</p><div class="fullcomment"><div class="comment cmt"><p>Returns a copy of this <code>Shell</code> with <code>durationsPassed</code> configuration parameter set to <code>false</code>.
+</p></div><dl class="attributes block"> <dt>Definition Classes</dt><dd><a name="org.scalatest.package" class="extype" href="package$.html">package</a></dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.package#nostacks" data-isabs="false">
+      <a id="nostacks:Shell"></a>
+      <h4 class="signature">
+      <span class="kind">lazy val</span>
+      <span class="symbol"> 
+        <span class="name">nostacks</span>
+        
+        <span class="result">: <a name="org.scalatest.Shell" class="extype" href="Shell.html">Shell</a></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Returns a copy of this <code>Shell</code> with <code>shortStacksPassed</code> configuration parameter set to <code>false</code>.</p><div class="fullcomment"><div class="comment cmt"><p>Returns a copy of this <code>Shell</code> with <code>shortStacksPassed</code> configuration parameter set to <code>false</code>.
+</p></div><dl class="attributes block"> <dt>Definition Classes</dt><dd><a name="org.scalatest.package" class="extype" href="package$.html">package</a></dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.package#nostats" data-isabs="false">
+      <a id="nostats:Shell"></a>
+      <h4 class="signature">
+      <span class="kind">lazy val</span>
+      <span class="symbol"> 
+        <span class="name">nostats</span>
+        
+        <span class="result">: <a name="org.scalatest.Shell" class="extype" href="Shell.html">Shell</a></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Returns a copy of this <code>Shell</code> with <code>statsPassed</code> configuration parameter set to <code>false</code>.</p><div class="fullcomment"><div class="comment cmt"><p>Returns a copy of this <code>Shell</code> with <code>statsPassed</code> configuration parameter set to <code>false</code>.
+</p></div><dl class="attributes block"> <dt>Definition Classes</dt><dd><a name="org.scalatest.package" class="extype" href="package$.html">package</a></dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.prop" data-isabs="false">
+      <a id="prop:prop"></a>
+      <h4 class="signature">
+      <span class="kind">package</span>
+      <span class="symbol"> 
+        <a href="prop/package.html"><span class="name">prop</span></a>
+        
+        
+      </span>
+      </h4>
+      
+    </li><li visbl="pub" name="org.scalatest.package#run" data-isabs="false">
+      <a id="run(Suite,String,Map[String, Any]):Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">run</span>
+        
+        <span class="params">(<span name="suite">suite: <a name="org.scalatest.Suite" class="extype" href="Suite.html">Suite</a></span>, <span name="testName">testName: String = <span class="symbol">null</span></span>, <span name="configMap">configMap: Map[String, <span name="scala.Any" class="extype">Any</span>] = <span class="symbol">Map()</span></span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Run the passed suite, optionally passing in a test name and config map.</p><div class="fullcomment"><div class="comment cmt"><p>Run the passed suite, optionally passing in a test name and config map.</p><p>This method will invoke <code>execute</code> on the passed <code>suite</code>, passing in
+the specified (or default) <code>testName</code> and <code>configMap</code> and the configuration values
+passed to this <code>Shell</code>'s constructor (<code>colorPassed</code>, <code>durationsPassed</code>, <code>shortStacksPassed</code>,
+<code>fullStacksPassed</code>, and <code>statsPassed</code>).</p></div><dl class="attributes block"> <dt>Definition Classes</dt><dd><a name="org.scalatest.package" class="extype" href="package$.html">package</a></dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.package#shortstacks" data-isabs="false">
+      <a id="shortstacks:Shell"></a>
+      <h4 class="signature">
+      <span class="kind">lazy val</span>
+      <span class="symbol"> 
+        <span class="name">shortstacks</span>
+        
+        <span class="result">: <a name="org.scalatest.Shell" class="extype" href="Shell.html">Shell</a></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Returns a copy of this <code>Shell</code> with <code>shortStacksPassed</code> configuration parameter set to <code>true</code>.</p><div class="fullcomment"><div class="comment cmt"><p>Returns a copy of this <code>Shell</code> with <code>shortStacksPassed</code> configuration parameter set to <code>true</code>.
+</p></div><dl class="attributes block"> <dt>Definition Classes</dt><dd><a name="org.scalatest.package" class="extype" href="package$.html">package</a></dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.package#stats" data-isabs="false">
+      <a id="stats:Shell"></a>
+      <h4 class="signature">
+      <span class="kind">lazy val</span>
+      <span class="symbol"> 
+        <span class="name">stats</span>
+        
+        <span class="result">: <a name="org.scalatest.Shell" class="extype" href="Shell.html">Shell</a></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Returns a copy of this <code>Shell</code> with <code>statsPassed</code> configuration parameter set to <code>true</code>.</p><div class="fullcomment"><div class="comment cmt"><p>Returns a copy of this <code>Shell</code> with <code>statsPassed</code> configuration parameter set to <code>true</code>.
+</p></div><dl class="attributes block"> <dt>Definition Classes</dt><dd><a name="org.scalatest.package" class="extype" href="package$.html">package</a></dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.testng" data-isabs="false">
+      <a id="testng:testng"></a>
+      <h4 class="signature">
+      <span class="kind">package</span>
+      <span class="symbol"> 
+        <a href="testng/package.html"><span class="name">testng</span></a>
+        
+        
+      </span>
+      </h4>
+      
+    </li><li visbl="pub" name="org.scalatest.tools" data-isabs="false">
+      <a id="tools:tools"></a>
+      <h4 class="signature">
+      <span class="kind">package</span>
+      <span class="symbol"> 
+        <a href="tools/package.html"><span class="name">tools</span></a>
+        
+        
+      </span>
+      </h4>
+      
+    </li><li visbl="pub" name="org.scalatest.verb" data-isabs="false">
+      <a id="verb:verb"></a>
+      <h4 class="signature">
+      <span class="kind">package</span>
+      <span class="symbol"> 
+        <a href="verb/package.html"><span class="name">verb</span></a>
+        
+        
+      </span>
+      </h4>
+      
+    </li></ol>
+            </div>
+
+        
+
+      </div>
+      
+      <div id="tooltip"></div>
+      
+    </body>
+      </html>

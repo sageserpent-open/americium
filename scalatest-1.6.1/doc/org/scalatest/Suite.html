@@ -1,0 +1,1733 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html>
+        <head>
+          <title>org.scalatest.Suite</title>
+          <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+          
+      <link type="text/css" media="screen" rel="stylesheet" href="../../lib/template.css" />
+      <script type="text/javascript" src="../../lib/jquery.js"></script>
+      <script type="text/javascript" src="../../lib/jquery-ui.js"></script>
+      <script type="text/javascript" src="../../lib/template.js"></script>
+      <script type="text/javascript" src="../../lib/tools.tooltip.js"></script>
+    
+        </head>
+        <body class="type">
+      <div id="definition">
+        <img src="../../lib/trait_big.png" />
+        <p id="owner"><a name="org" class="extype" href="../package.html">org</a>.<a name="org.scalatest" class="extype" href="package.html">scalatest</a></p>
+        <h1>Suite</h1>
+      </div>
+
+      <h4 class="signature" id="signature">
+      <span class="kind">trait</span>
+      <span class="symbol"> 
+        <span class="name">Suite</span>
+        
+        <span class="result"> extends <a name="org.scalatest.Assertions" class="extype" href="Assertions.html">Assertions</a> with <a name="org.scalatest.AbstractSuite" class="extype" href="AbstractSuite.html">AbstractSuite</a></span>
+      </span>
+      </h4>
+      
+          <div class="fullcommenttop" id="comment"><div class="comment cmt"><p>A suite of tests. A <code>Suite</code> instance encapsulates a conceptual
+suite (<em>i.e.</em>, a collection) of tests.</p><p>This trait provides an interface that allows suites of tests to be run.
+Its implementation enables a default way of writing and executing tests.  Subtraits and subclasses can
+override <code>Suite</code>'s methods to enable other ways of writing and executing tests.
+This trait's default approach allows tests to be defined as methods whose name starts with &quot;<code>test</code>.&quot;
+This approach is easy to understand, and a good way for Scala beginners to start writing tests.
+More advanced Scala programmers may prefer to mix together other <code>Suite</code> subtraits defined in ScalaTest,
+or create their own, to write tests in the way they feel makes them most productive. Here's a quick overview
+of some of the options to help you get started:</p><p><em>For JUnit 3 users</em></p><p>If you are using JUnit 3 (version 3.8 or earlier releases) and you want to write JUnit 3 tests in Scala, look at
+<a href="junit/AssertionsForJUnit.html"><code>AssertionsForJUnit</code></a>,
+<a href="junit/ShouldMatchersForJUnit.html"><code>ShouldMatchersForJUnit</code></a>, and
+<a href="junit/JUnit3Suite.html"><code>JUnit3Suite</code></a>.</p><p><em>For JUnit 4 users</em></p><p>If you are using JUnit 4 and you want to write JUnit 4 tests in Scala, look at
+<a href="junit/JUnitSuite.html"><code>JUnitSuite</code></a>, and
+<a href="junit/JUnitRunner.html"><code>JUnitRunner</code></a>. With <code>JUnitRunner</code>,
+you can use any of the traits described here and still run your tests with JUnit 4.</p><p><em>For TestNG users</em></p><p>If you are using TestNG and you want to write TestNG tests in Scala, look at
+<a href="testng/TestNGSuite.html"><code>TestNGSuite</code></a>.</p><p><em>For high-level testing</em></p><p>If you want to write tests at a higher level than unit tests, such as integration tests, acceptance tests,
+or functional tests, check out <a href="FeatureSpec.html"><code>FeatureSpec</code></a>.</p><p><em>For unit testing</em></p><p>If you prefer a behavior-driven development (BDD) style, in which tests are combined with text that
+specifies the behavior being tested, look at
+<a href="Spec.html"><code>Spec</code></a>,
+<a href="FlatSpec.html"><code>FlatSpec</code></a>,
+<a href="FreeSpec.html"><code>FreeSpec</code></a>, and
+<a href="WordSpec.html"><code>WordSpec</code></a>. Otherwise, if you just want to write tests
+and don't want to combine testing with specifying, look at
+<a href="FunSuite.html"><code>FunSuite</code></a> or read on to learn how to write
+tests using this base trait, <code>Suite</code>.</p><p>To use this trait's approach to writing tests, simply create classes that
+extend <code>Suite</code> and define test methods. Test methods have names of the form <code>testX</code>,
+where <code>X</code> is some unique, hopefully meaningful, string. A test method must be public and
+can have any result type, but the most common result type is <code>Unit</code>. Here's an example:</p><p><pre class="stHighlighted">
+<span class="stReserved">import</span> org.scalatest.Suite
+<br /><span class="stReserved">class</span> <span class="stType">ExampleSuite</span> <span class="stReserved">extends</span> <span class="stType">Suite</span> {
+<br />  <span class="stReserved">def</span> testAddition {
+    <span class="stReserved">val</span> sum = <span class="stLiteral">1</span> + <span class="stLiteral">1</span>
+    assert(sum === <span class="stLiteral">2</span>)
+  }
+<br />  <span class="stReserved">def</span> testSubtraction {
+    <span class="stReserved">val</span> diff = <span class="stLiteral">4</span> - <span class="stLiteral">1</span>
+    assert(diff === <span class="stLiteral">3</span>)
+  }
+}
+</pre></p><p>You can run a <code>Suite</code> by invoking <code>execute</code> on it.
+This method, which prints test results to the standard output, is intended to serve as a
+convenient way to run tests from within the Scala interpreter. For example,
+to run <code>ExampleSuite</code> from within the Scala interpreter, you could write:</p><p><pre class="stREPL">
+scala&gt; (new ExampleSuite).execute()
+</pre></p><p>And you would see:</p><p><pre class="stREPL">
+<span class="stGreen">ExampleSuite:
+- testAddition
+- testSubtraction</span>
+</pre></p><p>Or, to run just the <code>testAddition</code> method, you could write:</p><p><pre class="stREPL">
+scala&gt; (new ExampleSuite).execute(&quot;testAddition&quot;)
+</pre></p><p>And you would see:</p><p><pre class="stREPL">
+<span class="stGreen">ExampleSuite:
+- testAddition</span>
+</pre></p><p>You can also pass to <code>execute</code> a <a href="#configMapSection"><em>config map</em></a> of key-value
+pairs, which will be passed down into suites and tests, as well as other parameters that configure the run itself.
+For more information on running in the Scala interpreter, see the documentation for <code>execute</code> (below) and the
+<a href="Shell.html">ScalaTest shell</a>.</code></p><p>The <code>execute</code> method invokes a <code>run</code> method takes seven
+parameters. This <code>run</code> method, which actually executes the suite, will usually be invoked by a test runner, such
+as <code>org.scalatest.tools.Runner</code> or an IDE. See the <a href="tools/Runner$.html">documentation
+for <code>Runner</code></a> for more details.</p><h4> Assertions and <code>=</code><code>=</code><code>=</code> </h4><p>Inside test methods in a <code>Suite</code>, you can write assertions by invoking <code>assert</code> and passing in a <code>Boolean</code> expression,
+such as:</p><p><pre class="stHighlighted">
+<span class="stReserved">val</span> left = <span class="stLiteral">2</span>
+<span class="stReserved">val</span> right = <span class="stLiteral">1</span>
+assert(left == right)
+</pre></p><p>If the passed expression is <code>true</code>, <code>assert</code> will return normally. If <code>false</code>,
+<code>assert</code> will complete abruptly with a <code>TestFailedException</code>. This exception is usually not caught
+by the test method, which means the test method itself will complete abruptly by throwing the <code>TestFailedException</code>. Any
+test method that completes abruptly with an exception is considered a failed
+test. A test method that returns normally is considered a successful test.</p><p>If you pass a <code>Boolean</code> expression to <code>assert</code>, a failed assertion will be reported, but without
+reporting the left and right values. You can alternatively encode these values in a <code>String</code> passed as
+a second argument to <code>assert</code>, as in:</p><p><pre class="stHighlighted">
+<span class="stReserved">val</span> left = <span class="stLiteral">2</span>
+<span class="stReserved">val</span> right = <span class="stLiteral">1</span>
+assert(left == right, left + <span class="stQuotedString">&quot; did not equal &quot;</span> + right)
+</pre></p><p>Using this form of <code>assert</code>, the failure report will include the left and right values,
+helping you debug the problem. However, ScalaTest provides the <code>===</code> operator to make this easier.
+(The <code>===</code> operator is defined in trait <a href="Assertions.html"><code>Assertions</code></a> which trait <code>Suite</code> extends.)
+You use it like this:</p><p><pre class="stHighlighted">
+<span class="stReserved">val</span> left = <span class="stLiteral">2</span>
+<span class="stReserved">val</span> right = <span class="stLiteral">1</span>
+assert(left === right)
+</pre></p><p>Because you use <code>===</code> here instead of <code>==</code>, the failure report will include the left
+and right values. For example, the detail message in the thrown <code>TestFailedException</code> from the <code>assert</code>
+shown previously will include, &quot;2 did not equal 1&quot;.
+From this message you will know that the operand on the left had the value 2, and the operand on the right had the value 1.</p><p>If you're familiar with JUnit, you would use <code>===</code>
+in a ScalaTest <code>Suite</code> where you'd use <code>assertEquals</code> in a JUnit <code>TestCase</code>.
+The <code>===</code> operator is made possible by an implicit conversion from <code>Any</code>
+to <code>Equalizer</code>. If you're curious to understand the mechanics, see the <a href="Assertions$Equalizer.html">documentation for
+<code>Equalizer</code></a> and the <code>convertToEqualizer</code> method.</p><h4> Expected results </h4><p>Although <code>===</code> provides a natural, readable extension to Scala's <code>assert</code> mechanism,
+as the operands become lengthy, the code becomes less readable. In addition, the <code>===</code> comparison
+doesn't distinguish between actual and expected values. The operands are just called <code>left</code> and <code>right</code>,
+because if one were named <code>expected</code> and the other <code>actual</code>, it would be difficult for people to
+remember which was which. To help with these limitations of assertions, <code>Suite</code> includes a method called <code>expect</code> that
+can be used as an alternative to <code>assert</code> with <code>===</code>. To use <code>expect</code>, you place
+the expected value in parentheses after <code>expect</code>, followed by curly braces containing code
+that should result in the expected value. For example:</p><p><pre class="stHighlighted">
+<span class="stReserved">val</span> a = <span class="stLiteral">5</span>
+<span class="stReserved">val</span> b = <span class="stLiteral">2</span>
+expect(<span class="stLiteral">2</span>) {
+  a - b
+}
+</pre></p><p>In this case, the expected value is <code>2</code>, and the code being tested is <code>a - b</code>. This expectation will fail, and
+the detail message in the <code>TestFailedException</code> will read, &quot;Expected 2, but got 3.&quot;</p><h4> Intercepted exceptions </h4><p>Sometimes you need to test whether a method throws an expected exception under certain circumstances, such
+as when invalid arguments are passed to the method. You can do this in the JUnit style, like this:</p><p><pre class="stHighlighted">
+<span class="stReserved">val</span> s = <span class="stQuotedString">&quot;hi&quot;</span>
+<span class="stReserved">try</span> {
+  s.charAt(-<span class="stLiteral">1</span>)
+  fail()
+}
+<span class="stReserved">catch</span> {
+  <span class="stReserved">case</span> _: <span class="stType">IndexOutOfBoundsException</span> =&gt; <span class="stLineComment">// Expected, so continue</span>
+}
+</pre></p><p>If <code>charAt</code> throws <code>IndexOutOfBoundsException</code> as expected, control will transfer
+to the catch case, which does nothing. If, however, <code>charAt</code> fails to throw an exception,
+the next statement, <code>fail()</code>, will be executed. The <code>fail</code> method always completes abruptly with
+a <code>TestFailedException</code>, thereby signaling a failed test.</p><p>To make this common use case easier to express and read, ScalaTest provides an <code>intercept</code>
+method. You use it like this:</p><p><pre class="stHighlighted">
+<span class="stReserved">val</span> s = <span class="stQuotedString">&quot;hi&quot;</span>
+intercept[<span class="stType">IndexOutOfBoundsException</span>] {
+  s.charAt(-<span class="stLiteral">1</span>)
+}
+</pre></p><p>This code behaves much like the previous example. If <code>charAt</code> throws an instance of <code>IndexOutOfBoundsException</code>,
+<code>intercept</code> will return that exception. But if <code>charAt</code> completes normally, or throws a different
+exception, <code>intercept</code> will complete abruptly with a <code>TestFailedException</code>. The <code>intercept</code> method returns the
+caught exception so that you can inspect it further if you wish, for example, to ensure that data contained inside
+the exception has the expected values. Here's an example:</p><p><pre class="stHighlighted">
+<span class="stReserved">val</span> s = <span class="stQuotedString">&quot;hi&quot;</span>
+<span class="stReserved">val</span> caught =
+  intercept[<span class="stType">IndexOutOfBoundsException</span>] {
+    s.charAt(-<span class="stLiteral">1</span>)
+  }
+assert(caught.getMessage === <span class="stQuotedString">&quot;String index out of range: -1&quot;</span>)
+</pre></p><h4> Using other assertions </h4><p>ScalaTest also supports another style of assertions via its matchers DSL. By mixing in
+trait <a href="matchers/ShouldMatchers.html"><code>ShouldMatchers</code></a>, you can
+write suites that look like:</p><p><pre class="stHighlighted">
+<span class="stReserved">import</span> org.scalatest.Suite
+<span class="stReserved">import</span> org.scalatest.matchers.ShouldMatchers
+<br /><span class="stReserved">class</span> <span class="stType">ExampleSuite</span> <span class="stReserved">extends</span> <span class="stType">Suite</span> <span class="stReserved">with</span> <span class="stType">ShouldMatchers</span> {
+<br />  <span class="stReserved">def</span> testAddition {
+    <span class="stReserved">val</span> sum = <span class="stLiteral">1</span> + <span class="stLiteral">1</span>
+    sum should equal (<span class="stLiteral">2</span>)
+  }
+<br />  <span class="stReserved">def</span> testSubtraction {
+    <span class="stReserved">val</span> diff = <span class="stLiteral">4</span> - <span class="stLiteral">1</span>
+    diff should equal (<span class="stLiteral">3</span>)
+  }
+}
+</pre></p><p>If you prefer the word &quot;<code>must</code>&quot; to the word &quot;<code>should</code>,&quot; you can alternatively mix in
+trait <a href="matchers/MustMatchers.html"><code>MustMatchers</code></a>.</p><p>If you are comfortable with assertion mechanisms from other test frameworks, chances
+are you can use them with ScalaTest. Any assertion mechanism that indicates a failure with an exception
+can be used as is with ScalaTest. For example, to use the <code>assertEquals</code>
+methods provided by JUnit or TestNG, simply import them and use them. (You will of course need
+to include the relevant JAR file for the framework whose assertions you want to use on either the
+classpath or runpath when you run your tests.) Here's an example in which JUnit's assertions are
+imported, then used within a ScalaTest suite:</p><p><pre class="stHighlighted">
+<span class="stReserved">import</span> org.scalatest.Suite
+<span class="stReserved">import</span> org.junit.Assert._
+<br /><span class="stReserved">class</span> <span class="stType">ExampleSuite</span> <span class="stReserved">extends</span> <span class="stType">Suite</span> {
+<br />  <span class="stReserved">def</span> testAddition {
+    <span class="stReserved">val</span> sum = <span class="stLiteral">1</span> + <span class="stLiteral">1</span>
+    assertEquals(<span class="stLiteral">2</span>, sum)
+  }
+<br />  <span class="stReserved">def</span> testSubtraction {
+    <span class="stReserved">val</span> diff = <span class="stLiteral">4</span> - <span class="stLiteral">1</span>
+    assertEquals(<span class="stLiteral">3</span>, diff)
+  }
+}
+</pre></p><h4> Nested suites </h4><p>A <code>Suite</code> can refer to a collection of other <code>Suite</code>s,
+which are called <em>nested</em> <code>Suite</code>s. Those nested  <code>Suite</code>s can in turn have
+their own nested  <code>Suite</code>s, and so on. Large test suites can be organized, therefore, as a tree of
+nested <code>Suite</code>s.
+This trait's <code>run</code> method, in addition to invoking its
+test methods, invokes <code>run</code> on each of its nested <code>Suite</code>s.</p><p>A <code>List</code> of a <code>Suite</code>'s nested <code>Suite</code>s can be obtained by invoking its
+<code>nestedSuites</code> method. If you wish to create a <code>Suite</code> that serves as a
+container for nested <code>Suite</code>s, whether or not it has test methods of its own, simply override <code>nestedSuites</code>
+to return a <code>List</code> of the nested <code>Suite</code>s. Because this is a common use case, ScalaTest provides
+a convenience <code>Suites</code> class, which takes a variable number of nested <code>Suite</code>s as constructor
+parameters. Here's an example:</p><p><pre class="stHighlighted">
+<span class="stReserved">import</span> org.scalatest.Suite
+<span class="stReserved">import</span> org.scalatest.Suites
+<br /><span class="stReserved">class</span> <span class="stType">ASuite</span> <span class="stReserved">extends</span> <span class="stType">Suite</span> {
+  <span class="stReserved">def</span> testA {}
+}
+<span class="stReserved">class</span> <span class="stType">BSuite</span> <span class="stReserved">extends</span> <span class="stType">Suite</span> {
+  <span class="stReserved">def</span> testB {}
+}
+<span class="stReserved">class</span> <span class="stType">CSuite</span> <span class="stReserved">extends</span> <span class="stType">Suite</span> {
+  <span class="stReserved">def</span> testC {}
+}
+<br /><span class="stReserved">class</span> <span class="stType">AlphabetSuite</span> <span class="stReserved">extends</span> <span class="stType">Suites</span>(
+  <span class="stReserved">new</span> <span class="stType">ASuite</span>,
+  <span class="stReserved">new</span> <span class="stType">BSuite</span>,
+  <span class="stReserved">new</span> <span class="stType">CSuite</span>
+)
+</pre></p><p>If you now run <code>AlphabetSuite</code>:</p><p><pre class="stREPL">
+scala&gt; (new AlphabetSuite).execute()
+</pre></p><p>You will see reports printed to the standard output that indicate the nested
+suites&#8212;<code>ASuite</code>, <code>BSuite</code>, and
+<code>CSuite</code>&#8212;were run:</p><p><pre class="stREPL">
+<span class="stGreen">AlphabetSuite:
+ASuite:
+- testA
+BSuite:
+- testB
+CSuite:
+- testC</span>
+</pre></p><p>Note that <code>Runner</code> can discover <code>Suite</code>s automatically, so you need not
+necessarily define nested <code>Suites</code> explicitly. See the <a href="tools/Runner$.html$membersOnlyWildcard">documentation
+for <code>Runner</code></a> for more information.</p><p><a name="configMapSection"> </a></p><h4> The config map </h4><p>In some cases you may need to pass information to a suite of tests.
+For example, perhaps a suite of tests needs to grab information from a file, and you want
+to be able to specify a different filename during different runs.  You can accomplish this in ScalaTest by passing
+the filename in a <em>config map</em> of key-value pairs, which is passed to <code>run</code> as a <code>Map[String, Any]</code>.
+The values in the config map are called &quot;config objects,&quot; because they can be used to <em>configure</em>
+suites, reporters, and tests.</p><p>You can specify a string config object is via the ScalaTest <code>Runner</code>, either via the command line
+or ScalaTest's ant task.
+(See the <a href="tools/Runner$.html#configMapSection">documentation for Runner</a> for information on how to specify
+config objects on the command line.)
+The config map is passed to <code>run</code>, <code>runNestedSuites</code>, <code>runTests</code>, and <code>runTest</code>,
+so one way to access it in your suite is to override one of those methods. If you need to use the config map inside your tests, you
+can access it from the <code>NoArgTest</code> passed to <code>withFixture</code>, or the <code>OneArgTest</code> passed to
+<code>withFixture</code> in the traits in the <code>org.scalatest.fixture</code> package. (See the
+<a href="fixture/FixtureSuite.html">documentation for <code>FixtureSuite</code></a>
+for instructions on how to access the config map in tests.)</p><h4> Ignored tests </h4><p>Another common use case is that tests must be &#8220;temporarily&#8221; disabled, with the
+good intention of resurrecting the test at a later time. ScalaTest provides an <code>Ignore</code>
+annotation for this purpose. You use it like this:</p><p><pre class="stHighlighted">
+<span class="stReserved">import</span> org.scalatest.Suite
+<span class="stReserved">import</span> org.scalatest.Ignore
+<br /><span class="stReserved">class</span> <span class="stType">ExampleSuite</span> <span class="stReserved">extends</span> <span class="stType">Suite</span> {
+<br />  <span class="stReserved">def</span> testAddition {
+    <span class="stReserved">val</span> sum = <span class="stLiteral">1</span> + <span class="stLiteral">1</span>
+    assert(sum === <span class="stLiteral">2</span>)
+  }
+<br />  @<span class="stType">Ignore</span>
+  <span class="stReserved">def</span> testSubtraction {
+    <span class="stReserved">val</span> diff = <span class="stLiteral">4</span> - <span class="stLiteral">1</span>
+    assert(diff === <span class="stLiteral">3</span>)
+  }
+}
+</pre></p><p>If you run this version of <code>ExampleSuite</code> with:</p><p><pre class="stREPL">
+scala&gt; (new ExampleSuite).run()
+</pre></p><p>It will run only <code>testAddition</code> and report that <code>testSubtraction</code> was ignored. You'll see:</p><p><pre class="stREPL">
+<span class="stGreen">ExampleSuite:
+- testAddition</span>
+<span class="stYellow">- testSubtraction !!! IGNORED !!!</span>
+</pre></p><p><code>Ignore</code> is implemented as a tag. The <code>Filter</code> class effectively
+adds <code>org.scalatest.Ignore</code> to the <code>tagsToExclude</code> <code>Set</code> if it not already
+in the <code>tagsToExclude</code> set passed to its primary constructor.  The only difference between
+<code>org.scalatest.Ignore</code> and the tags you may define and exclude is that ScalaTest reports
+ignored tests to the <code>Reporter</code>. The reason ScalaTest reports ignored tests is
+to encourage ignored tests to be eventually fixed and added back into the active suite of tests.</p><h4> Pending tests </h4><p>A <em>pending test</em> is one that has been given a name but is not yet implemented. The purpose of
+pending tests is to facilitate a style of testing in which documentation of behavior is sketched
+out before tests are written to verify that behavior (and often, before the behavior of
+the system being tested is itself implemented). Such sketches form a kind of specification of
+what tests and functionality to implement later.</p><p>To support this style of testing, a test can be given a name that specifies one
+bit of behavior required by the system being tested. The test can also include some code that
+sends more information about the behavior to the reporter when the tests run. At the end of the test,
+it can call method <code>pending</code>, which will cause it to complete abruptly with <code>TestPendingException</code>.</p><p>Because tests in ScalaTest can be designated as pending with <code>TestPendingException</code>, both the test name and any information
+sent to the reporter when running the test can appear in the report of a test run. (In other words,
+the code of a pending test is executed just like any other test.) However, because the test completes abruptly
+with <code>TestPendingException</code>, the test will be reported as pending, to indicate
+the actual test, and possibly the functionality it is intended to test, has not yet been implemented.</p><p>Although pending tests may be used more often in specification-style suites, such as
+<code>org.scalatest.Spec</code>, you can also use it in <code>Suite</code>, like this:</p><p><pre class="stHighlighted">
+<span class="stReserved">import</span> org.scalatest.Suite
+<br /><span class="stReserved">class</span> <span class="stType">ExampleSuite</span> <span class="stReserved">extends</span> <span class="stType">Suite</span> {
+<br />  <span class="stReserved">def</span> testAddition {
+    <span class="stReserved">val</span> sum = <span class="stLiteral">1</span> + <span class="stLiteral">1</span>
+    assert(sum === <span class="stLiteral">2</span>)
+  }
+<br />  <span class="stReserved">def</span> testSubtraction { pending }
+}
+</pre></p><p>If you run this version of <code>ExampleSuite</code> with:</p><p><pre class="stREPL">
+scala&gt; (new ExampleSuite).run()
+</pre></p><p>It will run both tests but report that <code>testSubtraction</code> is pending. You'll see:</p><p><pre class="stREPL">
+<span class="stGreen">ExampleSuite:
+- testAddition</span>
+<span class="stYellow">- testSubtraction (pending)</span>
+</pre></p><h4> Informers </h4><p>One of the parameters to <code>run</code> is a <code>Reporter</code>, which
+will collect and report information about the running suite of tests.
+Information about suites and tests that were run, whether tests succeeded or failed,
+and tests that were ignored will be passed to the <code>Reporter</code> as the suite runs.
+Most often the reporting done by default by <code>Suite</code>'s methods will be sufficient, but
+occasionally you may wish to provide custom information to the <code>Reporter</code> from a test method.
+For this purpose, you can optionally include an <code>Informer</code> parameter in a test method, and then
+pass the extra information to the <code>Informer</code> via its <code>apply</code> method. The <code>Informer</code>
+will then pass the information to the <code>Reporter</code> by sending an <code>InfoProvided</code> event.
+Here's an example:</p><p><pre class="stHighlighted">
+<span class="stReserved">import</span> org.scalatest._
+<br /><span class="stReserved">class</span> <span class="stType">ExampleSuite</span> <span class="stReserved">extends</span> <span class="stType">Suite</span> {
+<br />  <span class="stReserved">def</span> testAddition(info: <span class="stType">Informer</span>) {
+    assert(<span class="stLiteral">1</span> + <span class="stLiteral">1</span> === <span class="stLiteral">2</span>)
+    info(<span class="stQuotedString">&quot;Addition seems to work&quot;</span>)
+  }
+}
+</pre></p><p>If you run this <code>Suite</code> from the interpreter, you will see the message
+included in the printed report:</p><p><pre class="stREPL">
+scala&gt; (new ExampleSuite).run()
+<span class="stGreen">ExampleSuite:
+- testAddition(Informer)
+  + Addition seems to work </span>
+</pre></p><h4> Executing suites in parallel </h4><p>The <code>run</code> method takes as one of its parameters an optional <code>Distributor</code>. If
+a <code>Distributor</code> is passed in, this trait's implementation of <code>run</code> puts its nested
+<code>Suite</code>s into the distributor rather than executing them directly. The caller of <code>run</code>
+is responsible for ensuring that some entity runs the <code>Suite</code>s placed into the
+distributor. The <code>-c</code> command line parameter to <code>Runner</code>, for example, will cause
+<code>Suite</code>s put into the <code>Distributor</code> to be run in parallel via a pool of threads.</p><p><a name="TaggingTests"> </a></p><h4> Tagging tests </h4><p>A <code>Suite</code>'s tests may be classified into groups by <em>tagging</em> them with string names. When executing
+a <code>Suite</code>, groups of tests can optionally be included and/or excluded. In this
+trait's implementation, tags are indicated by annotations attached to the test method. To
+create a new tag type to use in <code>Suite</code>s, simply define a new Java annotation that itself is annotated with the <code>org.scalatest.TagAnnotation</code> annotation.
+(Currently, for annotations to be
+visible in Scala programs via Java reflection, the annotations themselves must be written in Java.) For example,
+to create a tag named <code>SlowAsMolasses</code>, to use to mark slow tests, you would
+write in Java:</p><p><b>Because of a Scaladoc bug in Scala 2.8, I had to put a space after the at sign in one the target annotation example below. If you
+want to copy and paste from this example, you'll need to remove the space by hand.  - Bill Venners</b></p><p><pre>
+import java.lang.annotation.*;
+import org.scalatest.TagAnnotation
+
+@TagAnnotation
+@Retention(RetentionPolicy.RUNTIME)
+@ Target({ElementType.METHOD, ElementType.TYPE})
+public @interface SlowAsMolasses {}
+</pre></p><p>Given this new annotation, you could place a <code>Suite</code> test method into the <code>SlowAsMolasses</code> group
+(<em>i.e.</em>, tag it as being <code>SlowAsMolasses</code>) like this:</p><p><pre class="stHighlighted">
+@<span class="stType">SlowAsMolasses</span>
+<span class="stReserved">def</span> testSleeping { sleep(<span class="stLiteral">1000000</span>) }
+</pre></p><p>The <code>run</code> method takes a <code>Filter</code>, whose constructor takes an optional
+<code>Set[String]</code> called <code>tagsToInclude</code> and a <code>Set[String]</code> called
+<code>tagsToExclude</code>. If <code>tagsToInclude</code> is <code>None</code>, all tests will be run
+except those those belonging to tags listed in the
+<code>tagsToExclude</code> <code>Set</code>. If <code>tagsToInclude</code> is defined, only tests
+belonging to tags mentioned in the <code>tagsToInclude</code> set, and not mentioned in <code>tagsToExclude</code>,
+will be run.</p><p><a name="sharedFixtures"> </a></p><h4> Shared fixtures </h4><p>A test <em>fixture</em> is objects or other artifacts (such as files, sockets, database
+connections, <em>etc.</em>) used by tests to do their work.
+If a fixture is used by only one test method, then the definitions of the fixture objects can
+be local to the method, such as the objects assigned to <code>sum</code> and <code>diff</code> in the
+previous <code>ExampleSuite</code> examples. If multiple methods need to share an immutable fixture, one approach
+is to assign them to instance variables.</p><p>In some cases, however, shared <em>mutable</em> fixture objects may be changed by test methods such that
+they need to be recreated or reinitialized before each test. Shared resources such
+as files or database connections may also need to
+be created and initialized before, and cleaned up after, each test. JUnit 3 offered methods <code>setUp</code> and
+<code>tearDown</code> for this purpose. In ScalaTest, you can use the <code>BeforeAndAfterEach</code> trait,
+which will be described later, to implement an approach similar to JUnit's <code>setUp</code>
+and <code>tearDown</code>, however, this approach usually involves reassigning <code>var</code>s or mutating objects
+between tests. Before going that route, you may wish to consider some more functional approaches that
+avoid side effects.</p><h6> Calling create-fixture methods </h6><p>One approach is to write one or more <em>create-fixture</em> methods
+that return a new instance of a needed fixture object (or an holder object containing multiple needed fixture objects) each time it
+is called. You can then call a create-fixture method at the beginning of each
+test method that needs the fixture, storing the returned object or objects in local variables. Here's an example:</p><p><pre class="stHighlighted">
+<span class="stReserved">import</span> org.scalatest.Suite
+<span class="stReserved">import</span> collection.mutable.ListBuffer
+<br /><span class="stReserved">class</span> <span class="stType">ExampleSuite</span> <span class="stReserved">extends</span> <span class="stType">Suite</span> {
+<br />  <span class="stReserved">def</span> fixture =
+    <span class="stReserved">new</span> {
+      <span class="stReserved">val</span> builder = <span class="stReserved">new</span> <span class="stType">StringBuilder</span>(<span class="stQuotedString">&quot;ScalaTest is &quot;</span>)
+      <span class="stReserved">val</span> buffer = <span class="stReserved">new</span> <span class="stType">ListBuffer[String]</span>
+    }
+<br />  <span class="stReserved">def</span> testEasy {
+    <span class="stReserved">val</span> f = fixture
+    f.builder.append(<span class="stQuotedString">&quot;easy!&quot;</span>)
+    assert(f.builder.toString === <span class="stQuotedString">&quot;ScalaTest is easy!&quot;</span>)
+    assert(f.buffer.isEmpty)
+    f.buffer += <span class="stQuotedString">&quot;sweet&quot;</span>
+  }
+<br />  <span class="stReserved">def</span> testFun {
+    <span class="stReserved">val</span> f = fixture
+    f.builder.append(<span class="stQuotedString">&quot;fun!&quot;</span>)
+    assert(f.builder.toString === <span class="stQuotedString">&quot;ScalaTest is fun!&quot;</span>)
+    assert(f.buffer.isEmpty)
+  }
+}
+</pre></p><p>The &ldquo;<code>f.</code>&rdquo; in front of each use of a fixture object provides a visual indication of which objects
+are part of the fixture, but if you prefer, you can import the the members with &ldquo;<code>import f._</code>&rdquo; and use the names directly.</p><h6> Instantiating fixture traits </h6><p>A related technique is to place
+the fixture objects in a <em>fixture trait</em> and run your test code in the context of a new anonymous class instance that mixes in
+the fixture trait, like this:</p><p><pre class="stHighlighted">
+<span class="stReserved">import</span> org.scalatest.Suite
+<span class="stReserved">import</span> collection.mutable.ListBuffer
+<br /><span class="stReserved">class</span> <span class="stType">ExampleSuite</span> <span class="stReserved">extends</span> <span class="stType">Suite</span> {
+<br />  <span class="stReserved">trait</span> <span class="stType">Fixture</span> {
+    <span class="stReserved">val</span> builder = <span class="stReserved">new</span> <span class="stType">StringBuilder</span>(<span class="stQuotedString">&quot;ScalaTest is &quot;</span>)
+    <span class="stReserved">val</span> buffer = <span class="stReserved">new</span> <span class="stType">ListBuffer[String]</span>
+  }
+<br />  <span class="stReserved">def</span> testEasy {
+    <span class="stReserved">new</span> <span class="stType">Fixture</span> {
+      builder.append(<span class="stQuotedString">&quot;easy!&quot;</span>)
+      assert(builder.toString === <span class="stQuotedString">&quot;ScalaTest is easy!&quot;</span>)
+      assert(buffer.isEmpty)
+      buffer += <span class="stQuotedString">&quot;sweet&quot;</span>
+    }
+  }
+<br />  <span class="stReserved">def</span> testFun {
+    <span class="stReserved">new</span> <span class="stType">Fixture</span> {
+      builder.append(<span class="stQuotedString">&quot;fun!&quot;</span>)
+      assert(builder.toString === <span class="stQuotedString">&quot;ScalaTest is fun!&quot;</span>)
+      assert(buffer.isEmpty)
+    }
+  }
+}
+</pre></p><h6> Mixing in <code>OneInstancePerTest</code> </h6><p>If every test method requires the same set of
+mutable fixture objects, one other approach you can take is make them simply <code>val</code>s and mix in trait
+<a href="OneInstancePerTest.html"><code>OneInstancePerTest</code></a>.  If you mix in <code>OneInstancePerTest</code>, each test
+will be run in its own instance of the <code>Suite</code>, similar to the way JUnit tests are executed. Here's an example:</p><p><pre class="stHighlighted">
+<span class="stReserved">import</span> org.scalatest.Suite
+<span class="stReserved">import</span> org.scalatest.OneInstancePerTest
+<span class="stReserved">import</span> collection.mutable.ListBuffer
+<br /><span class="stReserved">class</span> <span class="stType">ExampleSuite</span> <span class="stReserved">extends</span> <span class="stType">Suite</span> <span class="stReserved">with</span> <span class="stType">OneInstancePerTest</span> {
+<br />  <span class="stReserved">val</span> builder = <span class="stReserved">new</span> <span class="stType">StringBuilder</span>(<span class="stQuotedString">&quot;ScalaTest is &quot;</span>)
+  <span class="stReserved">val</span> buffer = <span class="stReserved">new</span> <span class="stType">ListBuffer[String]</span>
+<br />  <span class="stReserved">def</span> testEasy {
+    builder.append(<span class="stQuotedString">&quot;easy!&quot;</span>)
+    assert(builder.toString === <span class="stQuotedString">&quot;ScalaTest is easy!&quot;</span>)
+    assert(buffer.isEmpty)
+    buffer += <span class="stQuotedString">&quot;sweet&quot;</span>
+  }
+<br />  <span class="stReserved">def</span> testFun {
+    builder.append(<span class="stQuotedString">&quot;fun!&quot;</span>)
+    assert(builder.toString === <span class="stQuotedString">&quot;ScalaTest is fun!&quot;</span>)
+    assert(buffer.isEmpty)
+  }
+}
+</pre></p><p>Although the create-fixture, fixture-trait, and <code>OneInstancePerTest</code> approaches take care of setting up a fixture before each
+test, they don't address the problem of cleaning up a fixture after the test completes. In this situation, you'll need to either
+use side effects or the <em>loan pattern</em>.</p><h6> Mixing in <code>BeforeAndAfter</code> </h6><p>One way to use side effects is to mix in the <a href="BeforeAndAfter.html"><code>BeforeAndAfter</code></a> trait.
+With this trait you can denote a bit of code to run before each test with <code>before</code> and/or after each test
+each test with <code>after</code>, like this:</p><p><pre class="stHighlighted">
+<span class="stReserved">import</span> org.scalatest.Suite
+<span class="stReserved">import</span> org.scalatest.BeforeAndAfter
+<span class="stReserved">import</span> collection.mutable.ListBuffer
+<br /><span class="stReserved">class</span> <span class="stType">ExampleSuite</span> <span class="stReserved">extends</span> <span class="stType">Suite</span> <span class="stReserved">with</span> <span class="stType">BeforeAndAfter</span> {
+<br />  <span class="stReserved">val</span> builder = <span class="stReserved">new</span> <span class="stType">StringBuilder</span>
+  <span class="stReserved">val</span> buffer = <span class="stReserved">new</span> <span class="stType">ListBuffer[String]</span>
+<br />  before {
+    builder.append(<span class="stQuotedString">&quot;ScalaTest is &quot;</span>)
+  }
+<br />  after {
+    builder.clear()
+    buffer.clear()
+  }
+<br />  <span class="stReserved">def</span> testEasy {
+    builder.append(<span class="stQuotedString">&quot;easy!&quot;</span>)
+    assert(builder.toString === <span class="stQuotedString">&quot;ScalaTest is easy!&quot;</span>)
+    assert(buffer.isEmpty)
+    buffer += <span class="stQuotedString">&quot;sweet&quot;</span>
+  }
+<br />  <span class="stReserved">def</span> testFun {
+    builder.append(<span class="stQuotedString">&quot;fun!&quot;</span>)
+    assert(builder.toString === <span class="stQuotedString">&quot;ScalaTest is fun!&quot;</span>)
+    assert(buffer.isEmpty)
+  }
+}
+</pre></p><h6> Overriding <code>withFixture(NoArgTest)</code> </h6><p>An alternate way to take care of setup and cleanup via side effects
+is to override <code>withFixture</code>. Trait <code>Suite</code>'s implementation of
+<code>runTest</code> passes a no-arg test function to <code>withFixture</code>. It is <code>withFixture</code>'s
+responsibility to invoke that test function.  <code>Suite</code>'s implementation of <code>withFixture</code> simply
+invokes the function, like this:</p><p><pre class="stHighlighted">
+<span class="stLineComment">// Default implementation</span>
+<span class="stReserved">protected</span> <span class="stReserved">def</span> withFixture(test: <span class="stType">NoArgTest</span>) {
+  test()
+}
+</pre></p><p>You can, therefore, override <code>withFixture</code> to perform setup before, and cleanup after, invoking the test function. If
+you have cleanup to perform, you should invoke the test function
+inside a <code>try</code> block and perform the cleanup in a <code>finally</code> clause.
+Here's an example:</p><p><pre class="stHighlighted">
+<span class="stReserved">import</span> org.scalatest.Suite
+<span class="stReserved">import</span> collection.mutable.ListBuffer
+<br /><span class="stReserved">class</span> <span class="stType">ExampleSuite</span> <span class="stReserved">extends</span> <span class="stType">Suite</span> {
+<br />  <span class="stReserved">val</span> builder = <span class="stReserved">new</span> <span class="stType">StringBuilder</span>
+  <span class="stReserved">val</span> buffer = <span class="stReserved">new</span> <span class="stType">ListBuffer[String]</span>
+<br />  <span class="stReserved">override</span> <span class="stReserved">def</span> withFixture(test: <span class="stType">NoArgTest</span>) {
+    builder.append(<span class="stQuotedString">&quot;ScalaTest is &quot;</span>) <span class="stLineComment">// perform setup</span>
+    <span class="stReserved">try</span> {
+      test() <span class="stLineComment">// invoke the test function</span>
+    }
+    <span class="stReserved">finally</span> {
+      builder.clear() <span class="stLineComment">// perform cleanup</span>
+      buffer.clear()
+    }
+  }
+<br />  <span class="stReserved">def</span> testEasy {
+    builder.append(<span class="stQuotedString">&quot;easy!&quot;</span>)
+    assert(builder.toString === <span class="stQuotedString">&quot;ScalaTest is easy!&quot;</span>)
+    assert(buffer.isEmpty)
+    buffer += <span class="stQuotedString">&quot;sweet&quot;</span>
+  }
+<br />  <span class="stReserved">def</span> testFun {
+    builder.append(<span class="stQuotedString">&quot;fun!&quot;</span>)
+    assert(builder.toString === <span class="stQuotedString">&quot;ScalaTest is fun!&quot;</span>)
+    assert(buffer.isEmpty)
+    buffer += <span class="stQuotedString">&quot;clear&quot;</span>
+  }
+}
+</pre></p><p>Note that the <a href="Suite$NoArgTest.html"><code>NoArgTest</code></a> passed to <code>withFixture</code>, in addition to
+an <code>apply</code> method that executes the test, also includes the test name as well as the <a href="#configMapSection">config
+map</a> passed to <code>runTest</code>. Thus you can also use the test name and configuration objects in <code>withFixture</code>.</p><p>The reason you should perform cleanup in a <code>finally</code> clause is that <code>withFixture</code> is called by
+<code>runTest</code>, which expects an exception to be thrown to indicate a failed test. Thus when you invoke
+the <code>test</code> function inside <code>withFixture</code>, it may complete abruptly with an exception. The <code>finally</code>
+clause will ensure the fixture cleanup happens as that exception propagates back up the call stack to <code>runTest</code>.</p><h6> Overriding <code>withFixture(OneArgTest)</code> </h6><p>To use the loan pattern, you can extend <code>FixtureSuite</code> (from the <code>org.scalatest.fixture</code> package) instead of
+<code>Suite</code>. Each test in a <code>FixtureSuite</code> takes a fixture as a parameter, allowing you to pass the fixture into
+the test. You must indicate the type of the fixture parameter by specifying <code>FixtureParam</code>, and implement a
+<code>withFixture</code> method that takes a <code>OneArgTest</code>. This <code>withFixture</code> method is responsible for
+invoking the one-arg test function, so you can perform fixture set up before, and clean up after, invoking and passing
+the fixture into the test function. Here's an example:</p><p><pre class="stHighlighted">
+<span class="stReserved">import</span> org.scalatest.fixture.FixtureSuite
+<span class="stReserved">import</span> java.io.FileWriter
+<span class="stReserved">import</span> java.io.File
+<br /><span class="stReserved">class</span> <span class="stType">ExampleSuite</span> <span class="stReserved">extends</span> <span class="stType">FixtureSuite</span> {
+<br />  <span class="stReserved">final</span> <span class="stReserved">val</span> tmpFile = <span class="stQuotedString">&quot;temp.txt&quot;</span>
+<br />  <span class="stReserved">type</span> <span class="stType">FixtureParam</span> = <span class="stType">FileWriter</span>
+<br />  <span class="stReserved">def</span> withFixture(test: <span class="stType">OneArgTest</span>) {
+<br />    <span class="stReserved">val</span> writer = <span class="stReserved">new</span> <span class="stType">FileWriter</span>(tmpFile) <span class="stLineComment">// set up the fixture</span>
+    <span class="stReserved">try</span> {
+      test(writer) <span class="stLineComment">// &quot;loan&quot; the fixture to the test</span>
+    }
+    <span class="stReserved">finally</span> {
+      writer.close() <span class="stLineComment">// clean up the fixture</span>
+    }
+  }
+<br />  <span class="stReserved">def</span> testEasy(writer: <span class="stType">FileWriter</span>) {
+    writer.write(<span class="stQuotedString">&quot;Hello, test!&quot;</span>)
+    writer.flush()
+    assert(<span class="stReserved">new</span> <span class="stType">File</span>(tmpFile).length === <span class="stLiteral">12</span>)
+  }
+<br />  <span class="stReserved">def</span> testFun(writer: <span class="stType">FileWriter</span>) {
+    writer.write(<span class="stQuotedString">&quot;Hi, test!&quot;</span>)
+    writer.flush()
+    assert(<span class="stReserved">new</span> <span class="stType">File</span>(tmpFile).length === <span class="stLiteral">9</span>)
+  }
+}
+</pre></p><p>For more information, see the <a href="fixture/FixtureSuite.html">documentation for <code>FixtureSuite</code></a>.</p><p><a name="differentFixtures"> </a></p><h4> Providing different fixtures to different tests </h4><p>If different tests in the same <code>Suite</code> require different fixtures, you can combine the previous techniques and
+provide each test with just the fixture or fixtures it needs. Here's an example in which a <code>StringBuilder</code> and a
+<code>ListBuffer</code> are provided via fixture traits, and file writer (that requires cleanup) is provided via the loan pattern:</p><p><pre class="stHighlighted">
+<span class="stReserved">import</span> java.io.FileWriter
+<span class="stReserved">import</span> java.io.File
+<span class="stReserved">import</span> collection.mutable.ListBuffer
+<span class="stReserved">import</span> org.scalatest.Suite
+<br /><span class="stReserved">class</span> <span class="stType">ExampleSuite</span> <span class="stReserved">extends</span> <span class="stType">Suite</span> {
+<br />  <span class="stReserved">final</span> <span class="stReserved">val</span> tmpFile = <span class="stQuotedString">&quot;temp.txt&quot;</span>
+<br />  <span class="stReserved">trait</span> <span class="stType">Builder</span> {
+    <span class="stReserved">val</span> builder = <span class="stReserved">new</span> <span class="stType">StringBuilder</span>(<span class="stQuotedString">&quot;ScalaTest is &quot;</span>)
+  }
+<br />  <span class="stReserved">trait</span> <span class="stType">Buffer</span> {
+    <span class="stReserved">val</span> buffer = <span class="stType">ListBuffer</span>(<span class="stQuotedString">&quot;ScalaTest&quot;</span>, <span class="stQuotedString">&quot;is&quot;</span>)
+  }
+<br />  <span class="stReserved">def</span> withWriter(testCode: <span class="stType">FileWriter</span> =&gt; <span class="stType">Any</span>) {
+    <span class="stReserved">val</span> writer = <span class="stReserved">new</span> <span class="stType">FileWriter</span>(tmpFile) <span class="stLineComment">// set up the fixture</span>
+    <span class="stReserved">try</span> {
+      testCode(writer) <span class="stLineComment">// &quot;loan&quot; the fixture to the test</span>
+    }
+    <span class="stReserved">finally</span> {
+      writer.close() <span class="stLineComment">// clean up the fixture</span>
+    }
+  }
+<br />  <span class="stReserved">def</span> testProductive { <span class="stLineComment">// This test needs the StringBuilder fixture</span>
+    <span class="stReserved">new</span> <span class="stType">Builder</span> {
+      builder.append(<span class="stQuotedString">&quot;productive!&quot;</span>)
+      assert(builder.toString === <span class="stQuotedString">&quot;ScalaTest is productive!&quot;</span>)
+    }
+  }
+<br />  <span class="stReserved">def</span> testReadable { <span class="stLineComment">// This test needs the ListBuffer[String] fixture</span>
+    <span class="stReserved">new</span> <span class="stType">Buffer</span> {
+      buffer += (<span class="stQuotedString">&quot;readable!&quot;</span>)
+      assert(buffer === <span class="stType">List</span>(<span class="stQuotedString">&quot;ScalaTest&quot;</span>, <span class="stQuotedString">&quot;is&quot;</span>, <span class="stQuotedString">&quot;readable!&quot;</span>))
+    }
+  }
+<br />  <span class="stReserved">def</span> testFriendly { <span class="stLineComment">// This test needs the FileWriter fixture</span>
+    withWriter { writer =&gt;
+      writer.write(<span class="stQuotedString">&quot;Hello, user!&quot;</span>)
+      writer.flush()
+      assert(<span class="stReserved">new</span> <span class="stType">File</span>(tmpFile).length === <span class="stLiteral">12</span>)
+    }
+  }
+<br />  <span class="stReserved">def</span> testClearAndConcise { <span class="stLineComment">// This test needs the StringBuilder and ListBuffer</span>
+    <span class="stReserved">new</span> <span class="stType">Builder</span> <span class="stReserved">with</span> <span class="stType">Buffer</span> {
+      builder.append(<span class="stQuotedString">&quot;clear!&quot;</span>)
+      buffer += (<span class="stQuotedString">&quot;concise!&quot;</span>)
+      assert(builder.toString === <span class="stQuotedString">&quot;ScalaTest is clear!&quot;</span>)
+      assert(buffer === <span class="stType">List</span>(<span class="stQuotedString">&quot;ScalaTest&quot;</span>, <span class="stQuotedString">&quot;is&quot;</span>, <span class="stQuotedString">&quot;concise!&quot;</span>))
+    }
+  }
+<br />  <span class="stReserved">def</span> testComposable { <span class="stLineComment">// This test needs all three fixtures</span>
+    <span class="stReserved">new</span> <span class="stType">Builder</span> <span class="stReserved">with</span> <span class="stType">Buffer</span> {
+      builder.append(<span class="stQuotedString">&quot;clear!&quot;</span>)
+      buffer += (<span class="stQuotedString">&quot;concise!&quot;</span>)
+      assert(builder.toString === <span class="stQuotedString">&quot;ScalaTest is clear!&quot;</span>)
+      assert(buffer === <span class="stType">List</span>(<span class="stQuotedString">&quot;ScalaTest&quot;</span>, <span class="stQuotedString">&quot;is&quot;</span>, <span class="stQuotedString">&quot;concise!&quot;</span>))
+      withWriter { writer =&gt;
+        writer.write(builder.toString)
+        writer.flush()
+        assert(<span class="stReserved">new</span> <span class="stType">File</span>(tmpFile).length === <span class="stLiteral">19</span>)
+      }
+    }
+  }
+}
+</pre></p><p>In the previous example, <code>testProductive</code> uses only the <code>StringBuilder</code> fixture, so it just instantiates
+a <code>new Builder</code>, whereas <code>testReadable</code> uses only the <code>ListBuffer</code> fixture, so it just intantiates
+a <code>new Buffer</code>. <code>testFriendly</code> needs just the <code>FileWriter</code> fixture, so it invokes
+<code>withWriter</code>, which prepares and passes a <code>FileWriter</code> to the test (and takes care of closing it afterwords).</p><p>Two tests need multiple fixtures: <code>testClearAndConcise</code> needs both the <code>StringBuilder</code> and the
+<code>ListBuffer</code>, so it instantiates a class that mixes in both fixture traits with <code>new Builder with Buffer</code>.
+<code>testComposable</code> needs all three fixtures, so in addition to <code>new Builder with Buffer</code> it also invokes
+<code>withWriter</code>, wrapping just the of the test code that needs the fixture.</p><p>Note that in this case, the loan pattern is being implemented via the <code>withWriter</code> method that takes a function, not
+by overriding <code>FixtureSuite</code>'s <code>withFixture(OneArgTest)</code> method. <code>FixtureSuite</code> makes the most sense
+if all (or at least most) tests need the same fixture, whereas in this <code>Suite</code> only two tests need the
+<code>FileWriter</code>.</p><p>Note also that two test methods, <code>testFriendly</code> and <code>testComposable</code>, are declared as parameterless methods even
+though they have a side effect. In production code you would normally declare these as <em>empty-paren</em> methods, and call them with
+empty parentheses, to make it more obvious to readers of the code that they have a side effect. Whether or not a test method has
+a side effect, however, is a less important distinction than it is for methods in production code. Moreover, test methods are not
+normally invoked directly by client code, but rather through reflection by running the <code>Suite</code> that contains them, so a
+lack of parentheses on an invocation of a side-effecting test method would not normally appear in any client code. Given the empty
+parentheses do not add much value in the test methods case, the recommended style is to simply always leave them off.</p><p>In the previous example, the <code>withWriter</code> method passed an object into
+the tests. Passing fixture objects into tests is generally a good idea when possible, but sometimes a side affect is unavoidable.
+For example, if you need to initialize a database running on a server across a network, your with-fixture
+method will likely have nothing to pass. In such cases, simply create a with-fixture method that takes a by-name parameter and
+performs setup and cleanup via side effects, like this:</p><p><pre class="stHighlighted">
+<span class="stReserved">def</span> withDataInDatabase(test: =&gt; <span class="stType">Any</span>) {
+  <span class="stLineComment">// initialize the database across the network</span>
+  <span class="stReserved">try</span> {
+    test <span class="stLineComment">// &quot;loan&quot; the initialized database to the test</span>
+  }
+  <span class="stReserved">finally</span> {
+    <span class="stLineComment">// clean up the database</span>
+  }
+}
+</pre></p><p>You can then use it like:</p><p><pre class="stHighlighted">
+<span class="stReserved">def</span> testUserLogsIn {
+  withDataInDatabase {
+    <span class="stLineComment">// test user logging in scenario</span>
+  }
+}
+</pre></p><p><a name="composingFixtures"> </a></p><h4> Composing stackable fixture traits </h4><p>In larger projects, teams often end up with several different fixtures that test classes need in different combinations,
+and possibly initialized (and cleaned up) in different orders. A good way to accomplish this in ScalaTest is to factor the individual
+fixtures into traits that can be composed using the <em>stackable trait</em> pattern. This can be done, for example, by placing
+<code>withFixture</code> methods in several traits, each of which call <code>super.withFixture</code>. Here's an example in
+which the <code>StringBuilder</code> and <code>ListBuffer[String]</code> fixtures used in the previous examples have been
+factored out into two <em>stackable fixture traits</em> named <code>Builder</code> and <code>Buffer</code>:</p><p><pre class="stHighlighted">
+<span class="stReserved">import</span> org.scalatest.Suite
+<span class="stReserved">import</span> org.scalatest.AbstractSuite
+<span class="stReserved">import</span> collection.mutable.ListBuffer
+<br /><span class="stReserved">trait</span> <span class="stType">Builder</span> <span class="stReserved">extends</span> <span class="stType">AbstractSuite</span> { <span class="stReserved">this</span>: <span class="stType">Suite</span> =&gt;
+<br />  <span class="stReserved">val</span> builder = <span class="stReserved">new</span> <span class="stType">StringBuilder</span>
+<br />  <span class="stReserved">abstract</span> <span class="stReserved">override</span> <span class="stReserved">def</span> withFixture(test: <span class="stType">NoArgTest</span>) {
+    builder.append(<span class="stQuotedString">&quot;ScalaTest is &quot;</span>)
+    <span class="stReserved">try</span> {
+      <span class="stReserved">super</span>.withFixture(test) <span class="stLineComment">// To be stackable, must call super.withFixture</span>
+    }
+    <span class="stReserved">finally</span> {
+      builder.clear()
+    }
+  }
+}
+<br /><span class="stReserved">trait</span> <span class="stType">Buffer</span> <span class="stReserved">extends</span> <span class="stType">AbstractSuite</span> { <span class="stReserved">this</span>: <span class="stType">Suite</span> =&gt;
+<br />  <span class="stReserved">val</span> buffer = <span class="stReserved">new</span> <span class="stType">ListBuffer[String]</span>
+<br />  <span class="stReserved">abstract</span> <span class="stReserved">override</span> <span class="stReserved">def</span> withFixture(test: <span class="stType">NoArgTest</span>) {
+    <span class="stReserved">try</span> {
+      <span class="stReserved">super</span>.withFixture(test) <span class="stLineComment">// To be stackable, must call super.withFixture</span>
+    }
+    <span class="stReserved">finally</span> {
+      buffer.clear()
+    }
+  }
+}
+<br /><span class="stReserved">class</span> <span class="stType">ExampleSuite</span> <span class="stReserved">extends</span> <span class="stType">Suite</span> <span class="stReserved">with</span> <span class="stType">Builder</span> <span class="stReserved">with</span> <span class="stType">Buffer</span> {
+<br />  <span class="stReserved">def</span> testEasy {
+    builder.append(<span class="stQuotedString">&quot;easy!&quot;</span>)
+    assert(builder.toString === <span class="stQuotedString">&quot;ScalaTest is easy!&quot;</span>)
+    assert(buffer.isEmpty)
+    buffer += <span class="stQuotedString">&quot;sweet&quot;</span>
+  }
+<br />  <span class="stReserved">def</span> testFun {
+    builder.append(<span class="stQuotedString">&quot;fun!&quot;</span>)
+    assert(builder.toString === <span class="stQuotedString">&quot;ScalaTest is fun!&quot;</span>)
+    assert(buffer.isEmpty)
+    buffer += <span class="stQuotedString">&quot;clear&quot;</span>
+  }
+}
+</pre></p><p>By mixing in both the <code>Builder</code> and <code>Buffer</code> traits, <code>ExampleSuite</code> gets both fixtures, which will be
+initialized before each test and cleaned up after. The order the traits are mixed together determines the order of execution.
+In this case, <code>Builder</code> is &quot;super&quot; to </code>Buffer</code>. If you wanted <code>Buffer</code> to be &quot;super&quot;
+to <code>Builder</code>, you need only switch the order you mix them together, like this:</p><p><pre class="stHighlighted">
+<span class="stReserved">class</span> <span class="stType">Example2Suite</span> <span class="stReserved">extends</span> <span class="stType">Suite</span> <span class="stReserved">with</span> <span class="stType">Buffer</span> <span class="stReserved">with</span> <span class="stType">Builder</span>
+</pre></p><p>And if you only need one fixture you mix in only that trait:</p><p><pre class="stHighlighted">
+<span class="stReserved">class</span> <span class="stType">Example3Suite</span> <span class="stReserved">extends</span> <span class="stType">Suite</span> <span class="stReserved">with</span> <span class="stType">Builder</span>
+</pre></p><p>Another way to create stackable fixture traits is by extending the <a href="BeforeAndAfterEach.html"><code>BeforeAndAfterEach</code></a>
+and/or <a href="BeforeAndAfterAll.html"><code>BeforeAndAfterAll</code></a> traits.
+<code>BeforeAndAfterEach</code> has a <code>beforeEach</code> method that will be run before each test (like JUnit's <code>setUp</code>),
+and an <code>afterEach</code> method that will be run after (like JUnit's <code>tearDown</code>).
+Similarly, <code>BeforeAndAfterAll</code> has a <code>beforeAll</code> method that will be run before all tests,
+and an <code>afterAll</code> method that will be run after all tests. Here's what the previously shown example would look like if it
+were rewritten to use the <code>BeforeAndAfterEach</code> methods instead of <code>withFixture</code>:</p><p><pre class="stHighlighted">
+<span class="stReserved">import</span> org.scalatest.Suite
+<span class="stReserved">import</span> org.scalatest.BeforeAndAfterEach
+<span class="stReserved">import</span> collection.mutable.ListBuffer
+<br /><span class="stReserved">trait</span> <span class="stType">Builder</span> <span class="stReserved">extends</span> <span class="stType">BeforeAndAfterEach</span> { <span class="stReserved">this</span>: <span class="stType">Suite</span> =&gt;
+<br />  <span class="stReserved">val</span> builder = <span class="stReserved">new</span> <span class="stType">StringBuilder</span>
+<br />  <span class="stReserved">override</span> <span class="stReserved">def</span> beforeEach() {
+    builder.append(<span class="stQuotedString">&quot;ScalaTest is &quot;</span>)
+    <span class="stReserved">super</span>.beforeEach() <span class="stLineComment">// To be stackable, must call super.beforeEach</span>
+  }
+<br />  <span class="stReserved">override</span> <span class="stReserved">def</span> afterEach() {
+    <span class="stReserved">try</span> {
+      <span class="stReserved">super</span>.afterEach() <span class="stLineComment">// To be stackable, must call super.afterEach</span>
+    }
+    <span class="stReserved">finally</span> {
+      builder.clear()
+    }
+  }
+}
+<br /><span class="stReserved">trait</span> <span class="stType">Buffer</span> <span class="stReserved">extends</span> <span class="stType">BeforeAndAfterEach</span> { <span class="stReserved">this</span>: <span class="stType">Suite</span> =&gt;
+<br />  <span class="stReserved">val</span> buffer = <span class="stReserved">new</span> <span class="stType">ListBuffer[String]</span>
+<br />  <span class="stReserved">override</span> <span class="stReserved">def</span> afterEach() {
+    <span class="stReserved">try</span> {
+      <span class="stReserved">super</span>.afterEach() <span class="stLineComment">// To be stackable, must call super.afterEach</span>
+    }
+    <span class="stReserved">finally</span> {
+      buffer.clear()
+    }
+  }
+}
+<br /><span class="stReserved">class</span> <span class="stType">ExampleSuite</span> <span class="stReserved">extends</span> <span class="stType">Suite</span> <span class="stReserved">with</span> <span class="stType">Builder</span> <span class="stReserved">with</span> <span class="stType">Buffer</span> {
+<br />  <span class="stReserved">def</span> testEasy {
+    builder.append(<span class="stQuotedString">&quot;easy!&quot;</span>)
+    assert(builder.toString === <span class="stQuotedString">&quot;ScalaTest is easy!&quot;</span>)
+    assert(buffer.isEmpty)
+    buffer += <span class="stQuotedString">&quot;sweet&quot;</span>
+  }
+<br />  <span class="stReserved">def</span> testFun {
+    builder.append(<span class="stQuotedString">&quot;fun!&quot;</span>)
+    assert(builder.toString === <span class="stQuotedString">&quot;ScalaTest is fun!&quot;</span>)
+    assert(buffer.isEmpty)
+    buffer += <span class="stQuotedString">&quot;clear&quot;</span>
+  }
+}
+</pre></p><p>To get the same ordering as <code>withFixture</code>, place your <code>super.beforeEach</code> call at the end of each
+<code>beforeEach</code> method, and the <code>super.afterEach</code> call at the beginning of each <code>afterEach</code>
+method, as shown in the previous example. It is a good idea to invoke <code>super.afterEach</code> in a <code>try</code>
+block and perform cleanup in a <code>finally</code> clause, as shown in the previous example, because this ensures the
+cleanup code is performed even if <code>super.afterAll</code> throws an exception.</p><p>One difference to bear in mind between the before-and-after traits and the <code>withFixture</code> methods, is that if
+a <code>withFixture</code> method completes abruptly with an exception, it is considered a failed test. By contrast, if any of the
+methods on the before-and-after traits (<em>i.e.</em>, <code>before</code>  and <code>after</code> of <code>BeforeAndAfter</code>,
+<code>beforeEach</code> and <code>afterEach</code> of <code>BeforeAndAfterEach</code>,
+and <code>beforeAll</code> and <code>afterAll</code> of <code>BeforeAndAfterAll</code>) complete abruptly, it is considered a
+failed suite, which will result in a <a href="events/SuiteAborted.html"><code>SuiteAborted</code></a> event.</p><p><a name="errorHandling"> </a></p><h4> Treatment of <code>java.lang.Error</code>s </h4><p>The Javadoc documentation for <code>java.lang.Error</code> states:</p><p><blockquote>
+An <code>Error</code> is a subclass of <code>Throwable</code> that indicates serious problems that a reasonable application should not try to catch. Most
+such errors are abnormal conditions.
+</blockquote></p><p>Because <code>Error</code>s are used to denote serious errors, trait <code>Suite</code> and its subtypes in the ScalaTest API do not always treat a test
+that completes abruptly with an <code>Error</code> as a test failure, but sometimes as an indication that serious problems
+have arisen that should cause the run to abort. For example, if a test completes abruptly with an <code>OutOfMemoryError</code>,
+it will not be reported as a test failure, but will instead cause the run to abort. Because not everyone uses <code>Error</code>s only to represent serious
+problems, however, ScalaTest only behaves this way for the following exception types (and their subclasses):</p><ul><li><code>java.lang.annotation.AnnotationFormatError</code></li><li><code>java.awt.AWTError</code></li><li><code>java.nio.charset.CoderMalfunctionError</code></li><li><code>javax.xml.parsers.FactoryConfigurationError</code></li><li><code>java.lang.LinkageError</code></li><li><code>java.lang.ThreadDeath</code></li><li><code>javax.xml.transform.TransformerFactoryConfigurationError</code></li><li><code>java.lang.VirtualMachineError</code></li></ul><p>The previous list includes all <code>Error</code>s that exist as part of Java 1.5 API, excluding <code>java.lang.AssertionError</code>. ScalaTest
+does treat a thrown <code>AssertionError</code> as an indication of a test failure. In addition, any other <code>Error</code> that is not an instance of a
+type mentioned in the previous list will be caught by the <code>Suite</code> traits in the ScalaTest API and reported as the cause of a test failure.</p><p>Although trait <code>Suite</code> and all its subtypes in the ScalaTest API consistently behave this way with regard to <code>Error</code>s,
+this behavior is not required by the contract of <code>Suite</code>. Subclasses and subtraits that you define, for example, may treat all
+<code>Error</code>s as test failures, or indicate errors in some other way that has nothing to do with exceptions.</p><h4> Extensibility </h4><p>Trait <code>Suite</code> provides default implementations of its methods that should
+be sufficient for most applications, but many methods can be overridden when desired. Here's
+a summary of the methods that are intended to be overridden:</p><ul><li><code>run</code> - override this method to define custom ways to run suites of
+  tests.</li><li><code>runNestedSuites</code> - override this method to define custom ways to run nested suites.</li><li><code>runTests</code> - override this method to define custom ways to run a suite's tests.</li><li><code>runTest</code> - override this method to define custom ways to run a single named test.</li><li><code>testNames</code> - override this method to specify the <code>Suite</code>'s test names in a custom way.</li><li><code>tags</code> - override this method to specify the <code>Suite</code>'s test tags in a custom way.</li><li><code>nestedSuites</code> - override this method to specify the <code>Suite</code>'s nested <code>Suite</code>s in a custom way.</li><li><code>suiteName</code> - override this method to specify the <code>Suite</code>'s name in a custom way.</li><li><code>expectedTestCount</code> - override this method to count this <code>Suite</code>'s expected tests in a custom way.</li></ul><p>For example, this trait's implementation of <code>testNames</code> performs reflection to discover methods starting with <code>test</code>,
+and places these in a <code>Set</code> whose iterator returns the names in alphabetical order. If you wish to run tests in a different
+order in a particular <code>Suite</code>, perhaps because a test named <code>testAlpha</code> can only succeed after a test named
+<code>testBeta</code> has run, you can override <code>testNames</code> so that it returns a <code>Set</code> whose iterator returns
+<code>testBeta</code> <em>before</em> <code>testAlpha</code>. (This trait's implementation of <code>run</code> will invoke tests
+in the order they come out of the <code>testNames</code> <code>Set</code> iterator.)</p><p>Alternatively, you may not like starting your test methods with <code>test</code>, and prefer using <code>@Test</code> annotations in
+the style of Java's JUnit 4 or TestNG. If so, you can override <code>testNames</code> to discover tests using either of these two APIs
+<code>@Test</code> annotations, or one of your own invention. (This is in fact
+how <code>org.scalatest.junit.JUnitSuite</code> and <code>org.scalatest.testng.TestNGSuite</code> work.)</p><p>Moreover, <em>test</em> in ScalaTest does not necessarily mean <em>test method</em>. A test can be anything that can be given a name,
+that starts and either succeeds or fails, and can be ignored. In <code>org.scalatest.FunSuite</code>, for example, tests are represented
+as function values. This
+approach might look foreign to JUnit users, but may feel more natural to programmers with a functional programming background.
+To facilitate this style of writing tests, <code>FunSuite</code> overrides <code>testNames</code>, <code>runTest</code>, and <code>run</code> such that you can
+define tests as function values.</p><p>You can also model existing JUnit 3, JUnit 4, or TestNG tests as suites of tests, thereby incorporating tests written in Java into a ScalaTest suite.
+The &quot;wrapper&quot; classes in packages <code>org.scalatest.junit</code> and <code>org.scalatest.testng</code> exist to make this easy.
+No matter what legacy tests you may have, it is likely you can create or use an existing <code>Suite</code> subclass that allows you to model those tests
+as ScalaTest suites and tests and incorporate them into a ScalaTest suite. You can then write new tests in Scala and continue supporting
+older tests in Java.</p></div><dl class="attributes block"> <dt>Self Type</dt><dd><a name="org.scalatest.Suite" class="extype" href="">Suite</a></dd><dt>Annotations</dt><dd>
+                <span class="name">@serializable</span><span class="args">()</span>
+              
+        </dd></dl><div class="toggleContainer block">
+          <span class="toggle">Linear Supertypes</span>
+          <div class="superTypes hiddenContent"><a name="org.scalatest.AbstractSuite" class="extype" href="AbstractSuite.html">AbstractSuite</a>, <a name="org.scalatest.Assertions" class="extype" href="Assertions.html">Assertions</a>, AnyRef, <span name="scala.Any" class="extype">Any</span></div>
+        </div><div class="toggleContainer block">
+          <span class="toggle">Known Subclasses</span>
+          <div class="subClasses hiddenContent"><a name="org.scalatest.FeatureSpec" class="extype" href="FeatureSpec.html">FeatureSpec</a>, <a name="org.scalatest.fixture.FixtureFeatureSpec" class="extype" href="fixture/FixtureFeatureSpec.html">FixtureFeatureSpec</a>, <a name="org.scalatest.fixture.FixtureFlatSpec" class="extype" href="fixture/FixtureFlatSpec.html">FixtureFlatSpec</a>, <a name="org.scalatest.fixture.FixtureFreeSpec" class="extype" href="fixture/FixtureFreeSpec.html">FixtureFreeSpec</a>, <a name="org.scalatest.fixture.FixtureFunSuite" class="extype" href="fixture/FixtureFunSuite.html">FixtureFunSuite</a>, <a name="org.scalatest.fixture.FixturePropSpec" class="extype" href="fixture/FixturePropSpec.html">FixturePropSpec</a>, <a name="org.scalatest.fixture.FixtureSpec" class="extype" href="fixture/FixtureSpec.html">FixtureSpec</a>, <a name="org.scalatest.fixture.FixtureSuite" class="extype" href="fixture/FixtureSuite.html">FixtureSuite</a>, <a name="org.scalatest.fixture.FixtureWordSpec" class="extype" href="fixture/FixtureWordSpec.html">FixtureWordSpec</a>, <a name="org.scalatest.FlatSpec" class="extype" href="FlatSpec.html">FlatSpec</a>, <a name="org.scalatest.FreeSpec" class="extype" href="FreeSpec.html">FreeSpec</a>, <a name="org.scalatest.FunSuite" class="extype" href="FunSuite.html">FunSuite</a>, <a name="org.scalatest.junit.JUnit3Suite" class="extype" href="junit/JUnit3Suite.html">JUnit3Suite</a>, <a name="org.scalatest.junit.JUnitSuite" class="extype" href="junit/JUnitSuite.html">JUnitSuite</a>, <a name="org.scalatest.junit.JUnitWrapperSuite" class="extype" href="junit/JUnitWrapperSuite.html">JUnitWrapperSuite</a>, <a name="org.scalatest.fixture.MultipleFixtureFeatureSpec" class="extype" href="fixture/MultipleFixtureFeatureSpec.html">MultipleFixtureFeatureSpec</a>, <a name="org.scalatest.fixture.MultipleFixtureFlatSpec" class="extype" href="fixture/MultipleFixtureFlatSpec.html">MultipleFixtureFlatSpec</a>, <a name="org.scalatest.fixture.MultipleFixtureFreeSpec" class="extype" href="fixture/MultipleFixtureFreeSpec.html">MultipleFixtureFreeSpec</a>, <a name="org.scalatest.fixture.MultipleFixtureFunSuite" class="extype" href="fixture/MultipleFixtureFunSuite.html">MultipleFixtureFunSuite</a>, <a name="org.scalatest.fixture.MultipleFixturePropSpec" class="extype" href="fixture/MultipleFixturePropSpec.html">MultipleFixturePropSpec</a>, <a name="org.scalatest.fixture.MultipleFixtureSpec" class="extype" href="fixture/MultipleFixtureSpec.html">MultipleFixtureSpec</a>, <a name="org.scalatest.fixture.MultipleFixtureWordSpec" class="extype" href="fixture/MultipleFixtureWordSpec.html">MultipleFixtureWordSpec</a>, <a name="org.scalatest.PropSpec" class="extype" href="PropSpec.html">PropSpec</a>, <a name="org.scalatest.Spec" class="extype" href="Spec.html">Spec</a>, <a name="org.scalatest.Specs" class="extype" href="Specs.html">Specs</a>, <a name="org.scalatest.Suites" class="extype" href="Suites.html">Suites</a>, <a name="org.scalatest.SuperSuite" class="extype" href="SuperSuite.html">SuperSuite</a>, <a name="org.scalatest.testng.TestNGSuite" class="extype" href="testng/TestNGSuite.html">TestNGSuite</a>, <a name="org.scalatest.testng.TestNGWrapperSuite" class="extype" href="testng/TestNGWrapperSuite.html">TestNGWrapperSuite</a>, <a name="org.scalatest.WordSpec" class="extype" href="WordSpec.html">WordSpec</a></div>
+        </div></div>
+        
+
+      <div id="template">
+
+        <div id="mbrsel">
+          <div id="textfilter"><span class="pre"></span><span class="input"><input accesskey="/" type="text" /></span><span class="post"></span></div>
+          <div id="order">
+                <span class="filtertype">Ordering</span>
+                <ol><li class="alpha in"><span>Alphabetic</span></li><li class="inherit out"><span>By inheritance</span></li></ol>
+              </div>
+          <div id="ancestors">
+                <span class="filtertype">Inherited</span>
+                <ol><li class="hideall out"><span>Hide All</span></li>
+                <li class="showall in"><span>Show all</span></li></ol>
+                <ol id="linearization"><li name="org.scalatest.Suite" class="in"><span>Suite</span></li><li name="org.scalatest.AbstractSuite" class="in"><span>AbstractSuite</span></li><li name="org.scalatest.Assertions" class="in"><span>Assertions</span></li><li name="scala.AnyRef" class="in"><span>AnyRef</span></li><li name="scala.Any" class="in"><span>Any</span></li></ol>
+              </div>
+          <div id="visbl">
+              <span class="filtertype">Visibility</span>
+              <ol><li class="public in"><span>Public</span></li><li class="all out"><span>All</span></li></ol>
+            </div>
+        </div>
+
+        
+
+        <div class="types members" id="types">
+              <h3>Type Members</h3>
+              <ol><li visbl="pub" name="org.scalatest.Assertions.Equalizer" data-isabs="false">
+      <a id="Equalizer:Equalizer"></a>
+      <h4 class="signature">
+      <span class="kind">class</span>
+      <span class="symbol"> 
+        <a href="Assertions$Equalizer.html"><span class="name">Equalizer</span></a>
+        
+        <span class="result"> extends AnyRef</span>
+      </span>
+      </h4>
+      <p class="comment cmt">Class used via an implicit conversion to enable any two objects to be compared with
+<code>===</code> in assertions in tests.</p>
+    </li><li visbl="prt" name="org.scalatest.Suite.NoArgTest" data-isabs="true">
+      <a id="NoArgTest:NoArgTest"></a>
+      <h4 class="signature">
+      <span class="kind">trait</span>
+      <span class="symbol"> 
+        <a href="Suite$NoArgTest.html"><span class="name">NoArgTest</span></a>
+        
+        <span class="result"> extends () ⇒ Unit</span>
+      </span>
+      </h4>
+      <p class="comment cmt">A test function taking no arguments, which also provides a test name and config map.</p>
+    </li></ol>
+            </div>
+        
+        
+
+        <div class="values members" id="values">
+              <h3>Value Members</h3>
+              <ol><li visbl="pub" name="scala.AnyRef#!=" data-isabs="false">
+      <a id="!=(AnyRef):Boolean"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">!=</span>
+        
+        <span class="params">(<span name="arg0">arg0: AnyRef</span>)</span><span class="result">: <span name="scala.Boolean" class="extype">Boolean</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>AnyRef</dd></dl></div>
+    </li><li visbl="pub" name="scala.Any#!=" data-isabs="false">
+      <a id="!=(Any):Boolean"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">!=</span>
+        
+        <span class="params">(<span name="arg0">arg0: <span name="scala.Any" class="extype">Any</span></span>)</span><span class="result">: <span name="scala.Boolean" class="extype">Boolean</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>Any</dd></dl></div>
+    </li><li visbl="pub" name="scala.AnyRef###" data-isabs="false">
+      <a id="##():Int"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">##</span>
+        
+        <span class="params">()</span><span class="result">: <span name="scala.Int" class="extype">Int</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>AnyRef → Any</dd></dl></div>
+    </li><li visbl="pub" name="scala.AnyRef#==" data-isabs="false">
+      <a id="==(AnyRef):Boolean"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">==</span>
+        
+        <span class="params">(<span name="arg0">arg0: AnyRef</span>)</span><span class="result">: <span name="scala.Boolean" class="extype">Boolean</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>AnyRef</dd></dl></div>
+    </li><li visbl="pub" name="scala.Any#==" data-isabs="false">
+      <a id="==(Any):Boolean"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">==</span>
+        
+        <span class="params">(<span name="arg0">arg0: <span name="scala.Any" class="extype">Any</span></span>)</span><span class="result">: <span name="scala.Boolean" class="extype">Boolean</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>Any</dd></dl></div>
+    </li><li visbl="pub" name="scala.Any#asInstanceOf" data-isabs="false">
+      <a id="asInstanceOf[T0]:T0"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">asInstanceOf</span>
+        <span class="tparams">[<span name="T0">T0</span>]</span>
+        <span class="result">: T0</span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>Any</dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.Assertions#assert" data-isabs="false">
+      <a id="assert(Option[String]):Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">assert</span>
+        
+        <span class="params">(<span name="o">o: <span name="scala.Option" class="extype">Option</span>[String]</span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Assert that an <code>Option[String]</code> is <code>None</code>.</p><div class="fullcomment"><div class="comment cmt"><p>Assert that an <code>Option[String]</code> is <code>None</code>.
+If the condition is <code>None</code>, this method returns normally.
+Else, it throws <code>TestFailedException</code> with the <code>String</code>
+value of the <code>Some</code> included in the <code>TestFailedException</code>'s
+detail message.</p><p>This form of <code>assert</code> is usually called in conjunction with an
+implicit conversion to <code>Equalizer</code>, using a <code>===</code> comparison, as in:</p><p><pre class="stHighlighted">
+assert(a === b)
+</pre></p><p>For more information on how this mechanism works, see the <a href="Suite.Equalizer.html">documentation for
+<code>Equalizer</code></a>.</p></div><dl class="paramcmts block"><dt class="param">o</dt><dd class="cmt"><p>the <code>Option[String]</code> to assert</p></dd></dl><dl class="attributes block"> <dt>Definition Classes</dt><dd><a name="org.scalatest.Assertions" class="extype" href="Assertions.html">Assertions</a></dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.Assertions#assert" data-isabs="false">
+      <a id="assert(Option[String],Any):Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">assert</span>
+        
+        <span class="params">(<span name="o">o: <span name="scala.Option" class="extype">Option</span>[String]</span>, <span name="clue">clue: <span name="scala.Any" class="extype">Any</span></span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Assert that an <code>Option[String]</code> is <code>None</code>.</p><div class="fullcomment"><div class="comment cmt"><p>Assert that an <code>Option[String]</code> is <code>None</code>.
+If the condition is <code>None</code>, this method returns normally.
+Else, it throws <code>TestFailedException</code> with the <code>String</code>
+value of the <code>Some</code>, as well as the
+<code>String</code> obtained by invoking <code>toString</code> on the
+specified <code>message</code>,
+included in the <code>TestFailedException</code>'s detail message.</p><p>This form of <code>assert</code> is usually called in conjunction with an
+implicit conversion to <code>Equalizer</code>, using a <code>===</code> comparison, as in:</p><p><pre class="stHighlighted">
+assert(a === b, <span class="stQuotedString">&quot;extra info reported if assertion fails&quot;</span>)
+</pre></p><p>For more information on how this mechanism works, see the <a href="Suite.Equalizer.html">documentation for
+<code>Equalizer</code></a>.</p></div><dl class="paramcmts block"><dt class="param">o</dt><dd class="cmt"><p>the <code>Option[String]</code> to assert</p></dd><dt class="param">clue</dt><dd class="cmt"><p>An objects whose <code>toString</code> method returns a message to include in a failure report.</p></dd></dl><dl class="attributes block"> <dt>Definition Classes</dt><dd><a name="org.scalatest.Assertions" class="extype" href="Assertions.html">Assertions</a></dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.Assertions#assert" data-isabs="false">
+      <a id="assert(Boolean,Any):Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">assert</span>
+        
+        <span class="params">(<span name="condition">condition: <span name="scala.Boolean" class="extype">Boolean</span></span>, <span name="clue">clue: <span name="scala.Any" class="extype">Any</span></span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Assert that a boolean condition, described in <code>String</code>
+<code>message</code>, is true.</p><div class="fullcomment"><div class="comment cmt"><p>Assert that a boolean condition, described in <code>String</code>
+<code>message</code>, is true.
+If the condition is <code>true</code>, this method returns normally.
+Else, it throws <code>TestFailedException</code> with the
+<code>String</code> obtained by invoking <code>toString</code> on the
+specified <code>message</code> as the exception's detail message.
+</p></div><dl class="paramcmts block"><dt class="param">condition</dt><dd class="cmt"><p>the boolean condition to assert</p></dd><dt class="param">clue</dt><dd class="cmt"><p>An objects whose <code>toString</code> method returns a message to include in a failure report.</p></dd></dl><dl class="attributes block"> <dt>Definition Classes</dt><dd><a name="org.scalatest.Assertions" class="extype" href="Assertions.html">Assertions</a></dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.Assertions#assert" data-isabs="false">
+      <a id="assert(Boolean):Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">assert</span>
+        
+        <span class="params">(<span name="condition">condition: <span name="scala.Boolean" class="extype">Boolean</span></span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Assert that a boolean condition is true.</p><div class="fullcomment"><div class="comment cmt"><p>Assert that a boolean condition is true.
+If the condition is <code>true</code>, this method returns normally.
+Else, it throws <code>TestFailedException</code>.
+</p></div><dl class="paramcmts block"><dt class="param">condition</dt><dd class="cmt"><p>the boolean condition to assert</p></dd></dl><dl class="attributes block"> <dt>Definition Classes</dt><dd><a name="org.scalatest.Assertions" class="extype" href="Assertions.html">Assertions</a></dd></dl></div>
+    </li><li visbl="prt" name="scala.AnyRef#clone" data-isabs="false">
+      <a id="clone():AnyRef"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">clone</span>
+        
+        <span class="params">()</span><span class="result">: AnyRef</span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>protected[<a name="java.lang" class="extype" href="../../java/lang/package.html">lang</a>] </dd><dt>Definition Classes</dt><dd>AnyRef</dd><dt>Annotations</dt><dd>
+                <span class="name">@throws</span><span class="args">()</span>
+              
+        </dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.Assertions#convertToEqualizer" data-isabs="false">
+      <a id="convertToEqualizer(Any):Equalizer"></a>
+      <h4 class="signature">
+      <span class="kind">implicit def</span>
+      <span class="symbol"> 
+        <span class="name">convertToEqualizer</span>
+        
+        <span class="params">(<span name="left">left: <span name="scala.Any" class="extype">Any</span></span>)</span><span class="result">: <a name="org.scalatest.Assertions.Equalizer" class="extype" href="Assertions$Equalizer.html">Equalizer</a></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Implicit conversion from <code>Any</code> to <code>Equalizer</code>, used to enable
+assertions with <code>===</code> comparisons.</p><div class="fullcomment"><div class="comment cmt"><p>Implicit conversion from <code>Any</code> to <code>Equalizer</code>, used to enable
+assertions with <code>===</code> comparisons.</p><p>For more information
+on this mechanism, see the <a href="Suite.Equalizer.html">documentation for </code>Equalizer</code></a>.</p><p>Because trait <code>Suite</code> mixes in <code>Assertions</code>, this implicit conversion will always be
+available by default in ScalaTest <code>Suite</code>s. This is the only implicit conversion that is in scope by default in every
+ScalaTest <code>Suite</code>. Other implicit conversions offered by ScalaTest, such as those that support the matchers DSL
+or <code>invokePrivate</code>, must be explicitly invited into your test code, either by mixing in a trait or importing the
+members of its companion object. The reason ScalaTest requires you to invite in implicit conversions (with the exception of the
+implicit conversion for <code>===</code> operator)  is because if one of ScalaTest's implicit conversions clashes with an
+implicit conversion used in the code you are trying to test, your program won't compile. Thus there is a chance that if you
+are ever trying to use a library or test some code that also offers an implicit conversion involving a <code>===</code> operator,
+you could run into the problem of a compiler error due to an ambiguous implicit conversion. If that happens, you can turn off
+the implicit conversion offered by this <code>convertToEqualizer</code> method simply by overriding the method in your
+<code>Suite</code> subclass, but not marking it as implicit:</p><p><pre class="stHighlighted">
+<span class="stLineComment">// In your Suite subclass</span>
+<span class="stReserved">override</span> <span class="stReserved">def</span> convertToEqualizer(left: <span class="stType">Any</span>) = <span class="stReserved">new</span> <span class="stType">Equalizer</span>(left)
+</pre>
+</p></div><dl class="paramcmts block"><dt class="param">left</dt><dd class="cmt"><p>the object whose type to convert to <code>Equalizer</code>.</p></dd></dl><dl class="attributes block"> <dt>Attributes</dt><dd>implicit </dd><dt>Definition Classes</dt><dd><a name="org.scalatest.Assertions" class="extype" href="Assertions.html">Assertions</a></dd></dl></div>
+    </li><li visbl="pub" name="scala.AnyRef#eq" data-isabs="false">
+      <a id="eq(AnyRef):Boolean"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">eq</span>
+        
+        <span class="params">(<span name="arg0">arg0: AnyRef</span>)</span><span class="result">: <span name="scala.Boolean" class="extype">Boolean</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>AnyRef</dd></dl></div>
+    </li><li visbl="pub" name="scala.AnyRef#equals" data-isabs="false">
+      <a id="equals(Any):Boolean"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">equals</span>
+        
+        <span class="params">(<span name="arg0">arg0: <span name="scala.Any" class="extype">Any</span></span>)</span><span class="result">: <span name="scala.Boolean" class="extype">Boolean</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef → Any</dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.Suite#execute" data-isabs="false">
+      <a id="execute(String,Map[String, Any],Boolean,Boolean,Boolean,Boolean,Boolean):Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">execute</span>
+        
+        <span class="params">(<span name="testName">testName: String = <span class="symbol">null</span></span>, <span name="configMap">configMap: Map[String, <span name="scala.Any" class="extype">Any</span>] = <span class="symbol">Map()</span></span>, <span name="color">color: <span name="scala.Boolean" class="extype">Boolean</span> = <span class="symbol">true</span></span>, <span name="durations">durations: <span name="scala.Boolean" class="extype">Boolean</span> = <span class="symbol">false</span></span>, <span name="shortstacks">shortstacks: <span name="scala.Boolean" class="extype">Boolean</span> = <span class="symbol">false</span></span>, <span name="fullstacks">fullstacks: <span name="scala.Boolean" class="extype">Boolean</span> = <span class="symbol">false</span></span>, <span name="stats">stats: <span name="scala.Boolean" class="extype">Boolean</span> = <span class="symbol">false</span></span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Executes one or more tests in this <code>Suite</code>, printing results to the standard output.</p><div class="fullcomment"><div class="comment cmt"><p>Executes one or more tests in this <code>Suite</code>, printing results to the standard output.</p><p>This method invokes <code>run</code> on itself, passing in values that can be configured via the parameters to this
+method, all of which have default values. This behavior is convenient when working with ScalaTest in the Scala interpreter.
+Here's a summary of this method's parameters and how you can use them:</p><p><strong>The <code>testName</code> parameter</strong></p><p>If you leave <code>testName</code> at its default value (of <code>null</code>), this method will pass <code>None</code> to
+the <code>testName</code> parameter of <code>run</code>, and as a result all the tests in this suite will be executed. If you
+specify a <code>testName</code>, this method will pass <code>Some(testName)</code> to <code>run</code>, and only that test
+will be run. Thus to run all tests in a suite from the Scala interpreter, you can write:</p><p><pre class="stREPL">
+scala&gt; (new ExampleSuite).execute()
+</pre></p><p>To run just the test named <code>"my favorite test"</code> in a suite from the Scala interpreter, you would write:</p><p><pre class="stREPL">
+scala&gt; (new ExampleSuite).execute(&quot;my favorite test&quot;)
+</pre></p><p>Or:</p><p><pre class="stREPL">
+scala&gt; (new ExampleSuite).execute(testName = &quot;my favorite test&quot;)
+</pre></p><p><strong>The <code>configMap</code> parameter</strong></p><p>If you provide a value for the <code>configMap</code> parameter, this method will pass it to <code>run</code>. If not, the default value
+of an empty <code>Map</code> will be passed. For more information on how to use a config map to configure your test suites, see
+the <a href="#configMapSection">config map section</a> in the main documentation for this trait. Here's an example in which you configure
+a run with the name of an input file:</p><p><pre class="stREPL">
+scala&gt; (new ExampleSuite).execute(configMap = Map(&quot;inputFileName&quot; -&gt; &quot;in.txt&quot;)
+</pre></p><p><strong>The <code>color</code> parameter</strong></p><p>If you leave the <code>color</code> parameter unspecified, this method will configure the reporter it passes to <code>run</code> to print
+to the standard output in color (via ansi escape characters). If you don't want color output, specify false for <code>color</code>, like this:</p><p><pre class="stREPL">
+scala&gt; (new ExampleSuite).execute(color = false)
+</pre></p><p><strong>The <code>durations</code> parameter</strong></p><p>If you leave the <code>durations</code> parameter unspecified, this method will configure the reporter it passes to <code>run</code> to
+<em>not</em> print durations for tests and suites to the standard output. If you want durations printed, specify true for <code>durations</code>,
+like this:</p><p><pre class="stREPL">
+scala&gt; (new ExampleSuite).execute(durations = true)
+</pre></p><p><strong>The <code>shortstacks</code> and <code>fullstacks</code> parameters</strong></p><p>If you leave both the <code>shortstacks</code> and <code>fullstacks</code> parameters unspecified, this method will configure the reporter
+it passes to <code>run</code> to <em>not</em> print stack traces for failed tests if it has a stack depth that identifies the offending
+line of test code. If you prefer a short stack trace (10 to 15 stack frames) to be printed with any test failure, specify true for
+<code>shortstacks</code>:</p><p><pre class="stREPL">
+scala&gt; (new ExampleSuite).execute(shortstacks = true)
+</pre></p><p>For full stack traces, set <code>fullstacks</code> to true:</p><p><pre class="stREPL">
+scala&gt; (new ExampleSuite).execute(fullstacks = true)
+</pre></p><p>If you specify true for both <code>shortstacks</code> and <code>fullstacks</code>, you'll get full stack traces.</p><p><strong>The <code>stats</code> parameter</strong></p><p>If you leave the <code>stats</code> parameter unspecified, this method will <em>not</em> fire <code>RunStarting</code> and either <code>RunCompleted</code>
+or <code>RunAborted</code> events to the reporter it passes to <code>run</code>.
+If you specify true for <code>stats</code>, this method will fire the run events to the reporter, and the reporter will print the
+expected test count before the run, and various statistics after, including the number of suites completed and number of tests that
+succeeded, failed, were ignored or marked pending. Here's how you get the stats:</p><p><pre class="stREPL">
+scala&gt; (new ExampleSuite).execute(stats = true)
+</pre></p><p>To summarize, this method will pass to <code>run</code>:</p><ul><li><code>testName</code> - <code>None</code> if this method's <code>testName</code> parameter is left at its default value of <code>null</code>, else <code>Some(testName)</code>.</li><li><code>reporter</code> - a reporter that prints to the standard output</li><li><code>stopper</code> - a <code>Stopper</code> whose <code>apply</code> method always returns <code>false</code></li><li><code>filter</code> - a <code>Filter</code> constructed with <code>None</code> for <code>tagsToInclude</code> and <code>Set()</code>
+  for <code>tagsToExclude</code></li><li><code>configMap</code> - the <code>configMap</code> passed to this method</li><li><code>distributor</code> - <code>None</code></li><li><code>tracker</code> - a new <code>Tracker</code></li></ul><p>Note:  In ScalaTest, the terms &quot;execute&quot; and &quot;run&quot; basically mean the same thing and
+can be used interchangably. The reason this method isn't named <code>run</code> is that it takes advantage of
+default arguments, and you can't mix overloaded methods and default arguments in Scala. (If named <code>run</code>,
+this method would have the same name but different arguments than the main <a href="#run"><code>run</code> method</a> that
+takes seven arguments. Thus it would overload and couldn't be used with default argument values.)</p><p>Design note: This method has two &quot;features&quot; that may seem unidiomatic. First, the default value of <code>testName</code> is <code>null</code>.
+Normally in Scala the type of <code>testName</code> would be <code>Option[String]</code> and the default value would
+be <code>None</code>, as it is in this trait's <code>run</code> method. The <code>null</code> value is used here for two reasons. First, in
+ScalaTest 1.5, <code>execute</code> was changed from four overloaded methods to one method with default values, taking advantage of
+the default and named parameters feature introduced in Scala 2.8.
+To not break existing source code, <code>testName</code> needed to have type <code>String</code>, as it did in two of the overloaded
+<code>execute</code> methods prior to 1.5. The other reason is that <code>execute</code> has always been designed to be called primarily
+from an interpeter environment, such as the Scala REPL (Read-Evaluate-Print-Loop). In an interpreter environment, minimizing keystrokes is king.
+A <code>String</code> type with a <code>null</code> default value lets users type <code>suite.execute("my test name")</code> rather than
+<code>suite.execute(Some("my test name"))</code>, saving several keystrokes.</p><p>The second non-idiomatic feature is that <code>shortstacks</code> and <code>fullstacks</code> are all lower case rather than
+camel case. This is done to be consistent with the <a href="Shell.html"><code>Shell</code></a>, which also uses those forms. The reason
+lower case is used in the <code>Shell</code> is to save keystrokes in an interpreter environment.  Most Unix commands, for
+example, are all lower case, making them easier and quicker to type.  In the ScalaTest
+<code>Shell</code>, methods like <code>shortstacks</code>, <code>fullstacks</code>, and <code>nostats</code>, <em>etc.</em>, are
+designed to be all lower case so they feel more like shell commands than methods.</p></div><dl class="paramcmts block"><dt class="param">testName</dt><dd class="cmt"><p>the name of one test to run.</p></dd><dt class="param">configMap</dt><dd class="cmt"><p>a <code>Map</code> of key-value pairs that can be used by the executing <code>Suite</code> of tests.</p></dd><dt class="param">color</dt><dd class="cmt"><p>a boolean that configures whether output is printed in color</p></dd><dt class="param">durations</dt><dd class="cmt"><p>a boolean that configures whether test and suite durations are printed to the standard output</p></dd><dt class="param">shortstacks</dt><dd class="cmt"><p>a boolean that configures whether short stack traces should be printed for test failures</p></dd><dt class="param">fullstacks</dt><dd class="cmt"><p>a boolean that configures whether full stack traces should be printed for test failures</p></dd><dt class="param">stats</dt><dd class="cmt"><p>a boolean that configures whether test and suite statistics are printed to the standard output
+</p></dd></dl><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.Assertions#expect" data-isabs="false">
+      <a id="expect(Any)(Any):Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">expect</span>
+        
+        <span class="params">(<span name="expected">expected: <span name="scala.Any" class="extype">Any</span></span>)</span><span class="params">(<span name="actual">actual: <span name="scala.Any" class="extype">Any</span></span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Expect that the value passed as <code>expected</code> equals the value passed as <code>actual</code>.</p><div class="fullcomment"><div class="comment cmt"><p>Expect that the value passed as <code>expected</code> equals the value passed as <code>actual</code>.
+If the <code>actual</code> value equals the <code>expected</code> value
+(as determined by <code>==</code>), <code>expect</code> returns
+normally. Else, <code>expect</code> throws an
+<code>TestFailedException</code> whose detail message includes the expected and actual values.
+</p></div><dl class="paramcmts block"><dt class="param">expected</dt><dd class="cmt"><p>the expected value</p></dd><dt class="param">actual</dt><dd class="cmt"><p>the actual value, which should equal the passed <code>expected</code> value</p></dd></dl><dl class="attributes block"> <dt>Definition Classes</dt><dd><a name="org.scalatest.Assertions" class="extype" href="Assertions.html">Assertions</a></dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.Assertions#expect" data-isabs="false">
+      <a id="expect(Any,Any)(Any):Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">expect</span>
+        
+        <span class="params">(<span name="expected">expected: <span name="scala.Any" class="extype">Any</span></span>, <span name="clue">clue: <span name="scala.Any" class="extype">Any</span></span>)</span><span class="params">(<span name="actual">actual: <span name="scala.Any" class="extype">Any</span></span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Expect that the value passed as <code>expected</code> equals the value passed as <code>actual</code>.</p><div class="fullcomment"><div class="comment cmt"><p>Expect that the value passed as <code>expected</code> equals the value passed as <code>actual</code>.
+If the <code>actual</code> equals the <code>expected</code>
+(as determined by <code>==</code>), <code>expect</code> returns
+normally. Else, if <code>actual</code> is not equal to <code>expected</code>, <code>expect</code> throws an
+<code>TestFailedException</code> whose detail message includes the expected and actual values, as well as the <code>String</code>
+obtained by invoking <code>toString</code> on the passed <code>message</code>.
+</p></div><dl class="paramcmts block"><dt class="param">expected</dt><dd class="cmt"><p>the expected value</p></dd><dt class="param">clue</dt><dd class="cmt"><p>An object whose <code>toString</code> method returns a message to include in a failure report.</p></dd><dt class="param">actual</dt><dd class="cmt"><p>the actual value, which should equal the passed <code>expected</code> value</p></dd></dl><dl class="attributes block"> <dt>Definition Classes</dt><dd><a name="org.scalatest.Assertions" class="extype" href="Assertions.html">Assertions</a></dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.Suite#expectedTestCount" data-isabs="false">
+      <a id="expectedTestCount(Filter):Int"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">expectedTestCount</span>
+        
+        <span class="params">(<span name="filter">filter: <a name="org.scalatest.Filter" class="extype" href="Filter.html">Filter</a></span>)</span><span class="result">: <span name="scala.Int" class="extype">Int</span></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">The total number of tests that are expected to run when this <code>Suite</code>'s <code>run</code> method is invoked.</p><div class="fullcomment"><div class="comment cmt"><p>The total number of tests that are expected to run when this <code>Suite</code>'s <code>run</code> method is invoked.</p><p>This trait's implementation of this method returns the sum of:</p><ul><li>the size of the <code>testNames</code> <code>List</code>, minus the number of tests marked as ignored</li><li>the sum of the values obtained by invoking
+    <code>expectedTestCount</code> on every nested <code>Suite</code> contained in
+    <code>nestedSuites</code></li></ul></div><dl class="paramcmts block"><dt class="param">filter</dt><dd class="cmt"><p>a <code>Filter</code> with which to filter tests to count based on their tags
+</p></dd></dl><dl class="attributes block"> <dt>Definition Classes</dt><dd><a name="org.scalatest.Suite" class="extype" href="">Suite</a> → <a name="org.scalatest.AbstractSuite" class="extype" href="AbstractSuite.html">AbstractSuite</a></dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.Assertions#fail" data-isabs="false">
+      <a id="fail(Throwable):Nothing"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">fail</span>
+        
+        <span class="params">(<span name="cause">cause: Throwable</span>)</span><span class="result">: <span name="scala.Nothing" class="extype">Nothing</span></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Throws <code>TestFailedException</code>, with the passed
+<code>Throwable</code> cause, to indicate a test failed.</p><div class="fullcomment"><div class="comment cmt"><p>Throws <code>TestFailedException</code>, with the passed
+<code>Throwable</code> cause, to indicate a test failed.
+The <code>getMessage</code> method of the thrown <code>TestFailedException</code>
+will return <code>cause.toString()</code>.
+</p></div><dl class="paramcmts block"><dt class="param">cause</dt><dd class="cmt"><p>a <code>Throwable</code> that indicates the cause of the failure.</p></dd></dl><dl class="attributes block"> <dt>Definition Classes</dt><dd><a name="org.scalatest.Assertions" class="extype" href="Assertions.html">Assertions</a></dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.Assertions#fail" data-isabs="false">
+      <a id="fail(String,Throwable):Nothing"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">fail</span>
+        
+        <span class="params">(<span name="message">message: String</span>, <span name="cause">cause: Throwable</span>)</span><span class="result">: <span name="scala.Nothing" class="extype">Nothing</span></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Throws <code>TestFailedException</code>, with the passed
+<code>String</code> <code>message</code> as the exception's detail
+message and <code>Throwable</code> cause, to indicate a test failed.</p><div class="fullcomment"><div class="comment cmt"><p>Throws <code>TestFailedException</code>, with the passed
+<code>String</code> <code>message</code> as the exception's detail
+message and <code>Throwable</code> cause, to indicate a test failed.
+</p></div><dl class="paramcmts block"><dt class="param">message</dt><dd class="cmt"><p>A message describing the failure.</p></dd><dt class="param">cause</dt><dd class="cmt"><p>A <code>Throwable</code> that indicates the cause of the failure.</p></dd></dl><dl class="attributes block"> <dt>Definition Classes</dt><dd><a name="org.scalatest.Assertions" class="extype" href="Assertions.html">Assertions</a></dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.Assertions#fail" data-isabs="false">
+      <a id="fail(String):Nothing"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">fail</span>
+        
+        <span class="params">(<span name="message">message: String</span>)</span><span class="result">: <span name="scala.Nothing" class="extype">Nothing</span></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Throws <code>TestFailedException</code>, with the passed
+<code>String</code> <code>message</code> as the exception's detail
+message, to indicate a test failed.</p><div class="fullcomment"><div class="comment cmt"><p>Throws <code>TestFailedException</code>, with the passed
+<code>String</code> <code>message</code> as the exception's detail
+message, to indicate a test failed.
+</p></div><dl class="paramcmts block"><dt class="param">message</dt><dd class="cmt"><p>A message describing the failure.</p></dd></dl><dl class="attributes block"> <dt>Definition Classes</dt><dd><a name="org.scalatest.Assertions" class="extype" href="Assertions.html">Assertions</a></dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.Assertions#fail" data-isabs="false">
+      <a id="fail():Nothing"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">fail</span>
+        
+        <span class="params">()</span><span class="result">: <span name="scala.Nothing" class="extype">Nothing</span></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Throws <code>TestFailedException</code> to indicate a test failed.</p><div class="fullcomment"><div class="comment cmt"><p>Throws <code>TestFailedException</code> to indicate a test failed.
+</p></div><dl class="attributes block"> <dt>Definition Classes</dt><dd><a name="org.scalatest.Assertions" class="extype" href="Assertions.html">Assertions</a></dd></dl></div>
+    </li><li visbl="prt" name="scala.AnyRef#finalize" data-isabs="false">
+      <a id="finalize():Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">finalize</span>
+        
+        <span class="params">()</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>protected[<a name="java.lang" class="extype" href="../../java/lang/package.html">lang</a>] </dd><dt>Definition Classes</dt><dd>AnyRef</dd><dt>Annotations</dt><dd>
+                <span class="name">@throws</span><span class="args">()</span>
+              
+        </dd></dl></div>
+    </li><li visbl="pub" name="scala.AnyRef#getClass" data-isabs="false">
+      <a id="getClass():java.lang.Class[_]"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">getClass</span>
+        
+        <span class="params">()</span><span class="result">: java.lang.Class[_]</span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>AnyRef</dd></dl></div>
+    </li><li visbl="pub" name="scala.AnyRef#hashCode" data-isabs="false">
+      <a id="hashCode():Int"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">hashCode</span>
+        
+        <span class="params">()</span><span class="result">: <span name="scala.Int" class="extype">Int</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef → Any</dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.Assertions#intercept" data-isabs="false">
+      <a id="intercept[T&lt;:AnyRef](⇒ Any)(Manifest[T]):T"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">intercept</span>
+        <span class="tparams">[<span name="T">T &lt;: AnyRef</span>]</span>
+        <span class="params">(<span name="f">f: ⇒ <span name="scala.Any" class="extype">Any</span></span>)</span><span class="params">(<span class="implicit">implicit </span><span name="manifest">manifest: <span name="scala.reflect.Manifest" class="extype">Manifest</span>[T]</span>)</span><span class="result">: T</span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Intercept and return an exception that's expected to
+be thrown by the passed function value.</p><div class="fullcomment"><div class="comment cmt"><p>Intercept and return an exception that's expected to
+be thrown by the passed function value. The thrown exception must be an instance of the
+type specified by the type parameter of this method. This method invokes the passed
+function. If the function throws an exception that's an instance of the specified type,
+this method returns that exception. Else, whether the passed function returns normally
+or completes abruptly with a different exception, this method throws <code>TestFailedException</code>.</p><p>Note that the type specified as this method's type parameter may represent any subtype of
+<code>AnyRef</code>, not just <code>Throwable</code> or one of its subclasses. In
+Scala, exceptions can be caught based on traits they implement, so it may at times make sense
+to specify a trait that the intercepted exception's class must mix in. If a class instance is
+passed for a type that could not possibly be used to catch an exception (such as <code>String</code>,
+for example), this method will complete abruptly with a <code>TestFailedException</code>.</p></div><dl class="paramcmts block"><dt class="param">f</dt><dd class="cmt"><p>the function value that should throw the expected exception</p></dd><dt class="param">manifest</dt><dd class="cmt"><p>an implicit <code>Manifest</code> representing the type of the specified
+type parameter.</p></dd><dt>returns</dt><dd class="cmt"><p>the intercepted exception, if it is of the expected type</p></dd></dl><dl class="attributes block"> <dt>Definition Classes</dt><dd><a name="org.scalatest.Assertions" class="extype" href="Assertions.html">Assertions</a></dd></dl></div>
+    </li><li visbl="pub" name="scala.Any#isInstanceOf" data-isabs="false">
+      <a id="isInstanceOf[T0]:Boolean"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">isInstanceOf</span>
+        <span class="tparams">[<span name="T0">T0</span>]</span>
+        <span class="result">: <span name="scala.Boolean" class="extype">Boolean</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>Any</dd></dl></div>
+    </li><li visbl="pub" name="scala.AnyRef#ne" data-isabs="false">
+      <a id="ne(AnyRef):Boolean"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">ne</span>
+        
+        <span class="params">(<span name="arg0">arg0: AnyRef</span>)</span><span class="result">: <span name="scala.Boolean" class="extype">Boolean</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>AnyRef</dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.Suite#nestedSuites" data-isabs="false">
+      <a id="nestedSuites:List[Suite]"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">nestedSuites</span>
+        
+        <span class="result">: List[<a name="org.scalatest.Suite" class="extype" href="">Suite</a>]</span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">A <code>List</code> of this <code>Suite</code> object's nested <code>Suite</code>s.</p><div class="fullcomment"><div class="comment cmt"><p>A <code>List</code> of this <code>Suite</code> object's nested <code>Suite</code>s. If this <code>Suite</code> contains no nested <code>Suite</code>s,
+this method returns an empty <code>List</code>. This trait's implementation of this method returns an empty <code>List</code>.
+</p></div><dl class="attributes block"> <dt>Definition Classes</dt><dd><a name="org.scalatest.Suite" class="extype" href="">Suite</a> → <a name="org.scalatest.AbstractSuite" class="extype" href="AbstractSuite.html">AbstractSuite</a></dd></dl></div>
+    </li><li visbl="pub" name="scala.AnyRef#notify" data-isabs="false">
+      <a id="notify():Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">notify</span>
+        
+        <span class="params">()</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>AnyRef</dd></dl></div>
+    </li><li visbl="pub" name="scala.AnyRef#notifyAll" data-isabs="false">
+      <a id="notifyAll():Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">notifyAll</span>
+        
+        <span class="params">()</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>AnyRef</dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.Suite#pending" data-isabs="false">
+      <a id="pending:PendingNothing"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">pending</span>
+        
+        <span class="result">: <a name="org.scalatest.PendingNothing" class="extype" href="PendingNothing.html">PendingNothing</a></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Throws <code>TestPendingException</code> to indicate a test is pending.</p><div class="fullcomment"><div class="comment cmt"><p>Throws <code>TestPendingException</code> to indicate a test is pending.</p><p>A <em>pending test</em> is one that has been given a name but is not yet implemented. The purpose of
+pending tests is to facilitate a style of testing in which documentation of behavior is sketched
+out before tests are written to verify that behavior (and often, the before the behavior of
+the system being tested is itself implemented). Such sketches form a kind of specification of
+what tests and functionality to implement later.</p><p>To support this style of testing, a test can be given a name that specifies one
+bit of behavior required by the system being tested. The test can also include some code that
+sends more information about the behavior to the reporter when the tests run. At the end of the test,
+it can call method <code>pending</code>, which will cause it to complete abruptly with <code>TestPendingException</code>.
+Because tests in ScalaTest can be designated as pending with <code>TestPendingException</code>, both the test name and any information
+sent to the reporter when running the test can appear in the report of a test run. (In other words,
+the code of a pending test is executed just like any other test.) However, because the test completes abruptly
+with <code>TestPendingException</code>, the test will be reported as pending, to indicate
+the actual test, and possibly the functionality it is intended to test, has not yet been implemented.</p><p>Note: This method always completes abruptly with a <code>TestPendingException</code>. Thus it always has a side
+effect. Methods with side effects are usually invoked with parentheses, as in <code>pending()</code>. This
+method is defined as a parameterless method, in flagrant contradiction to recommended Scala style, because it
+forms a kind of DSL for pending tests. It enables tests in suites such as <code>FunSuite</code> or <code>Spec</code>
+to be denoted by placing &quot;<code>(pending)</code>&quot; after the test name, as in:</p><p><pre class="stHighlighted">
+test(<span class="stQuotedString">&quot;that style rules are not laws&quot;</span>) (pending)
+</pre></p><p>Readers of the code see &quot;pending&quot; in parentheses, which looks like a little note attached to the test name to indicate
+it is pending. Whereas &quot;<code>(pending())</code> looks more like a method call, &quot;<code>(pending)</code>&quot; lets readers
+stay at a higher level, forgetting how it is implemented and just focusing on the intent of the programmer who wrote the code.</p></div></div>
+    </li><li visbl="pub" name="org.scalatest.Suite#pendingUntilFixed" data-isabs="false">
+      <a id="pendingUntilFixed(⇒ Unit):Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">pendingUntilFixed</span>
+        
+        <span class="params">(<span name="f">f: ⇒ <span name="scala.Unit" class="extype">Unit</span></span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Execute the passed block of code, and if it completes abruptly, throw <code>TestPendingException</code>, else
+throw <code>TestFailedException</code>.</p><div class="fullcomment"><div class="comment cmt"><p>Execute the passed block of code, and if it completes abruptly, throw <code>TestPendingException</code>, else
+throw <code>TestFailedException</code>.</p><p>This method can be used to temporarily change a failing test into a pending test in such a way that it will
+automatically turn back into a failing test once the problem originally causing the test to fail has been fixed.
+At that point, you need only remove the <code>pendingUntilFixed</code> call. In other words, a
+<code>pendingUntilFixed</code> surrounding a block of code that isn't broken is treated as a test failure.
+The motivation for this behavior is to encourage people to remove <code>pendingUntilFixed</code> calls when
+there are no longer needed.</p><p>This method facilitates a style of testing in which tests are written before the code they test. Sometimes you may
+encounter a test failure that requires more functionality than you want to tackle without writing more tests. In this
+case you can mark the bit of test code causing the failure with <code>pendingUntilFixed</code>. You can then write more
+tests and functionality that eventually will get your production code to a point where the original test won't fail anymore.
+At this point the code block marked with <code>pendingUntilFixed</code> will no longer throw an exception (because the
+problem has been fixed). This will in turn cause <code>pendingUntilFixed</code> to throw <code>TestFailedException</code>
+with a detail message explaining you need to go back and remove the <code>pendingUntilFixed</code> call as the problem orginally
+causing your test code to fail has been fixed.</p></div><dl class="paramcmts block"><dt class="param">f</dt><dd class="cmt"><p>a block of code, which if it completes abruptly, should trigger a <code>TestPendingException</code></p></dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.Suite#run" data-isabs="false">
+      <a id="run(Option[String],Reporter,Stopper,Filter,Map[String, Any],Option[Distributor],Tracker):Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">run</span>
+        
+        <span class="params">(<span name="testName">testName: <span name="scala.Option" class="extype">Option</span>[String]</span>, <span name="reporter">reporter: <a name="org.scalatest.Reporter" class="extype" href="Reporter.html">Reporter</a></span>, <span name="stopper">stopper: <a name="org.scalatest.Stopper" class="extype" href="Stopper.html">Stopper</a></span>, <span name="filter">filter: <a name="org.scalatest.Filter" class="extype" href="Filter.html">Filter</a></span>, <span name="configMap">configMap: Map[String, <span name="scala.Any" class="extype">Any</span>]</span>, <span name="distributor">distributor: <span name="scala.Option" class="extype">Option</span>[<a name="org.scalatest.Distributor" class="extype" href="Distributor.html">Distributor</a>]</span>, <span name="tracker">tracker: <a name="org.scalatest.Tracker" class="extype" href="Tracker.html">Tracker</a></span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Runs this suite of tests.</p><div class="fullcomment"><div class="comment cmt"><p>Runs this suite of tests.</p><p>If <code>testName</code> is <code>None</code>, this trait's implementation of this method
+calls these two methods on this object in this order:</p><ul><li><code>runNestedSuites(report, stopper, tagsToInclude, tagsToExclude, configMap, distributor)</code></li><li><code>runTests(testName, report, stopper, tagsToInclude, tagsToExclude, configMap)</code></li></ul><p>If <code>testName</code> is defined, then this trait's implementation of this method
+calls <code>runTests</code>, but does not call <code>runNestedSuites</code>. This behavior
+is part of the contract of this method. Subclasses that override <code>run</code> must take
+care not to call <code>runNestedSuites</code> if <code>testName</code> is defined. (The
+<code>OneInstancePerTest</code> trait depends on this behavior, for example.)</p><p>Subclasses and subtraits that override this <code>run</code> method can implement them without
+invoking either the <code>runTests</code> or <code>runNestedSuites</code> methods, which
+are invoked by this trait's implementation of this method. It is recommended, but not required,
+that subclasses and subtraits that override <code>run</code> in a way that does not
+invoke <code>runNestedSuites</code> also override <code>runNestedSuites</code> and make it
+final. Similarly it is recommended, but not required,
+that subclasses and subtraits that override <code>run</code> in a way that does not
+invoke <code>runTests</code> also override <code>runTests</code> (and <code>runTest</code>,
+which this trait's implementation of <code>runTests</code> calls) and make it
+final. The implementation of these final methods can either invoke the superclass implementation
+of the method, or throw an <code>UnsupportedOperationException</code> if appropriate. The
+reason for this recommendation is that ScalaTest includes several traits that override
+these methods to allow behavior to be mixed into a <code>Suite</code>. For example, trait
+<code>BeforeAndAfterEach</code> overrides <code>runTests</code>s. In a <code>Suite</code>
+subclass that no longer invokes <code>runTests</code> from <code>run</code>, the
+<code>BeforeAndAfterEach</code> trait is not applicable. Mixing it in would have no effect.
+By making <code>runTests</code> final in such a <code>Suite</code> subtrait, you make
+the attempt to mix <code>BeforeAndAfterEach</code> into a subclass of your subtrait
+a compiler error. (It would fail to compile with a complaint that <code>BeforeAndAfterEach</code>
+is trying to override <code>runTests</code>, which is a final method in your trait.)</p></div><dl class="paramcmts block"><dt class="param">testName</dt><dd class="cmt"><p>an optional name of one test to run. If <code>None</code>, all relevant tests should be run.
+                I.e., <code>None</code> acts like a wildcard that means run all relevant tests in this <code>Suite</code>.</p></dd><dt class="param">reporter</dt><dd class="cmt"><p>the <code>Reporter</code> to which results will be reported</p></dd><dt class="param">stopper</dt><dd class="cmt"><p>the <code>Stopper</code> that will be consulted to determine whether to stop execution early.</p></dd><dt class="param">filter</dt><dd class="cmt"><p>a <code>Filter</code> with which to filter tests based on their tags</p></dd><dt class="param">configMap</dt><dd class="cmt"><p>a <code>Map</code> of key-value pairs that can be used by the executing <code>Suite</code> of tests.</p></dd><dt class="param">distributor</dt><dd class="cmt"><p>an optional <code>Distributor</code>, into which to put nested <code>Suite</code>s to be run
+             by another entity, such as concurrently by a pool of threads. If <code>None</code>, nested <code>Suite</code>s will be run sequentially.</p></dd><dt class="param">tracker</dt><dd class="cmt"><p>a <code>Tracker</code> tracking <code>Ordinal</code>s being fired by the current thread.
+</p></dd></dl><dl class="attributes block"> <dt>Definition Classes</dt><dd><a name="org.scalatest.Suite" class="extype" href="">Suite</a> → <a name="org.scalatest.AbstractSuite" class="extype" href="AbstractSuite.html">AbstractSuite</a></dd></dl></div>
+    </li><li visbl="prt" name="org.scalatest.Suite#runNestedSuites" data-isabs="false">
+      <a id="runNestedSuites(Reporter,Stopper,Filter,Map[String, Any],Option[Distributor],Tracker):Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">runNestedSuites</span>
+        
+        <span class="params">(<span name="reporter">reporter: <a name="org.scalatest.Reporter" class="extype" href="Reporter.html">Reporter</a></span>, <span name="stopper">stopper: <a name="org.scalatest.Stopper" class="extype" href="Stopper.html">Stopper</a></span>, <span name="filter">filter: <a name="org.scalatest.Filter" class="extype" href="Filter.html">Filter</a></span>, <span name="configMap">configMap: Map[String, <span name="scala.Any" class="extype">Any</span>]</span>, <span name="distributor">distributor: <span name="scala.Option" class="extype">Option</span>[<a name="org.scalatest.Distributor" class="extype" href="Distributor.html">Distributor</a>]</span>, <span name="tracker">tracker: <a name="org.scalatest.Tracker" class="extype" href="Tracker.html">Tracker</a></span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Run zero to many of this <code>Suite</code>'s nested <code>Suite</code>s.</p><div class="fullcomment"><div class="comment cmt"><p>Run zero to many of this <code>Suite</code>'s nested <code>Suite</code>s.</p><p>If the passed <code>distributor</code> is <code>None</code>, this trait's
+implementation of this method invokes <code>run</code> on each
+nested <code>Suite</code> in the <code>List</code> obtained by invoking <code>nestedSuites</code>.
+If a nested <code>Suite</code>'s <code>run</code>
+method completes abruptly with an exception, this trait's implementation of this
+method reports that the <code>Suite</code> aborted and attempts to run the
+next nested <code>Suite</code>.
+If the passed <code>distributor</code> is defined, this trait's implementation
+puts each nested <code>Suite</code>
+into the <code>Distributor</code> contained in the <code>Some</code>, in the order in which the
+<code>Suite</code>s appear in the <code>List</code> returned by <code>nestedSuites</code>, passing
+in a new <code>Tracker</code> obtained by invoking <code>nextTracker</code> on the <code>Tracker</code>
+passed to this method.</p><p>Implementations of this method are responsible for ensuring <code>SuiteStarting</code> events
+are fired to the <code>Reporter</code> before executing any nested <code>Suite</code>, and either <code>SuiteCompleted</code>
+or <code>SuiteAborted</code> after executing any nested <code>Suite</code>.</p></div><dl class="paramcmts block"><dt class="param">reporter</dt><dd class="cmt"><p>the <code>Reporter</code> to which results will be reported</p></dd><dt class="param">stopper</dt><dd class="cmt"><p>the <code>Stopper</code> that will be consulted to determine whether to stop execution early.</p></dd><dt class="param">filter</dt><dd class="cmt"><p>a <code>Filter</code> with which to filter tests based on their tags</p></dd><dt class="param">configMap</dt><dd class="cmt"><p>a <code>Map</code> of key-value pairs that can be used by the executing <code>Suite</code> of tests.</p></dd><dt class="param">distributor</dt><dd class="cmt"><p>an optional <code>Distributor</code>, into which to put nested <code>Suite</code>s to be run
+             by another entity, such as concurrently by a pool of threads. If <code>None</code>, nested <code>Suite</code>s will be run sequentially.</p></dd><dt class="param">tracker</dt><dd class="cmt"><p>a <code>Tracker</code> tracking <code>Ordinal</code>s being fired by the current thread.
+</p></dd></dl><dl class="attributes block"> <dt>Attributes</dt><dd>protected </dd><dt>Definition Classes</dt><dd><a name="org.scalatest.Suite" class="extype" href="">Suite</a> → <a name="org.scalatest.AbstractSuite" class="extype" href="AbstractSuite.html">AbstractSuite</a></dd></dl></div>
+    </li><li visbl="prt" name="org.scalatest.Suite#runTest" data-isabs="false">
+      <a id="runTest(String,Reporter,Stopper,Map[String, Any],Tracker):Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">runTest</span>
+        
+        <span class="params">(<span name="testName">testName: String</span>, <span name="reporter">reporter: <a name="org.scalatest.Reporter" class="extype" href="Reporter.html">Reporter</a></span>, <span name="stopper">stopper: <a name="org.scalatest.Stopper" class="extype" href="Stopper.html">Stopper</a></span>, <span name="configMap">configMap: Map[String, <span name="scala.Any" class="extype">Any</span>]</span>, <span name="tracker">tracker: <a name="org.scalatest.Tracker" class="extype" href="Tracker.html">Tracker</a></span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Run a test.</p><div class="fullcomment"><div class="comment cmt"><p>Run a test.</p><p>This trait's implementation uses Java reflection to invoke on this object the test method identified by the passed <code>testName</code>.</p><p>Implementations of this method are responsible for ensuring a <code>TestStarting</code> event
+is fired to the <code>Reporter</code> before executing any test, and either <code>TestSucceeded</code>,
+<code>TestFailed</code>, or <code>TestPending</code> after executing any nested
+<code>Suite</code>. (If a test is marked with the <code>org.scalatest.Ignore</code> tag, the
+<code>runTests</code> method is responsible for ensuring a <code>TestIgnored</code> event is fired and that
+this <code>runTest</code> method is not invoked for that ignored test.)</p></div><dl class="paramcmts block"><dt class="param">testName</dt><dd class="cmt"><p>the name of one test to run.</p></dd><dt class="param">reporter</dt><dd class="cmt"><p>the <code>Reporter</code> to which results will be reported</p></dd><dt class="param">stopper</dt><dd class="cmt"><p>the <code>Stopper</code> that will be consulted to determine whether to stop execution early.</p></dd><dt class="param">configMap</dt><dd class="cmt"><p>a <code>Map</code> of key-value pairs that can be used by the executing <code>Suite</code> of tests.</p></dd><dt class="param">tracker</dt><dd class="cmt"><p>a <code>Tracker</code> tracking <code>Ordinal</code>s being fired by the current thread.</p></dd></dl><dl class="attributes block"> <dt>Attributes</dt><dd>protected </dd><dt>Definition Classes</dt><dd><a name="org.scalatest.Suite" class="extype" href="">Suite</a> → <a name="org.scalatest.AbstractSuite" class="extype" href="AbstractSuite.html">AbstractSuite</a></dd></dl></div>
+    </li><li visbl="prt" name="org.scalatest.Suite#runTests" data-isabs="false">
+      <a id="runTests(Option[String],Reporter,Stopper,Filter,Map[String, Any],Option[Distributor],Tracker):Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">runTests</span>
+        
+        <span class="params">(<span name="testName">testName: <span name="scala.Option" class="extype">Option</span>[String]</span>, <span name="reporter">reporter: <a name="org.scalatest.Reporter" class="extype" href="Reporter.html">Reporter</a></span>, <span name="stopper">stopper: <a name="org.scalatest.Stopper" class="extype" href="Stopper.html">Stopper</a></span>, <span name="filter">filter: <a name="org.scalatest.Filter" class="extype" href="Filter.html">Filter</a></span>, <span name="configMap">configMap: Map[String, <span name="scala.Any" class="extype">Any</span>]</span>, <span name="distributor">distributor: <span name="scala.Option" class="extype">Option</span>[<a name="org.scalatest.Distributor" class="extype" href="Distributor.html">Distributor</a>]</span>, <span name="tracker">tracker: <a name="org.scalatest.Tracker" class="extype" href="Tracker.html">Tracker</a></span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Run zero to many of this <code>Suite</code>'s tests.</p><div class="fullcomment"><div class="comment cmt"><p>Run zero to many of this <code>Suite</code>'s tests.</p><p>This method takes a <code>testName</code> parameter that optionally specifies a test to invoke.
+If <code>testName</code> is defined, this trait's implementation of this method
+invokes <code>runTest</code> on this object, passing in:</p><ul><li><code>testName</code> - the <code>String</code> value of the <code>testName</code> <code>Option</code> passed
+  to this method</li><li><code>reporter</code> - the <code>Reporter</code> passed to this method, or one that wraps and delegates to it</li><li><code>stopper</code> - the <code>Stopper</code> passed to this method, or one that wraps and delegates to it</li><li><code>configMap</code> - the <code>configMap</code> <code>Map</code> passed to this method, or one that wraps and delegates to it</li></ul><p>This method takes a <code>Filter</code>, which encapsulates an optional <code>Set</code> of tag names that should be included
+(<code>tagsToInclude</code>) and a <code>Set</code> that should be excluded (<code>tagsToExclude</code>), when deciding which
+of this <code>Suite</code>'s tests to run.
+If <code>tagsToInclude</code> is <code>None</code>, all tests will be run
+except those those belonging to tags listed in the <code>tagsToExclude</code> <code>Set</code>. If <code>tagsToInclude</code> is defined, only tests
+belonging to tags mentioned in the <code>tagsToInclude</code> <code>Set</code>, and not mentioned in the <code>tagsToExclude</code <code>Set</code>
+will be run. However, if <code>testName</code> is defined, <code>tagsToInclude</code> and <code>tagsToExclude</code> are essentially ignored.
+Only if <code>testName</code> is <code>None</code> will <code>tagsToInclude</code> and <code>tagsToExclude</code> be consulted to
+determine which of the tests named in the <code>testNames</code> <code>Set</code> should be run. This trait's implementation
+behaves this way, and it is part of the general contract of this method, so all overridden forms of this method should behave
+this way as well.  For more information on test tags, see the main documentation for this trait and for class <a href="Filter"><code>Filter</code></a>.
+Note that this means that even if a test is marked as ignored, for example a test method in a <code>Suite</code> annotated with
+<code>org.scalatest.Ignore</code>, if that test name is passed as <code>testName</code> to <code>runTest</code>, it will be invoked
+despite the <code>Ignore</code> annotation.</p><p>If <code>testName</code> is <code>None</code>, this trait's implementation of this method
+invokes <code>testNames</code> on this <code>Suite</code> to get a <code>Set</code> of names of tests to potentially run.
+(A <code>testNames</code> value of <code>None</code> essentially acts as a wildcard that means all tests in
+this <code>Suite</code> that are selected by <code>tagsToInclude</code> and <code>tagsToExclude</code> should be run.)
+For each test in the <code>testName</code> <code>Set</code>, in the order
+they appear in the iterator obtained by invoking the <code>elements</code> method on the <code>Set</code>, this trait's implementation
+of this method checks whether the test should be run based on the <code>Filter</code>.
+If so, this implementation invokes <code>runTest</code>, passing in:</p><ul><li><code>testName</code> - the <code>String</code> name of the test to run (which will be one of the names in the <code>testNames</code> <code>Set</code>)</li><li><code>reporter</code> - the <code>Reporter</code> passed to this method, or one that wraps and delegates to it</li><li><code>stopper</code> - the <code>Stopper</code> passed to this method, or one that wraps and delegates to it</li><li><code>configMap</code> - the <code>configMap</code> passed to this method, or one that wraps and delegates to it</li></ul><p>If a test is marked with the <code>org.scalatest.Ignore</code> tag, implementations
+of this method are responsible for ensuring a <code>TestIgnored</code> event is fired for that test
+and that <code>runTest</code> is not called for that test.</p></div><dl class="paramcmts block"><dt class="param">testName</dt><dd class="cmt"><p>an optional name of one test to run. If <code>None</code>, all relevant tests should be run.
+                I.e., <code>None</code> acts like a wildcard that means run all relevant tests in this <code>Suite</code>.</p></dd><dt class="param">reporter</dt><dd class="cmt"><p>the <code>Reporter</code> to which results will be reported</p></dd><dt class="param">stopper</dt><dd class="cmt"><p>the <code>Stopper</code> that will be consulted to determine whether to stop execution early.</p></dd><dt class="param">filter</dt><dd class="cmt"><p>a <code>Filter</code> with which to filter tests based on their tags</p></dd><dt class="param">configMap</dt><dd class="cmt"><p>a <code>Map</code> of key-value pairs that can be used by the executing <code>Suite</code> of tests.</p></dd><dt class="param">distributor</dt><dd class="cmt"><p>an optional <code>Distributor</code>, into which to put nested <code>Suite</code>s to be run
+             by another entity, such as concurrently by a pool of threads. If <code>None</code>, nested <code>Suite</code>s will be run sequentially.</p></dd><dt class="param">tracker</dt><dd class="cmt"><p>a <code>Tracker</code> tracking <code>Ordinal</code>s being fired by the current thread.</p></dd></dl><dl class="attributes block"> <dt>Attributes</dt><dd>protected </dd><dt>Definition Classes</dt><dd><a name="org.scalatest.Suite" class="extype" href="">Suite</a> → <a name="org.scalatest.AbstractSuite" class="extype" href="AbstractSuite.html">AbstractSuite</a></dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.Suite#suiteName" data-isabs="false">
+      <a id="suiteName:String"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">suiteName</span>
+        
+        <span class="result">: String</span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">A user-friendly suite name for this <code>Suite</code>.</p><div class="fullcomment"><div class="comment cmt"><p>A user-friendly suite name for this <code>Suite</code>.</p><p>This trait's
+implementation of this method returns the simple name of this object's class. This
+trait's implementation of <code>runNestedSuites</code> calls this method to obtain a
+name for <code>Report</code>s to pass to the <code>suiteStarting</code>, <code>suiteCompleted</code>,
+and <code>suiteAborted</code> methods of the <code>Reporter</code>.</p></div><dl class="paramcmts block"><dt>returns</dt><dd class="cmt"><p>this <code>Suite</code> object's suite name.
+</p></dd></dl></div>
+    </li><li visbl="pub" name="scala.AnyRef#synchronized" data-isabs="false">
+      <a id="synchronized[T0](⇒ T0):T0"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">synchronized</span>
+        <span class="tparams">[<span name="T0">T0</span>]</span>
+        <span class="params">(<span name="arg0">arg0: ⇒ T0</span>)</span><span class="result">: T0</span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>AnyRef</dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.Suite#tags" data-isabs="false">
+      <a id="tags:Map[String, Set[String]]"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">tags</span>
+        
+        <span class="result">: Map[String, Set[String]]</span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">A <code>Map</code> whose keys are <code>String</code> tag names with which tests in this <code>Suite</code> are marked, and
+whose values are the <code>Set</code> of test names marked with each tag.</p><div class="fullcomment"><div class="comment cmt"><p>A <code>Map</code> whose keys are <code>String</code> tag names with which tests in this <code>Suite</code> are marked, and
+whose values are the <code>Set</code> of test names marked with each tag.  If this <code>Suite</code> contains no tags, this
+method returns an empty <code>Map</code>.</p><p>This trait's implementation of this method uses Java reflection to discover any Java annotations attached to its test methods. The
+fully qualified name of each unique annotation that extends <code>TagAnnotation</code> is considered a tag. This trait's
+implementation of this method, therefore, places one key/value pair into to the
+<code>Map</code> for each unique tag annotation name discovered through reflection. The mapped value for each tag name key will contain
+the test method name, as provided via the <code>testNames</code> method.</p><p>Subclasses may override this method to define and/or discover tags in a custom manner, but overriding method implementations
+should never return an empty <code>Set</code> as a value. If a tag has no tests, its name should not appear as a key in the
+returned <code>Map</code>.</p></div><dl class="attributes block"> <dt>Definition Classes</dt><dd><a name="org.scalatest.Suite" class="extype" href="">Suite</a> → <a name="org.scalatest.AbstractSuite" class="extype" href="AbstractSuite.html">AbstractSuite</a></dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.Suite#testNames" data-isabs="false">
+      <a id="testNames:Set[String]"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">testNames</span>
+        
+        <span class="result">: Set[String]</span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">A <code>Set</code> of test names.</p><div class="fullcomment"><div class="comment cmt"><p>A <code>Set</code> of test names. If this <code>Suite</code> contains no tests, this method returns an empty <code>Set</code>.</p><p>This trait's implementation of this method uses Java reflection to discover all public methods whose name starts with <code>"test"</code>,
+which take either nothing or a single <code>Informer</code> as parameters. For each discovered test method, it assigns a test name
+comprised of just the method name if the method takes no parameters, or the method name plus <code>(Informer)</code> if the
+method takes a <code>Informer</code>. Here are a few method signatures and the names that this trait's implementation assigns them:</p><p><pre class="stHighlighted">
+<span class="stReserved">def</span> testCat() {}         <span class="stLineComment">// test name: &quot;testCat&quot;</span>
+<span class="stReserved">def</span> testCat(<span class="stType">Informer</span>) {} <span class="stLineComment">// test name: &quot;testCat(Informer)&quot;</span>
+<span class="stReserved">def</span> testDog() {}         <span class="stLineComment">// test name: &quot;testDog&quot;</span>
+<span class="stReserved">def</span> testDog(<span class="stType">Informer</span>) {} <span class="stLineComment">// test name: &quot;testDog(Informer)&quot;</span>
+<span class="stReserved">def</span> test() {}            <span class="stLineComment">// test name: &quot;test&quot;</span>
+<span class="stReserved">def</span> test(<span class="stType">Informer</span>) {}    <span class="stLineComment">// test name: &quot;test(Informer)&quot;</span>
+</pre></p><p>This trait's implementation of this method returns an immutable <code>Set</code> of all such names, excluding the name
+<code>testNames</code>. The iterator obtained by invoking <code>elements</code> on this
+returned <code>Set</code> will produce the test names in their <em>natural order</em>, as determined by <code>String</code>'s
+<code>compareTo</code> method.</p><p>This trait's implementation of <code>runTests</code> invokes this method
+and calls <code>runTest</code> for each test name in the order they appear in the returned <code>Set</code>'s iterator.
+Although this trait's implementation of this method returns a <code>Set</code> whose iterator produces <code>String</code>
+test names in a well-defined order, the contract of this method does not required a defined order. Subclasses are free to
+override this method and return test names in an undefined order, or in a defined order that's different from <code>String</code>'s
+natural order.</p><p>Subclasses may override this method to produce test names in a custom manner. One potential reason to override <code>testNames</code> is
+to run tests in a different order, for example, to ensure that tests that depend on other tests are run after those other tests.
+Another potential reason to override is allow tests to be defined in a different manner, such as methods annotated <code>@Test</code> annotations
+(as is done in <code>JUnitSuite</code> and <code>TestNGSuite</code>) or test functions registered during construction (as is
+done in <code>FunSuite</code> and <code>Spec</code>).</p></div><dl class="attributes block"> <dt>Definition Classes</dt><dd><a name="org.scalatest.Suite" class="extype" href="">Suite</a> → <a name="org.scalatest.AbstractSuite" class="extype" href="AbstractSuite.html">AbstractSuite</a></dd></dl></div>
+    </li><li visbl="pub" name="scala.AnyRef#toString" data-isabs="false">
+      <a id="toString():String"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">toString</span>
+        
+        <span class="params">()</span><span class="result">: <span name="java.lang.String" class="extype">String</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef → Any</dd></dl></div>
+    </li><li visbl="pub" name="scala.AnyRef#wait" data-isabs="false">
+      <a id="wait():Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">wait</span>
+        
+        <span class="params">()</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>AnyRef</dd><dt>Annotations</dt><dd>
+                <span class="name">@throws</span><span class="args">()</span>
+              
+        </dd></dl></div>
+    </li><li visbl="pub" name="scala.AnyRef#wait" data-isabs="false">
+      <a id="wait(Long,Int):Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">wait</span>
+        
+        <span class="params">(<span name="arg0">arg0: <span name="scala.Long" class="extype">Long</span></span>, <span name="arg1">arg1: <span name="scala.Int" class="extype">Int</span></span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>AnyRef</dd><dt>Annotations</dt><dd>
+                <span class="name">@throws</span><span class="args">()</span>
+              
+        </dd></dl></div>
+    </li><li visbl="pub" name="scala.AnyRef#wait" data-isabs="false">
+      <a id="wait(Long):Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">wait</span>
+        
+        <span class="params">(<span name="arg0">arg0: <span name="scala.Long" class="extype">Long</span></span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>AnyRef</dd><dt>Annotations</dt><dd>
+                <span class="name">@throws</span><span class="args">()</span>
+              
+        </dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.Assertions#withClue" data-isabs="false">
+      <a id="withClue(Any)(⇒ Unit):Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">withClue</span>
+        
+        <span class="params">(<span name="clue">clue: <span name="scala.Any" class="extype">Any</span></span>)</span><span class="params">(<span name="fun">fun: ⇒ <span name="scala.Unit" class="extype">Unit</span></span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Executes the block of code passed as the second parameter, and, if it
+completes abruptly with a <code>ModifiableMessage</code> exception,
+prepends the &quot;clue&quot; string passed as the first parameter to the beginning of the detail message
+of that thrown exception, then rethrows it.</p><div class="fullcomment"><div class="comment cmt"><p>Executes the block of code passed as the second parameter, and, if it
+completes abruptly with a <code>ModifiableMessage</code> exception,
+prepends the &quot;clue&quot; string passed as the first parameter to the beginning of the detail message
+of that thrown exception, then rethrows it. If clue does not end in a white space
+character, one space will be added
+between it and the existing detail message (unless the detail message is
+not defined).</p><p>This method allows you to add more information about what went wrong that will be
+reported when a test fails. Here's an example:</p><p><pre class="stHighlighted">
+withClue(<span class="stQuotedString">&quot;(Employee's name was: &quot;</span> + employee.name + <span class="stQuotedString">&quot;)&quot;</span>) {
+  intercept[<span class="stType">IllegalArgumentException</span>] {
+    employee.getTask(-<span class="stLiteral">1</span>)
+  }
+}
+</pre></p><p>If an invocation of <code>intercept</code> completed abruptly with an exception, the resulting message would be something like:</p><p><pre>
+(Employee's name was Bob Jones) Expected IllegalArgumentException to be thrown, but no exception was thrown
+</pre>
+</p></div><dl class="attributes block"> <dt>Definition Classes</dt><dd><a name="org.scalatest.Assertions" class="extype" href="Assertions.html">Assertions</a></dd></dl></div>
+    </li><li visbl="prt" name="org.scalatest.Suite#withFixture" data-isabs="false">
+      <a id="withFixture(NoArgTest):Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">withFixture</span>
+        
+        <span class="params">(<span name="test">test: <a name="org.scalatest.Suite.NoArgTest" class="extype" href="Suite$NoArgTest.html">NoArgTest</a></span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt"> Run the passed test function in the context of a fixture established by this method.</p><div class="fullcomment"><div class="comment cmt"><p> Run the passed test function in the context of a fixture established by this method.</p><p>This method should set up the fixture needed by the tests of the
+current suite, invoke the test function, and if needed, perform any clean
+up needed after the test completes. Because the <code>NoArgTest</code> function
+passed to this method takes no parameters, preparing the fixture will require
+side effects, such as reassigning instance <code>var</code>s in this <code>Suite</code> or initializing
+a globally accessible external database. If you want to avoid reassigning instance <code>var</code>s
+you can use <a href="fixture/FixtureSuite.html">FixtureSuite</a>.</p><p>This trait's implementation of <code>runTest</code> invokes this method for each test, passing
+in a <code>NoArgTest</code> whose <code>apply</code> method will execute the code of the test.</p><p>This trait's implementation of this method simply invokes the passed <code>NoArgTest</code> function.</p></div><dl class="paramcmts block"><dt class="param">test</dt><dd class="cmt"><p>the no-arg test function to run with a fixture
+</p></dd></dl><dl class="attributes block"> <dt>Attributes</dt><dd>protected </dd><dt>Definition Classes</dt><dd><a name="org.scalatest.Suite" class="extype" href="">Suite</a> → <a name="org.scalatest.AbstractSuite" class="extype" href="AbstractSuite.html">AbstractSuite</a></dd></dl></div>
+    </li></ol>
+            </div>
+
+        <div name="org.scalatest.AbstractSuite" class="parent">
+              <h3>Inherited from <a name="org.scalatest.AbstractSuite" class="extype" href="AbstractSuite.html">AbstractSuite</a></h3>
+            </div><div name="org.scalatest.Assertions" class="parent">
+              <h3>Inherited from <a name="org.scalatest.Assertions" class="extype" href="Assertions.html">Assertions</a></h3>
+            </div><div name="scala.AnyRef" class="parent">
+              <h3>Inherited from AnyRef</h3>
+            </div><div name="scala.Any" class="parent">
+              <h3>Inherited from <span name="scala.Any" class="extype">Any</span></h3>
+            </div>
+
+      </div>
+      
+      <div id="tooltip"></div>
+      
+    </body>
+      </html>

@@ -1,0 +1,891 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html>
+        <head>
+          <title>org.scalatest.prop.TableDrivenPropertyChecks</title>
+          <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+          
+      <link type="text/css" media="screen" rel="stylesheet" href="../../../lib/template.css" />
+      <script type="text/javascript" src="../../../lib/jquery.js"></script>
+      <script type="text/javascript" src="../../../lib/jquery-ui.js"></script>
+      <script type="text/javascript" src="../../../lib/template.js"></script>
+      <script type="text/javascript" src="../../../lib/tools.tooltip.js"></script>
+    
+        </head>
+        <body class="type">
+      <div id="definition">
+        <a title="Go to companion" href="TableDrivenPropertyChecks$.html"><img src="../../../lib/trait_to_object_big.png" /></a>
+        <p id="owner"><a name="org" class="extype" href="../../package.html">org</a>.<a name="org.scalatest" class="extype" href="../package.html">scalatest</a>.<a name="org.scalatest.prop" class="extype" href="package.html">prop</a></p>
+        <h1><a title="Go to companion" href="TableDrivenPropertyChecks$.html">TableDrivenPropertyChecks</a></h1>
+      </div>
+
+      <h4 class="signature" id="signature">
+      <span class="kind">trait</span>
+      <span class="symbol"> 
+        <span class="name">TableDrivenPropertyChecks</span>
+        
+        <span class="result"> extends <a name="org.scalatest.prop.Whenever" class="extype" href="Whenever.html">Whenever</a> with <a name="org.scalatest.prop.Tables" class="extype" href="Tables.html">Tables</a></span>
+      </span>
+      </h4>
+      
+          <div class="fullcommenttop" id="comment"><div class="comment cmt"><p>Trait containing methods that faciliate property checks against tables of data.</p><p>This trait contains one <code>forAll</code> method for each <code>TableForN</code> class, <code>TableFor1</code>
+through <code>TableFor22</code>, which allow properties to be checked against the rows of a table. It also
+contains a <code>wherever</code> method that can be used to indicate a property need only hold whenever some
+condition is true.</p><p>For an example of trait <code>TableDrivenPropertyChecks</code> in action, imagine you want to test this <code>Fraction</code> class:</p><p><pre class="stHighlighted">
+<span class="stReserved">class</span> <span class="stType">Fraction</span>(n: <span class="stType">Int</span>, d: <span class="stType">Int</span>) {
+<br />  require(d != <span class="stLiteral">0</span>)
+  require(d != Integer.MIN_VALUE)
+  require(n != Integer.MIN_VALUE)
+<br />  <span class="stReserved">val</span> numer = <span class="stReserved">if</span> (d &lt; <span class="stLiteral">0</span>) -<span class="stLiteral">1</span> * n <span class="stReserved">else</span> n
+  <span class="stReserved">val</span> denom = d.abs
+<br />  <span class="stReserved">override</span> <span class="stReserved">def</span> toString = numer + <span class="stQuotedString">&quot; / &quot;</span> + denom
+}
+</pre></p><p><code>TableDrivenPropertyChecks</code> allows you to create tables with
+between 1 and 22 columns and any number of rows. You create a table by passing
+tuples to one of the factory methods of object <code>Table</code>. Each tuple must have the
+same arity (number of members). The first tuple you pass must all be strings, because
+it define names for the columns. Subsequent tuples define the data. After the initial tuple
+that contains string column names, all tuples must have the same type. For example,
+if the first tuple after the column names contains two <code>Int</code>s, all subsequent
+tuples must contain two <code>Int</code> (<em>i.e.</em>, have type
+<code>Tuple2[Int, Int]</code>).</p><p>To test the behavior of <code>Fraction</code>, you could create a table
+of numerators and denominators to pass to the constructor of the
+<code>Fraction</code> class using one of the <code>apply</code> factory methods declared
+in <code>Table</code>, like this:</p><p><pre class="stHighlighted">
+<span class="stReserved">import</span> org.scalatest.prop.TableDrivenPropertyChecks._
+<br /><span class="stReserved">val</span> fractions =
+  <span class="stType">Table</span>(
+    (<span class="stQuotedString">&quot;n&quot;</span>, <span class="stQuotedString">&quot;d&quot;</span>),  <span class="stLineComment">// First tuple defines column names</span>
+    (  <span class="stLiteral">1</span>,   <span class="stLiteral">2</span>),  <span class="stLineComment">// Subsequent tuples define the data</span>
+    ( -<span class="stLiteral">1</span>,   <span class="stLiteral">2</span>),
+    (  <span class="stLiteral">1</span>,  -<span class="stLiteral">2</span>),
+    ( -<span class="stLiteral">1</span>,  -<span class="stLiteral">2</span>),
+    (  <span class="stLiteral">3</span>,   <span class="stLiteral">1</span>),
+    ( -<span class="stLiteral">3</span>,   <span class="stLiteral">1</span>),
+    ( -<span class="stLiteral">3</span>,   <span class="stLiteral">0</span>),
+    (  <span class="stLiteral">3</span>,  -<span class="stLiteral">1</span>),
+    (  <span class="stLiteral">3</span>,  Integer.MIN_VALUE),
+    (Integer.MIN_VALUE, <span class="stLiteral">3</span>),
+    ( -<span class="stLiteral">3</span>,  -<span class="stLiteral">1</span>)
+  )
+</pre></p><p>You could then check a property against each row of the table using a <code>forAll</code> method, like this:</p><p><pre class="stHighlighted">
+<span class="stReserved">import</span> org.scalatest.matchers.ShouldMatchers._
+<br />forAll (fractions) { (n: <span class="stType">Int</span>, d: <span class="stType">Int</span>) =&gt;
+<br />  whenever (d != <span class="stLiteral">0</span> &amp;&amp; d != Integer.MIN_VALUE
+      &amp;&amp; n != Integer.MIN_VALUE) {
+<br />    <span class="stReserved">val</span> f = <span class="stReserved">new</span> <span class="stType">Fraction</span>(n, d)
+<br />    <span class="stReserved">if</span> (n &lt; <span class="stLiteral">0</span> &amp;&amp; d &lt; <span class="stLiteral">0</span> || n &gt; <span class="stLiteral">0</span> &amp;&amp; d &gt; <span class="stLiteral">0</span>)
+      f.numer should be &gt; <span class="stLiteral">0</span>
+    <span class="stReserved">else</span> <span class="stReserved">if</span> (n != <span class="stLiteral">0</span>)
+      f.numer should be &lt; <span class="stLiteral">0</span>
+    <span class="stReserved">else</span>
+      f.numer should be === <span class="stLiteral">0</span>
+<br />    f.denom should be &gt; <span class="stLiteral">0</span>
+  }
+}
+</pre></p><p>Trait <code>TableDrivenPropertyChecks</code> provides 22 overloaded <code>forAll</code> methods
+that allow you to check properties using the data provided by a table. Each <code>forAll</code>
+method takes two parameter lists. The first parameter list is a table. The second parameter list
+is a function whose argument types and number matches that of the tuples in the table. For
+example, if the tuples in the table supplied to <code>forAll</code> each contain an
+<code>Int</code>, a <code>String</code>, and a <code>List[Char]</code>, then the function supplied
+to <code>forAll</code> must take 3 parameters, an <code>Int</code>, a <code>String</code>,
+and a <code>List[Char]</code>. The <code>forAll</code> method will pass each row of data to
+the function, and generate a <code>TableDrivenPropertyCheckFailedException</code> if the function
+completes abruptly for any row of data with any exception that would <a href="../Suite.html#errorHandling">normally cause</a> a test to
+fail in ScalaTest other than <code>UnmetConditionException</code>. An
+<code>UnmetConditionException</code>,
+which is thrown by the <code>whenever</code> method (also defined in this trait) to indicate
+a condition required by the property function is not met by a row
+of passed data, will simply cause <code>forAll</code> to skip that row of data.</p><p><a name="testingStatefulFunctions"> </a></p><h4> Testing stateful functions </h4><p>One way to use a table with one column is to test subsequent return values
+of a stateful function. Imagine, for example, you had an object named <code>FiboGen</code>
+whose <code>next</code> method returned the <em>next</em> fibonacci number, where next
+means the next number in the series following the number previously returned by <code>next</code>.
+So the first time <code>next</code> was called, it would return 0. The next time it was called
+it would return 1. Then 1. Then 2. Then 3, and so on. <code>FiboGen</code> would need to
+maintain state, because it has to remember where it is in the series. In such a situation,
+you could create a <code>TableFor1</code> (a table with one column, which you could alternatively
+think of as one row), in which each row represents
+the next value you expect.</p><p><pre class="stHighlighted">
+<span class="stReserved">val</span> first14FiboNums =
+  <span class="stType">Table</span>(<span class="stQuotedString">&quot;n&quot;</span>, <span class="stLiteral">0</span>, <span class="stLiteral">1</span>, <span class="stLiteral">1</span>, <span class="stLiteral">2</span>, <span class="stLiteral">3</span>, <span class="stLiteral">5</span>, <span class="stLiteral">8</span>, <span class="stLiteral">13</span>, <span class="stLiteral">21</span>, <span class="stLiteral">34</span>, <span class="stLiteral">55</span>, <span class="stLiteral">89</span>, <span class="stLiteral">144</span>, <span class="stLiteral">233</span>)
+</pre></p><p>Then in your <code>forAll</code> simply call the function and compare it with the
+expected return value, like this:</p><p><pre class="stHighlighted">
+forAll (first14FiboNums) { n =&gt;
+  FiboGen.next should equal (n)
+}
+</pre></p><p><a name="testingMutables"> </a></p><h4> Testing mutable objects </h4><p>If you need to test a mutable object, one way you can use tables is to specify
+state transitions in a table. For example, imagine you wanted to test this mutable
+<code>Counter</code> class:</p><p><pre class="stHighlighted">
+<span class="stReserved">class</span> <span class="stType">Counter</span> {
+  <span class="stReserved">private</span> <span class="stReserved">var</span> c = <span class="stLiteral">0</span>
+  <span class="stReserved">def</span> reset() { c = <span class="stLiteral">0</span> }
+  <span class="stReserved">def</span> click() { c += <span class="stLiteral">1</span> }
+  <span class="stReserved">def</span> enter(n: <span class="stType">Int</span>) { c = n }
+  <span class="stReserved">def</span> count = c
+}
+</pre></p><p>A <code>Counter</code> keeps track of how many times its <code>click</code> method
+is called. The count starts out at zero and increments with each <code>click</code>
+invocation. You can also set the count to a specific value by calling <code>enter</code>
+and passing the value in. And the <code>reset</code> method returns the count back to
+zero. You could define the actions that initiate state transitions with case classes, like this:</p><p><pre class="stHighlighted">
+<span class="stReserved">abstract</span> <span class="stReserved">class</span> <span class="stType">Action</span>
+<span class="stReserved">case</span> <span class="stReserved">object</span> <span class="stType">Start</span> <span class="stReserved">extends</span> <span class="stType">Action</span>
+<span class="stReserved">case</span> <span class="stReserved">object</span> <span class="stType">Click</span> <span class="stReserved">extends</span> <span class="stType">Action</span>
+<span class="stReserved">case</span> <span class="stReserved">class</span> <span class="stType">Enter</span>(n: <span class="stType">Int</span>) <span class="stReserved">extends</span> <span class="stType">Action</span>
+</pre></p><p>Given these actions, you could define a state-transition table like this:</p><p><pre class="stHighlighted">
+<span class="stReserved">val</span> stateTransitions =
+  <span class="stType">Table</span>(
+    (<span class="stQuotedString">&quot;action&quot;</span>, <span class="stQuotedString">&quot;expectedCount&quot;</span>),
+    (<span class="stType">Start</span>,    <span class="stLiteral">0</span>),
+    (<span class="stType">Click</span>,    <span class="stLiteral">1</span>),
+    (<span class="stType">Click</span>,    <span class="stLiteral">2</span>),
+    (<span class="stType">Click</span>,    <span class="stLiteral">3</span>),
+    (<span class="stType">Enter</span>(<span class="stLiteral">5</span>), <span class="stLiteral">5</span>),
+    (<span class="stType">Click</span>,    <span class="stLiteral">6</span>),
+    (<span class="stType">Enter</span>(<span class="stLiteral">1</span>), <span class="stLiteral">1</span>),
+    (<span class="stType">Click</span>,    <span class="stLiteral">2</span>),
+    (<span class="stType">Click</span>,    <span class="stLiteral">3</span>)
+  )
+</pre></p><p>To use this in a test, simply do a pattern match inside the function you pass
+to <code>forAll</code>. Make a pattern for each action, and have the body perform that
+action when there's a match. Then check that the actual value equals the expected value:</p><p><pre class="stHighlighted">
+<span class="stReserved">val</span> counter = <span class="stReserved">new</span> <span class="stType">Counter</span>
+forAll (stateTransitions) { (action, expectedCount) =&gt;
+  action <span class="stReserved">match</span> {
+    <span class="stReserved">case</span> <span class="stType">Start</span> =&gt; counter.reset()
+    <span class="stReserved">case</span> <span class="stType">Click</span> =&gt; counter.click()
+    <span class="stReserved">case</span> <span class="stType">Enter</span>(n) =&gt; counter.enter(n)
+  }
+  counter.count should equal (expectedCount)
+}
+</pre></p><p><a name="invalidArgCombos"> </a></p><h4> Testing invalid argument combinations </h4><p>A table-driven property check can also be helpful to ensure that the proper exception is thrown when invalid data is
+passed to a method or constructor. For example, the <code>Fraction</code> constructor shown above should throw <code>IllegalArgumentException</code>
+if <code>Integer.MIN_VALUE</code> is passed for either the numerator or denominator, or zero is passed for the denominator. This yields the
+following five combinations of invalid data:</p><p><table style="border-collapse: collapse; border: 1px solid black">
+<tr><th style="background-color: #CCCCCC; border-width: 1px; padding: 3px; text-align: center; border: 1px solid black"><code>n</code></th><th style="background-color: #CCCCCC; border-width: 1px; padding: 3px; text-align: center; border: 1px solid black"><code>d</code></th></tr>
+<tr><td style="border-width: 1px; padding: 3px; border: 1px solid black; text-align: center"><code>Integer.MIN_VALUE</code></td><td style="border-width: 1px; padding: 3px; border: 1px solid black; text-align: center"><code>Integer.MIN_VALUE</code></td></tr>
+<tr><td style="border-width: 1px; padding: 3px; border: 1px solid black; text-align: center">a valid value</td><td style="border-width: 1px; padding: 3px; border: 1px solid black; text-align: center"><code>Integer.MIN_VALUE</code></td></tr>
+<tr><td style="border-width: 1px; padding: 3px; border: 1px solid black; text-align: center"><code>Integer.MIN_VALUE</code></td><td style="border-width: 1px; padding: 3px; border: 1px solid black; text-align: center">a valid value</td></tr>
+<tr><td style="border-width: 1px; padding: 3px; border: 1px solid black; text-align: center"><code>Integer.MIN_VALUE</code></td><td style="border-width: 1px; padding: 3px; border: 1px solid black; text-align: center">zero</td></tr>
+<tr><td style="border-width: 1px; padding: 3px; border: 1px solid black; text-align: center">a valid value</td><td style="border-width: 1px; padding: 3px; border: 1px solid black; text-align: center">zero</td></tr>
+</table></p><p>You can express these combinations in a table:</p><p><pre class="stHighlighted">
+<span class="stReserved">val</span> invalidCombos =
+  <span class="stType">Table</span>(
+    (<span class="stQuotedString">&quot;n&quot;</span>,               <span class="stQuotedString">&quot;d&quot;</span>),
+    (Integer.MIN_VALUE, Integer.MIN_VALUE),
+    (<span class="stLiteral">1</span>,                 Integer.MIN_VALUE),
+    (Integer.MIN_VALUE, <span class="stLiteral">1</span>),
+    (Integer.MIN_VALUE, <span class="stLiteral">0</span>),
+    (<span class="stLiteral">1</span>,                 <span class="stLiteral">0</span>)
+  )
+</pre></p><p>Given this table, you could check that all invalid combinations produce <code>IllegalArgumentException</code>, like this:</p><p><pre class="stHighlighted">
+forAll (invalidCombos) { (n: <span class="stType">Int</span>, d: <span class="stType">Int</span>) =&gt;
+  evaluating {
+    <span class="stReserved">new</span> <span class="stType">Fraction</span>(n, d)
+  } should produce [<span class="stType">IllegalArgumentException</span>]
+}
+</pre></p></div><div class="toggleContainer block">
+          <span class="toggle">Linear Supertypes</span>
+          <div class="superTypes hiddenContent"><a name="org.scalatest.prop.Tables" class="extype" href="Tables.html">Tables</a>, <a name="org.scalatest.prop.Whenever" class="extype" href="Whenever.html">Whenever</a>, AnyRef, <span name="scala.Any" class="extype">Any</span></div>
+        </div><div class="toggleContainer block">
+          <span class="toggle">Known Subclasses</span>
+          <div class="subClasses hiddenContent"><a name="org.scalatest.prop.PropertyChecks" class="extype" href="PropertyChecks.html">PropertyChecks</a>, <a name="org.scalatest.prop.PropertyChecks" class="extype" href="PropertyChecks$.html">PropertyChecks</a>, <a name="org.scalatest.prop.TableDrivenPropertyChecks" class="extype" href="TableDrivenPropertyChecks$.html">TableDrivenPropertyChecks</a></div>
+        </div></div>
+        
+
+      <div id="template">
+
+        <div id="mbrsel">
+          <div id="textfilter"><span class="pre"></span><span class="input"><input accesskey="/" type="text" /></span><span class="post"></span></div>
+          <div id="order">
+                <span class="filtertype">Ordering</span>
+                <ol><li class="alpha in"><span>Alphabetic</span></li><li class="inherit out"><span>By inheritance</span></li></ol>
+              </div>
+          <div id="ancestors">
+                <span class="filtertype">Inherited</span>
+                <ol><li class="hideall out"><span>Hide All</span></li>
+                <li class="showall in"><span>Show all</span></li></ol>
+                <ol id="linearization"><li name="org.scalatest.prop.TableDrivenPropertyChecks" class="in"><span>TableDrivenPropertyChecks</span></li><li name="org.scalatest.prop.Tables" class="in"><span>Tables</span></li><li name="org.scalatest.prop.Whenever" class="in"><span>Whenever</span></li><li name="scala.AnyRef" class="in"><span>AnyRef</span></li><li name="scala.Any" class="in"><span>Any</span></li></ol>
+              </div>
+          <div id="visbl">
+              <span class="filtertype">Visibility</span>
+              <ol><li class="public in"><span>Public</span></li><li class="all out"><span>All</span></li></ol>
+            </div>
+        </div>
+
+        
+
+        
+        
+        
+
+        <div class="values members" id="values">
+              <h3>Value Members</h3>
+              <ol><li visbl="pub" name="scala.AnyRef#!=" data-isabs="false">
+      <a id="!=(AnyRef):Boolean"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">!=</span>
+        
+        <span class="params">(<span name="arg0">arg0: AnyRef</span>)</span><span class="result">: <span name="scala.Boolean" class="extype">Boolean</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>AnyRef</dd></dl></div>
+    </li><li visbl="pub" name="scala.Any#!=" data-isabs="false">
+      <a id="!=(Any):Boolean"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">!=</span>
+        
+        <span class="params">(<span name="arg0">arg0: <span name="scala.Any" class="extype">Any</span></span>)</span><span class="result">: <span name="scala.Boolean" class="extype">Boolean</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>Any</dd></dl></div>
+    </li><li visbl="pub" name="scala.AnyRef###" data-isabs="false">
+      <a id="##():Int"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">##</span>
+        
+        <span class="params">()</span><span class="result">: <span name="scala.Int" class="extype">Int</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>AnyRef → Any</dd></dl></div>
+    </li><li visbl="pub" name="scala.AnyRef#==" data-isabs="false">
+      <a id="==(AnyRef):Boolean"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">==</span>
+        
+        <span class="params">(<span name="arg0">arg0: AnyRef</span>)</span><span class="result">: <span name="scala.Boolean" class="extype">Boolean</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>AnyRef</dd></dl></div>
+    </li><li visbl="pub" name="scala.Any#==" data-isabs="false">
+      <a id="==(Any):Boolean"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">==</span>
+        
+        <span class="params">(<span name="arg0">arg0: <span name="scala.Any" class="extype">Any</span></span>)</span><span class="result">: <span name="scala.Boolean" class="extype">Boolean</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>Any</dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.prop.Tables.Table" data-isabs="false">
+      <a id="Table:Table"></a>
+      <h4 class="signature">
+      <span class="kind">object</span>
+      <span class="symbol"> 
+        <a href="Tables$Table$.html"><span class="name">Table</span></a>
+        
+        <span class="result"> extends AnyRef</span>
+      </span>
+      </h4>
+      <p class="comment cmt">Object containing one <code>apply</code> factory method for each <code>TableFor&lt;n&gt;</code> class.</p>
+    </li><li visbl="pub" name="scala.Any#asInstanceOf" data-isabs="false">
+      <a id="asInstanceOf[T0]:T0"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">asInstanceOf</span>
+        <span class="tparams">[<span name="T0">T0</span>]</span>
+        <span class="result">: T0</span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>Any</dd></dl></div>
+    </li><li visbl="prt" name="scala.AnyRef#clone" data-isabs="false">
+      <a id="clone():AnyRef"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">clone</span>
+        
+        <span class="params">()</span><span class="result">: AnyRef</span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>protected[<a name="java.lang" class="extype" href="../../../java/lang/package.html">lang</a>] </dd><dt>Definition Classes</dt><dd>AnyRef</dd><dt>Annotations</dt><dd>
+                <span class="name">@throws</span><span class="args">()</span>
+              
+        </dd></dl></div>
+    </li><li visbl="pub" name="scala.AnyRef#eq" data-isabs="false">
+      <a id="eq(AnyRef):Boolean"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">eq</span>
+        
+        <span class="params">(<span name="arg0">arg0: AnyRef</span>)</span><span class="result">: <span name="scala.Boolean" class="extype">Boolean</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>AnyRef</dd></dl></div>
+    </li><li visbl="pub" name="scala.AnyRef#equals" data-isabs="false">
+      <a id="equals(Any):Boolean"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">equals</span>
+        
+        <span class="params">(<span name="arg0">arg0: <span name="scala.Any" class="extype">Any</span></span>)</span><span class="result">: <span name="scala.Boolean" class="extype">Boolean</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef → Any</dd></dl></div>
+    </li><li visbl="prt" name="scala.AnyRef#finalize" data-isabs="false">
+      <a id="finalize():Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">finalize</span>
+        
+        <span class="params">()</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>protected[<a name="java.lang" class="extype" href="../../../java/lang/package.html">lang</a>] </dd><dt>Definition Classes</dt><dd>AnyRef</dd><dt>Annotations</dt><dd>
+                <span class="name">@throws</span><span class="args">()</span>
+              
+        </dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.prop.TableDrivenPropertyChecks#forAll" data-isabs="false">
+      <a id="forAll[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V](TableFor22[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V])((A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V) ⇒ Unit):Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">forAll</span>
+        <span class="tparams">[<span name="A">A</span>, <span name="B">B</span>, <span name="C">C</span>, <span name="D">D</span>, <span name="E">E</span>, <span name="F">F</span>, <span name="G">G</span>, <span name="H">H</span>, <span name="I">I</span>, <span name="J">J</span>, <span name="K">K</span>, <span name="L">L</span>, <span name="M">M</span>, <span name="N">N</span>, <span name="O">O</span>, <span name="P">P</span>, <span name="Q">Q</span>, <span name="R">R</span>, <span name="S">S</span>, <span name="T">T</span>, <span name="U">U</span>, <span name="V">V</span>]</span>
+        <span class="params">(<span name="table">table: <a name="org.scalatest.prop.TableFor22" class="extype" href="TableFor22.html">TableFor22</a>[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V]</span>)</span><span class="params">(<span name="fun">fun: (A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V) ⇒ <span name="scala.Unit" class="extype">Unit</span></span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Performs a property check by applying the specified property check function to each row
+of the specified <code>TableFor22</code>.</p><div class="fullcomment"><div class="comment cmt"><p>Performs a property check by applying the specified property check function to each row
+of the specified <code>TableFor22</code>.
+</p></div><dl class="paramcmts block"><dt class="param">table</dt><dd class="cmt"><p>the table of data with which to perform the property check</p></dd><dt class="param">fun</dt><dd class="cmt"><p>the property check function to apply to each row of data in the table
+</p></dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.prop.TableDrivenPropertyChecks#forAll" data-isabs="false">
+      <a id="forAll[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U](TableFor21[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U])((A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U) ⇒ Unit):Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">forAll</span>
+        <span class="tparams">[<span name="A">A</span>, <span name="B">B</span>, <span name="C">C</span>, <span name="D">D</span>, <span name="E">E</span>, <span name="F">F</span>, <span name="G">G</span>, <span name="H">H</span>, <span name="I">I</span>, <span name="J">J</span>, <span name="K">K</span>, <span name="L">L</span>, <span name="M">M</span>, <span name="N">N</span>, <span name="O">O</span>, <span name="P">P</span>, <span name="Q">Q</span>, <span name="R">R</span>, <span name="S">S</span>, <span name="T">T</span>, <span name="U">U</span>]</span>
+        <span class="params">(<span name="table">table: <a name="org.scalatest.prop.TableFor21" class="extype" href="TableFor21.html">TableFor21</a>[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U]</span>)</span><span class="params">(<span name="fun">fun: (A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U) ⇒ <span name="scala.Unit" class="extype">Unit</span></span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Performs a property check by applying the specified property check function to each row
+of the specified <code>TableFor21</code>.</p><div class="fullcomment"><div class="comment cmt"><p>Performs a property check by applying the specified property check function to each row
+of the specified <code>TableFor21</code>.
+</p></div><dl class="paramcmts block"><dt class="param">table</dt><dd class="cmt"><p>the table of data with which to perform the property check</p></dd><dt class="param">fun</dt><dd class="cmt"><p>the property check function to apply to each row of data in the table
+</p></dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.prop.TableDrivenPropertyChecks#forAll" data-isabs="false">
+      <a id="forAll[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T](TableFor20[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T])((A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T) ⇒ Unit):Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">forAll</span>
+        <span class="tparams">[<span name="A">A</span>, <span name="B">B</span>, <span name="C">C</span>, <span name="D">D</span>, <span name="E">E</span>, <span name="F">F</span>, <span name="G">G</span>, <span name="H">H</span>, <span name="I">I</span>, <span name="J">J</span>, <span name="K">K</span>, <span name="L">L</span>, <span name="M">M</span>, <span name="N">N</span>, <span name="O">O</span>, <span name="P">P</span>, <span name="Q">Q</span>, <span name="R">R</span>, <span name="S">S</span>, <span name="T">T</span>]</span>
+        <span class="params">(<span name="table">table: <a name="org.scalatest.prop.TableFor20" class="extype" href="TableFor20.html">TableFor20</a>[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T]</span>)</span><span class="params">(<span name="fun">fun: (A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T) ⇒ <span name="scala.Unit" class="extype">Unit</span></span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Performs a property check by applying the specified property check function to each row
+of the specified <code>TableFor20</code>.</p><div class="fullcomment"><div class="comment cmt"><p>Performs a property check by applying the specified property check function to each row
+of the specified <code>TableFor20</code>.
+</p></div><dl class="paramcmts block"><dt class="param">table</dt><dd class="cmt"><p>the table of data with which to perform the property check</p></dd><dt class="param">fun</dt><dd class="cmt"><p>the property check function to apply to each row of data in the table
+</p></dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.prop.TableDrivenPropertyChecks#forAll" data-isabs="false">
+      <a id="forAll[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S](TableFor19[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S])((A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S) ⇒ Unit):Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">forAll</span>
+        <span class="tparams">[<span name="A">A</span>, <span name="B">B</span>, <span name="C">C</span>, <span name="D">D</span>, <span name="E">E</span>, <span name="F">F</span>, <span name="G">G</span>, <span name="H">H</span>, <span name="I">I</span>, <span name="J">J</span>, <span name="K">K</span>, <span name="L">L</span>, <span name="M">M</span>, <span name="N">N</span>, <span name="O">O</span>, <span name="P">P</span>, <span name="Q">Q</span>, <span name="R">R</span>, <span name="S">S</span>]</span>
+        <span class="params">(<span name="table">table: <a name="org.scalatest.prop.TableFor19" class="extype" href="TableFor19.html">TableFor19</a>[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S]</span>)</span><span class="params">(<span name="fun">fun: (A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S) ⇒ <span name="scala.Unit" class="extype">Unit</span></span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Performs a property check by applying the specified property check function to each row
+of the specified <code>TableFor19</code>.</p><div class="fullcomment"><div class="comment cmt"><p>Performs a property check by applying the specified property check function to each row
+of the specified <code>TableFor19</code>.
+</p></div><dl class="paramcmts block"><dt class="param">table</dt><dd class="cmt"><p>the table of data with which to perform the property check</p></dd><dt class="param">fun</dt><dd class="cmt"><p>the property check function to apply to each row of data in the table
+</p></dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.prop.TableDrivenPropertyChecks#forAll" data-isabs="false">
+      <a id="forAll[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R](TableFor18[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R])((A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R) ⇒ Unit):Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">forAll</span>
+        <span class="tparams">[<span name="A">A</span>, <span name="B">B</span>, <span name="C">C</span>, <span name="D">D</span>, <span name="E">E</span>, <span name="F">F</span>, <span name="G">G</span>, <span name="H">H</span>, <span name="I">I</span>, <span name="J">J</span>, <span name="K">K</span>, <span name="L">L</span>, <span name="M">M</span>, <span name="N">N</span>, <span name="O">O</span>, <span name="P">P</span>, <span name="Q">Q</span>, <span name="R">R</span>]</span>
+        <span class="params">(<span name="table">table: <a name="org.scalatest.prop.TableFor18" class="extype" href="TableFor18.html">TableFor18</a>[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R]</span>)</span><span class="params">(<span name="fun">fun: (A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R) ⇒ <span name="scala.Unit" class="extype">Unit</span></span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Performs a property check by applying the specified property check function to each row
+of the specified <code>TableFor18</code>.</p><div class="fullcomment"><div class="comment cmt"><p>Performs a property check by applying the specified property check function to each row
+of the specified <code>TableFor18</code>.
+</p></div><dl class="paramcmts block"><dt class="param">table</dt><dd class="cmt"><p>the table of data with which to perform the property check</p></dd><dt class="param">fun</dt><dd class="cmt"><p>the property check function to apply to each row of data in the table
+</p></dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.prop.TableDrivenPropertyChecks#forAll" data-isabs="false">
+      <a id="forAll[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q](TableFor17[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q])((A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q) ⇒ Unit):Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">forAll</span>
+        <span class="tparams">[<span name="A">A</span>, <span name="B">B</span>, <span name="C">C</span>, <span name="D">D</span>, <span name="E">E</span>, <span name="F">F</span>, <span name="G">G</span>, <span name="H">H</span>, <span name="I">I</span>, <span name="J">J</span>, <span name="K">K</span>, <span name="L">L</span>, <span name="M">M</span>, <span name="N">N</span>, <span name="O">O</span>, <span name="P">P</span>, <span name="Q">Q</span>]</span>
+        <span class="params">(<span name="table">table: <a name="org.scalatest.prop.TableFor17" class="extype" href="TableFor17.html">TableFor17</a>[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q]</span>)</span><span class="params">(<span name="fun">fun: (A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q) ⇒ <span name="scala.Unit" class="extype">Unit</span></span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Performs a property check by applying the specified property check function to each row
+of the specified <code>TableFor17</code>.</p><div class="fullcomment"><div class="comment cmt"><p>Performs a property check by applying the specified property check function to each row
+of the specified <code>TableFor17</code>.
+</p></div><dl class="paramcmts block"><dt class="param">table</dt><dd class="cmt"><p>the table of data with which to perform the property check</p></dd><dt class="param">fun</dt><dd class="cmt"><p>the property check function to apply to each row of data in the table
+</p></dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.prop.TableDrivenPropertyChecks#forAll" data-isabs="false">
+      <a id="forAll[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P](TableFor16[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P])((A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P) ⇒ Unit):Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">forAll</span>
+        <span class="tparams">[<span name="A">A</span>, <span name="B">B</span>, <span name="C">C</span>, <span name="D">D</span>, <span name="E">E</span>, <span name="F">F</span>, <span name="G">G</span>, <span name="H">H</span>, <span name="I">I</span>, <span name="J">J</span>, <span name="K">K</span>, <span name="L">L</span>, <span name="M">M</span>, <span name="N">N</span>, <span name="O">O</span>, <span name="P">P</span>]</span>
+        <span class="params">(<span name="table">table: <a name="org.scalatest.prop.TableFor16" class="extype" href="TableFor16.html">TableFor16</a>[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P]</span>)</span><span class="params">(<span name="fun">fun: (A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P) ⇒ <span name="scala.Unit" class="extype">Unit</span></span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Performs a property check by applying the specified property check function to each row
+of the specified <code>TableFor16</code>.</p><div class="fullcomment"><div class="comment cmt"><p>Performs a property check by applying the specified property check function to each row
+of the specified <code>TableFor16</code>.
+</p></div><dl class="paramcmts block"><dt class="param">table</dt><dd class="cmt"><p>the table of data with which to perform the property check</p></dd><dt class="param">fun</dt><dd class="cmt"><p>the property check function to apply to each row of data in the table
+</p></dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.prop.TableDrivenPropertyChecks#forAll" data-isabs="false">
+      <a id="forAll[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O](TableFor15[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O])((A, B, C, D, E, F, G, H, I, J, K, L, M, N, O) ⇒ Unit):Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">forAll</span>
+        <span class="tparams">[<span name="A">A</span>, <span name="B">B</span>, <span name="C">C</span>, <span name="D">D</span>, <span name="E">E</span>, <span name="F">F</span>, <span name="G">G</span>, <span name="H">H</span>, <span name="I">I</span>, <span name="J">J</span>, <span name="K">K</span>, <span name="L">L</span>, <span name="M">M</span>, <span name="N">N</span>, <span name="O">O</span>]</span>
+        <span class="params">(<span name="table">table: <a name="org.scalatest.prop.TableFor15" class="extype" href="TableFor15.html">TableFor15</a>[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O]</span>)</span><span class="params">(<span name="fun">fun: (A, B, C, D, E, F, G, H, I, J, K, L, M, N, O) ⇒ <span name="scala.Unit" class="extype">Unit</span></span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Performs a property check by applying the specified property check function to each row
+of the specified <code>TableFor15</code>.</p><div class="fullcomment"><div class="comment cmt"><p>Performs a property check by applying the specified property check function to each row
+of the specified <code>TableFor15</code>.
+</p></div><dl class="paramcmts block"><dt class="param">table</dt><dd class="cmt"><p>the table of data with which to perform the property check</p></dd><dt class="param">fun</dt><dd class="cmt"><p>the property check function to apply to each row of data in the table
+</p></dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.prop.TableDrivenPropertyChecks#forAll" data-isabs="false">
+      <a id="forAll[A, B, C, D, E, F, G, H, I, J, K, L, M, N](TableFor14[A, B, C, D, E, F, G, H, I, J, K, L, M, N])((A, B, C, D, E, F, G, H, I, J, K, L, M, N) ⇒ Unit):Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">forAll</span>
+        <span class="tparams">[<span name="A">A</span>, <span name="B">B</span>, <span name="C">C</span>, <span name="D">D</span>, <span name="E">E</span>, <span name="F">F</span>, <span name="G">G</span>, <span name="H">H</span>, <span name="I">I</span>, <span name="J">J</span>, <span name="K">K</span>, <span name="L">L</span>, <span name="M">M</span>, <span name="N">N</span>]</span>
+        <span class="params">(<span name="table">table: <a name="org.scalatest.prop.TableFor14" class="extype" href="TableFor14.html">TableFor14</a>[A, B, C, D, E, F, G, H, I, J, K, L, M, N]</span>)</span><span class="params">(<span name="fun">fun: (A, B, C, D, E, F, G, H, I, J, K, L, M, N) ⇒ <span name="scala.Unit" class="extype">Unit</span></span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Performs a property check by applying the specified property check function to each row
+of the specified <code>TableFor14</code>.</p><div class="fullcomment"><div class="comment cmt"><p>Performs a property check by applying the specified property check function to each row
+of the specified <code>TableFor14</code>.
+</p></div><dl class="paramcmts block"><dt class="param">table</dt><dd class="cmt"><p>the table of data with which to perform the property check</p></dd><dt class="param">fun</dt><dd class="cmt"><p>the property check function to apply to each row of data in the table
+</p></dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.prop.TableDrivenPropertyChecks#forAll" data-isabs="false">
+      <a id="forAll[A, B, C, D, E, F, G, H, I, J, K, L, M](TableFor13[A, B, C, D, E, F, G, H, I, J, K, L, M])((A, B, C, D, E, F, G, H, I, J, K, L, M) ⇒ Unit):Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">forAll</span>
+        <span class="tparams">[<span name="A">A</span>, <span name="B">B</span>, <span name="C">C</span>, <span name="D">D</span>, <span name="E">E</span>, <span name="F">F</span>, <span name="G">G</span>, <span name="H">H</span>, <span name="I">I</span>, <span name="J">J</span>, <span name="K">K</span>, <span name="L">L</span>, <span name="M">M</span>]</span>
+        <span class="params">(<span name="table">table: <a name="org.scalatest.prop.TableFor13" class="extype" href="TableFor13.html">TableFor13</a>[A, B, C, D, E, F, G, H, I, J, K, L, M]</span>)</span><span class="params">(<span name="fun">fun: (A, B, C, D, E, F, G, H, I, J, K, L, M) ⇒ <span name="scala.Unit" class="extype">Unit</span></span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Performs a property check by applying the specified property check function to each row
+of the specified <code>TableFor13</code>.</p><div class="fullcomment"><div class="comment cmt"><p>Performs a property check by applying the specified property check function to each row
+of the specified <code>TableFor13</code>.
+</p></div><dl class="paramcmts block"><dt class="param">table</dt><dd class="cmt"><p>the table of data with which to perform the property check</p></dd><dt class="param">fun</dt><dd class="cmt"><p>the property check function to apply to each row of data in the table
+</p></dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.prop.TableDrivenPropertyChecks#forAll" data-isabs="false">
+      <a id="forAll[A, B, C, D, E, F, G, H, I, J, K, L](TableFor12[A, B, C, D, E, F, G, H, I, J, K, L])((A, B, C, D, E, F, G, H, I, J, K, L) ⇒ Unit):Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">forAll</span>
+        <span class="tparams">[<span name="A">A</span>, <span name="B">B</span>, <span name="C">C</span>, <span name="D">D</span>, <span name="E">E</span>, <span name="F">F</span>, <span name="G">G</span>, <span name="H">H</span>, <span name="I">I</span>, <span name="J">J</span>, <span name="K">K</span>, <span name="L">L</span>]</span>
+        <span class="params">(<span name="table">table: <a name="org.scalatest.prop.TableFor12" class="extype" href="TableFor12.html">TableFor12</a>[A, B, C, D, E, F, G, H, I, J, K, L]</span>)</span><span class="params">(<span name="fun">fun: (A, B, C, D, E, F, G, H, I, J, K, L) ⇒ <span name="scala.Unit" class="extype">Unit</span></span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Performs a property check by applying the specified property check function to each row
+of the specified <code>TableFor12</code>.</p><div class="fullcomment"><div class="comment cmt"><p>Performs a property check by applying the specified property check function to each row
+of the specified <code>TableFor12</code>.
+</p></div><dl class="paramcmts block"><dt class="param">table</dt><dd class="cmt"><p>the table of data with which to perform the property check</p></dd><dt class="param">fun</dt><dd class="cmt"><p>the property check function to apply to each row of data in the table
+</p></dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.prop.TableDrivenPropertyChecks#forAll" data-isabs="false">
+      <a id="forAll[A, B, C, D, E, F, G, H, I, J, K](TableFor11[A, B, C, D, E, F, G, H, I, J, K])((A, B, C, D, E, F, G, H, I, J, K) ⇒ Unit):Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">forAll</span>
+        <span class="tparams">[<span name="A">A</span>, <span name="B">B</span>, <span name="C">C</span>, <span name="D">D</span>, <span name="E">E</span>, <span name="F">F</span>, <span name="G">G</span>, <span name="H">H</span>, <span name="I">I</span>, <span name="J">J</span>, <span name="K">K</span>]</span>
+        <span class="params">(<span name="table">table: <a name="org.scalatest.prop.TableFor11" class="extype" href="TableFor11.html">TableFor11</a>[A, B, C, D, E, F, G, H, I, J, K]</span>)</span><span class="params">(<span name="fun">fun: (A, B, C, D, E, F, G, H, I, J, K) ⇒ <span name="scala.Unit" class="extype">Unit</span></span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Performs a property check by applying the specified property check function to each row
+of the specified <code>TableFor11</code>.</p><div class="fullcomment"><div class="comment cmt"><p>Performs a property check by applying the specified property check function to each row
+of the specified <code>TableFor11</code>.
+</p></div><dl class="paramcmts block"><dt class="param">table</dt><dd class="cmt"><p>the table of data with which to perform the property check</p></dd><dt class="param">fun</dt><dd class="cmt"><p>the property check function to apply to each row of data in the table
+</p></dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.prop.TableDrivenPropertyChecks#forAll" data-isabs="false">
+      <a id="forAll[A, B, C, D, E, F, G, H, I, J](TableFor10[A, B, C, D, E, F, G, H, I, J])((A, B, C, D, E, F, G, H, I, J) ⇒ Unit):Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">forAll</span>
+        <span class="tparams">[<span name="A">A</span>, <span name="B">B</span>, <span name="C">C</span>, <span name="D">D</span>, <span name="E">E</span>, <span name="F">F</span>, <span name="G">G</span>, <span name="H">H</span>, <span name="I">I</span>, <span name="J">J</span>]</span>
+        <span class="params">(<span name="table">table: <a name="org.scalatest.prop.TableFor10" class="extype" href="TableFor10.html">TableFor10</a>[A, B, C, D, E, F, G, H, I, J]</span>)</span><span class="params">(<span name="fun">fun: (A, B, C, D, E, F, G, H, I, J) ⇒ <span name="scala.Unit" class="extype">Unit</span></span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Performs a property check by applying the specified property check function to each row
+of the specified <code>TableFor10</code>.</p><div class="fullcomment"><div class="comment cmt"><p>Performs a property check by applying the specified property check function to each row
+of the specified <code>TableFor10</code>.
+</p></div><dl class="paramcmts block"><dt class="param">table</dt><dd class="cmt"><p>the table of data with which to perform the property check</p></dd><dt class="param">fun</dt><dd class="cmt"><p>the property check function to apply to each row of data in the table
+</p></dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.prop.TableDrivenPropertyChecks#forAll" data-isabs="false">
+      <a id="forAll[A, B, C, D, E, F, G, H, I](TableFor9[A, B, C, D, E, F, G, H, I])((A, B, C, D, E, F, G, H, I) ⇒ Unit):Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">forAll</span>
+        <span class="tparams">[<span name="A">A</span>, <span name="B">B</span>, <span name="C">C</span>, <span name="D">D</span>, <span name="E">E</span>, <span name="F">F</span>, <span name="G">G</span>, <span name="H">H</span>, <span name="I">I</span>]</span>
+        <span class="params">(<span name="table">table: <a name="org.scalatest.prop.TableFor9" class="extype" href="TableFor9.html">TableFor9</a>[A, B, C, D, E, F, G, H, I]</span>)</span><span class="params">(<span name="fun">fun: (A, B, C, D, E, F, G, H, I) ⇒ <span name="scala.Unit" class="extype">Unit</span></span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Performs a property check by applying the specified property check function to each row
+of the specified <code>TableFor9</code>.</p><div class="fullcomment"><div class="comment cmt"><p>Performs a property check by applying the specified property check function to each row
+of the specified <code>TableFor9</code>.
+</p></div><dl class="paramcmts block"><dt class="param">table</dt><dd class="cmt"><p>the table of data with which to perform the property check</p></dd><dt class="param">fun</dt><dd class="cmt"><p>the property check function to apply to each row of data in the table
+</p></dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.prop.TableDrivenPropertyChecks#forAll" data-isabs="false">
+      <a id="forAll[A, B, C, D, E, F, G, H](TableFor8[A, B, C, D, E, F, G, H])((A, B, C, D, E, F, G, H) ⇒ Unit):Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">forAll</span>
+        <span class="tparams">[<span name="A">A</span>, <span name="B">B</span>, <span name="C">C</span>, <span name="D">D</span>, <span name="E">E</span>, <span name="F">F</span>, <span name="G">G</span>, <span name="H">H</span>]</span>
+        <span class="params">(<span name="table">table: <a name="org.scalatest.prop.TableFor8" class="extype" href="TableFor8.html">TableFor8</a>[A, B, C, D, E, F, G, H]</span>)</span><span class="params">(<span name="fun">fun: (A, B, C, D, E, F, G, H) ⇒ <span name="scala.Unit" class="extype">Unit</span></span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Performs a property check by applying the specified property check function to each row
+of the specified <code>TableFor8</code>.</p><div class="fullcomment"><div class="comment cmt"><p>Performs a property check by applying the specified property check function to each row
+of the specified <code>TableFor8</code>.
+</p></div><dl class="paramcmts block"><dt class="param">table</dt><dd class="cmt"><p>the table of data with which to perform the property check</p></dd><dt class="param">fun</dt><dd class="cmt"><p>the property check function to apply to each row of data in the table
+</p></dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.prop.TableDrivenPropertyChecks#forAll" data-isabs="false">
+      <a id="forAll[A, B, C, D, E, F, G](TableFor7[A, B, C, D, E, F, G])((A, B, C, D, E, F, G) ⇒ Unit):Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">forAll</span>
+        <span class="tparams">[<span name="A">A</span>, <span name="B">B</span>, <span name="C">C</span>, <span name="D">D</span>, <span name="E">E</span>, <span name="F">F</span>, <span name="G">G</span>]</span>
+        <span class="params">(<span name="table">table: <a name="org.scalatest.prop.TableFor7" class="extype" href="TableFor7.html">TableFor7</a>[A, B, C, D, E, F, G]</span>)</span><span class="params">(<span name="fun">fun: (A, B, C, D, E, F, G) ⇒ <span name="scala.Unit" class="extype">Unit</span></span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Performs a property check by applying the specified property check function to each row
+of the specified <code>TableFor7</code>.</p><div class="fullcomment"><div class="comment cmt"><p>Performs a property check by applying the specified property check function to each row
+of the specified <code>TableFor7</code>.
+</p></div><dl class="paramcmts block"><dt class="param">table</dt><dd class="cmt"><p>the table of data with which to perform the property check</p></dd><dt class="param">fun</dt><dd class="cmt"><p>the property check function to apply to each row of data in the table
+</p></dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.prop.TableDrivenPropertyChecks#forAll" data-isabs="false">
+      <a id="forAll[A, B, C, D, E, F](TableFor6[A, B, C, D, E, F])((A, B, C, D, E, F) ⇒ Unit):Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">forAll</span>
+        <span class="tparams">[<span name="A">A</span>, <span name="B">B</span>, <span name="C">C</span>, <span name="D">D</span>, <span name="E">E</span>, <span name="F">F</span>]</span>
+        <span class="params">(<span name="table">table: <a name="org.scalatest.prop.TableFor6" class="extype" href="TableFor6.html">TableFor6</a>[A, B, C, D, E, F]</span>)</span><span class="params">(<span name="fun">fun: (A, B, C, D, E, F) ⇒ <span name="scala.Unit" class="extype">Unit</span></span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Performs a property check by applying the specified property check function to each row
+of the specified <code>TableFor6</code>.</p><div class="fullcomment"><div class="comment cmt"><p>Performs a property check by applying the specified property check function to each row
+of the specified <code>TableFor6</code>.
+</p></div><dl class="paramcmts block"><dt class="param">table</dt><dd class="cmt"><p>the table of data with which to perform the property check</p></dd><dt class="param">fun</dt><dd class="cmt"><p>the property check function to apply to each row of data in the table
+</p></dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.prop.TableDrivenPropertyChecks#forAll" data-isabs="false">
+      <a id="forAll[A, B, C, D, E](TableFor5[A, B, C, D, E])((A, B, C, D, E) ⇒ Unit):Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">forAll</span>
+        <span class="tparams">[<span name="A">A</span>, <span name="B">B</span>, <span name="C">C</span>, <span name="D">D</span>, <span name="E">E</span>]</span>
+        <span class="params">(<span name="table">table: <a name="org.scalatest.prop.TableFor5" class="extype" href="TableFor5.html">TableFor5</a>[A, B, C, D, E]</span>)</span><span class="params">(<span name="fun">fun: (A, B, C, D, E) ⇒ <span name="scala.Unit" class="extype">Unit</span></span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Performs a property check by applying the specified property check function to each row
+of the specified <code>TableFor5</code>.</p><div class="fullcomment"><div class="comment cmt"><p>Performs a property check by applying the specified property check function to each row
+of the specified <code>TableFor5</code>.
+</p></div><dl class="paramcmts block"><dt class="param">table</dt><dd class="cmt"><p>the table of data with which to perform the property check</p></dd><dt class="param">fun</dt><dd class="cmt"><p>the property check function to apply to each row of data in the table
+</p></dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.prop.TableDrivenPropertyChecks#forAll" data-isabs="false">
+      <a id="forAll[A, B, C, D](TableFor4[A, B, C, D])((A, B, C, D) ⇒ Unit):Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">forAll</span>
+        <span class="tparams">[<span name="A">A</span>, <span name="B">B</span>, <span name="C">C</span>, <span name="D">D</span>]</span>
+        <span class="params">(<span name="table">table: <a name="org.scalatest.prop.TableFor4" class="extype" href="TableFor4.html">TableFor4</a>[A, B, C, D]</span>)</span><span class="params">(<span name="fun">fun: (A, B, C, D) ⇒ <span name="scala.Unit" class="extype">Unit</span></span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Performs a property check by applying the specified property check function to each row
+of the specified <code>TableFor4</code>.</p><div class="fullcomment"><div class="comment cmt"><p>Performs a property check by applying the specified property check function to each row
+of the specified <code>TableFor4</code>.
+</p></div><dl class="paramcmts block"><dt class="param">table</dt><dd class="cmt"><p>the table of data with which to perform the property check</p></dd><dt class="param">fun</dt><dd class="cmt"><p>the property check function to apply to each row of data in the table
+</p></dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.prop.TableDrivenPropertyChecks#forAll" data-isabs="false">
+      <a id="forAll[A, B, C](TableFor3[A, B, C])((A, B, C) ⇒ Unit):Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">forAll</span>
+        <span class="tparams">[<span name="A">A</span>, <span name="B">B</span>, <span name="C">C</span>]</span>
+        <span class="params">(<span name="table">table: <a name="org.scalatest.prop.TableFor3" class="extype" href="TableFor3.html">TableFor3</a>[A, B, C]</span>)</span><span class="params">(<span name="fun">fun: (A, B, C) ⇒ <span name="scala.Unit" class="extype">Unit</span></span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Performs a property check by applying the specified property check function to each row
+of the specified <code>TableFor3</code>.</p><div class="fullcomment"><div class="comment cmt"><p>Performs a property check by applying the specified property check function to each row
+of the specified <code>TableFor3</code>.
+</p></div><dl class="paramcmts block"><dt class="param">table</dt><dd class="cmt"><p>the table of data with which to perform the property check</p></dd><dt class="param">fun</dt><dd class="cmt"><p>the property check function to apply to each row of data in the table
+</p></dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.prop.TableDrivenPropertyChecks#forAll" data-isabs="false">
+      <a id="forAll[A, B](TableFor2[A, B])((A, B) ⇒ Unit):Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">forAll</span>
+        <span class="tparams">[<span name="A">A</span>, <span name="B">B</span>]</span>
+        <span class="params">(<span name="table">table: <a name="org.scalatest.prop.TableFor2" class="extype" href="TableFor2.html">TableFor2</a>[A, B]</span>)</span><span class="params">(<span name="fun">fun: (A, B) ⇒ <span name="scala.Unit" class="extype">Unit</span></span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Performs a property check by applying the specified property check function to each row
+of the specified <code>TableFor2</code>.</p><div class="fullcomment"><div class="comment cmt"><p>Performs a property check by applying the specified property check function to each row
+of the specified <code>TableFor2</code>.
+</p></div><dl class="paramcmts block"><dt class="param">table</dt><dd class="cmt"><p>the table of data with which to perform the property check</p></dd><dt class="param">fun</dt><dd class="cmt"><p>the property check function to apply to each row of data in the table
+</p></dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.prop.TableDrivenPropertyChecks#forAll" data-isabs="false">
+      <a id="forAll[A](TableFor1[A])((A) ⇒ Unit):Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">forAll</span>
+        <span class="tparams">[<span name="A">A</span>]</span>
+        <span class="params">(<span name="table">table: <a name="org.scalatest.prop.TableFor1" class="extype" href="TableFor1.html">TableFor1</a>[A]</span>)</span><span class="params">(<span name="fun">fun: (A) ⇒ <span name="scala.Unit" class="extype">Unit</span></span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Performs a property check by applying the specified property check function to each row
+of the specified <code>TableFor1</code>.</p><div class="fullcomment"><div class="comment cmt"><p>Performs a property check by applying the specified property check function to each row
+of the specified <code>TableFor1</code>.
+</p></div><dl class="paramcmts block"><dt class="param">table</dt><dd class="cmt"><p>the table of data with which to perform the property check</p></dd><dt class="param">fun</dt><dd class="cmt"><p>the property check function to apply to each row of data in the table
+</p></dd></dl></div>
+    </li><li visbl="pub" name="scala.AnyRef#getClass" data-isabs="false">
+      <a id="getClass():java.lang.Class[_]"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">getClass</span>
+        
+        <span class="params">()</span><span class="result">: java.lang.Class[_]</span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>AnyRef</dd></dl></div>
+    </li><li visbl="pub" name="scala.AnyRef#hashCode" data-isabs="false">
+      <a id="hashCode():Int"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">hashCode</span>
+        
+        <span class="params">()</span><span class="result">: <span name="scala.Int" class="extype">Int</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef → Any</dd></dl></div>
+    </li><li visbl="pub" name="scala.Any#isInstanceOf" data-isabs="false">
+      <a id="isInstanceOf[T0]:Boolean"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">isInstanceOf</span>
+        <span class="tparams">[<span name="T0">T0</span>]</span>
+        <span class="result">: <span name="scala.Boolean" class="extype">Boolean</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>Any</dd></dl></div>
+    </li><li visbl="pub" name="scala.AnyRef#ne" data-isabs="false">
+      <a id="ne(AnyRef):Boolean"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">ne</span>
+        
+        <span class="params">(<span name="arg0">arg0: AnyRef</span>)</span><span class="result">: <span name="scala.Boolean" class="extype">Boolean</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>AnyRef</dd></dl></div>
+    </li><li visbl="pub" name="scala.AnyRef#notify" data-isabs="false">
+      <a id="notify():Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">notify</span>
+        
+        <span class="params">()</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>AnyRef</dd></dl></div>
+    </li><li visbl="pub" name="scala.AnyRef#notifyAll" data-isabs="false">
+      <a id="notifyAll():Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">notifyAll</span>
+        
+        <span class="params">()</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>AnyRef</dd></dl></div>
+    </li><li visbl="pub" name="scala.AnyRef#synchronized" data-isabs="false">
+      <a id="synchronized[T0](⇒ T0):T0"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">synchronized</span>
+        <span class="tparams">[<span name="T0">T0</span>]</span>
+        <span class="params">(<span name="arg0">arg0: ⇒ T0</span>)</span><span class="result">: T0</span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>AnyRef</dd></dl></div>
+    </li><li visbl="pub" name="scala.AnyRef#toString" data-isabs="false">
+      <a id="toString():String"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">toString</span>
+        
+        <span class="params">()</span><span class="result">: <span name="java.lang.String" class="extype">String</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef → Any</dd></dl></div>
+    </li><li visbl="pub" name="scala.AnyRef#wait" data-isabs="false">
+      <a id="wait():Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">wait</span>
+        
+        <span class="params">()</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>AnyRef</dd><dt>Annotations</dt><dd>
+                <span class="name">@throws</span><span class="args">()</span>
+              
+        </dd></dl></div>
+    </li><li visbl="pub" name="scala.AnyRef#wait" data-isabs="false">
+      <a id="wait(Long,Int):Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">wait</span>
+        
+        <span class="params">(<span name="arg0">arg0: <span name="scala.Long" class="extype">Long</span></span>, <span name="arg1">arg1: <span name="scala.Int" class="extype">Int</span></span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>AnyRef</dd><dt>Annotations</dt><dd>
+                <span class="name">@throws</span><span class="args">()</span>
+              
+        </dd></dl></div>
+    </li><li visbl="pub" name="scala.AnyRef#wait" data-isabs="false">
+      <a id="wait(Long):Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">wait</span>
+        
+        <span class="params">(<span name="arg0">arg0: <span name="scala.Long" class="extype">Long</span></span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>AnyRef</dd><dt>Annotations</dt><dd>
+                <span class="name">@throws</span><span class="args">()</span>
+              
+        </dd></dl></div>
+    </li><li visbl="pub" name="org.scalatest.prop.Whenever#whenever" data-isabs="false">
+      <a id="whenever(Boolean)(⇒ Unit):Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">whenever</span>
+        
+        <span class="params">(<span name="condition">condition: <span name="scala.Boolean" class="extype">Boolean</span></span>)</span><span class="params">(<span name="fun">fun: ⇒ <span name="scala.Unit" class="extype">Unit</span></span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Evaluates the passed code block if the passed boolean condition is true, else throws <code>DiscardedEvaluationException</code>.</p><div class="fullcomment"><div class="comment cmt"><p>Evaluates the passed code block if the passed boolean condition is true, else throws <code>DiscardedEvaluationException</code>.</p><p>The <code>whenever</code> method can be used inside property check functions to discard invocations of the function with
+data for which it is known the property would fail. For example, given the following <code>Fraction</code> class:</p><p><pre class="stHighlighted">
+<span class="stReserved">class</span> <span class="stType">Fraction</span>(n: <span class="stType">Int</span>, d: <span class="stType">Int</span>) {
+<br />  require(d != <span class="stLiteral">0</span>)
+  require(d != Integer.MIN_VALUE)
+  require(n != Integer.MIN_VALUE)
+<br />  <span class="stReserved">val</span> numer = <span class="stReserved">if</span> (d &lt; <span class="stLiteral">0</span>) -<span class="stLiteral">1</span> * n <span class="stReserved">else</span> n
+  <span class="stReserved">val</span> denom = d.abs
+<br />  <span class="stReserved">override</span> <span class="stReserved">def</span> toString = numer + <span class="stQuotedString">&quot; / &quot;</span> + denom
+}
+</pre></p><p><pre class="stHighlighted">
+<span class="stReserved">import</span> org.scalatest.prop.TableDrivenPropertyChecks._
+<br /><span class="stReserved">val</span> fractions =
+  <span class="stType">Table</span>(
+    (<span class="stQuotedString">&quot;n&quot;</span>, <span class="stQuotedString">&quot;d&quot;</span>),
+    (  <span class="stLiteral">1</span>,   <span class="stLiteral">2</span>),
+    ( -<span class="stLiteral">1</span>,   <span class="stLiteral">2</span>),
+    (  <span class="stLiteral">1</span>,  -<span class="stLiteral">2</span>),
+    ( -<span class="stLiteral">1</span>,  -<span class="stLiteral">2</span>),
+    (  <span class="stLiteral">3</span>,   <span class="stLiteral">1</span>),
+    ( -<span class="stLiteral">3</span>,   <span class="stLiteral">1</span>),
+    ( -<span class="stLiteral">3</span>,   <span class="stLiteral">0</span>),
+    (  <span class="stLiteral">3</span>,  -<span class="stLiteral">1</span>),
+    (  <span class="stLiteral">3</span>,  Integer.MIN_VALUE),
+    (Integer.MIN_VALUE, <span class="stLiteral">3</span>),
+    ( -<span class="stLiteral">3</span>,  -<span class="stLiteral">1</span>)
+  )
+</pre></p><p>Imagine you wanted to check a property against this class with data that includes some
+value that are rejected by the constructor, such as a denominator of zero, which should
+result in an <code>IllegalArgumentException</code>. You could use <code>whenever</code>
+to discard any rows in the <code>fraction</code> that represent illegal arguments, like this:</p><p><pre class="stHighlighted">
+<span class="stReserved">import</span> org.scalatest.matchers.ShouldMatchers._
+<br />forAll (fractions) { (n: <span class="stType">Int</span>, d: <span class="stType">Int</span>) =&gt;
+<br />  whenever (d != <span class="stLiteral">0</span> &amp;&amp; d != Integer.MIN_VALUE
+      &amp;&amp; n != Integer.MIN_VALUE) {
+<br />    <span class="stReserved">val</span> f = <span class="stReserved">new</span> <span class="stType">Fraction</span>(n, d)
+<br />    <span class="stReserved">if</span> (n &lt; <span class="stLiteral">0</span> &amp;&amp; d &lt; <span class="stLiteral">0</span> || n &gt; <span class="stLiteral">0</span> &amp;&amp; d &gt; <span class="stLiteral">0</span>)
+      f.numer should be &gt; <span class="stLiteral">0</span>
+    <span class="stReserved">else</span> <span class="stReserved">if</span> (n != <span class="stLiteral">0</span>)
+      f.numer should be &lt; <span class="stLiteral">0</span>
+    <span class="stReserved">else</span>
+      f.numer should be === <span class="stLiteral">0</span>
+<br />    f.denom should be &gt; <span class="stLiteral">0</span>
+  }
+}
+</pre></p><p>In this example, rows 6, 8, and 9 have values that would cause a false to be passed
+to <code>whenever</code>. (For example, in row 6, <code>d</code> is 0, which means <code>d</code> <code>!=</code> <code>0</code>
+will be false.) For those rows, <code>whenever</code> will throw <code>DiscardedEvaluationException</code>,
+which will cause the <code>forAll</code> method to discard that row.</p></div><dl class="paramcmts block"><dt class="param">condition</dt><dd class="cmt"><p>the boolean condition that determines whether <code>whenever</code> will evaluate the
+   <code>fun</code> function (<code>condition</code> is true) or throws <code>DiscardedEvaluationException</code> (<code>condition</code> is false)</p></dd><dt class="param">fun</dt><dd class="cmt"><p>the function to evaluate if the specified <code>condition</code> is true
+</p></dd></dl><dl class="attributes block"> <dt>Definition Classes</dt><dd><a name="org.scalatest.prop.Whenever" class="extype" href="Whenever.html">Whenever</a></dd></dl></div>
+    </li></ol>
+            </div>
+
+        <div name="org.scalatest.prop.Tables" class="parent">
+              <h3>Inherited from <a name="org.scalatest.prop.Tables" class="extype" href="Tables.html">Tables</a></h3>
+            </div><div name="org.scalatest.prop.Whenever" class="parent">
+              <h3>Inherited from <a name="org.scalatest.prop.Whenever" class="extype" href="Whenever.html">Whenever</a></h3>
+            </div><div name="scala.AnyRef" class="parent">
+              <h3>Inherited from AnyRef</h3>
+            </div><div name="scala.Any" class="parent">
+              <h3>Inherited from <span name="scala.Any" class="extype">Any</span></h3>
+            </div>
+
+      </div>
+      
+      <div id="tooltip"></div>
+      
+    </body>
+      </html>
