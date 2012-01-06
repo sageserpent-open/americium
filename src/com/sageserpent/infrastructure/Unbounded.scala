@@ -4,24 +4,23 @@ import scala.math.Ordered
 
 import org.scalatest.Suite
 
-class Unbounded[X <% Ordered[X]] extends Ordered[Unbounded[X]] {
+abstract class Unbounded[X <% Ordered[X]] extends Ordered[Unbounded[X]] {
   def compare(another: Unbounded[X]) = (this, another) match {
     case (Finite(thisUnlifted), Finite(anotherUnlifted)) => thisUnlifted compare anotherUnlifted
-    case (NegativeInfinity(), NegativeInfinity())        => 0
-    case (NegativeInfinity(), _)                 => -1
-    case (_, NegativeInfinity())                 => 1
+    case (Foo(), Foo())        => 0
+    case (Foo(), _)                 => -1
+    case (_, Foo())                 => 1
   }
 }
 
 case class Finite[X <% Ordered[X]](unlifted: X) extends Unbounded[X] {
-
 }
 
-case class NegativeInfinity[X <% Ordered[X]]() extends Unbounded[X]
+case class Foo[X <% Ordered[X]]() extends Unbounded[X] {
+  implicit def fakeCovarianceHack[Y <% Ordered[Y]](ni: this.type) = Foo[Y]()
+}
 
-object NegativeInfinity {
-  implicit def bridgeToAllCandidateTypes[X <% Ordered[X]](ni: this.type) = new NegativeInfinity()
-  implicit def fallbackBridge(ni: this.type) = new NegativeInfinity[Nothing]()
+object NegativeInfinity extends Foo[Nothing] {
 }
 
 class TestSuite extends Suite {
@@ -41,18 +40,25 @@ class TestSuite extends Suite {
 
     assert(Finite(23) == twentyThree)
 
-    assert(NegativeInfinity < Finite(45))
+    assert(negativeInfinity < fortyFive)
+    
+    //assert(negativeInfinity < Finite(45))  // COMPILE ERROR WHEN UNCOMMENTED: Huh?
+    
+    assert(NegativeInfinity < fortyFive)
 
+    //assert(NegativeInfinity < Finite(45))  // COMPILE ERROR WHEN UNCOMMENTED: Huh?
+    
     assert(Finite(45) > NegativeInfinity)
 
     assert(NegativeInfinity == NegativeInfinity)
 
-    assert(!(NegativeInfinity[Int]() > NegativeInfinity()))
-    assert(!(NegativeInfinity > NegativeInfinity[Nothing]()))
-    assert(NegativeInfinity <= NegativeInfinity[Nothing])
-    assert(NegativeInfinity[Nothing] <= negativeInfinity)
-    assert(negativeInfinity <= NegativeInfinity[Nothing])
-    //assert(NegativeInfinity <= NegativeInfinity) // This is a problem, try uncommenting it.
+    assert(!(Foo[Int]() > Foo()))
+    assert(!(NegativeInfinity > Foo[Nothing]()))
+    assert(NegativeInfinity <= Foo[Nothing])
+    assert(Foo[Nothing] <= negativeInfinity)
+    assert(negativeInfinity <= Foo[Nothing])
+    assert(NegativeInfinity <= NegativeInfinity)
+    assert(!(NegativeInfinity > NegativeInfinity))
     
     assert(NegativeInfinity < twentyThree)
   }
