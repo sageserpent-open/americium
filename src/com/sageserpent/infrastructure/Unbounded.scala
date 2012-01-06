@@ -7,9 +7,9 @@ import org.scalatest.Suite
 abstract class Unbounded[X <% Ordered[X]] extends Ordered[Unbounded[X]] {
   def compare(another: Unbounded[X]) = (this, another) match {
     case (Finite(thisUnlifted), Finite(anotherUnlifted)) => thisUnlifted compare anotherUnlifted
-    case (Foo(), Foo())        => 0
-    case (Foo(), _)                 => -1
-    case (_, Foo())                 => 1
+    case (Foo(), Foo())                                  => 0
+    case (Foo(), _)                                      => -1
+    case (_, Foo())                                      => 1
   }
 }
 
@@ -41,13 +41,15 @@ class TestSuite extends Suite {
     assert(Finite(23) == twentyThree)
 
     assert(negativeInfinity < fortyFive)
-    
+
     //assert(negativeInfinity < Finite(45))  // COMPILE ERROR WHEN UNCOMMENTED: Huh?
-    
+
     assert(NegativeInfinity < fortyFive)
 
     //assert(NegativeInfinity < Finite(45))  // COMPILE ERROR WHEN UNCOMMENTED: Huh?
-    
+
+    assert(Finite(45) > negativeInfinity)
+
     assert(Finite(45) > NegativeInfinity)
 
     assert(NegativeInfinity == NegativeInfinity)
@@ -59,7 +61,7 @@ class TestSuite extends Suite {
     assert(negativeInfinity <= Foo[Nothing])
     assert(NegativeInfinity <= NegativeInfinity)
     assert(!(NegativeInfinity > NegativeInfinity))
-    
+
     assert(NegativeInfinity < twentyThree)
   }
 }
