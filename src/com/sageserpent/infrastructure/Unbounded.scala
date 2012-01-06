@@ -27,18 +27,8 @@ class TestSuite extends Suite {
 
   def testOperations() = {
     val negativeInfinity = NegativeInfinity
-
-    val twentyThree = Finite(23)
-
-    assert(negativeInfinity < twentyThree)
-
+    
     val fortyFive = Finite(45)
-
-    assert(twentyThree < fortyFive)
-
-    assert(!(twentyThree > fortyFive))
-
-    assert(Finite(23) == twentyThree)
 
     assert(negativeInfinity < fortyFive)
 
@@ -51,6 +41,28 @@ class TestSuite extends Suite {
     assert(Finite(45) > negativeInfinity)
 
     assert(Finite(45) > NegativeInfinity)
+    
+    def wrap(x:Int) = Finite(x)
+    
+    assert(NegativeInfinity < wrap(45))
+    
+    assert(wrap(45) > NegativeInfinity)
+    
+    assert(NegativeInfinity < (Finite(45): Unbounded[Int]))
+    
+    assert(NegativeInfinity < (Finite(45): Finite[Int]))
+    
+    val twentyThree = Finite(23)
+
+    assert(negativeInfinity < twentyThree)
+
+    assert(twentyThree < fortyFive)
+
+    assert(!(twentyThree > fortyFive))
+
+    assert(Finite(23) == twentyThree)
+
+
 
     assert(NegativeInfinity == NegativeInfinity)
 
