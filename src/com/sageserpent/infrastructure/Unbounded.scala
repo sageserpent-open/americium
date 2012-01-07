@@ -7,27 +7,27 @@ import org.scalatest.Suite
 abstract class Unbounded[X <% Ordered[X]] extends Ordered[Unbounded[X]] {
   def compare(another: Unbounded[X]) = (this, another) match {
     case (Finite(thisUnlifted), Finite(anotherUnlifted)) => thisUnlifted compare anotherUnlifted
-    case (Foo(), Foo())                                  => 0
-    case (Foo(), _)                                      => -1
-    case (_, Foo())                                      => 1
+    case (NegativeInfinity(), NegativeInfinity())        => 0
+    case (NegativeInfinity(), _)                         => -1
+    case (_, NegativeInfinity())                         => 1
   }
 }
 
 case class Finite[X <% Ordered[X]](unlifted: X) extends Unbounded[X] {
 }
 
-case class Foo[X <% Ordered[X]]() extends Unbounded[X] {
-  implicit def fakeCovarianceHack[Y <% Ordered[Y]](ni: this.type) = Foo[Y]()
+case class NegativeInfinity[X <% Ordered[X]]() extends Unbounded[X] {
+  implicit def fakeCovarianceHack[Y <% Ordered[Y]](ni: NegativeInfinity[Nothing]) = NegativeInfinity[Y]()
 }
 
-object NegativeInfinity extends Foo[Nothing] {
+object NegativeInfinity extends NegativeInfinity[Nothing] {
 }
 
 class TestSuite extends Suite {
 
   def testOperations() = {
     val negativeInfinity = NegativeInfinity
-    
+
     val fortyFive = Finite(45)
 
     assert(negativeInfinity < fortyFive)
@@ -41,17 +41,19 @@ class TestSuite extends Suite {
     assert(Finite(45) > negativeInfinity)
 
     assert(Finite(45) > NegativeInfinity)
-    
-    def wrap(x:Int) = Finite(x)
-    
+
+    def wrap(x: Int) = Finite(x)
+
     assert(NegativeInfinity < wrap(45))
-    
+
     assert(wrap(45) > NegativeInfinity)
-    
+
     assert(NegativeInfinity < (Finite(45): Unbounded[Int]))
-    
+
     assert(NegativeInfinity < (Finite(45): Finite[Int]))
-    
+
+    //********************************************
+
     val twentyThree = Finite(23)
 
     assert(negativeInfinity < twentyThree)
@@ -62,15 +64,15 @@ class TestSuite extends Suite {
 
     assert(Finite(23) == twentyThree)
 
-
+    //********************************************
 
     assert(NegativeInfinity == NegativeInfinity)
 
-    assert(!(Foo[Int]() > Foo()))
-    assert(!(NegativeInfinity > Foo[Nothing]()))
-    assert(NegativeInfinity <= Foo[Nothing])
-    assert(Foo[Nothing] <= negativeInfinity)
-    assert(negativeInfinity <= Foo[Nothing])
+    assert(!(NegativeInfinity[Int]() > NegativeInfinity()))
+    assert(!(NegativeInfinity > NegativeInfinity[Nothing]()))
+    assert(NegativeInfinity <= NegativeInfinity[Nothing])
+    assert(NegativeInfinity[Nothing] <= negativeInfinity)
+    assert(negativeInfinity <= NegativeInfinity[Nothing])
     assert(NegativeInfinity <= NegativeInfinity)
     assert(!(NegativeInfinity > NegativeInfinity))
 
