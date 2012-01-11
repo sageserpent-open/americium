@@ -45,7 +45,6 @@ class TestSuite extends Suite {
   def wrap(x: Int) = Finite(x)
 
   def testFinitesAndInfinitesInCombination() = {
-
     assert(negativeInfinity < fortyFive)
 
     //assert(negativeInfinity < Finite(45))  // COMPILE ERROR WHEN UNCOMMENTED: Huh?
@@ -67,8 +66,6 @@ class TestSuite extends Suite {
     assert(NegativeInfinity < (Finite(45): Finite[Int]))
 
     assert(NegativeInfinity < twentyThree)
-
-    val positiveInfinity = PositiveInfinity
 
     assert(positiveInfinity > fortyFive)
 
@@ -94,7 +91,6 @@ class TestSuite extends Suite {
   }
 
   def testFinites() = {
-
     assert(negativeInfinity < twentyThree)
 
     assert(twentyThree < fortyFive)
@@ -105,7 +101,6 @@ class TestSuite extends Suite {
   }
 
   def testInfinites() = {
-
     assert(NegativeInfinity == NegativeInfinity)
 
     assert(!(NegativeInfinity[Int]() > NegativeInfinity() || NegativeInfinity[Int]() < NegativeInfinity()))
