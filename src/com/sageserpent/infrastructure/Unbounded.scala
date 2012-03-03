@@ -102,24 +102,32 @@ class TestSuite extends Suite {
 
   def testInfinites() = {
     assert(NegativeInfinity == NegativeInfinity)
+    assert(NegativeInfinity[Nothing] == NegativeInfinity[Int])
+    assert(!(NegativeInfinity[Nothing] < NegativeInfinity[Int]))
 
     assert(!(NegativeInfinity[Int]() > NegativeInfinity() || NegativeInfinity[Int]() < NegativeInfinity()))
     assert(!(NegativeInfinity > NegativeInfinity[Nothing]()) || NegativeInfinity < NegativeInfinity[Nothing]())
-    assert(NegativeInfinity <= NegativeInfinity[Nothing] && NegativeInfinity >= NegativeInfinity[Nothing])
+    assert(!(negativeInfinity > NegativeInfinity[Nothing] || negativeInfinity < NegativeInfinity[Nothing]))
+    assert(!(NegativeInfinity > NegativeInfinity || NegativeInfinity < NegativeInfinity))
+    
+    assert(NegativeInfinity <= NegativeInfinity[Int] && NegativeInfinity >= NegativeInfinity[Int])
     assert(NegativeInfinity[Nothing] <= negativeInfinity && NegativeInfinity[Nothing] >= negativeInfinity)
     assert(negativeInfinity <= NegativeInfinity[Nothing] && negativeInfinity >= NegativeInfinity[Nothing])
     assert(NegativeInfinity <= NegativeInfinity && NegativeInfinity >= NegativeInfinity)
-    assert(!(NegativeInfinity > NegativeInfinity || NegativeInfinity < NegativeInfinity))
 
     assert(PositiveInfinity == PositiveInfinity)
+    assert(PositiveInfinity[Nothing] == PositiveInfinity[Int])
+    assert(!(PositiveInfinity[Nothing] < PositiveInfinity[Int]))
 
     assert(!(PositiveInfinity[Int]() > PositiveInfinity() || PositiveInfinity[Int]() < PositiveInfinity()))
     assert(!(PositiveInfinity > PositiveInfinity[Nothing]()) || PositiveInfinity < PositiveInfinity[Nothing]())
-    assert(PositiveInfinity <= PositiveInfinity[Nothing] && PositiveInfinity >= PositiveInfinity[Nothing])
+    assert(!(positiveInfinity > PositiveInfinity[Nothing] || positiveInfinity < PositiveInfinity[Nothing]))
+    assert(!(PositiveInfinity > PositiveInfinity || PositiveInfinity < PositiveInfinity))
+    
+    assert(PositiveInfinity <= PositiveInfinity[Int] && PositiveInfinity >= PositiveInfinity[Int])
     assert(PositiveInfinity[Nothing] <= positiveInfinity && PositiveInfinity[Nothing] >= positiveInfinity)
     assert(positiveInfinity <= PositiveInfinity[Nothing] && positiveInfinity >= PositiveInfinity[Nothing])
     assert(PositiveInfinity <= PositiveInfinity && PositiveInfinity >= PositiveInfinity)
-    assert(!(PositiveInfinity > PositiveInfinity || PositiveInfinity < PositiveInfinity))
 
     assert(NegativeInfinity != PositiveInfinity)
     assert(NegativeInfinity < PositiveInfinity)
