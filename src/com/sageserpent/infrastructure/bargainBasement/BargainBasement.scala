@@ -1,7 +1,5 @@
 package com.sageserpent.infrastructure
 
-import org.scalatest.Suite
-
 object BargainBasement {
   def pairwise(iterable: Iterable[_]) = {
     for (Seq(first, second) <- iterable.sliding(2))
@@ -30,34 +28,3 @@ object BargainBasement {
   }
 }
 
-class TestSuite2 extends Suite {
-  def testIsSorted() = {
-    assert(BargainBasement.isSorted(List.empty))
-
-    assert(BargainBasement.isSorted(List(1)))
-
-    assert(BargainBasement.isSorted(List(1, 2)))
-
-    assert(!BargainBasement.isSorted(List(2, 1)))
-
-    assert(BargainBasement.isSorted(List(1, 2, 3)))
-
-    assert(BargainBasement.isSorted(List(1, 2, 2)))
-
-    assert(BargainBasement.isSorted(List(1, 1, 2)))
-
-    assert(BargainBasement.isSorted(List(1, 2, 2, 3)))
-
-    assert(!BargainBasement.isSorted(List(1, 2, 1)))
-
-    assert(BargainBasement.isSorted(List(1, 2, 2, 4)))
-
-    assert(BargainBasement.isSorted(List(1, 2, 3, 4)))
-
-    assert(!BargainBasement.isSorted(List(3, 2, 2, 4)))
-
-    assert(!BargainBasement.isSorted(List(1, 2, 2, 0)))
-
-    assert(!BargainBasement.isSorted(List(1, 2, 4, 0)))
-  }
-}
