@@ -17,7 +17,7 @@ class UnboundedTests extends Suite {
 
   def wrap(x: Int) = Finite(x)
 
-  def testFinitesAndInfinitesInCombination() = {
+  def testFinitesAndInfinitesInCombination() {
     assert(negativeInfinity < fortyFive)
 
     //assert(negativeInfinity < Finite(45))  // COMPILE ERROR WHEN UNCOMMENTED: Huh?
@@ -63,7 +63,7 @@ class UnboundedTests extends Suite {
     assert(PositiveInfinity > twentyThree)
   }
 
-  def testFinites() = {
+  def testFinites() {
     assert(negativeInfinity < twentyThree)
 
     assert(twentyThree < fortyFive)
@@ -73,7 +73,7 @@ class UnboundedTests extends Suite {
     assert(Finite(23) == twentyThree)
   }
 
-  def testInfinites() = {
+  def testInfinites() {
     assert(NegativeInfinity == NegativeInfinity)
     assert(NegativeInfinity[Nothing] == NegativeInfinity[Int])
     assert(!(NegativeInfinity[Nothing] < NegativeInfinity[Int]))
