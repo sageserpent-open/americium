@@ -10,13 +10,13 @@ import com.sageserpent.infrastructure._
 @RunWith(classOf[org.scalatest.junit.JUnitRunner])
 class RichRandomTests extends Suite {
   def anUpperBoundOfZeroYieldsAnEmptyCollection() {
-    val random = new Random
+    val random = new Random(34)
 
     for (_ <- 1 to 10) assert(List.empty == random.buildRandomSequenceOfDistinctIntegersFromZeroToOneLessThan(0))
   }
 
   def testCoverageOfIntegersUpToExclusiveUpperBound() {
-    val random = new Random
+    val random = new Random(29)
 
     val maximumUpperBound = 30
 
@@ -28,7 +28,7 @@ class RichRandomTests extends Suite {
   }
 
   def testUniquenessOfIntegersProduced() {
-    val random = new Random
+    val random = new Random(678)
 
     val maximumUpperBound = 30
 
@@ -40,7 +40,7 @@ class RichRandomTests extends Suite {
 
   def testDistributionOfSuccessiveSequencesWithTheSameUpperBound() {
 
-    val random = new Random
+    val random = new Random(1)
 
     val maximumUpperBound = 30
 
