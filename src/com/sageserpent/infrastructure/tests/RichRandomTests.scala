@@ -47,18 +47,14 @@ class RichRandomTests extends Suite {
     for (upperBound <- 0 until maximumUpperBound) {
       val numberOfTrials = 100000
 
-      val emptyItemToCountAndSumOfPositionsMap: Map[Int, (Int, Double)] = Map.empty withDefaultValue (0 -> 0.0)
+      val itemToCountAndSumOfPositionsMap = Array.fill(upperBound) { 0 -> 0.0 }
 
-      val positionsAndItemsTakenOverAllTrials = for {
+      for {
         _ <- 1 to numberOfTrials
         (position, item) <- 0 until upperBound zip random.buildRandomSequenceOfDistinctIntegersFromZeroToOneLessThan(upperBound)
-      } yield (position, item)
-
-      val itemToCountAndSumOfPositionsMap = (emptyItemToCountAndSumOfPositionsMap /: positionsAndItemsTakenOverAllTrials) {
-        case (itemToCountAndSumOfPositionsMap, (position, item)) => {
-          val (count, sumOfPositions) = itemToCountAndSumOfPositionsMap(item)
-          itemToCountAndSumOfPositionsMap + (item -> (1 + count -> (position + sumOfPositions)))
-        }
+      } {
+        val (count, sumOfPositions) = itemToCountAndSumOfPositionsMap(item)
+        itemToCountAndSumOfPositionsMap(item) = 1 + count -> (position + sumOfPositions)
       }
 
       val toleranceEpsilon = 1e-1
@@ -68,7 +64,7 @@ class RichRandomTests extends Suite {
       println("itemToCountAndSumOfPositionsMap: " + itemToCountAndSumOfPositionsMap)
 
       assert(itemToCountAndSumOfPositionsMap.forall({
-        case (_, (count, sumOfPositions)) => {
+        case (count, sumOfPositions) => {
           val difference = (sumOfPositions / count - (0 + upperBound - 1) / 2.0).abs
           println((count, sumOfPositions) + " leads to a difference of: " + difference)
           difference < toleranceEpsilon
