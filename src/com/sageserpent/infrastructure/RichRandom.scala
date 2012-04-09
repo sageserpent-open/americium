@@ -5,7 +5,7 @@ class RichRandom(random: Random) {
   def chooseAnyNumberFromZeroToOneLessThan(exclusiveLimit: Int) = random.nextInt(exclusiveLimit)
 
   def chooseAnyNumberFromOneTo(inclusiveLimit: Int) =
-    chooseAnyNumberFromZeroToOneLessThan(inclusiveLimit + 1)
+    1 + chooseAnyNumberFromZeroToOneLessThan(inclusiveLimit)
 
   def headsItIs() = random.nextBoolean()
 
