@@ -9,7 +9,7 @@ import com.sageserpent.infrastructure._
 
 @RunWith(classOf[org.scalatest.junit.JUnitRunner])
 class RichRandomTests extends Suite {
-  def anUpperBoundOfZeroYieldsAnEmptyCollection() {
+  def testThatAnUpperBoundOfZeroYieldsAnEmptyCollection() {
     val random = new Random(34)
 
     for (_ <- 1 to 10) assert(List.empty == random.buildRandomSequenceOfDistinctIntegersFromZeroToOneLessThan(0))
