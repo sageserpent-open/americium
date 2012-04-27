@@ -63,10 +63,10 @@ class RichRandomTests extends Suite {
 
       println("itemToCountAndSumOfPositionsMap: " + itemToCountAndSumOfPositionsMap)
 
-      assert(itemToCountAndSumOfPositionsMap.forall({
-        case (count, sumOfPositions) => {
+      assert(((0 until itemToCountAndSumOfPositionsMap.length) zip itemToCountAndSumOfPositionsMap).forall({
+        case (item, (count, sumOfPositions)) => {
           val difference = (sumOfPositions / count - (0 + upperBound - 1) / 2.0).abs
-          println((count, sumOfPositions) + " leads to a difference of: " + difference)
+          println("Item: " + item + " has a count: " + count + " and sum of positions: " + sumOfPositions + " leading to a difference in mean position of: " + difference)
           difference < toleranceEpsilon
         }
       }))
