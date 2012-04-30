@@ -16,21 +16,21 @@ class RichRandom(random: Random) {
       def inclusiveLowerBoundForAllItemsInSubtree: Option[Int] = {
         this match {
           case InteriorNode(lowerBoundForItemRange: Int, upperBoundForItemRange: Int, lesserSubtree: BinaryTreeNode, greaterSubtree: BinaryTreeNode) =>
-            lesserSubtree.inclusiveLowerBoundForAllItemsInSubtree orElse(Some(lowerBoundForItemRange))
+            lesserSubtree.inclusiveLowerBoundForAllItemsInSubtree orElse (Some(lowerBoundForItemRange))
           case EmptySubtree =>
             None
         }
       }
-      
+
       def exclusiveUpperBoundForAllItemsInSubtree: Option[Int] = {
         this match {
           case InteriorNode(lowerBoundForItemRange: Int, upperBoundForItemRange: Int, lesserSubtree: BinaryTreeNode, greaterSubtree: BinaryTreeNode) =>
-            greaterSubtree.exclusiveUpperBoundForAllItemsInSubtree orElse(Some(upperBoundForItemRange))
+            greaterSubtree.exclusiveUpperBoundForAllItemsInSubtree orElse (Some(upperBoundForItemRange))
           case EmptySubtree =>
             None
         }
       }
-      
+
       def numberOfInteriorNodesInSubtree: Int = {
         this match {
           case InteriorNode(lowerBoundForItemRange: Int, upperBoundForItemRange: Int, lesserSubtree: BinaryTreeNode, greaterSubtree: BinaryTreeNode) =>
@@ -49,36 +49,23 @@ class RichRandom(random: Random) {
         }
       }
 
-      def numberOfVacantSlotsInSubtreeWithinRange: Tuple2[Int, Int] => Int = BargainBasement.memoize({
-        case (inclusiveLowerBound, exclusiveUpperBound) => {
-          require(inclusiveLowerBound >= 0)
-          require(inclusiveLowerBound <= exclusiveUpperBound)
-          require(exclusiveUpperBound <= exclusiveLimit)
+      def numberOfVacantSlotsInSubtreeWithinRange(inclusiveLowerBound: Int, exclusiveUpperBound: Int): Int = {
+        require(inclusiveLowerBound >= 0)
+        require(inclusiveLowerBound <= exclusiveUpperBound)
+        require(exclusiveUpperBound <= exclusiveLimit)
 
-          val resultTheOldWay = this match {
-            case thisAsInteriorNode @ InteriorNode(lowerBoundForItemRange: Int, upperBoundForItemRange: Int, lesserSubtree: BinaryTreeNode, greaterSubtree: BinaryTreeNode) =>
-              require(thisAsInteriorNode.inclusiveLowerBoundForAllItemsInSubtree match {case Some(inclusiveLowerBoundForAllItemsInSubtree) => inclusiveLowerBound <= inclusiveLowerBoundForAllItemsInSubtree})
-              require(thisAsInteriorNode.exclusiveUpperBoundForAllItemsInSubtree match {case Some(exclusiveUpperBoundForAllItemsInSubtree) => exclusiveUpperBoundForAllItemsInSubtree <= exclusiveUpperBound})
-              
-              (thisAsInteriorNode.lesserSubtreeCanBeConsidered(inclusiveLowerBound), thisAsInteriorNode.greaterSubtreeCanBeConsidered(exclusiveUpperBound)) match {
-                case (true, false) => lesserSubtree.numberOfVacantSlotsInSubtreeWithinRange(inclusiveLowerBound, lowerBoundForItemRange)
+        this match {
+          case thisAsInteriorNode @ InteriorNode(lowerBoundForItemRange: Int, upperBoundForItemRange: Int, lesserSubtree: BinaryTreeNode, greaterSubtree: BinaryTreeNode) =>
+            require(thisAsInteriorNode.inclusiveLowerBoundForAllItemsInSubtree match { case Some(inclusiveLowerBoundForAllItemsInSubtree) => inclusiveLowerBound <= inclusiveLowerBoundForAllItemsInSubtree })
+            require(thisAsInteriorNode.exclusiveUpperBoundForAllItemsInSubtree match { case Some(exclusiveUpperBoundForAllItemsInSubtree) => exclusiveUpperBoundForAllItemsInSubtree <= exclusiveUpperBound })
 
-                case (false, true) => greaterSubtree.numberOfVacantSlotsInSubtreeWithinRange(1 + upperBoundForItemRange, exclusiveUpperBound)
-
-                case (true, true)  => lesserSubtree.numberOfVacantSlotsInSubtreeWithinRange(inclusiveLowerBound, lowerBoundForItemRange) + greaterSubtree.numberOfVacantSlotsInSubtreeWithinRange(1 + upperBoundForItemRange, exclusiveUpperBound)
-              }
-
-            case EmptySubtree =>
-              exclusiveUpperBound - inclusiveLowerBound
-          }
-          
-          val resultTheNewWay = exclusiveUpperBound - inclusiveLowerBound - numberOfItemsInSubtree
-          
-          require(resultTheNewWay == resultTheOldWay)
-          
-          resultTheOldWay
+          case EmptySubtree =>
+            require(this.inclusiveLowerBoundForAllItemsInSubtree.isEmpty)
+            require(this.exclusiveUpperBoundForAllItemsInSubtree.isEmpty)
         }
-      })
+
+        exclusiveUpperBound - inclusiveLowerBound - numberOfItemsInSubtree
+      }
 
       def generateAndAddNewItem(inclusiveLowerBound: Int, exclusiveUpperBound: Int): (BinaryTreeNode, Int)
       def generateAndAddNewItem(): (BinaryTreeNode, Int) = generateAndAddNewItem(0, exclusiveLimit)
