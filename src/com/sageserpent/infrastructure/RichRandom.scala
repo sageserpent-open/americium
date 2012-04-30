@@ -13,6 +13,24 @@ class RichRandom(random: Random) {
     require(0 <= exclusiveLimit)
 
     abstract class BinaryTreeNode {
+      def inclusiveLowerBoundForAllItemsInSubtree: Option[Int] = {
+        this match {
+          case InteriorNode(lowerBoundForItemRange: Int, upperBoundForItemRange: Int, lesserSubtree: BinaryTreeNode, greaterSubtree: BinaryTreeNode) =>
+            lesserSubtree.inclusiveLowerBoundForAllItemsInSubtree orElse(Some(lowerBoundForItemRange))
+          case EmptySubtree =>
+            None
+        }
+      }
+      
+      def exclusiveUpperBoundForAllItemsInSubtree: Option[Int] = {
+        this match {
+          case InteriorNode(lowerBoundForItemRange: Int, upperBoundForItemRange: Int, lesserSubtree: BinaryTreeNode, greaterSubtree: BinaryTreeNode) =>
+            greaterSubtree.exclusiveUpperBoundForAllItemsInSubtree orElse(Some(upperBoundForItemRange))
+          case EmptySubtree =>
+            None
+        }
+      }
+      
       def numberOfInteriorNodesInSubtree: Int = {
         this match {
           case InteriorNode(lowerBoundForItemRange: Int, upperBoundForItemRange: Int, lesserSubtree: BinaryTreeNode, greaterSubtree: BinaryTreeNode) =>
@@ -39,6 +57,9 @@ class RichRandom(random: Random) {
 
           this match {
             case thisAsInteriorNode @ InteriorNode(lowerBoundForItemRange: Int, upperBoundForItemRange: Int, lesserSubtree: BinaryTreeNode, greaterSubtree: BinaryTreeNode) =>
+              require(thisAsInteriorNode.inclusiveLowerBoundForAllItemsInSubtree match {case Some(inclusiveLowerBoundForAllItemsInSubtree) => inclusiveLowerBound <= inclusiveLowerBoundForAllItemsInSubtree})
+              require(thisAsInteriorNode.exclusiveUpperBoundForAllItemsInSubtree match {case Some(exclusiveUpperBoundForAllItemsInSubtree) => exclusiveUpperBoundForAllItemsInSubtree <= exclusiveUpperBound})
+              
               (thisAsInteriorNode.lesserSubtreeCanBeConsidered(inclusiveLowerBound), thisAsInteriorNode.greaterSubtreeCanBeConsidered(exclusiveUpperBound)) match {
                 case (true, false) => lesserSubtree.numberOfVacantSlotsInSubtreeWithinRange(inclusiveLowerBound, lowerBoundForItemRange)
 
