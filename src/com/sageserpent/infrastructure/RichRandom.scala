@@ -13,7 +13,7 @@ class RichRandom(random: Random) {
     require(0 <= exclusiveLimit)
 
     abstract class BinaryTreeNode {
-      def inclusiveLowerBoundForAllItemsInSubtree: Option[Int] = {
+      lazy val inclusiveLowerBoundForAllItemsInSubtree: Option[Int] = {
         this match {
           case InteriorNode(lowerBoundForItemRange: Int, upperBoundForItemRange: Int, lesserSubtree: BinaryTreeNode, greaterSubtree: BinaryTreeNode) =>
             lesserSubtree.inclusiveLowerBoundForAllItemsInSubtree orElse (Some(lowerBoundForItemRange))
@@ -22,7 +22,7 @@ class RichRandom(random: Random) {
         }
       }
 
-      def exclusiveUpperBoundForAllItemsInSubtree: Option[Int] = {
+      lazy val exclusiveUpperBoundForAllItemsInSubtree: Option[Int] = {
         this match {
           case InteriorNode(lowerBoundForItemRange: Int, upperBoundForItemRange: Int, lesserSubtree: BinaryTreeNode, greaterSubtree: BinaryTreeNode) =>
             greaterSubtree.exclusiveUpperBoundForAllItemsInSubtree orElse (Some(upperBoundForItemRange))
@@ -31,7 +31,7 @@ class RichRandom(random: Random) {
         }
       }
 
-      def numberOfInteriorNodesInSubtree: Int = {
+      lazy val numberOfInteriorNodesInSubtree: Int = {
         this match {
           case InteriorNode(lowerBoundForItemRange: Int, upperBoundForItemRange: Int, lesserSubtree: BinaryTreeNode, greaterSubtree: BinaryTreeNode) =>
             1 + lesserSubtree.numberOfInteriorNodesInSubtree + greaterSubtree.numberOfInteriorNodesInSubtree
@@ -40,7 +40,7 @@ class RichRandom(random: Random) {
         }
       }
 
-      def numberOfItemsInSubtree: Int = {
+      lazy val numberOfItemsInSubtree: Int = {
         this match {
           case thisAsInteriorNode @ InteriorNode(lowerBoundForItemRange: Int, upperBoundForItemRange: Int, lesserSubtree: BinaryTreeNode, greaterSubtree: BinaryTreeNode) =>
             thisAsInteriorNode.numberOfItemsInRange + lesserSubtree.numberOfItemsInSubtree + greaterSubtree.numberOfItemsInSubtree
@@ -60,8 +60,8 @@ class RichRandom(random: Random) {
             require(thisAsInteriorNode.exclusiveUpperBoundForAllItemsInSubtree match { case Some(exclusiveUpperBoundForAllItemsInSubtree) => exclusiveUpperBoundForAllItemsInSubtree <= exclusiveUpperBound })
 
           case EmptySubtree =>
-            require(this.inclusiveLowerBoundForAllItemsInSubtree.isEmpty)
-            require(this.exclusiveUpperBoundForAllItemsInSubtree.isEmpty)
+            require(inclusiveLowerBoundForAllItemsInSubtree.isEmpty)
+            require(exclusiveUpperBoundForAllItemsInSubtree.isEmpty)
         }
 
         exclusiveUpperBound - inclusiveLowerBound - numberOfItemsInSubtree
