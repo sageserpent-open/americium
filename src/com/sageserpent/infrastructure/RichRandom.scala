@@ -13,41 +13,13 @@ class RichRandom(random: Random) {
     require(0 <= exclusiveLimit)
 
     abstract class BinaryTreeNode {
-      lazy val inclusiveLowerBoundForAllItemsInSubtree: Option[Int] = {
-        this match {
-          case InteriorNode(lowerBoundForItemRange: Int, upperBoundForItemRange: Int, lesserSubtree: BinaryTreeNode, greaterSubtree: BinaryTreeNode) =>
-            lesserSubtree.inclusiveLowerBoundForAllItemsInSubtree orElse (Some(lowerBoundForItemRange))
-          case EmptySubtree =>
-            None
-        }
-      }
+      def inclusiveLowerBoundForAllItemsInSubtree: Option[Int]
+      
+      def exclusiveUpperBoundForAllItemsInSubtree: Option[Int]
 
-      lazy val exclusiveUpperBoundForAllItemsInSubtree: Option[Int] = {
-        this match {
-          case InteriorNode(lowerBoundForItemRange: Int, upperBoundForItemRange: Int, lesserSubtree: BinaryTreeNode, greaterSubtree: BinaryTreeNode) =>
-            greaterSubtree.exclusiveUpperBoundForAllItemsInSubtree orElse (Some(upperBoundForItemRange))
-          case EmptySubtree =>
-            None
-        }
-      }
+      def numberOfInteriorNodesInSubtree: Int
 
-      lazy val numberOfInteriorNodesInSubtree: Int = {
-        this match {
-          case InteriorNode(lowerBoundForItemRange: Int, upperBoundForItemRange: Int, lesserSubtree: BinaryTreeNode, greaterSubtree: BinaryTreeNode) =>
-            1 + lesserSubtree.numberOfInteriorNodesInSubtree + greaterSubtree.numberOfInteriorNodesInSubtree
-          case EmptySubtree =>
-            0
-        }
-      }
-
-      lazy val numberOfItemsInSubtree: Int = {
-        this match {
-          case thisAsInteriorNode @ InteriorNode(lowerBoundForItemRange: Int, upperBoundForItemRange: Int, lesserSubtree: BinaryTreeNode, greaterSubtree: BinaryTreeNode) =>
-            thisAsInteriorNode.numberOfItemsInRange + lesserSubtree.numberOfItemsInSubtree + greaterSubtree.numberOfItemsInSubtree
-          case EmptySubtree =>
-            0
-        }
-      }
+      def numberOfItemsInSubtree: Int
 
       def numberOfVacantSlotsInSubtreeWithinRange(inclusiveLowerBound: Int, exclusiveUpperBound: Int): Int = {
         require(inclusiveLowerBound >= 0)
@@ -87,6 +59,14 @@ class RichRandom(random: Random) {
       def this(singleItem: Int) = this(singleItem, singleItem, EmptySubtree, EmptySubtree)
 
       val numberOfItemsInRange = 1 + upperBoundForItemRange - lowerBoundForItemRange
+      
+      val inclusiveLowerBoundForAllItemsInSubtree = lesserSubtree.inclusiveLowerBoundForAllItemsInSubtree orElse (Some(lowerBoundForItemRange))
+      
+      val exclusiveUpperBoundForAllItemsInSubtree = greaterSubtree.exclusiveUpperBoundForAllItemsInSubtree orElse (Some(upperBoundForItemRange))
+      
+      val numberOfInteriorNodesInSubtree = 1 + lesserSubtree.numberOfInteriorNodesInSubtree + greaterSubtree.numberOfInteriorNodesInSubtree
+      
+      val numberOfItemsInSubtree = numberOfItemsInRange + lesserSubtree.numberOfItemsInSubtree + greaterSubtree.numberOfItemsInSubtree
 
       def generateAndAddNewItem(inclusiveLowerBound: Int, exclusiveUpperBound: Int) = {
         require(inclusiveLowerBound >= 0)
@@ -159,6 +139,14 @@ class RichRandom(random: Random) {
     }
 
     case object EmptySubtree extends BinaryTreeNode {
+      val inclusiveLowerBoundForAllItemsInSubtree = None
+      
+      val exclusiveUpperBoundForAllItemsInSubtree = None
+      
+      val numberOfInteriorNodesInSubtree = 0
+      
+      val numberOfItemsInSubtree = 0
+      
       def generateAndAddNewItem(inclusiveLowerBound: Int, exclusiveUpperBound: Int) = {
         require(inclusiveLowerBound >= 0)
         require(inclusiveLowerBound < exclusiveUpperBound)
