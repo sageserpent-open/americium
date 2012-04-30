@@ -55,7 +55,7 @@ class RichRandom(random: Random) {
           require(inclusiveLowerBound <= exclusiveUpperBound)
           require(exclusiveUpperBound <= exclusiveLimit)
 
-          this match {
+          val resultTheOldWay = this match {
             case thisAsInteriorNode @ InteriorNode(lowerBoundForItemRange: Int, upperBoundForItemRange: Int, lesserSubtree: BinaryTreeNode, greaterSubtree: BinaryTreeNode) =>
               require(thisAsInteriorNode.inclusiveLowerBoundForAllItemsInSubtree match {case Some(inclusiveLowerBoundForAllItemsInSubtree) => inclusiveLowerBound <= inclusiveLowerBoundForAllItemsInSubtree})
               require(thisAsInteriorNode.exclusiveUpperBoundForAllItemsInSubtree match {case Some(exclusiveUpperBoundForAllItemsInSubtree) => exclusiveUpperBoundForAllItemsInSubtree <= exclusiveUpperBound})
@@ -71,6 +71,12 @@ class RichRandom(random: Random) {
             case EmptySubtree =>
               exclusiveUpperBound - inclusiveLowerBound
           }
+          
+          val resultTheNewWay = exclusiveUpperBound - inclusiveLowerBound - numberOfItemsInSubtree
+          
+          require(resultTheNewWay == resultTheOldWay)
+          
+          resultTheOldWay
         }
       })
 
