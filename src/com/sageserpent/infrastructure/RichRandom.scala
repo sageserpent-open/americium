@@ -39,8 +39,8 @@ class RichRandom(random: Random) {
         exclusiveUpperBound - inclusiveLowerBound - numberOfItemsInSubtree
       }
 
-      def generateAndAddNewItem(inclusiveLowerBound: Int, exclusiveUpperBound: Int): (BinaryTreeNode, Int)
-      def generateAndAddNewItem(): (BinaryTreeNode, Int) = generateAndAddNewItem(0, exclusiveLimit)
+      def addNewItemInTheVacantSlotAtIndex(indexOfVacantSlotAsOrderedByMissingItem: Int, inclusiveLowerBound: Int, exclusiveUpperBound: Int): (BinaryTreeNode, Int)
+      def addNewItemInTheVacantSlotAtIndex(indexOfVacantSlotAsOrderedByMissingItem: Int): (BinaryTreeNode, Int) = addNewItemInTheVacantSlotAtIndex(indexOfVacantSlotAsOrderedByMissingItem, 0, exclusiveLimit)
     }
 
     case class InteriorNode(lowerBoundForItemRange: Int, upperBoundForItemRange: Int, lesserSubtree: BinaryTreeNode, greaterSubtree: BinaryTreeNode) extends BinaryTreeNode {
@@ -68,16 +68,23 @@ class RichRandom(random: Random) {
       
       val numberOfItemsInSubtree = numberOfItemsInRange + lesserSubtree.numberOfItemsInSubtree + greaterSubtree.numberOfItemsInSubtree
 
-      def generateAndAddNewItem(inclusiveLowerBound: Int, exclusiveUpperBound: Int) = {
+      def addNewItemInTheVacantSlotAtIndex(indexOfVacantSlotAsOrderedByMissingItem: Int, inclusiveLowerBound: Int, exclusiveUpperBound: Int) = {
+        require(indexOfVacantSlotAsOrderedByMissingItem >= 0)
+        require(indexOfVacantSlotAsOrderedByMissingItem < exclusiveLimit)	// This is a very loose upper bound, because 'indexOfVacantSlotAsOrderedByMissingItem' is progressively
+        																	// decremented for each move to a greater subtree. It does hold however, so is left in as a last line of
+        																	// defence sanity check.
+        
         require(inclusiveLowerBound >= 0)
         require(inclusiveLowerBound < exclusiveUpperBound)
         require(exclusiveUpperBound <= exclusiveLimit)
 
         require(inclusiveLowerBound <= lowerBoundForItemRange)
         require(exclusiveUpperBound > upperBoundForItemRange)
+        
+        val effectiveIndexAssociatedWithThisInteriorNode = lesserSubtree.numberOfVacantSlotsInSubtreeWithinRange(inclusiveLowerBound, lowerBoundForItemRange)
 
         def recurseOnLesserSubtree() = {
-          val (lesserSubtreeResult, modifiedItemResult) = lesserSubtree.generateAndAddNewItem(inclusiveLowerBound, lowerBoundForItemRange)
+          val (lesserSubtreeResult, modifiedItemResult) = lesserSubtree.addNewItemInTheVacantSlotAtIndex(indexOfVacantSlotAsOrderedByMissingItem, inclusiveLowerBound, lowerBoundForItemRange)
 
           ((lesserSubtreeResult, greaterSubtree) match {
             case (InteriorNode(lowerBoundForItemRangeFromLesserSubtree, upperBoundForItemRangeFromLesserSubtree, lesserSubtreeFromLesserSubtree, EmptySubtree),
@@ -91,7 +98,7 @@ class RichRandom(random: Random) {
         }
 
         def recurseOnGreaterSubtree() = {
-          val (greaterSubtreeResult, modifiedItemResult) = greaterSubtree.generateAndAddNewItem(1 + upperBoundForItemRange, exclusiveUpperBound)
+          val (greaterSubtreeResult, modifiedItemResult) = greaterSubtree.addNewItemInTheVacantSlotAtIndex(indexOfVacantSlotAsOrderedByMissingItem - effectiveIndexAssociatedWithThisInteriorNode, 1 + upperBoundForItemRange, exclusiveUpperBound)
 
           ((lesserSubtree, greaterSubtreeResult) match {
             case (_,
@@ -116,18 +123,9 @@ class RichRandom(random: Random) {
           }
 
           case (true, true) => {
-            val weightInFavourOfLesserSubtree = lesserSubtree.numberOfVacantSlotsInSubtreeWithinRange(inclusiveLowerBound, lowerBoundForItemRange)
-            val weightInFavourOfGreaterSubtree = greaterSubtree.numberOfVacantSlotsInSubtreeWithinRange(1 + upperBoundForItemRange, exclusiveUpperBound)
-
-            assert(0 < weightInFavourOfLesserSubtree)
-            assert(0 < weightInFavourOfGreaterSubtree)
-
-            val totalOdds = weightInFavourOfLesserSubtree + weightInFavourOfGreaterSubtree
-
-            if (chooseAnyNumberFromZeroToOneLessThan(totalOdds) < weightInFavourOfLesserSubtree) {
-              recurseOnLesserSubtree()
-            } else {
-              recurseOnGreaterSubtree()
+            indexOfVacantSlotAsOrderedByMissingItem.compare(effectiveIndexAssociatedWithThisInteriorNode) match {
+              case -1 => recurseOnLesserSubtree()
+              case _ => recurseOnGreaterSubtree()
             }
           }
         }
@@ -147,23 +145,31 @@ class RichRandom(random: Random) {
       
       val numberOfItemsInSubtree = 0
       
-      def generateAndAddNewItem(inclusiveLowerBound: Int, exclusiveUpperBound: Int) = {
+      def addNewItemInTheVacantSlotAtIndex(indexOfVacantSlotAsOrderedByMissingItem: Int, inclusiveLowerBound: Int, exclusiveUpperBound: Int) = {
+        require(indexOfVacantSlotAsOrderedByMissingItem >= 0)
+        require(indexOfVacantSlotAsOrderedByMissingItem < exclusiveLimit)	// This is a very loose upper bound, because 'indexOfVacantSlotAsOrderedByMissingItem' is progressively
+        																	// decremented for each move to a greater subtree. It does hold however, so is left in as a last line of
+        																	// defence sanity check.
+        
         require(inclusiveLowerBound >= 0)
         require(inclusiveLowerBound < exclusiveUpperBound)
         require(exclusiveUpperBound <= exclusiveLimit)
 
-        val generatedItem = inclusiveLowerBound + chooseAnyNumberFromZeroToOneLessThan(exclusiveUpperBound - inclusiveLowerBound)
+        val generatedItem = inclusiveLowerBound + indexOfVacantSlotAsOrderedByMissingItem
+        
+        require(generatedItem < exclusiveUpperBound)
+        
         new InteriorNode(generatedItem) -> generatedItem
       }
     }
 
-    def chooseAndRecordUniqueItems(numberOfAttemptsLeft: Int, previouslyChosenItemsAsBinaryTree: BinaryTreeNode): Stream[Int] = {
-      if (0 == numberOfAttemptsLeft) {
+    def chooseAndRecordUniqueItems(exclusiveLimitOnVacantSlotIndex: Int, previouslyChosenItemsAsBinaryTree: BinaryTreeNode): Stream[Int] = {
+      if (0 == exclusiveLimitOnVacantSlotIndex) {
         Stream.empty
       } else {
-        val (chosenItemsAsBinaryTree, chosenItem) = previouslyChosenItemsAsBinaryTree.generateAndAddNewItem()
+        val (chosenItemsAsBinaryTree, chosenItem) = previouslyChosenItemsAsBinaryTree.addNewItemInTheVacantSlotAtIndex(chooseAnyNumberFromZeroToOneLessThan(exclusiveLimitOnVacantSlotIndex))
 
-        chosenItem #:: chooseAndRecordUniqueItems(numberOfAttemptsLeft - 1, chosenItemsAsBinaryTree)
+        chosenItem #:: chooseAndRecordUniqueItems(exclusiveLimitOnVacantSlotIndex - 1, chosenItemsAsBinaryTree)
       }
     }
 
