@@ -35,6 +35,7 @@ class RichRandomTests extends Suite {
     for (upperBound <- 0 until maximumUpperBound) {
       val chosenItems = random.buildRandomSequenceOfDistinctIntegersFromZeroToOneLessThan(upperBound)
       assert(upperBound == chosenItems.toSet.size)
+      assert(upperBound == chosenItems.length)
     }
   }
 
@@ -65,8 +66,8 @@ class RichRandomTests extends Suite {
 
       assert(((0 until itemToCountAndSumOfPositionsMap.length) zip itemToCountAndSumOfPositionsMap).forall({
         case (item, (count, sumOfPositions)) => {
-          val difference = (sumOfPositions / count - (0 + upperBound - 1) / 2.0).abs
-          println("Item: " + item + " has a count: " + count + " and sum of positions: " + sumOfPositions + " leading to a difference in mean position of: " + difference)
+          val difference = (sumOfPositions / count - (0 + upperBound - 1) / 2.0)
+          println("Item: " + item + " has a count: " + count + " and sum of positions: " + sumOfPositions + " leading to a signed difference in mean position of: " + difference)
           difference < toleranceEpsilon
         }
       }))

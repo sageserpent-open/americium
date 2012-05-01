@@ -13,15 +13,34 @@ class RichRandom(random: Random) {
     require(0 <= exclusiveLimit)
 
     abstract class BinaryTreeNode {
+      def inclusiveLowerBoundForAllItemsInSubtree: Option[Int]
+      
+      def exclusiveUpperBoundForAllItemsInSubtree: Option[Int]
+
+      def numberOfInteriorNodesInSubtree: Int
+
       def numberOfItemsInSubtree: Int
-      def addWithinSubtreeModifyingAddedItemToEnsureUniqueness(item: Int, offsetToApplyToItem: Int): (BinaryTreeNode, Either[Int, Int])
-      def addWithinSubtreeModifyingAddedItemToEnsureUniquenessAtTopLevel(item: Int, offsetToApplyToItem: Int): (BinaryTreeNode, Int) = {
-        addWithinSubtreeModifyingAddedItemToEnsureUniqueness(item, 0) match {
-          case (subtreeWithAddedItem, Right(modifiedItemAfterAddition)) => subtreeWithAddedItem -> modifiedItemAfterAddition
-          case (subtreeWithAllItemsContributingToTheOffsetLessThanTheRoot @ InteriorNode(_, _, _, _), Left(offsetToApplyToItem))    => subtreeWithAllItemsContributingToTheOffsetLessThanTheRoot.addWithinSubtreeModifyingAddedItemToEnsureUniquenessAtTopLevel(offsetToApplyToItem + item, -offsetToApplyToItem)
+
+      def numberOfVacantSlotsInSubtreeWithinRange(inclusiveLowerBound: Int, exclusiveUpperBound: Int): Int = {
+        require(inclusiveLowerBound >= 0)
+        require(inclusiveLowerBound <= exclusiveUpperBound)
+        require(exclusiveUpperBound <= exclusiveLimit)
+
+        this match {
+          case thisAsInteriorNode @ InteriorNode(lowerBoundForItemRange: Int, upperBoundForItemRange: Int, lesserSubtree: BinaryTreeNode, greaterSubtree: BinaryTreeNode) =>
+            require(thisAsInteriorNode.inclusiveLowerBoundForAllItemsInSubtree match { case Some(inclusiveLowerBoundForAllItemsInSubtree) => inclusiveLowerBound <= inclusiveLowerBoundForAllItemsInSubtree })
+            require(thisAsInteriorNode.exclusiveUpperBoundForAllItemsInSubtree match { case Some(exclusiveUpperBoundForAllItemsInSubtree) => exclusiveUpperBoundForAllItemsInSubtree <= exclusiveUpperBound })
+
+          case EmptySubtree =>
+            require(inclusiveLowerBoundForAllItemsInSubtree.isEmpty)
+            require(exclusiveUpperBoundForAllItemsInSubtree.isEmpty)
         }
+
+        exclusiveUpperBound - inclusiveLowerBound - numberOfItemsInSubtree
       }
-      def addWithinSubtreeModifyingAddedItemToEnsureUniqueness(item: Int): (BinaryTreeNode, Int) = addWithinSubtreeModifyingAddedItemToEnsureUniquenessAtTopLevel(item, 0)
+
+      def generateAndAddNewItem(inclusiveLowerBound: Int, exclusiveUpperBound: Int): (BinaryTreeNode, Int)
+      def generateAndAddNewItem(): (BinaryTreeNode, Int) = generateAndAddNewItem(0, exclusiveLimit)
     }
 
     case class InteriorNode(lowerBoundForItemRange: Int, upperBoundForItemRange: Int, lesserSubtree: BinaryTreeNode, greaterSubtree: BinaryTreeNode) extends BinaryTreeNode {
@@ -40,62 +59,115 @@ class RichRandom(random: Random) {
       def this(singleItem: Int) = this(singleItem, singleItem, EmptySubtree, EmptySubtree)
 
       val numberOfItemsInRange = 1 + upperBoundForItemRange - lowerBoundForItemRange
-
+      
+      val inclusiveLowerBoundForAllItemsInSubtree = lesserSubtree.inclusiveLowerBoundForAllItemsInSubtree orElse (Some(lowerBoundForItemRange))
+      
+      val exclusiveUpperBoundForAllItemsInSubtree = greaterSubtree.exclusiveUpperBoundForAllItemsInSubtree orElse (Some(upperBoundForItemRange))
+      
+      val numberOfInteriorNodesInSubtree = 1 + lesserSubtree.numberOfInteriorNodesInSubtree + greaterSubtree.numberOfInteriorNodesInSubtree
+      
       val numberOfItemsInSubtree = numberOfItemsInRange + lesserSubtree.numberOfItemsInSubtree + greaterSubtree.numberOfItemsInSubtree
 
-      def addWithinSubtreeModifyingAddedItemToEnsureUniqueness(itemToBeAdded: Int, offsetToApplyToItem: Int) = {
+      def generateAndAddNewItem(inclusiveLowerBound: Int, exclusiveUpperBound: Int) = {
+        require(inclusiveLowerBound >= 0)
+        require(inclusiveLowerBound < exclusiveUpperBound)
+        require(exclusiveUpperBound <= exclusiveLimit)
 
-        itemToBeAdded.compare(lowerBoundForItemRange) match {
-          case result if result < 0 => {
-            val (lesserSubtreeResult, modifiedItemResult) = lesserSubtree.addWithinSubtreeModifyingAddedItemToEnsureUniqueness(itemToBeAdded, offsetToApplyToItem)
+        require(inclusiveLowerBound <= lowerBoundForItemRange)
+        require(exclusiveUpperBound > upperBoundForItemRange)
 
-            ((lesserSubtreeResult, greaterSubtree, modifiedItemResult) match {
-              case (InteriorNode(lowerBoundForItemRangeFromLesserSubtree, upperBoundForItemRangeFromLesserSubtree, lesserSubtreeFromLesserSubtree, EmptySubtree),
-                _, Right(_)) if 1 + upperBoundForItemRangeFromLesserSubtree == lowerBoundForItemRange => InteriorNode(lowerBoundForItemRangeFromLesserSubtree, upperBoundForItemRange, lesserSubtreeFromLesserSubtree, greaterSubtree)
+        def recurseOnLesserSubtree() = {
+          val (lesserSubtreeResult, modifiedItemResult) = lesserSubtree.generateAndAddNewItem(inclusiveLowerBound, lowerBoundForItemRange)
 
-              case (InteriorNode(lowerBoundForItemRangeFromLesserSubtree, upperBoundForItemRangeFromLesserSubtree, lesserSubtreeFromLesserSubtree, greaterSubtreeFromLesserSubtree), _, _) =>
-                InteriorNode(lowerBoundForItemRangeFromLesserSubtree, upperBoundForItemRangeFromLesserSubtree, lesserSubtreeFromLesserSubtree, InteriorNode(lowerBoundForItemRange, upperBoundForItemRange, greaterSubtreeFromLesserSubtree, greaterSubtree))
+          ((lesserSubtreeResult, greaterSubtree) match {
+            case (InteriorNode(lowerBoundForItemRangeFromLesserSubtree, upperBoundForItemRangeFromLesserSubtree, lesserSubtreeFromLesserSubtree, EmptySubtree),
+              _) if 1 + upperBoundForItemRangeFromLesserSubtree == lowerBoundForItemRange => InteriorNode(lowerBoundForItemRangeFromLesserSubtree, upperBoundForItemRange, lesserSubtreeFromLesserSubtree, greaterSubtree)
 
-              case (_, _, _) => InteriorNode(lowerBoundForItemRange, upperBoundForItemRange, lesserSubtreeResult, greaterSubtree)
-            }) -> modifiedItemResult
+            case (InteriorNode(lowerBoundForItemRangeFromLesserSubtree, upperBoundForItemRangeFromLesserSubtree, lesserSubtreeFromLesserSubtree, greaterSubtreeFromLesserSubtree), _) =>
+              InteriorNode(lowerBoundForItemRangeFromLesserSubtree, upperBoundForItemRangeFromLesserSubtree, lesserSubtreeFromLesserSubtree, InteriorNode(lowerBoundForItemRange, upperBoundForItemRange, greaterSubtreeFromLesserSubtree, greaterSubtree))
+
+            case (_, _) => InteriorNode(lowerBoundForItemRange, upperBoundForItemRange, lesserSubtreeResult, greaterSubtree)
+          }) -> modifiedItemResult
+        }
+
+        def recurseOnGreaterSubtree() = {
+          val (greaterSubtreeResult, modifiedItemResult) = greaterSubtree.generateAndAddNewItem(1 + upperBoundForItemRange, exclusiveUpperBound)
+
+          ((lesserSubtree, greaterSubtreeResult) match {
+            case (_,
+              InteriorNode(lowerBoundForItemRangeFromGreaterSubtree, upperBoundForItemRangeFromGreaterSubtree, EmptySubtree, greaterSubtreeFromGreaterSubtree)) if 1 + upperBoundForItemRange == lowerBoundForItemRangeFromGreaterSubtree => InteriorNode(lowerBoundForItemRange, upperBoundForItemRangeFromGreaterSubtree, lesserSubtree, greaterSubtreeFromGreaterSubtree)
+
+            case (_, InteriorNode(lowerBoundForItemRangeFromGreaterSubtree, upperBoundForItemRangeFromGreaterSubtree, lesserSubtreeFromGreaterSubtree, greaterSubtreeFromGreaterSubtree)) => InteriorNode(lowerBoundForItemRangeFromGreaterSubtree, upperBoundForItemRangeFromGreaterSubtree, InteriorNode(lowerBoundForItemRange, upperBoundForItemRange, lesserSubtree, lesserSubtreeFromGreaterSubtree), greaterSubtreeFromGreaterSubtree)
+
+            case (_, _) => InteriorNode(lowerBoundForItemRange, upperBoundForItemRange, lesserSubtree, greaterSubtreeResult)
+          }) -> modifiedItemResult
+
+        }
+
+        (lesserSubtreeCanBeConsidered(inclusiveLowerBound), greaterSubtreeCanBeConsidered(exclusiveUpperBound)) match {
+          case (true, false) => {
+            require(exclusiveUpperBound == exclusiveLimit) // NOTE: in theory this case can occur for other values of 'exclusiveUpperBound', but range-fusion prevents this happening in practice.
+            recurseOnLesserSubtree()
           }
 
-          case _ => {
-            val additionalOffsetToApplyWhenSearchProceedsInGreaterSubtree = numberOfItemsInRange + lesserSubtree.numberOfItemsInSubtree
+          case (false, true) => {
+            require(0 == inclusiveLowerBound) // NOTE: in theory this case can occur for other values of 'inclusiveLowerBound', but range-fusion prevents this happening in practice.
+            recurseOnGreaterSubtree()
+          }
 
-            val (greaterSubtreeResult, modifiedItemResult) = greaterSubtree.addWithinSubtreeModifyingAddedItemToEnsureUniqueness(itemToBeAdded, additionalOffsetToApplyWhenSearchProceedsInGreaterSubtree + offsetToApplyToItem)
+          case (true, true) => {
+            val weightInFavourOfLesserSubtree = lesserSubtree.numberOfVacantSlotsInSubtreeWithinRange(inclusiveLowerBound, lowerBoundForItemRange)
+            val weightInFavourOfGreaterSubtree = greaterSubtree.numberOfVacantSlotsInSubtreeWithinRange(1 + upperBoundForItemRange, exclusiveUpperBound)
 
-            ((lesserSubtree, greaterSubtreeResult, modifiedItemResult) match {
-              case (_,
-                InteriorNode(lowerBoundForItemRangeFromGreaterSubtree, upperBoundForItemRangeFromGreaterSubtree, EmptySubtree, greaterSubtreeFromGreaterSubtree),
-                Right(_)) if 1 + upperBoundForItemRange == lowerBoundForItemRangeFromGreaterSubtree => InteriorNode(lowerBoundForItemRange, upperBoundForItemRangeFromGreaterSubtree, lesserSubtree, greaterSubtreeFromGreaterSubtree)
+            assert(0 < weightInFavourOfLesserSubtree)
+            assert(0 < weightInFavourOfGreaterSubtree)
 
-              case (_, InteriorNode(lowerBoundForItemRangeFromGreaterSubtree, upperBoundForItemRangeFromGreaterSubtree, lesserSubtreeFromGreaterSubtree, greaterSubtreeFromGreaterSubtree), _) => InteriorNode(lowerBoundForItemRangeFromGreaterSubtree, upperBoundForItemRangeFromGreaterSubtree, InteriorNode(lowerBoundForItemRange, upperBoundForItemRange, lesserSubtree, lesserSubtreeFromGreaterSubtree), greaterSubtreeFromGreaterSubtree)
+            val totalOdds = weightInFavourOfLesserSubtree + weightInFavourOfGreaterSubtree
 
-              case (_, _, _) => InteriorNode(lowerBoundForItemRange, upperBoundForItemRange, lesserSubtree, greaterSubtreeResult)
-            }) -> modifiedItemResult
+            if (chooseAnyNumberFromZeroToOneLessThan(totalOdds) < weightInFavourOfLesserSubtree) {
+              recurseOnLesserSubtree()
+            } else {
+              recurseOnGreaterSubtree()
+            }
           }
         }
       }
+
+      def lesserSubtreeCanBeConsidered(inclusiveLowerBound: Int): Boolean = inclusiveLowerBound < lowerBoundForItemRange
+
+      def greaterSubtreeCanBeConsidered(exclusiveUpperBound: Int): Boolean = 1 + upperBoundForItemRange < exclusiveUpperBound
     }
 
     case object EmptySubtree extends BinaryTreeNode {
+      val inclusiveLowerBoundForAllItemsInSubtree = None
+      
+      val exclusiveUpperBoundForAllItemsInSubtree = None
+      
+      val numberOfInteriorNodesInSubtree = 0
+      
       val numberOfItemsInSubtree = 0
-      def addWithinSubtreeModifyingAddedItemToEnsureUniqueness(item: Int, offsetToApplyToItem: Int) = {
-        if (0 == offsetToApplyToItem) new InteriorNode(item) -> Right(item)
-        else this -> Left(offsetToApplyToItem)
+      
+      def generateAndAddNewItem(inclusiveLowerBound: Int, exclusiveUpperBound: Int) = {
+        require(inclusiveLowerBound >= 0)
+        require(inclusiveLowerBound < exclusiveUpperBound)
+        require(exclusiveUpperBound <= exclusiveLimit)
+
+        val generatedItem = inclusiveLowerBound + chooseAnyNumberFromZeroToOneLessThan(exclusiveUpperBound - inclusiveLowerBound)
+        new InteriorNode(generatedItem) -> generatedItem
       }
     }
 
-    def chooseAndRecordUniqueItem(exclusiveLimit: Int, previouslyChosenItemsAsStreamAndAsBinaryTree: (Stream[Int], BinaryTreeNode)) = {
-      val (previouslyChosenItemsAsStream, previouslyChosenItemsAsBinaryTree) = previouslyChosenItemsAsStreamAndAsBinaryTree
+    def chooseAndRecordUniqueItems(numberOfAttemptsLeft: Int, previouslyChosenItemsAsBinaryTree: BinaryTreeNode): Stream[Int] = {
+      if (0 == numberOfAttemptsLeft) {
+        Stream.empty
+      } else {
+        val (chosenItemsAsBinaryTree, chosenItem) = previouslyChosenItemsAsBinaryTree.generateAndAddNewItem()
 
-      val (chosenItemsAsBinaryTree, chosenItem) = previouslyChosenItemsAsBinaryTree.addWithinSubtreeModifyingAddedItemToEnsureUniqueness(chooseAnyNumberFromZeroToOneLessThan(exclusiveLimit))
-
-      (chosenItem #:: previouslyChosenItemsAsStream) -> chosenItemsAsBinaryTree
+        chosenItem #:: chooseAndRecordUniqueItems(numberOfAttemptsLeft - 1, chosenItemsAsBinaryTree)
+      }
     }
 
-    ((1 to exclusiveLimit) :\ ((Stream.Empty -> EmptySubtree): (Stream[Int], BinaryTreeNode)))(chooseAndRecordUniqueItem) _1
+    chooseAndRecordUniqueItems(exclusiveLimit, EmptySubtree)
   }
 
   def ChooseSeveralOf[X](candidates: Seq[X], numberToChoose: Int) = {
