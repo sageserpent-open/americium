@@ -70,9 +70,9 @@ class RichRandom(random: Random) {
 
       def addNewItemInTheVacantSlotAtIndex(indexOfVacantSlotAsOrderedByMissingItem: Int, inclusiveLowerBound: Int, exclusiveUpperBound: Int) = {
         require(indexOfVacantSlotAsOrderedByMissingItem >= 0)
-        require(indexOfVacantSlotAsOrderedByMissingItem < exclusiveLimit)	// This is a very loose upper bound, because 'indexOfVacantSlotAsOrderedByMissingItem' is progressively
-        																	// decremented for each move to a greater subtree. It does hold however, so is left in as a last line of
-        																	// defence sanity check.
+        require(indexOfVacantSlotAsOrderedByMissingItem < exclusiveLimit) // This is a very loose upper bound, because 'indexOfVacantSlotAsOrderedByMissingItem' is progressively
+                                                                          // decremented for each move to a greater subtree. It does hold however, so is left in as a last line of
+                                                                          // defence sanity check.
         
         require(inclusiveLowerBound >= 0)
         require(inclusiveLowerBound < exclusiveUpperBound)
@@ -147,9 +147,9 @@ class RichRandom(random: Random) {
       
       def addNewItemInTheVacantSlotAtIndex(indexOfVacantSlotAsOrderedByMissingItem: Int, inclusiveLowerBound: Int, exclusiveUpperBound: Int) = {
         require(indexOfVacantSlotAsOrderedByMissingItem >= 0)
-        require(indexOfVacantSlotAsOrderedByMissingItem < exclusiveLimit)	// This is a very loose upper bound, because 'indexOfVacantSlotAsOrderedByMissingItem' is progressively
-        																	// decremented for each move to a greater subtree. It does hold however, so is left in as a last line of
-        																	// defence sanity check.
+        require(indexOfVacantSlotAsOrderedByMissingItem < exclusiveLimit) // This is a very loose upper bound, because 'indexOfVacantSlotAsOrderedByMissingItem' is progressively
+                                                                          // decremented for each move to a greater subtree. It does hold however, so is left in as a last line of
+                                                                          // defence sanity check.
         
         require(inclusiveLowerBound >= 0)
         require(inclusiveLowerBound < exclusiveUpperBound)
