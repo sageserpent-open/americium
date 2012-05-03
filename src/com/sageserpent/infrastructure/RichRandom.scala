@@ -176,9 +176,16 @@ class RichRandom(random: Random) {
     chooseAndRecordUniqueItems(exclusiveLimit, EmptySubtree)
   }
 
-  def ChooseSeveralOf[X](candidates: Seq[X], numberToChoose: Int) = {
+  def chooseSeveralOf[X](candidates: Seq[X], numberToChoose: Int): Seq[X] = {
     require(numberToChoose <= candidates.size)
 
-    // TODO.
+    val candidatesWithRandomAccess = candidates.toIndexedSeq
+    
+    val numberOfCandidates = candidatesWithRandomAccess.length
+    
+    val permutationOfIndicesOfOriginalOrderOfCandidates = buildRandomSequenceOfDistinctIntegersFromZeroToOneLessThan(numberOfCandidates)
+    
+    for (permutedIndex <- permutationOfIndicesOfOriginalOrderOfCandidates.take(numberToChoose))
+      yield candidatesWithRandomAccess(permutedIndex)
   }
 }

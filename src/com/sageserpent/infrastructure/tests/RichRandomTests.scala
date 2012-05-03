@@ -40,7 +40,6 @@ class RichRandomTests extends Suite {
   }
 
   def testDistributionOfSuccessiveSequencesWithTheSameUpperBound() {
-
     val random = new Random(1)
 
     val maximumUpperBound = 30
@@ -72,5 +71,61 @@ class RichRandomTests extends Suite {
         }
       }))
     }
+  }
+
+  def testThatAllItemsChosenBelongToTheSourceSequence() {
+    val random = new Random(1)
+
+    for (inclusiveLowerBound <- 58 to 98)
+      for (numberOfConsecutiveItems <- 1 to 50) {
+        val superSet = (inclusiveLowerBound until inclusiveLowerBound + numberOfConsecutiveItems).toSet
+        for (subsetSize <- 1 to numberOfConsecutiveItems)
+          for (_ <- 1 to 10) {
+            val chosenItems = random.chooseSeveralOf(superSet.toSeq, subsetSize)
+            assert(chosenItems.toSet.subsetOf(superSet))
+          }
+      }
+  }
+
+  def testThatTheNumberOfItemsRequestedIsHonouredIfPossible() {
+    val random = new Random(1)
+
+    for (inclusiveLowerBound <- 58 to 98)
+      for (numberOfConsecutiveItems <- 1 to 50) {
+        val superSet = (inclusiveLowerBound until inclusiveLowerBound + numberOfConsecutiveItems).toSet
+        for (subsetSize <- 1 to numberOfConsecutiveItems)
+          for (_ <- 1 to 10) {
+            val chosenItems = random.chooseSeveralOf(superSet.toSeq, subsetSize)
+            assert(chosenItems.length == subsetSize)
+          }
+      }
+  }
+
+  def testThatUniqueItemsInTheSourceSequenceAreNotDuplicated() {
+    val random = new Random(1)
+
+    for (inclusiveLowerBound <- 58 to 98)
+      for (numberOfConsecutiveItems <- 1 to 50) {
+        val superSet = (inclusiveLowerBound until inclusiveLowerBound + numberOfConsecutiveItems).toSet
+        for (subsetSize <- 1 to numberOfConsecutiveItems)
+          for (_ <- 1 to 10) {
+            val chosenItems = random.chooseSeveralOf(superSet.toSeq, subsetSize)
+            assert(chosenItems.toSet.size == chosenItems.length)
+          }
+      }
+  }
+
+  def testThatChoosingItemsRepeatedlyEventuallyCoversAllPermutations() {
+    val random = new Random(1)
+
+    for (inclusiveLowerBound <- 58 to 98)
+      for (numberOfConsecutiveItems <- 1 to 7) {
+        val superSet = (inclusiveLowerBound until inclusiveLowerBound + numberOfConsecutiveItems).toSet
+        for (subsetSize <- 1 to numberOfConsecutiveItems) {
+          val oversampledOutputs = for (_ <- 1 to 60000) yield { random.chooseSeveralOf(superSet.toSeq, subsetSize) toList }
+          println("Super set size: " + numberOfConsecutiveItems + ", picked subset of size: " + subsetSize + ", got: " + oversampledOutputs.toSet.size + " unique permutations.")
+          assert(oversampledOutputs.toSet.size != 0) // TODO - calculate number of expected permutations here instead of zero!!!!!
+        }
+      }
   }
 }
