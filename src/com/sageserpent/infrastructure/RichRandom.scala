@@ -176,7 +176,7 @@ class RichRandom(random: Random) {
     chooseAndRecordUniqueItems(exclusiveLimit, EmptySubtree)
   }
 
-  def chooseSeveralOf[X](candidates: Seq[X], numberToChoose: Int): Seq[X] = {
+  def chooseSeveralOf[X](candidates: Traversable[X], numberToChoose: Int): Seq[X] = {
     require(numberToChoose <= candidates.size)
 
     val candidatesWithRandomAccess = candidates.toIndexedSeq

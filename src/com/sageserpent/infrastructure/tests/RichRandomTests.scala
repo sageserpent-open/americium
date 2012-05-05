@@ -82,7 +82,7 @@ class RichRandomTests extends Suite {
         val superSet = (inclusiveLowerBound until inclusiveLowerBound + numberOfConsecutiveItems).toSet
         for (subsetSize <- 1 to numberOfConsecutiveItems)
           for (_ <- 1 to 10) {
-            val chosenItems = random.chooseSeveralOf(superSet.toSeq, subsetSize)
+            val chosenItems = random.chooseSeveralOf(superSet, subsetSize)
             testOnSuperSetAndItemsChosenFromIt(superSet, chosenItems, subsetSize)
           }
       }
