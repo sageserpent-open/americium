@@ -9,19 +9,15 @@ import com.sageserpent.infrastructure._
 
 
 class RichRandomTests extends TestCase {
-  def testThatAnUpperBoundOfZeroYieldsAnEmptyCollection() {
-    val random = new Random(34)
-
-    for (_ <- 1 to 10) assert(List.empty == random.buildRandomSequenceOfDistinctIntegersFromZeroToOneLessThan(0))
-  }
-
   def testCoverageOfIntegersUpToExclusiveUpperBound() {
     val random = new Random(29)
 
     val maximumUpperBound = 30
 
     for (upperBound <- 0 to maximumUpperBound) {
-      val chosenItems = random.buildRandomSequenceOfDistinctIntegersFromZeroToOneLessThan(upperBound)
+      val concreteRangeOfIntegers = 0 until upperBound
+      
+      val chosenItems = random.chooseSeveralOf(concreteRangeOfIntegers, upperBound)
       val expectedRange = 0 until upperBound
       assert(chosenItems.toSet == expectedRange.toSet)
     }
@@ -33,7 +29,9 @@ class RichRandomTests extends TestCase {
     val maximumUpperBound = 30
 
     for (upperBound <- 0 to maximumUpperBound) {
-      val chosenItems = random.buildRandomSequenceOfDistinctIntegersFromZeroToOneLessThan(upperBound)
+      val concreteRangeOfIntegers = 0 until upperBound
+      
+      val chosenItems = random.chooseSeveralOf(concreteRangeOfIntegers, upperBound)
       assert(upperBound == chosenItems.toSet.size)
       assert(upperBound == chosenItems.length)
     }
@@ -45,13 +43,15 @@ class RichRandomTests extends TestCase {
     val maximumUpperBound = 30
 
     for (upperBound <- 0 to maximumUpperBound) {
+      val concreteRangeOfIntegers = 0 until upperBound
+      
       val numberOfTrials = 100000
 
       val itemToCountAndSumOfPositionsMap = Array.fill(upperBound) { 0 -> 0.0 }
 
       for {
         _ <- 1 to numberOfTrials
-        (item, position) <- random.buildRandomSequenceOfDistinctIntegersFromZeroToOneLessThan(upperBound).zipWithIndex
+        (item, position) <- random.chooseSeveralOf(concreteRangeOfIntegers, upperBound).zipWithIndex
       } {
         val (count, sumOfPositions) = itemToCountAndSumOfPositionsMap(item)
         itemToCountAndSumOfPositionsMap(item) = 1 + count -> (position + sumOfPositions)
