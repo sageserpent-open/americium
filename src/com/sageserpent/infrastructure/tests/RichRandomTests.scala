@@ -21,7 +21,7 @@ class RichRandomTests extends Suite {
 
     val maximumUpperBound = 30
 
-    for (upperBound <- 0 until maximumUpperBound) {
+    for (upperBound <- 0 to maximumUpperBound) {
       val chosenItems = random.buildRandomSequenceOfDistinctIntegersFromZeroToOneLessThan(upperBound)
       val expectedRange = 0 until upperBound
       assert(chosenItems.toSet == expectedRange.toSet)
@@ -33,7 +33,7 @@ class RichRandomTests extends Suite {
 
     val maximumUpperBound = 30
 
-    for (upperBound <- 0 until maximumUpperBound) {
+    for (upperBound <- 0 to maximumUpperBound) {
       val chosenItems = random.buildRandomSequenceOfDistinctIntegersFromZeroToOneLessThan(upperBound)
       assert(upperBound == chosenItems.toSet.size)
       assert(upperBound == chosenItems.length)
@@ -45,7 +45,7 @@ class RichRandomTests extends Suite {
 
     val maximumUpperBound = 30
 
-    for (upperBound <- 0 until maximumUpperBound) {
+    for (upperBound <- 0 to maximumUpperBound) {
       val numberOfTrials = 100000
 
       val itemToCountAndSumOfPositionsMap = Array.fill(upperBound) { 0 -> 0.0 }
