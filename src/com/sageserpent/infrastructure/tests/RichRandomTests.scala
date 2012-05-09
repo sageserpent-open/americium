@@ -73,7 +73,7 @@ class RichRandomTests extends Suite {
     }
   }
 
-  def testThatAllItemsChosenBelongToTheSourceSequence() {
+  def commonTestStructureForTestingOfChoosingSeveralItems(testOnSuperSetAndItemsChosenFromIt: (scala.collection.immutable.Set[Int], Seq[Int], Int) => Unit) {
     val random = new Random(1)
 
     for (inclusiveLowerBound <- 58 to 98)
@@ -82,37 +82,21 @@ class RichRandomTests extends Suite {
         for (subsetSize <- 1 to numberOfConsecutiveItems)
           for (_ <- 1 to 10) {
             val chosenItems = random.chooseSeveralOf(superSet.toSeq, subsetSize)
-            assert(chosenItems.toSet.subsetOf(superSet))
+            testOnSuperSetAndItemsChosenFromIt(superSet, chosenItems, subsetSize)
           }
       }
+  }
+
+  def testThatAllItemsChosenBelongToTheSourceSequence() {
+    commonTestStructureForTestingOfChoosingSeveralItems((superSet, chosenItems, _) => assert(chosenItems.toSet.subsetOf(superSet)))
   }
 
   def testThatTheNumberOfItemsRequestedIsHonouredIfPossible() {
-    val random = new Random(1)
-
-    for (inclusiveLowerBound <- 58 to 98)
-      for (numberOfConsecutiveItems <- 1 to 50) {
-        val superSet = (inclusiveLowerBound until inclusiveLowerBound + numberOfConsecutiveItems).toSet
-        for (subsetSize <- 1 to numberOfConsecutiveItems)
-          for (_ <- 1 to 10) {
-            val chosenItems = random.chooseSeveralOf(superSet.toSeq, subsetSize)
-            assert(chosenItems.length == subsetSize)
-          }
-      }
+    commonTestStructureForTestingOfChoosingSeveralItems((_, chosenItems, subsetSize) => assert(chosenItems.length == subsetSize))
   }
 
   def testThatUniqueItemsInTheSourceSequenceAreNotDuplicated() {
-    val random = new Random(1)
-
-    for (inclusiveLowerBound <- 58 to 98)
-      for (numberOfConsecutiveItems <- 1 to 50) {
-        val superSet = (inclusiveLowerBound until inclusiveLowerBound + numberOfConsecutiveItems).toSet
-        for (subsetSize <- 1 to numberOfConsecutiveItems)
-          for (_ <- 1 to 10) {
-            val chosenItems = random.chooseSeveralOf(superSet.toSeq, subsetSize)
-            assert(chosenItems.toSet.size == chosenItems.length)
-          }
-      }
+    commonTestStructureForTestingOfChoosingSeveralItems((_, chosenItems, _) => assert(chosenItems.toSet.size == chosenItems.length))
   }
 
   def testThatChoosingItemsRepeatedlyEventuallyCoversAllPermutations() {
