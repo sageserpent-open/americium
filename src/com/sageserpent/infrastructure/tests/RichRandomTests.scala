@@ -52,7 +52,7 @@ class RichRandomTests extends Suite {
 
       for {
         _ <- 1 to numberOfTrials
-        (position, item) <- 0 until upperBound zip random.buildRandomSequenceOfDistinctIntegersFromZeroToOneLessThan(upperBound)
+        (item, position) <- random.buildRandomSequenceOfDistinctIntegersFromZeroToOneLessThan(upperBound).zipWithIndex
       } {
         val (count, sumOfPositions) = itemToCountAndSumOfPositionsMap(item)
         itemToCountAndSumOfPositionsMap(item) = 1 + count -> (position + sumOfPositions)
