@@ -59,14 +59,9 @@ class RichRandomTests extends TestCase {
 
       val toleranceEpsilon = 1e-1
 
-      println("Upper bound: " + upperBound)
-
-      println("itemToCountAndSumOfPositionsMap: " + itemToCountAndSumOfPositionsMap)
-
-      assert(((0 until itemToCountAndSumOfPositionsMap.length) zip itemToCountAndSumOfPositionsMap).forall({
-        case (item, (count, sumOfPositions)) => {
+      assert(itemToCountAndSumOfPositionsMap.forall({
+        case (count, sumOfPositions) => {
           val difference = (sumOfPositions / count - (0 + upperBound - 1) / 2.0)
-          println("Item: " + item + " has a count: " + count + " and sum of positions: " + sumOfPositions + " leading to a signed difference in mean position of: " + difference)
           difference < toleranceEpsilon
         }
       }))
@@ -110,9 +105,54 @@ class RichRandomTests extends TestCase {
         for (subsetSize <- 1 to numberOfConsecutiveItems) {
           val expectedNumberOfPermutations = BargainBasement.numberOfPermutations(numberOfConsecutiveItems, subsetSize)
           val oversampledOutputs = for (_ <- 1 to scala.math.ceil(empiricallyDeterminedMultiplicationFactorToEnsureCoverage * expectedNumberOfPermutations).toInt) yield { random.chooseSeveralOf(superSet.toSeq, subsetSize) toList }
-          println("Super set size: " + numberOfConsecutiveItems + ", picked subset of size: " + subsetSize + ", got: " + oversampledOutputs.toSet.size + " unique permutations.")
           assert(oversampledOutputs.toSet.size == expectedNumberOfPermutations)
         }
       }
+  }
+
+  def testPig0GetInTheTrough() {
+    pig(64000)
+  }
+
+  def testPig1() {
+    pig(1000)
+  }
+
+  def testPig2() {
+    pig(2000)
+  }
+
+  def testPig3() {
+    pig(4000)
+  }
+
+  def testPig4() {
+    pig(8000)
+  }
+
+  def testPig5() {
+    pig(16000)
+  }
+
+  def testPig6() {
+    pig(32000)
+  }
+
+  def testPig7() {
+    pig(64000)
+  }
+
+  def testPig8() {
+    pig(50000)
+  }
+
+  private def pig(maximumUpperBound: Int) {
+    val random = new Random(678)
+    val concreteRangeOfIntegers = 0 until maximumUpperBound
+    
+    for (_ <- 1 to 10) {    
+      val chosenItems = random.chooseSeveralOf(concreteRangeOfIntegers, maximumUpperBound)
+      for (chosenItem <- chosenItems) {}
+    }
   }
 }
