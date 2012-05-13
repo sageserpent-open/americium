@@ -1,12 +1,11 @@
 package com.sageserpent.infrastructure.tests
 
-import org.junit.runner.RunWith
-import org.scalatest.Suite
+import junit.framework.TestCase
 
 import com.sageserpent.infrastructure.BargainBasement
 
-@RunWith(classOf[org.scalatest.junit.JUnitRunner])
-class BargainBasementTests extends Suite {
+
+class BargainBasementTests extends TestCase {
   def testIsSorted() = {
     assert(BargainBasement.isSorted(List.empty))
 

@@ -3,13 +3,12 @@ package com.sageserpent.infrastructure.tests
 import scala.util.Random
 import scala.math
 
-import org.junit.runner.RunWith
-import org.scalatest.Suite
+import junit.framework.TestCase
 
 import com.sageserpent.infrastructure._
 
-@RunWith(classOf[org.scalatest.junit.JUnitRunner])
-class RichRandomTests extends Suite {
+
+class RichRandomTests extends TestCase {
   def testThatAnUpperBoundOfZeroYieldsAnEmptyCollection() {
     val random = new Random(34)
 

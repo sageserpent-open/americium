@@ -1,12 +1,11 @@
 package com.sageserpent.infrastructure.tests
 
-import org.junit.runner.RunWith
-import org.scalatest.Suite
+import junit.framework.TestCase
 
 import com.sageserpent.infrastructure._
 
-@RunWith(classOf[org.scalatest.junit.JUnitRunner])
-class UnboundedTests extends Suite {
+
+class UnboundedTests extends TestCase {
   val fortyFive = Finite(45)
 
   val negativeInfinity = NegativeInfinity

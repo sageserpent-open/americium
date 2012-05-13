@@ -2,7 +2,6 @@ package com.sageserpent.infrastructure
 
 import scala.math.Ordered
 
-import org.scalatest.Suite
 
 abstract class Unbounded[X <% Ordered[X]] extends Ordered[Unbounded[X]] {
   def compare(another: Unbounded[X]) = (this, another) match {
