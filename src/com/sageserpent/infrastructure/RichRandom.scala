@@ -32,8 +32,8 @@ class RichRandom(random: Random) {
             require(thisAsInteriorNode.exclusiveUpperBoundForAllItemsInSubtree match { case Some(exclusiveUpperBoundForAllItemsInSubtree) => exclusiveUpperBoundForAllItemsInSubtree <= exclusiveUpperBound })
 
           case EmptySubtree =>
-            require(inclusiveLowerBoundForAllItemsInSubtree.isEmpty)
-            require(exclusiveUpperBoundForAllItemsInSubtree.isEmpty)
+            assume(inclusiveLowerBoundForAllItemsInSubtree.isEmpty)
+            assume(exclusiveUpperBoundForAllItemsInSubtree.isEmpty)
         }
 
         exclusiveUpperBound - inclusiveLowerBound - numberOfItemsInSubtree
@@ -113,12 +113,12 @@ class RichRandom(random: Random) {
 
         (lesserSubtreeCanBeConsidered(inclusiveLowerBound), greaterSubtreeCanBeConsidered(exclusiveUpperBound)) match {
           case (true, false) => {
-            require(exclusiveUpperBound == exclusiveLimit) // NOTE: in theory this case can occur for other values of 'exclusiveUpperBound', but range-fusion prevents this happening in practice.
+            assume(exclusiveUpperBound == exclusiveLimit) // NOTE: in theory this case can occur for other values of 'exclusiveUpperBound', but range-fusion prevents this happening in practice.
             recurseOnLesserSubtree()
           }
 
           case (false, true) => {
-            require(0 == inclusiveLowerBound) // NOTE: in theory this case can occur for other values of 'inclusiveLowerBound', but range-fusion prevents this happening in practice.
+            assume(0 == inclusiveLowerBound) // NOTE: in theory this case can occur for other values of 'inclusiveLowerBound', but range-fusion prevents this happening in practice.
             recurseOnGreaterSubtree()
           }
 
@@ -157,7 +157,7 @@ class RichRandom(random: Random) {
 
         val generatedItem = inclusiveLowerBound + indexOfVacantSlotAsOrderedByMissingItem
         
-        require(generatedItem < exclusiveUpperBound)
+        assume(generatedItem < exclusiveUpperBound)
         
         new InteriorNode(generatedItem) -> generatedItem
       }
