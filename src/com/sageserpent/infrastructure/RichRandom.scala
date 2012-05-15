@@ -124,9 +124,10 @@ class RichRandom(random: Random) {
           }
 
           case (true, true) => {
-            indexOfVacantSlotAsOrderedByMissingItem.compare(effectiveIndexAssociatedWithThisInteriorNode) match {
-              case -1 => recurseOnLesserSubtree()
-              case _  => recurseOnGreaterSubtree()
+            if (0 > indexOfVacantSlotAsOrderedByMissingItem.compare(effectiveIndexAssociatedWithThisInteriorNode)) {
+              recurseOnLesserSubtree()
+            } else {
+              recurseOnGreaterSubtree()
             }
           }
         }
