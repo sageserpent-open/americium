@@ -14,7 +14,7 @@ class RichRandom(random: Random) {
 
     abstract class BinaryTreeNode {
       def inclusiveLowerBoundForAllItemsInSubtree: Option[Int]
-      
+
       def exclusiveUpperBoundForAllItemsInSubtree: Option[Int]
 
       def numberOfInteriorNodesInSubtree: Int
@@ -59,56 +59,53 @@ class RichRandom(random: Random) {
       def this(singleItem: Int) = this(singleItem, singleItem, EmptySubtree, EmptySubtree)
 
       val numberOfItemsInRange = 1 + upperBoundForItemRange - lowerBoundForItemRange
-      
+
       val inclusiveLowerBoundForAllItemsInSubtree = lesserSubtree.inclusiveLowerBoundForAllItemsInSubtree orElse (Some(lowerBoundForItemRange))
-      
+
       val exclusiveUpperBoundForAllItemsInSubtree = greaterSubtree.exclusiveUpperBoundForAllItemsInSubtree orElse (Some(upperBoundForItemRange))
-      
+
       val numberOfInteriorNodesInSubtree = 1 + lesserSubtree.numberOfInteriorNodesInSubtree + greaterSubtree.numberOfInteriorNodesInSubtree
-      
+
       val numberOfItemsInSubtree = numberOfItemsInRange + lesserSubtree.numberOfItemsInSubtree + greaterSubtree.numberOfItemsInSubtree
 
       def addNewItemInTheVacantSlotAtIndex(indexOfVacantSlotAsOrderedByMissingItem: Int, inclusiveLowerBound: Int, exclusiveUpperBound: Int) = {
         require(indexOfVacantSlotAsOrderedByMissingItem >= 0)
         require(indexOfVacantSlotAsOrderedByMissingItem < exclusiveLimit) // This is a very loose upper bound, because 'indexOfVacantSlotAsOrderedByMissingItem' is progressively
-                                                                          // decremented for each move to a greater subtree. It does hold however, so is left in as a last line of
-                                                                          // defence sanity check.
-        
+        // decremented for each move to a greater subtree. It does hold however, so is left in as a last line of
+        // defence sanity check.
+
         require(inclusiveLowerBound >= 0)
         require(inclusiveLowerBound < exclusiveUpperBound)
         require(exclusiveUpperBound <= exclusiveLimit)
 
         require(inclusiveLowerBound <= lowerBoundForItemRange)
         require(exclusiveUpperBound > upperBoundForItemRange)
-        
+
         val effectiveIndexAssociatedWithThisInteriorNode = lesserSubtree.numberOfVacantSlotsInSubtreeWithinRange(inclusiveLowerBound, lowerBoundForItemRange)
 
         def recurseOnLesserSubtree() = {
           val (lesserSubtreeResult, modifiedItemResult) = lesserSubtree.addNewItemInTheVacantSlotAtIndex(indexOfVacantSlotAsOrderedByMissingItem, inclusiveLowerBound, lowerBoundForItemRange)
 
-          ((lesserSubtreeResult, greaterSubtree) match {
-            case (InteriorNode(lowerBoundForItemRangeFromLesserSubtree, upperBoundForItemRangeFromLesserSubtree, lesserSubtreeFromLesserSubtree, EmptySubtree),
-              _) if 1 + upperBoundForItemRangeFromLesserSubtree == lowerBoundForItemRange => InteriorNode(lowerBoundForItemRangeFromLesserSubtree, upperBoundForItemRange, lesserSubtreeFromLesserSubtree, greaterSubtree)
+          (lesserSubtreeResult match {
+            case InteriorNode(lowerBoundForItemRangeFromLesserSubtree, upperBoundForItemRangeFromLesserSubtree, lesserSubtreeFromLesserSubtree, EmptySubtree) if 1 + upperBoundForItemRangeFromLesserSubtree == lowerBoundForItemRange => InteriorNode(lowerBoundForItemRangeFromLesserSubtree, upperBoundForItemRange, lesserSubtreeFromLesserSubtree, greaterSubtree)
 
-            case (InteriorNode(lowerBoundForItemRangeFromLesserSubtree, upperBoundForItemRangeFromLesserSubtree, lesserSubtreeFromLesserSubtree, greaterSubtreeFromLesserSubtree), _) =>
+            case InteriorNode(lowerBoundForItemRangeFromLesserSubtree, upperBoundForItemRangeFromLesserSubtree, lesserSubtreeFromLesserSubtree, greaterSubtreeFromLesserSubtree) =>
               InteriorNode(lowerBoundForItemRangeFromLesserSubtree, upperBoundForItemRangeFromLesserSubtree, lesserSubtreeFromLesserSubtree, InteriorNode(lowerBoundForItemRange, upperBoundForItemRange, greaterSubtreeFromLesserSubtree, greaterSubtree))
 
-            case (_, _) => InteriorNode(lowerBoundForItemRange, upperBoundForItemRange, lesserSubtreeResult, greaterSubtree)
+            case _ => InteriorNode(lowerBoundForItemRange, upperBoundForItemRange, lesserSubtreeResult, greaterSubtree)
           }) -> modifiedItemResult
         }
 
         def recurseOnGreaterSubtree() = {
           val (greaterSubtreeResult, modifiedItemResult) = greaterSubtree.addNewItemInTheVacantSlotAtIndex(indexOfVacantSlotAsOrderedByMissingItem - effectiveIndexAssociatedWithThisInteriorNode, 1 + upperBoundForItemRange, exclusiveUpperBound)
 
-          ((lesserSubtree, greaterSubtreeResult) match {
-            case (_,
-              InteriorNode(lowerBoundForItemRangeFromGreaterSubtree, upperBoundForItemRangeFromGreaterSubtree, EmptySubtree, greaterSubtreeFromGreaterSubtree)) if 1 + upperBoundForItemRange == lowerBoundForItemRangeFromGreaterSubtree => InteriorNode(lowerBoundForItemRange, upperBoundForItemRangeFromGreaterSubtree, lesserSubtree, greaterSubtreeFromGreaterSubtree)
+          (greaterSubtreeResult match {
+            case InteriorNode(lowerBoundForItemRangeFromGreaterSubtree, upperBoundForItemRangeFromGreaterSubtree, EmptySubtree, greaterSubtreeFromGreaterSubtree) if 1 + upperBoundForItemRange == lowerBoundForItemRangeFromGreaterSubtree => InteriorNode(lowerBoundForItemRange, upperBoundForItemRangeFromGreaterSubtree, lesserSubtree, greaterSubtreeFromGreaterSubtree)
 
-            case (_, InteriorNode(lowerBoundForItemRangeFromGreaterSubtree, upperBoundForItemRangeFromGreaterSubtree, lesserSubtreeFromGreaterSubtree, greaterSubtreeFromGreaterSubtree)) => InteriorNode(lowerBoundForItemRangeFromGreaterSubtree, upperBoundForItemRangeFromGreaterSubtree, InteriorNode(lowerBoundForItemRange, upperBoundForItemRange, lesserSubtree, lesserSubtreeFromGreaterSubtree), greaterSubtreeFromGreaterSubtree)
+            case InteriorNode(lowerBoundForItemRangeFromGreaterSubtree, upperBoundForItemRangeFromGreaterSubtree, lesserSubtreeFromGreaterSubtree, greaterSubtreeFromGreaterSubtree) => InteriorNode(lowerBoundForItemRangeFromGreaterSubtree, upperBoundForItemRangeFromGreaterSubtree, InteriorNode(lowerBoundForItemRange, upperBoundForItemRange, lesserSubtree, lesserSubtreeFromGreaterSubtree), greaterSubtreeFromGreaterSubtree)
 
-            case (_, _) => InteriorNode(lowerBoundForItemRange, upperBoundForItemRange, lesserSubtree, greaterSubtreeResult)
+            case _ => InteriorNode(lowerBoundForItemRange, upperBoundForItemRange, lesserSubtree, greaterSubtreeResult)
           }) -> modifiedItemResult
-
         }
 
         (lesserSubtreeCanBeConsidered(inclusiveLowerBound), greaterSubtreeCanBeConsidered(exclusiveUpperBound)) match {
@@ -125,7 +122,7 @@ class RichRandom(random: Random) {
           case (true, true) => {
             indexOfVacantSlotAsOrderedByMissingItem.compare(effectiveIndexAssociatedWithThisInteriorNode) match {
               case -1 => recurseOnLesserSubtree()
-              case _ => recurseOnGreaterSubtree()
+              case _  => recurseOnGreaterSubtree()
             }
           }
         }
@@ -138,27 +135,27 @@ class RichRandom(random: Random) {
 
     case object EmptySubtree extends BinaryTreeNode {
       val inclusiveLowerBoundForAllItemsInSubtree = None
-      
+
       val exclusiveUpperBoundForAllItemsInSubtree = None
-      
+
       val numberOfInteriorNodesInSubtree = 0
-      
+
       val numberOfItemsInSubtree = 0
-      
+
       def addNewItemInTheVacantSlotAtIndex(indexOfVacantSlotAsOrderedByMissingItem: Int, inclusiveLowerBound: Int, exclusiveUpperBound: Int) = {
         require(indexOfVacantSlotAsOrderedByMissingItem >= 0)
         require(indexOfVacantSlotAsOrderedByMissingItem < exclusiveLimit) // This is a very loose upper bound, because 'indexOfVacantSlotAsOrderedByMissingItem' is progressively
-                                                                          // decremented for each move to a greater subtree. It does hold however, so is left in as a last line of
-                                                                          // defence sanity check.
-        
+        // decremented for each move to a greater subtree. It does hold however, so is left in as a last line of
+        // defence sanity check.
+
         require(inclusiveLowerBound >= 0)
         require(inclusiveLowerBound < exclusiveUpperBound)
         require(exclusiveUpperBound <= exclusiveLimit)
 
         val generatedItem = inclusiveLowerBound + indexOfVacantSlotAsOrderedByMissingItem
-        
+
         assume(generatedItem < exclusiveUpperBound)
-        
+
         new InteriorNode(generatedItem) -> generatedItem
       }
     }
@@ -180,11 +177,11 @@ class RichRandom(random: Random) {
     require(numberToChoose <= candidates.size)
 
     val candidatesWithRandomAccess = candidates.toIndexedSeq
-    
+
     val numberOfCandidates = candidatesWithRandomAccess.length
-    
+
     val permutationOfIndicesOfOriginalOrderOfCandidates = buildRandomSequenceOfDistinctIntegersFromZeroToOneLessThan(numberOfCandidates)
-    
+
     for (permutedIndex <- permutationOfIndicesOfOriginalOrderOfCandidates.take(numberToChoose))
       yield candidatesWithRandomAccess(permutedIndex)
   }
