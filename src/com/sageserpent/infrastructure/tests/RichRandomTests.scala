@@ -101,7 +101,7 @@ class RichRandomTests extends Suite {
   }
 
   def testThatChoosingItemsRepeatedlyEventuallyCoversAllPermutations() {
-    val empiricallyDeterminedMultiplicationFactorToEnsureCoverage = 70800.toDouble / BargainBasement.factorial(7)    
+    val empiricallyDeterminedMultiplicationFactorToEnsureCoverage = 70900.toDouble / BargainBasement.factorial(7)    
     
     val random = new Random(1)
 
