@@ -178,16 +178,38 @@ class RichRandom(random: Random) {
     chooseAndRecordUniqueItems(exclusiveLimit)
   }
 
-  def chooseSeveralOf[X](candidates: Traversable[X], numberToChoose: Int): Seq[X] = {
-    require(numberToChoose <= candidates.size)
-
+  def buildRandomSequenceOfDistinctCandidatesChosenFrom[X](candidates: Traversable[X]): Seq[X] = {
     val candidatesWithRandomAccess = candidates.toIndexedSeq
 
     val numberOfCandidates = candidatesWithRandomAccess.length
 
-    val permutationOfIndicesOfOriginalOrderOfCandidates = buildRandomSequenceOfDistinctIntegersFromZeroToOneLessThan(numberOfCandidates)
+    def chooseAndRecordUniqueCandidates(numberOfCandidatesAlreadyChosen: Int, candidatesWithSwapsApplied: Map[Int, X]): Stream[X] = {
+      if (numberOfCandidates == numberOfCandidatesAlreadyChosen) {
+        Stream.empty
+      } else {
+        val chosenCandidateIndex = numberOfCandidatesAlreadyChosen + this.chooseAnyNumberFromZeroToOneLessThan(numberOfCandidates - numberOfCandidatesAlreadyChosen)
 
-    for (permutedIndex <- permutationOfIndicesOfOriginalOrderOfCandidates.take(numberToChoose))
-      yield candidatesWithRandomAccess(permutedIndex)
+        val chosenCandidate = candidatesWithSwapsApplied(chosenCandidateIndex)
+
+        val candidatesWithAdditionalSwapApplied =
+          if (numberOfCandidatesAlreadyChosen == chosenCandidateIndex) {
+            candidatesWithSwapsApplied
+          } else {
+            candidatesWithSwapsApplied + (chosenCandidateIndex -> candidatesWithSwapsApplied(numberOfCandidatesAlreadyChosen))
+          }
+
+        chosenCandidate #:: chooseAndRecordUniqueCandidates(1 + numberOfCandidatesAlreadyChosen, candidatesWithAdditionalSwapApplied)
+      }
+    }
+    
+    val candidatesWithSwapsApplied = Map() withDefault ((missingIndex: Int) => candidatesWithRandomAccess(missingIndex))
+
+    chooseAndRecordUniqueCandidates(0, candidatesWithSwapsApplied)
+  }
+
+  def chooseSeveralOf[X](candidates: Traversable[X], numberToChoose: Int): Seq[X] = {
+    require(numberToChoose <= candidates.size)
+
+    buildRandomSequenceOfDistinctCandidatesChosenFrom(candidates).take(numberToChoose)
   }
 }
