@@ -183,7 +183,9 @@ class RichRandom(random: Random) {
 
     val numberOfCandidates = candidatesWithRandomAccess.length
 
-    def chooseAndRecordUniqueCandidates(numberOfCandidatesAlreadyChosen: Int, candidatesWithSwapsApplied: Map[Int, X]): Stream[X] = {
+    val candidatesWithSwapsApplied = collection.mutable.Map() withDefault ((missingIndex: Int) => candidatesWithRandomAccess(missingIndex))
+
+    def chooseAndRecordUniqueCandidates(numberOfCandidatesAlreadyChosen: Int): Stream[X] = {
       if (numberOfCandidates == numberOfCandidatesAlreadyChosen) {
         Stream.empty
       } else {
@@ -191,20 +193,15 @@ class RichRandom(random: Random) {
 
         val chosenCandidate = candidatesWithSwapsApplied(chosenCandidateIndex)
 
-        val candidatesWithAdditionalSwapApplied =
-          if (numberOfCandidatesAlreadyChosen == chosenCandidateIndex) {
-            candidatesWithSwapsApplied
-          } else {
-            candidatesWithSwapsApplied + (chosenCandidateIndex -> candidatesWithSwapsApplied(numberOfCandidatesAlreadyChosen))
+        if (numberOfCandidatesAlreadyChosen < chosenCandidateIndex) {
+            candidatesWithSwapsApplied += (chosenCandidateIndex -> candidatesWithSwapsApplied(numberOfCandidatesAlreadyChosen))
           }
 
-        chosenCandidate #:: chooseAndRecordUniqueCandidates(1 + numberOfCandidatesAlreadyChosen, candidatesWithAdditionalSwapApplied)
+        chosenCandidate #:: chooseAndRecordUniqueCandidates(1 + numberOfCandidatesAlreadyChosen)
       }
     }
     
-    val candidatesWithSwapsApplied = Map() withDefault ((missingIndex: Int) => candidatesWithRandomAccess(missingIndex))
-
-    chooseAndRecordUniqueCandidates(0, candidatesWithSwapsApplied)
+    chooseAndRecordUniqueCandidates(0)
   }
 
   def chooseSeveralOf[X](candidates: Traversable[X], numberToChoose: Int): Seq[X] = {
