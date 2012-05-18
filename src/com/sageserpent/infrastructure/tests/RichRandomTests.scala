@@ -146,6 +146,22 @@ class RichRandomTests extends TestCase {
     pig(50000)
   }
 
+  def testPig9() {
+    pig(100000)
+  }
+  
+  def testPig10() {
+    pig(200000)
+  }
+  
+  def testPig11() {
+    pig(500000)
+  }
+  
+  def testPig12() {
+    pig(1000000)
+  }
+  
   private def pig(maximumUpperBound: Int) {
     val random = new Random(678)
     val concreteRangeOfIntegers = 0 until maximumUpperBound
