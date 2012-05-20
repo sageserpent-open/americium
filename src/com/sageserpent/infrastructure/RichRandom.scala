@@ -160,18 +160,22 @@ class RichRandom(random: Random) {
         new InteriorNode(generatedItem) -> generatedItem
       }
     }
+    
+    var previouslyChosenItemsAsBinaryTree: BinaryTreeNode = EmptySubtree
 
-    def chooseAndRecordUniqueItems(exclusiveLimitOnVacantSlotIndex: Int, previouslyChosenItemsAsBinaryTree: BinaryTreeNode): Stream[Int] = {
+    def chooseAndRecordUniqueItems(exclusiveLimitOnVacantSlotIndex: Int): Stream[Int] = {
       if (0 == exclusiveLimitOnVacantSlotIndex) {
         Stream.empty
       } else {
         val (chosenItemsAsBinaryTree, chosenItem) = previouslyChosenItemsAsBinaryTree.addNewItemInTheVacantSlotAtIndex(chooseAnyNumberFromZeroToOneLessThan(exclusiveLimitOnVacantSlotIndex))
+        
+        previouslyChosenItemsAsBinaryTree = chosenItemsAsBinaryTree
 
-        chosenItem #:: chooseAndRecordUniqueItems(exclusiveLimitOnVacantSlotIndex - 1, chosenItemsAsBinaryTree)
+        chosenItem #:: chooseAndRecordUniqueItems(exclusiveLimitOnVacantSlotIndex - 1)
       }
     }
 
-    chooseAndRecordUniqueItems(exclusiveLimit, EmptySubtree)
+    chooseAndRecordUniqueItems(exclusiveLimit)
   }
 
   def chooseSeveralOf[X](candidates: Traversable[X], numberToChoose: Int): Seq[X] = {
