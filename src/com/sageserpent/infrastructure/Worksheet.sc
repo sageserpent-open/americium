@@ -9,9 +9,9 @@ object Worksheet {
   
   2 / 3.2                                         //> res1: Double(0.625) = 0.625
   
-  Finite(3.2) >= Finite(2)                        //> res2: Boolean = true
+  Finite(3.2) >= PositiveInfinity                 //> res2: Boolean = false
   
-  Finite(6) < PositiveInfinity                    //> res3: Boolean = true
+  Finite(6) > PositiveInfinity                    //> res3: Boolean = false
   
   "Good morning, campers".map(x => x.toUpper)     //> res4: String = GOOD MORNING, CAMPERS
   
