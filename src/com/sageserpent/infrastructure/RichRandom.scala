@@ -1,4 +1,5 @@
 package com.sageserpent.infrastructure
+
 import scala.util.Random
 
 class RichRandom(random: Random) {

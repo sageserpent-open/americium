@@ -2,10 +2,9 @@ package com.sageserpent.infrastructure.tests
 
 import scala.util.Random
 import scala.math
-
 import junit.framework.TestCase
-
 import com.sageserpent.infrastructure._
+import com.sageserpent.infrastructure.BargainBasement
 
 
 class RichRandomTests extends TestCase {
