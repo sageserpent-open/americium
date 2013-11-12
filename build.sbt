@@ -1,4 +1,4 @@
-name := "bigLumpOfFun"
+name := "SageSerpent"
 
 version := "0.5"
 
