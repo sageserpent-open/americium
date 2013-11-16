@@ -1,5 +1,7 @@
 package com.sageserpent.infrastructure.tests
 
+import org.junit.Test
+
 import scala.util.Random
 import scala.math
 
@@ -9,6 +11,7 @@ import com.sageserpent.infrastructure._
 
 
 class RichRandomTests extends TestCase {
+  @Test
   def testCoverageOfIntegersUpToExclusiveUpperBound() {
     val random = new Random(29)
 
@@ -23,6 +26,7 @@ class RichRandomTests extends TestCase {
     }
   }
 
+  @Test
   def testUniquenessOfIntegersProduced() {
     val random = new Random(678)
 
@@ -37,6 +41,7 @@ class RichRandomTests extends TestCase {
     }
   }
 
+  @Test
   def testDistributionOfSuccessiveSequencesWithTheSameUpperBound() {
     val random = new Random(1)
 
@@ -82,18 +87,22 @@ class RichRandomTests extends TestCase {
       }
   }
 
+  @Test
   def testThatAllItemsChosenBelongToTheSourceSequence() {
     commonTestStructureForTestingOfChoosingSeveralItems((superSet, chosenItems, _) => assert(chosenItems.toSet.subsetOf(superSet)))
   }
 
+  @Test
   def testThatTheNumberOfItemsRequestedIsHonouredIfPossible() {
     commonTestStructureForTestingOfChoosingSeveralItems((_, chosenItems, subsetSize) => assert(chosenItems.length == subsetSize))
   }
 
+  @Test
   def testThatUniqueItemsInTheSourceSequenceAreNotDuplicated() {
     commonTestStructureForTestingOfChoosingSeveralItems((_, chosenItems, _) => assert(chosenItems.toSet.size == chosenItems.length))
   }
 
+  @Test
   def testThatChoosingItemsRepeatedlyEventuallyCoversAllPermutations() {
     val empiricallyDeterminedMultiplicationFactorToEnsureCoverage = 70900.toDouble / BargainBasement.factorial(7)    
     
@@ -110,54 +119,67 @@ class RichRandomTests extends TestCase {
       }
   }
 
+  @Test
   def testPig0GetInTheTrough() {
     pig(64000)
   }
 
+  @Test
   def testPig1() {
     pig(1000)
   }
 
+  @Test
   def testPig2() {
     pig(2000)
   }
 
+  @Test
   def testPig3() {
     pig(4000)
   }
 
+  @Test
   def testPig4() {
     pig(8000)
   }
 
+  @Test
   def testPig5() {
     pig(16000)
   }
 
+  @Test
   def testPig6() {
     pig(32000)
   }
 
+  @Test
   def testPig7() {
     pig(64000)
   }
 
+  @Test
   def testPig8() {
     pig(50000)
   }
 
+  @Test
   def testPig9() {
     pig(100000)
   }
   
+  @Test
   def testPig10() {
     pig(200000)
   }
   
+  @Test
   def testPig11() {
     pig(500000)
   }
   
+  @Test
   def testPig12() {
     pig(1000000)
   }

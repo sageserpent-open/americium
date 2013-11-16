@@ -1,11 +1,12 @@
 package com.sageserpent.infrastructure.tests
 
 import junit.framework.TestCase
-
 import com.sageserpent.infrastructure.BargainBasement
+import org.junit.Test
 
 
 class BargainBasementTests extends TestCase {
+  @Test
   def testIsSorted() = {
     assert(BargainBasement.isSorted(List.empty))
 

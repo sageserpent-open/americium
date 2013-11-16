@@ -1,8 +1,8 @@
 package com.sageserpent.infrastructure.tests
 
 import junit.framework.TestCase
-
 import com.sageserpent.infrastructure._
+import org.junit.Test
 
 
 class UnboundedTests extends TestCase {
@@ -16,6 +16,7 @@ class UnboundedTests extends TestCase {
 
   def wrap(x: Int) = Finite(x)
 
+  @Test
   def testFinitesAndInfinitesInCombination() {
     assert(negativeInfinity < fortyFive)
 
@@ -62,6 +63,7 @@ class UnboundedTests extends TestCase {
     assert(PositiveInfinity > twentyThree)
   }
 
+  @Test
   def testFinites() {
     assert(negativeInfinity < twentyThree)
 
@@ -72,6 +74,7 @@ class UnboundedTests extends TestCase {
     assert(Finite(23) == twentyThree)
   }
 
+  @Test
   def testInfinites() {
     assert(NegativeInfinity == NegativeInfinity)
     assert(NegativeInfinity[Nothing] == NegativeInfinity[Int])
