@@ -4,7 +4,6 @@ import junit.framework.TestCase
 import com.sageserpent.infrastructure._
 import org.junit.Test
 
-
 class UnboundedTests extends TestCase {
   val fortyFive = Finite(45)
 
