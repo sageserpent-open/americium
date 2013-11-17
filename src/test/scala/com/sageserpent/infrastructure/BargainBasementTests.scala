@@ -1,7 +1,6 @@
-package com.sageserpent.infrastructure.tests
+package com.sageserpent.infrastructure
 
 import junit.framework.TestCase
-import com.sageserpent.infrastructure.BargainBasement
 import org.junit.Test
 
 

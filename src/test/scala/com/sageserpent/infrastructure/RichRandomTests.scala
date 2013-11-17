@@ -1,4 +1,4 @@
-package com.sageserpent.infrastructure.tests
+package com.sageserpent.infrastructure
 
 import org.junit.Test
 

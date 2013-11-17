@@ -4,7 +4,7 @@ version := "0.5"
 
 seq(com.github.retronym.SbtOneJar.oneJarSettings: _*)
 
-mainClass in oneJar := Some("com.sageserpent.infrastructure.AllTestsInTheJar")
+mainClass in oneJar := Some("com.sageserpent.infrastructure.RunAllTests")
 
 libraryDependencies += "junit" % "junit" % "4.11"
 
