@@ -26,27 +26,31 @@ mergeStrategy in assembly ~= { existingStrategy =>
 	}
 }
 
-assemblyOption in assembly ~= { _.copy(cacheUnzip = false) }
+test in assembly := {}
 
-assemblyOption in assembly ~= { _.copy(cacheOutput = false) }
+assemblyOption in assembly ~= { _.copy(cacheUnzip = true) }
+
+assemblyOption in assembly ~= { _.copy(cacheOutput = true) }
 
 jarName in assembly := "sageserpent-infrastructure.jar"
 
 jarName in (Test, assembly) := "sageserpent-infrastructure-with-tests.jar"
 
-proguardSettings
+val ikvmAssembly = TaskKey[Unit]("ikvmAssembly", "Converts jar from the 'assembly' task into a .NET library via IKVM.")
 
-ProguardKeys.options in Proguard ++= Seq("-keep public class com.sageserpent.infrastructure.**")
-
-ProguardKeys.options in Proguard ++= Seq("-keepclasseswithmembers public class * {public static void main(java.lang.String[]);}")
-
-ProguardKeys.options in Proguard ++= Seq("-dontobfuscate", "-dontusemixedcaseclassnames", "-dontnote", "-dontwarn", "-ignorewarnings")
-
-ProguardKeys.inputs in Proguard := {
-	val annoyingTaskDependencyWorkaround = (assembly in (Test, assembly)).value
-	Seq((outputPath in (Test, assembly)).value)
+ikvmAssembly <<= (assembly in assembly, outputPath in assembly) map { (_, outputPath) => {
+		val ikvmCommand = String.format("""ikvm\bin\ikvmc.exe -target:library %s""", outputPath)
+		ikvmCommand !
+	}
 }
 
+val ikvmTest = TaskKey[Unit]("ikvmTest", "Runs the test jar from the 'Test:assembly' task via IKVM.")
+
+ikvmTest <<= (assembly in (Test, assembly), outputPath in (Test, assembly)) map { (_, outputPath) => {
+		val ikvmCommand = String.format("""ikvm\bin\ikvm.exe -jar %s""", outputPath)
+		ikvmCommand !
+	}
+}
 
 
 
