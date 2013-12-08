@@ -11,9 +11,9 @@ object Worksheet {
   
   Finite(3.2) >= PositiveInfinity                 //> res2: Boolean = false
   
-  Finite(6) > PositiveInfinity                    //> res3: Boolean = false
+  Finite(8) > PositiveInfinity                    //> res3: Boolean = false
   
-  "Good morning, campers".map(x => x.toUpper)     //> res4: String = GOOD MORNING, CAMPERS
+  "Good morning, dampers".map(x => x.toUpper)     //> res4: String = GOOD MORNING, DAMPERS
   
   2 / 3                                           //> res5: Int(0) = 0
   
