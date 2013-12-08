@@ -14,6 +14,8 @@ libraryDependencies += "com.novocode" % "junit-interface" % "0.10" % "test"
 
 resolvers += "http://maven.xwiki.org" at "http://maven.xwiki.org/externals"
 
+libraryDependencies += "cpsuite" % "cpsuite" % "1.2.5"
+
 mainClass in assembly := Some("com.sageserpent.infrastructure.RunAllTests")
 
 val unacceptableStrategies = Set(MergeStrategy.singleOrError)
@@ -29,6 +31,8 @@ mergeStrategy in assembly ~= { existingStrategy =>
 }
 
 test in assembly := {}
+
+test in (Test, assembly) := {}
 
 assemblyOption in assembly ~= { _.copy(cacheUnzip = true) }
 
@@ -54,6 +58,7 @@ val ikvmTest = TaskKey[Unit]("ikvmTest", "Runs the test jar from the 'Test:assem
 
 ikvmTest <<= (assembly in (Test, assembly), outputPath in (Test, assembly)) map { (_, outputPath) => {
 		val ikvmCommand = String.format("""ikvm\bin\ikvm.exe -jar %s""", outputPath)
+		println (String.format("""About to run via IKVM: '%s' """, ikvmCommand))
 		ikvmCommand !
 	}
 }

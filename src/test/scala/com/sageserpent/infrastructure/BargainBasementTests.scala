@@ -4,6 +4,15 @@ import junit.framework.TestCase
 import org.junit.Test
 
 
+class ThisShouldWorkToo extends TestCase {
+  @Test
+  def testThatIsnt(){
+    System.out.println("At least this test gets run!")
+    assert(1 != 0)
+  }  
+}
+
+
 class BargainBasementTests extends TestCase {
   @Test
   def testIsSorted() = {
