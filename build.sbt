@@ -45,7 +45,7 @@ jarName in (Test, assembly) := "sageserpent-infrastructure-with-tests.jar"
 val ikvmAssembly = TaskKey[Unit]("ikvmAssembly", "Converts jar from the 'assembly' task into a .NET library via IKVM.")
 
 ikvmAssembly <<= (assembly in assembly, outputPath in assembly, target) map { (_, outputPath, target) => {
-		val assemblyDllName = outputPath.getName().dropRight(3) + ".dll"	// HACK - I want to actually get some work done today and not
+		val assemblyDllName = outputPath.getName().dropRight(4) + ".dll"	// HACK - I want to actually get some work done today and not
 																			// have to go back to square one to figure out how to teach SBT
 																			// to use a third-party library in Sonatype that might do this properly.
 		val assemblyDllNameIncludingPath = String.format("""%s\%s""", target, assemblyDllName)
