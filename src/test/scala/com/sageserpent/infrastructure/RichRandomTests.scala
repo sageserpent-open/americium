@@ -4,9 +4,7 @@ import org.junit.Test
 
 import scala.util.Random
 import scala.math
-
 import junit.framework.TestCase
-
 import com.sageserpent.infrastructure._
 
 
