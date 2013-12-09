@@ -31,28 +31,18 @@ object Worksheet {
   for (i <- 1 until 10) yield i * 2               //> res9: scala.collection.immutable.IndexedSeq[Int] = Vector(2, 4, 6, 8, 10, 12
                                                   //| , 14, 16, 18)
                                                   
-  val random = new Random(10)                     //> random  : scala.util.Random = scala.util.Random@1e6f7cb
+  val random = new Random(10)                     //> random  : scala.util.Random = scala.util.Random@965654
                                                   
   random.buildRandomSequenceOfDistinctIntegersFromZeroToOneLessThan(9).force
-                                                  //> java.lang.RuntimeException
-                                                  //| 	at com.sageserpent.infrastructure.RichRandom$InteriorNode$3.recurseOnLes
-                                                  //| serSubtree$1(RichRandom.scala:89)
-                                                  //| 	at com.sageserpent.infrastructure.RichRandom$InteriorNode$3.addNewItemIn
-                                                  //| TheVacantSlotAtIndex(RichRandom.scala:129)
-                                                  //| 	at com.sageserpent.infrastructure.RichRandom$BinaryTreeNode$1.addNewItem
-                                                  //| InTheVacantSlotAtIndex(RichRandom.scala:44)
-                                                  //| 	at com.sageserpent.infrastructure.RichRandom.com$sageserpent$infrastruct
-                                                  //| ure$RichRandom$$chooseAndRecordUniqueItems$1(RichRandom.scala:171)
-                                                  //| 	at com.sageserpent.infrastructure.RichRandom$$anonfun$com$sageserpent$in
-                                                  //| frastructure$RichRandom$$chooseAndRecordUniqueItems$1$1.apply(RichRandom.sca
-                                                  //| la:175)
-                                                  //| 	at com.sageserpent.infrastructure.RichRandom$$anonfun$com$sageserpent$in
-                                                  //| frastructure$RichRandom$$chooseAndRecordUniqueItems$1$1.apply(RichRandom.sca
-                                                  //| la:175)
-                                                  //| 	at scala.collection.immutable.Stream$Cons.tail(Stream.scala:1085)
-                                                  //| 	at scala.collection.immutab
-                                                  //| Output exceeds cutoff limit.
+                                                  //> res10: scala.collection.immutable.Stream[Int] = Stream(0, 4, 3, 1, 5, 7, 6, 
+                                                  //| 2, 8)
   random.buildRandomSequenceOfDistinctIntegersFromZeroToOneLessThan(9).force
+                                                  //> res11: scala.collection.immutable.Stream[Int] = Stream(1, 3, 8, 5, 6, 4, 0, 
+                                                  //| 2, 7)
   random.buildRandomSequenceOfDistinctIntegersFromZeroToOneLessThan(9).force
+                                                  //> res12: scala.collection.immutable.Stream[Int] = Stream(4, 0, 7, 2, 1, 3, 8, 
+                                                  //| 6, 5)
   random.buildRandomSequenceOfDistinctIntegersFromZeroToOneLessThan(9).force
+                                                  //> res13: scala.collection.immutable.Stream[Int] = Stream(5, 8, 1, 3, 4, 2, 7, 
+                                                  //| 6, 0)
 }
