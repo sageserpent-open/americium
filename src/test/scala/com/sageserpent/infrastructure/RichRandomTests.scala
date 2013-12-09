@@ -89,7 +89,7 @@ class RichRandomTests extends TestCase {
   def anotherWayOfChoosingSeveralOf(random: Random, candidates: Traversable[Int], numberToChoose: Int) = {
     val candidatesWithRandomAccess = candidates.toArray
     
-    for (index <- random.buildRandomSequenceOfDistinctIntegersFromZeroToOneLessThan(numberToChoose).force)
+    for (index <- random.buildRandomSequenceOfDistinctIntegersFromZeroToOneLessThan(candidatesWithRandomAccess.size) take numberToChoose)
       yield candidatesWithRandomAccess(index)
   }
     
@@ -128,7 +128,7 @@ class RichRandomTests extends TestCase {
 
   @Test
   def testThatChoosingItemsRepeatedlyEventuallyCoversAllPermutations() {
-    val empiricallyDeterminedMultiplicationFactorToEnsureCoverage = 70900.toDouble / BargainBasement.factorial(7)    
+    val empiricallyDeterminedMultiplicationFactorToEnsureCoverage = 79200.toDouble / BargainBasement.factorial(7)    
     
     val random = new Random(1)
 
