@@ -14,10 +14,4 @@ import junit.framework.TestCase
 class AllTests {
 }
 
-class ThisShouldWork extends TestCase {
-  @Test
-  def testOfTheDurbervilles(){
-    System.out.println("At least this test gets run!")
-    assert(2 != 0)
-  }  
-}
+
