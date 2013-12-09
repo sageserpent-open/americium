@@ -18,9 +18,13 @@ class RichRandomTests extends TestCase {
     for (upperBound <- 0 to maximumUpperBound) {
       val concreteRangeOfIntegers = 0 until upperBound
       
+      val expectedRange = 0 until upperBound 
+      
       val chosenItems = random.chooseSeveralOf(concreteRangeOfIntegers, upperBound)
-      val expectedRange = 0 until upperBound
       assert(chosenItems.toSet == expectedRange.toSet)
+      
+      val chosenItemsViaAnotherWay = random.buildRandomSequenceOfDistinctIntegersFromZeroToOneLessThan(upperBound)
+      assert(chosenItemsViaAnotherWay.toSet == expectedRange.toSet)
     }
   }
 
@@ -36,8 +40,36 @@ class RichRandomTests extends TestCase {
       val chosenItems = random.chooseSeveralOf(concreteRangeOfIntegers, upperBound)
       assert(upperBound == chosenItems.toSet.size)
       assert(upperBound == chosenItems.length)
+      
+      val chosenItemsViaAnotherWay = random.buildRandomSequenceOfDistinctIntegersFromZeroToOneLessThan(upperBound)
+      assert(upperBound == chosenItemsViaAnotherWay.toSet.size)
+      assert(upperBound == chosenItemsViaAnotherWay.length)      
     }
   }
+  
+  private def sampleDistributions(upperBound: Int, buildRandomSequenceOfDistinctIntegersFromZeroToOneLessThanUpperBound: Int => Seq[Int]) {
+    
+    val numberOfTrials = 100000
+
+    val itemToCountAndSumOfPositionsMap = Array.fill(upperBound) { 0 -> 0.0 }
+
+    for {
+      _ <- 1 to numberOfTrials
+      (item, position) <- buildRandomSequenceOfDistinctIntegersFromZeroToOneLessThanUpperBound(upperBound).zipWithIndex
+    } {
+      val (count, sumOfPositions) = itemToCountAndSumOfPositionsMap(item)
+      itemToCountAndSumOfPositionsMap(item) = 1 + count -> (position + sumOfPositions)
+    }
+
+    val toleranceEpsilon = 1e-1
+
+    assert(itemToCountAndSumOfPositionsMap.forall({
+      case (count, sumOfPositions) => {
+        val difference = (sumOfPositions / count - (0 + upperBound - 1) / 2.0)
+        difference < toleranceEpsilon
+      }
+    }))
+  }  
 
   @Test
   def testDistributionOfSuccessiveSequencesWithTheSameUpperBound() {
@@ -45,32 +77,23 @@ class RichRandomTests extends TestCase {
 
     val maximumUpperBound = 30
 
-    for (upperBound <- 0 to maximumUpperBound) {
+    for (upperBound <- 0 to maximumUpperBound) yield {
       val concreteRangeOfIntegers = 0 until upperBound
+
+      sampleDistributions(upperBound, {upperBoundLambdaLifted => random.chooseSeveralOf(concreteRangeOfIntegers, upperBoundLambdaLifted)})
       
-      val numberOfTrials = 100000
-
-      val itemToCountAndSumOfPositionsMap = Array.fill(upperBound) { 0 -> 0.0 }
-
-      for {
-        _ <- 1 to numberOfTrials
-        (item, position) <- random.chooseSeveralOf(concreteRangeOfIntegers, upperBound).zipWithIndex
-      } {
-        val (count, sumOfPositions) = itemToCountAndSumOfPositionsMap(item)
-        itemToCountAndSumOfPositionsMap(item) = 1 + count -> (position + sumOfPositions)
-      }
-
-      val toleranceEpsilon = 1e-1
-
-      assert(itemToCountAndSumOfPositionsMap.forall({
-        case (count, sumOfPositions) => {
-          val difference = (sumOfPositions / count - (0 + upperBound - 1) / 2.0)
-          difference < toleranceEpsilon
-        }
-      }))
+      sampleDistributions(upperBound, {upperBoundLambdaLifted => random.buildRandomSequenceOfDistinctIntegersFromZeroToOneLessThan(upperBoundLambdaLifted)})
     }
   }
-
+  
+  def anotherWayOfChoosingSeveralOf(random: Random, candidates: Traversable[Int], numberToChoose: Int) = {
+    val candidatesWithRandomAccess = candidates.toArray
+    
+    for (index <- random.buildRandomSequenceOfDistinctIntegersFromZeroToOneLessThan(numberToChoose).force)
+      yield candidatesWithRandomAccess(index)
+  }
+    
+  
   def commonTestStructureForTestingOfChoosingSeveralItems(testOnSuperSetAndItemsChosenFromIt: (scala.collection.immutable.Set[Int], Seq[Int], Int) => Unit) {
     val random = new Random(1)
 
@@ -80,6 +103,9 @@ class RichRandomTests extends TestCase {
         for (subsetSize <- 1 to numberOfConsecutiveItems)
           for (_ <- 1 to 10) {
             val chosenItems = random.chooseSeveralOf(superSet, subsetSize)
+            testOnSuperSetAndItemsChosenFromIt(superSet, chosenItems, subsetSize)
+            
+            val anotherBunchOfChosenItems = anotherWayOfChoosingSeveralOf(random, superSet, subsetSize)
             testOnSuperSetAndItemsChosenFromIt(superSet, chosenItems, subsetSize)
           }
       }
@@ -111,8 +137,12 @@ class RichRandomTests extends TestCase {
         val superSet = (inclusiveLowerBound until inclusiveLowerBound + numberOfConsecutiveItems).toSet
         for (subsetSize <- 1 to numberOfConsecutiveItems) {
           val expectedNumberOfPermutations = BargainBasement.numberOfPermutations(numberOfConsecutiveItems, subsetSize)
+          
           val oversampledOutputs = for (_ <- 1 to scala.math.ceil(empiricallyDeterminedMultiplicationFactorToEnsureCoverage * expectedNumberOfPermutations).toInt) yield { random.chooseSeveralOf(superSet.toSeq, subsetSize) toList }
           assert(oversampledOutputs.toSet.size == expectedNumberOfPermutations)
+          
+          val oversampledOutputsViaAnotherWay = for (_ <- 1 to scala.math.ceil(empiricallyDeterminedMultiplicationFactorToEnsureCoverage * expectedNumberOfPermutations).toInt) yield { anotherWayOfChoosingSeveralOf(random, superSet.toSeq, subsetSize) toList }
+          assert(oversampledOutputsViaAnotherWay.toSet.size == expectedNumberOfPermutations)          
         }
       }
   }
