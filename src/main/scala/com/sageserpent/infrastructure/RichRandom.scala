@@ -8,8 +8,6 @@ class RichRandom(random: Random) {
   def chooseAnyNumberFromOneTo(inclusiveLimit: Int) =
     1 + chooseAnyNumberFromZeroToOneLessThan(inclusiveLimit)
 
-  def headsItIs() = random.nextBoolean()
-
   def buildRandomSequenceOfDistinctIntegersFromZeroToOneLessThan(exclusiveLimit: Int): Stream[Int] = {
     require(0 <= exclusiveLimit)
 
@@ -209,5 +207,12 @@ class RichRandom(random: Random) {
     require(numberToChoose <= candidates.size)
 
     buildRandomSequenceOfDistinctCandidatesChosenFrom(candidates).take(numberToChoose)
+  }
+  
+  def chooseOneOf[X](candidates: Traversable[X]) = {
+    // TODO: this can be done without having to build a random-access collection:
+    // use an algorithm of weighted probability picking of the head, using a progressive
+    // binary tree of fixed-sized samples from the underlying sequence.
+    buildRandomSequenceOfDistinctCandidatesChosenFrom(candidates).take(1).head
   }
 }

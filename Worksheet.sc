@@ -31,7 +31,7 @@ object Worksheet {
   for (i <- 1 until 10) yield i * 2               //> res9: scala.collection.immutable.IndexedSeq[Int] = Vector(2, 4, 6, 8, 10, 12
                                                   //| , 14, 16, 18)
                                                   
-  val random = new Random(10)                     //> random  : scala.util.Random = scala.util.Random@965654
+  val random = new Random(10)                     //> random  : scala.util.Random = scala.util.Random@15a740a
                                                   
   random.buildRandomSequenceOfDistinctIntegersFromZeroToOneLessThan(9).force
                                                   //> res10: scala.collection.immutable.Stream[Int] = Stream(0, 4, 3, 1, 5, 7, 6, 
@@ -45,4 +45,10 @@ object Worksheet {
   random.buildRandomSequenceOfDistinctIntegersFromZeroToOneLessThan(9).force
                                                   //> res13: scala.collection.immutable.Stream[Int] = Stream(5, 8, 1, 3, 4, 2, 7, 
                                                   //| 6, 0)
+                                                  
+  BargainBasement.numberOfCombinations(18, 8)     //> res14: Int = 43758
+                                                  
+  BargainBasement.numberOfCombinations(18, 10)    //> res15: Int = -34
+                                                  
+  BargainBasement.numberOfCombinations(18, 15)    //> res16: Int = 0
 }
