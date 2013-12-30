@@ -177,12 +177,10 @@ class RichRandom(random: Random) {
     chooseAndRecordUniqueItems(exclusiveLimit)
   }
 
-  def buildRandomSequenceOfDistinctCandidatesChosenFrom[X](candidates: Traversable[X]): Seq[X] = {
-    val candidatesWithRandomAccess = candidates.toIndexedSeq
-
-    val numberOfCandidates = candidatesWithRandomAccess.length
-
-    val candidatesWithSwapsApplied = collection.mutable.Map() withDefault ((missingIndex: Int) => candidatesWithRandomAccess(missingIndex))
+  def buildRandomSequenceOfDistinctCandidatesChosenFrom[X: ClassManifest](candidates: Traversable[X]): Seq[X] = {
+    val candidatesWithSwapsApplied = candidates.toArray
+    
+    val numberOfCandidates = candidatesWithSwapsApplied length
 
     def chooseAndRecordUniqueCandidates(numberOfCandidatesAlreadyChosen: Int): Stream[X] = {
       if (numberOfCandidates == numberOfCandidatesAlreadyChosen) {
@@ -193,7 +191,7 @@ class RichRandom(random: Random) {
         val chosenCandidate = candidatesWithSwapsApplied(chosenCandidateIndex)
 
         if (numberOfCandidatesAlreadyChosen < chosenCandidateIndex) {
-            candidatesWithSwapsApplied += (chosenCandidateIndex -> candidatesWithSwapsApplied(numberOfCandidatesAlreadyChosen))
+            candidatesWithSwapsApplied(chosenCandidateIndex) = candidatesWithSwapsApplied(numberOfCandidatesAlreadyChosen)
           }
 
         chosenCandidate #:: chooseAndRecordUniqueCandidates(1 + numberOfCandidatesAlreadyChosen)
@@ -203,13 +201,13 @@ class RichRandom(random: Random) {
     chooseAndRecordUniqueCandidates(0)
   }
 
-  def chooseSeveralOf[X](candidates: Traversable[X], numberToChoose: Int): Seq[X] = {
+  def chooseSeveralOf[X: ClassManifest](candidates: Traversable[X], numberToChoose: Int): Seq[X] = {
     require(numberToChoose <= candidates.size)
 
     buildRandomSequenceOfDistinctCandidatesChosenFrom(candidates).take(numberToChoose)
   }
   
-  def chooseOneOf[X](candidates: Traversable[X]) = {
+  def chooseOneOf[X: ClassManifest](candidates: Traversable[X]) = {
     // TODO: this can be done without having to build a random-access collection:
     // use an algorithm of weighted probability picking of the head, using a progressive
     // binary tree of fixed-sized samples from the underlying sequence.
