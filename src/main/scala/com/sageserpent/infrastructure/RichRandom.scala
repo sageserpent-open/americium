@@ -182,19 +182,23 @@ class RichRandom(random: Random) {
 
     val numberOfCandidates = candidatesWithRandomAccess.length
 
-    val candidatesWithSwapsApplied = collection.mutable.Map() withDefault ((missingIndex: Int) => candidatesWithRandomAccess(missingIndex))
+    var swappedCandidates = scala.collection.immutable.SortedMap[Int, X]()
 
     def chooseAndRecordUniqueCandidates(numberOfCandidatesAlreadyChosen: Int): Stream[X] = {
       if (numberOfCandidates == numberOfCandidatesAlreadyChosen) {
         Stream.empty
       } else {
         val chosenCandidateIndex = numberOfCandidatesAlreadyChosen + this.chooseAnyNumberFromZeroToOneLessThan(numberOfCandidates - numberOfCandidatesAlreadyChosen)
+        
+        val candidatesWithSwapsApplied = swappedCandidates orElse candidatesWithRandomAccess
 
         val chosenCandidate = candidatesWithSwapsApplied(chosenCandidateIndex)
 
         if (numberOfCandidatesAlreadyChosen < chosenCandidateIndex) {
-            candidatesWithSwapsApplied += (chosenCandidateIndex -> candidatesWithSwapsApplied(numberOfCandidatesAlreadyChosen))
+            swappedCandidates = swappedCandidates + (chosenCandidateIndex -> candidatesWithSwapsApplied(numberOfCandidatesAlreadyChosen))
           }
+        
+        swappedCandidates = swappedCandidates - numberOfCandidatesAlreadyChosen	// Optimise memory usage - this index will never be revisited.
 
         chosenCandidate #:: chooseAndRecordUniqueCandidates(1 + numberOfCandidatesAlreadyChosen)
       }
