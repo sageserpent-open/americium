@@ -31,7 +31,7 @@ object Worksheet {
   for (i <- 1 until 10) yield i * 2               //> res9: scala.collection.immutable.IndexedSeq[Int] = Vector(2, 4, 6, 8, 10, 12
                                                   //| , 14, 16, 18)
                                                   
-  val random = new Random(10)                     //> random  : scala.util.Random = scala.util.Random@15a740a
+  val random = new Random(10)                     //> random  : scala.util.Random = scala.util.Random@6e811c88
                                                   
   random.buildRandomSequenceOfDistinctIntegersFromZeroToOneLessThan(9).force
                                                   //> res10: scala.collection.immutable.Stream[Int] = Stream(0, 4, 3, 1, 5, 7, 6, 
@@ -51,4 +51,51 @@ object Worksheet {
   BargainBasement.numberOfCombinations(18, 10)    //> res15: Int = -34
                                                   
   BargainBasement.numberOfCombinations(18, 15)    //> res16: Int = 0
+  
+  val defaultMap = Map(1 -> 'a', 3 -> 'i')        //> defaultMap  : scala.collection.immutable.Map[Int,Char] = Map(1 -> a, 3 -> i
+                                                  //| )
+  
+  val modifiedMap = scala.collection.mutable.Map() withDefault(defaultMap.apply)
+                                                  //> modifiedMap  : scala.collection.mutable.Map[Int,Char] = Map()
+                                                  
+  modifiedMap(3)                                  //> res17: Char = i
+  
+  modifiedMap.keys                                //> res18: Iterable[Int] = Set()
+  
+  modifiedMap += 4 -> 'k'                         //> res19: Worksheet.modifiedMap.type = Map(4 -> k)
+  
+  modifiedMap.keys                                //> res20: Iterable[Int] = Set(4)
+  
+  modifiedMap -= 3                                //> res21: Worksheet.modifiedMap.type = Map(4 -> k)
+  
+  modifiedMap.keys                                //> res22: Iterable[Int] = Set(4)
+  
+  modifiedMap(3)                                  //> res23: Char = i
+  
+  modifiedMap -= 4                                //> res24: Worksheet.modifiedMap.type = Map()
+  
+  modifiedMap.keys                                //> res25: Iterable[Int] = Set()
+  
+  
+  var modifiedMap2 = scala.collection.immutable.Map() withDefault(defaultMap.apply)
+                                                  //> modifiedMap2  : scala.collection.immutable.Map[Int,Char] = Map()
+  
+  modifiedMap2(3)                                 //> res26: Char = i
+  
+  modifiedMap2.keys                               //> res27: Iterable[Int] = Set()
+  
+  modifiedMap2 += 4 -> 'k'
+  
+  modifiedMap2.keys                               //> res28: Iterable[Int] = Set(4)
+  
+  modifiedMap2 -= 3
+  
+  modifiedMap2.keys                               //> res29: Iterable[Int] = Set(4)
+  
+  modifiedMap2(3)                                 //> res30: Char = i
+
+  modifiedMap2 -= 4
+  
+  modifiedMap2.keys                               //> res31: Iterable[Int] = Set()
+
 }
