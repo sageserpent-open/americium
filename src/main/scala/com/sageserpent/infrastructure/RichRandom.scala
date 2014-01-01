@@ -182,7 +182,7 @@ class RichRandom(random: Random) {
 
     val numberOfCandidates = candidatesWithRandomAccess.length
 
-    val candidatesWithSwapsApplied = collection.mutable.Map() withDefault ((missingIndex: Int) => candidatesWithRandomAccess(missingIndex))
+    val candidatesWithSwapsApplied = collection.mutable.HashMap() withDefault ((missingIndex: Int) => candidatesWithRandomAccess(missingIndex))
 
     def chooseAndRecordUniqueCandidates(numberOfCandidatesAlreadyChosen: Int): Stream[X] = {
       if (numberOfCandidates == numberOfCandidatesAlreadyChosen) {
@@ -195,6 +195,8 @@ class RichRandom(random: Random) {
         if (numberOfCandidatesAlreadyChosen < chosenCandidateIndex) {
             candidatesWithSwapsApplied += (chosenCandidateIndex -> candidatesWithSwapsApplied(numberOfCandidatesAlreadyChosen))
           }
+        
+        candidatesWithSwapsApplied -= numberOfCandidatesAlreadyChosen
 
         chosenCandidate #:: chooseAndRecordUniqueCandidates(1 + numberOfCandidatesAlreadyChosen)
       }
