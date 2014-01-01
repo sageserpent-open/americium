@@ -252,4 +252,17 @@ class RichRandomTests extends TestCase {
       for (chosenItem <- chosenItems) {}
     }
   }
+  
+  @Test
+  def testJustAFew() {
+    val random = new Random(678)
+    val maximumUpperBound = 1000000
+    val concreteRangeOfIntegers = 0 until maximumUpperBound
+
+    for (_ <- 1 to 10) {
+      val sampleSize = maximumUpperBound / 2
+      val chosenItems = random.chooseSeveralOf(concreteRangeOfIntegers, sampleSize)
+      for (chosenItem <- chosenItems) {}
+    }    
+  }
 }
