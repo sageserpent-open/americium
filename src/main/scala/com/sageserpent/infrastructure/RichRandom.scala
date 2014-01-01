@@ -2,6 +2,8 @@ package com.sageserpent.infrastructure
 
 import scala.util.Random
 
+import scala.collection.JavaConverters._
+
 class RichRandom(random: Random) {
   def chooseAnyNumberFromZeroToOneLessThan(exclusiveLimit: Int) = random.nextInt(exclusiveLimit)
 
@@ -182,19 +184,23 @@ class RichRandom(random: Random) {
 
     val numberOfCandidates = candidatesWithRandomAccess.length
 
-    val candidatesWithSwapsApplied = collection.mutable.Map() withDefault ((missingIndex: Int) => candidatesWithRandomAccess(missingIndex))
+    val swappedCandidates = if (500000 >= numberOfCandidates) scala.collection.mutable.Map[Int, X]() else new java.util.TreeMap[Int, X] asScala
 
     def chooseAndRecordUniqueCandidates(numberOfCandidatesAlreadyChosen: Int): Stream[X] = {
       if (numberOfCandidates == numberOfCandidatesAlreadyChosen) {
         Stream.empty
       } else {
         val chosenCandidateIndex = numberOfCandidatesAlreadyChosen + this.chooseAnyNumberFromZeroToOneLessThan(numberOfCandidates - numberOfCandidatesAlreadyChosen)
+        
+        val candidatesWithSwapsApplied = swappedCandidates orElse candidatesWithRandomAccess
 
         val chosenCandidate = candidatesWithSwapsApplied(chosenCandidateIndex)
 
         if (numberOfCandidatesAlreadyChosen < chosenCandidateIndex) {
-            candidatesWithSwapsApplied += (chosenCandidateIndex -> candidatesWithSwapsApplied(numberOfCandidatesAlreadyChosen))
+            swappedCandidates += chosenCandidateIndex -> candidatesWithSwapsApplied(numberOfCandidatesAlreadyChosen)
           }
+        
+        swappedCandidates -= numberOfCandidatesAlreadyChosen	// Optimise memory usage - this index will never be revisited.
 
         chosenCandidate #:: chooseAndRecordUniqueCandidates(1 + numberOfCandidatesAlreadyChosen)
       }
