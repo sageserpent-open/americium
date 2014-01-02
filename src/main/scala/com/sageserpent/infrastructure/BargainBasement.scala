@@ -9,7 +9,7 @@ object BargainBasement {
   def isSorted[X <% Ordered[X]](iterable: Iterable[X]) = {
     iterable.sliding(2).forall {
       case Seq(first, second) => first <= second
-      case _                  => true
+      case _ => true
     }
   }
 
@@ -46,6 +46,10 @@ object BargainBasement {
   def factorial(x: Int) =
     numberOfPermutations(x, x)
 
-  def numberOfCombinations(originalSize: Int, combinationSize: Int) =
-    numberOfPermutations(originalSize, combinationSize) / factorial(combinationSize)
+  def numberOfCombinations(originalSize: Int, combinationSize: Int) = {
+    val unpickedSize = originalSize - combinationSize
+    if (combinationSize < unpickedSize)
+      numberOfPermutations(originalSize, combinationSize) / factorial(combinationSize)
+    else numberOfPermutations(originalSize, unpickedSize) / factorial(unpickedSize)
+  }
 }
