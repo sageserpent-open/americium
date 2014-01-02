@@ -31,7 +31,7 @@ object Worksheet {
   for (i <- 1 until 10) yield i * 2               //> res9: scala.collection.immutable.IndexedSeq[Int] = Vector(2, 4, 6, 8, 10, 12
                                                   //| , 14, 16, 18)
                                                   
-  val random = new Random(10)                     //> random  : scala.util.Random = scala.util.Random@322c1e6b
+  val random = new Random(10)                     //> random  : scala.util.Random = scala.util.Random@7745c859
                                                   
   random.buildRandomSequenceOfDistinctIntegersFromZeroToOneLessThan(9).force
                                                   //> res10: scala.collection.immutable.Stream[Int] = Stream(0, 4, 3, 1, 5, 7, 6, 
@@ -63,7 +63,7 @@ object Worksheet {
   BargainBasement.numberOfPermutations(5, 5)      //> res21: Int = 120
   
   for (size <- 0 to 16)
-  	yield 0 to size map (BargainBasement.numberOfCombinations(size, _)) reduce (_ + _)
+  	yield 0 to size map {BargainBasement.numberOfCombinations(size, _)} reduce (_ + _)
                                                   //> res22: scala.collection.immutable.IndexedSeq[Int] = Vector(1, 2, 4, 8, 16, 
                                                   //| 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384, 32768, 65536)
   
