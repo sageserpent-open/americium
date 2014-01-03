@@ -161,7 +161,7 @@ class RichRandom(random: Random) {
         new InteriorNode(generatedItem) -> generatedItem
       }
     }
-    
+
     var previouslyChosenItemsAsBinaryTree: BinaryTreeNode = EmptySubtree
 
     def chooseAndRecordUniqueItems(exclusiveLimitOnVacantSlotIndex: Int): Stream[Int] = {
@@ -169,7 +169,7 @@ class RichRandom(random: Random) {
         Stream.empty
       } else {
         val (chosenItemsAsBinaryTree, chosenItem) = previouslyChosenItemsAsBinaryTree.addNewItemInTheVacantSlotAtIndex(chooseAnyNumberFromZeroToOneLessThan(exclusiveLimitOnVacantSlotIndex))
-        
+
         previouslyChosenItemsAsBinaryTree = chosenItemsAsBinaryTree
 
         chosenItem #:: chooseAndRecordUniqueItems(exclusiveLimitOnVacantSlotIndex - 1)
@@ -191,21 +191,21 @@ class RichRandom(random: Random) {
         Stream.empty
       } else {
         val chosenCandidateIndex = numberOfCandidatesAlreadyChosen + this.chooseAnyNumberFromZeroToOneLessThan(numberOfCandidates - numberOfCandidatesAlreadyChosen)
-        
+
         val candidatesWithSwapsApplied = swappedCandidates orElse candidatesWithRandomAccess
 
         val chosenCandidate = candidatesWithSwapsApplied(chosenCandidateIndex)
 
         if (numberOfCandidatesAlreadyChosen < chosenCandidateIndex) {
-            swappedCandidates += chosenCandidateIndex -> candidatesWithSwapsApplied(numberOfCandidatesAlreadyChosen)
-          }
-        
-        swappedCandidates -= numberOfCandidatesAlreadyChosen	// Optimise memory usage - this index will never be revisited.
+          swappedCandidates += chosenCandidateIndex -> candidatesWithSwapsApplied(numberOfCandidatesAlreadyChosen)
+        }
+
+        swappedCandidates -= numberOfCandidatesAlreadyChosen // Optimise memory usage - this index will never be revisited.
 
         chosenCandidate #:: chooseAndRecordUniqueCandidates(1 + numberOfCandidatesAlreadyChosen)
       }
     }
-    
+
     chooseAndRecordUniqueCandidates(0)
   }
 
@@ -214,11 +214,36 @@ class RichRandom(random: Random) {
 
     buildRandomSequenceOfDistinctCandidatesChosenFrom(candidates).take(numberToChoose)
   }
-  
+
   def chooseOneOf[X](candidates: Traversable[X]) = {
-    // TODO: this can be done without having to build a random-access collection:
-    // use an algorithm of weighted probability picking of the head, using a progressive
-    // binary tree of fixed-sized samples from the underlying sequence.
-    buildRandomSequenceOfDistinctCandidatesChosenFrom(candidates).take(1).head
+    @scala.annotation.tailrec // TODO - build a stream, not a list - want lazy evaluation of exemplars. Perhaps?
+    def chooseExemplarsFromCandidateBlocks(candidates: Traversable[X], blockSize: Int, cumulativeNumberOfCandidatesPreviouslySeen: Int, exemplarTuples: List[(X, Int, Int)]): List[(X, Int, Int)] = {
+      val (candidateBlock, remainingCandidates) = candidates splitAt blockSize
+
+      if (candidateBlock isEmpty)
+        exemplarTuples
+      else {
+        val candidateBlockSize = candidateBlock size
+        val exemplar = buildRandomSequenceOfDistinctCandidatesChosenFrom(candidateBlock).take(1).head
+
+        chooseExemplarsFromCandidateBlocks(remainingCandidates, blockSize * 7 / 6, candidateBlockSize + cumulativeNumberOfCandidatesPreviouslySeen, (exemplar, candidateBlockSize, cumulativeNumberOfCandidatesPreviouslySeen) :: exemplarTuples)
+      }
+    }
+
+    val exemplars = chooseExemplarsFromCandidateBlocks(candidates, 100, 0, List.empty)
+
+    @scala.annotation.tailrec
+    def chooseASingleExemplar(exemplars: List[(X, Int, Int)]): X = exemplars match {
+      case List((exemplar, _, _)) => exemplar
+      case (exemplar, blockSize, cumulativeNumberOfCandidatesPreviouslySeen) :: remainingExemplars => {
+        val numberOfCandidates = blockSize + cumulativeNumberOfCandidatesPreviouslySeen
+        if (chooseAnyNumberFromOneTo(numberOfCandidates) <= blockSize)
+          exemplar
+        else
+          chooseASingleExemplar(remainingExemplars)
+      }
+    }
+
+    chooseASingleExemplar(exemplars)
   }
 }
