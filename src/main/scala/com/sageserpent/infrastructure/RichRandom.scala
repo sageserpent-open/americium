@@ -216,15 +216,15 @@ class RichRandom(random: Random) {
   }
 
   def chooseOneOf[X](candidates: Traversable[X]) = {
-    @scala.annotation.tailrec // TODO - build a stream, not a list - want lazy evaluation of exemplars. Perhaps?
-    def chooseExemplarsFromCandidateBlocks(candidates: Traversable[X], blockSize: Int, cumulativeNumberOfCandidatesPreviouslySeen: Int, exemplarTuples: List[(X, Int, Int)]): List[(X, Int, Int)] = {
+    @scala.annotation.tailrec
+    def chooseExemplarsFromCandidateBlocks(candidates: Traversable[X], blockSize: Int, cumulativeNumberOfCandidatesPreviouslySeen: Int, exemplarTuples: List[(() => X, Int, Int)]): List[(() => X, Int, Int)] = {
       val (candidateBlock, remainingCandidates) = candidates splitAt blockSize
 
       if (candidateBlock isEmpty)
         exemplarTuples
       else {
         val candidateBlockSize = candidateBlock size
-        val exemplar = buildRandomSequenceOfDistinctCandidatesChosenFrom(candidateBlock).take(1).head
+        val exemplar = () => buildRandomSequenceOfDistinctCandidatesChosenFrom(candidateBlock).take(1).head
 
         chooseExemplarsFromCandidateBlocks(remainingCandidates, blockSize * 7 / 6, candidateBlockSize + cumulativeNumberOfCandidatesPreviouslySeen, (exemplar, candidateBlockSize, cumulativeNumberOfCandidatesPreviouslySeen) :: exemplarTuples)
       }
@@ -233,12 +233,12 @@ class RichRandom(random: Random) {
     val exemplars = chooseExemplarsFromCandidateBlocks(candidates, 100, 0, List.empty)
 
     @scala.annotation.tailrec
-    def chooseASingleExemplar(exemplars: List[(X, Int, Int)]): X = exemplars match {
-      case List((exemplar, _, _)) => exemplar
+    def chooseASingleExemplar(exemplars: List[(() => X, Int, Int)]): X = exemplars match {
+      case List((exemplar, _, _)) => exemplar()
       case (exemplar, blockSize, cumulativeNumberOfCandidatesPreviouslySeen) :: remainingExemplars => {
         val numberOfCandidates = blockSize + cumulativeNumberOfCandidatesPreviouslySeen
         if (chooseAnyNumberFromOneTo(numberOfCandidates) <= blockSize)
-          exemplar
+          exemplar()
         else
           chooseASingleExemplar(remainingExemplars)
       }

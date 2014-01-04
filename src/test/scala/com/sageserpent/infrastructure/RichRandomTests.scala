@@ -101,7 +101,7 @@ class RichRandomTests extends TestCase {
   def testDistributionOfSuccessiveSequencesWithTheSameUpperBound() {
     val random = new Random(1)
 
-    val maximumUpperBound = 17
+    val maximumUpperBound = 20
 
     for (upperBound <- 1 to maximumUpperBound) yield {
       val concreteRangeOfIntegers = 0 until upperBound
