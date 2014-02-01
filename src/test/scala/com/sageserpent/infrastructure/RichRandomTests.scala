@@ -344,13 +344,16 @@ class RichRandomTests extends TestCase {
       }
       val isNotEmpty = (!(_: Seq[_]).isEmpty)
       assert {
-        printf("Expected: %s\n", sequences.filter(isNotEmpty))
+        val expectedSequences = sequences.filter(isNotEmpty)
+
+        printf("Expected: %s\n", expectedSequences)
         printf("Got: %s\n", disentangledPickedSubsequences)
-        ((sequences.filter(isNotEmpty)).zip(disentangledPickedSubsequences))
+        (expectedSequences.length == disentangledPickedSubsequences.length
+          && expectedSequences.zip(disentangledPickedSubsequences)
           .forall {
             case (sequence, disentangledPickedSubsequence) =>
               sequence == disentangledPickedSubsequence
-          }
+          })
       }
     }
     commonTestStructureForTestingAlternatePickingFromSequences(testHandoff)

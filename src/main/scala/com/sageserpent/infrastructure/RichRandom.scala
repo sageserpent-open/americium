@@ -248,5 +248,12 @@ class RichRandom(random: Random) {
   }
   
   def pickAlternatelyFrom[X](sequences: Traversable[Traversable[X]]): Seq[X] =
-    List.empty
+    if (sequences isEmpty)
+    {
+      Seq.empty
+    }
+    else
+    {
+    (sequences.toSeq)(0).toSeq
+    }
 }
