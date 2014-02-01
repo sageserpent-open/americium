@@ -6,6 +6,7 @@ import scala.math
 import junit.framework.TestCase
 import com.sageserpent.infrastructure._
 import scala.collection.mutable.Map
+import scala.collection.immutable.Set
 
 class RichRandomTests extends TestCase {
   @Test
@@ -103,7 +104,7 @@ class RichRandomTests extends TestCase {
 
     val maximumUpperBound = 20
 
-    for (upperBound <- 1 to maximumUpperBound) yield {
+    for (upperBound <- 1 to maximumUpperBound) {
       val concreteRangeOfIntegers = 0 until upperBound
 
       sampleDistributions(upperBound, 1, { _ => List(random.chooseOneOf(concreteRangeOfIntegers)) })
@@ -275,5 +276,127 @@ class RichRandomTests extends TestCase {
       val chosenItems = random.chooseSeveralOf(concreteRangeOfIntegers, sampleSize)
       for (chosenItem <- chosenItems) {}
     }
+  }
+
+  def commonTestStructureForTestingAlternatePickingFromSequences(testOnSequences: Seq[Seq[Int]] => Unit) = {
+    val randomBehaviour =
+      new Random(232)
+    for (numberOfSequences <- 0 until 50) {
+      val maximumPossibleNumberOfItemsInASequence =
+        100
+      val sequenceSizes =
+        List.tabulate(numberOfSequences) { _ =>
+          randomBehaviour.chooseAnyNumberFromZeroToOneLessThan(maximumPossibleNumberOfItemsInASequence)
+        }
+
+      val sequences =
+        (sequenceSizes zipWithIndex) map {
+          case (sequenceIndex, sequenceSize) =>
+            Seq.tabulate(sequenceSize) { itemIndex: Int =>
+              sequenceIndex + numberOfSequences * itemIndex
+            }
+        }
+      testOnSequences(sequences)
+    }
+  }
+
+  @Test
+  def testThatPickingAlternatelyFromSequencesPreservesTheItemsInTheOriginalSequences() = {
+    val randomBehaviour = new Random(89734873)
+    def testHandoff(sequences: Seq[Seq[Int]]) {
+      val alternatelyPickedSequence =
+        randomBehaviour.pickAlternatelyFrom(sequences)
+      val setOfAllItemsPickedFrom =
+        Set((sequences.map(Set(_: _*))) flatten: _*)
+      val setofAllItemsActuallyPicked =
+        Set(alternatelyPickedSequence: _*)
+      assert(setOfAllItemsPickedFrom == setofAllItemsActuallyPicked)
+      assert((0 /: sequences.map(_.length))(_ + _) == (alternatelyPickedSequence.length))
+    }
+
+    commonTestStructureForTestingAlternatePickingFromSequences(testHandoff)
+  }
+
+  @Test
+  def testThatPickingAlternatelyFromSequencesPreservesTheOrderOfItemsInTheOriginalSequences() = {
+    val randomBehaviour = new Random(2317667)
+    def testHandoff(sequences: Seq[Seq[Int]]) = {
+      val alternatelyPickedSequence =
+        randomBehaviour.pickAlternatelyFrom(sequences)
+      val numberOfSequences =
+        sequences.length
+      val disentangledPickedSubsequences = {
+        val sequenceIndexToDisentangledPickedSubsequenceMap =
+          (scala.collection.immutable.Map.empty[Int, List[Int]] /: alternatelyPickedSequence) { (sequenceIndexToDisentangledPickedSubsequenceMap, item) =>
+            val sequenceIndex =
+              item % numberOfSequences
+            val disentangledSubsequence =
+              sequenceIndexToDisentangledPickedSubsequenceMap.get(sequenceIndex) match {
+                case Some(disentangledSubsequence) =>
+                  item :: disentangledSubsequence
+                case None =>
+                  List(item)
+              }
+            sequenceIndexToDisentangledPickedSubsequenceMap + (sequenceIndex -> disentangledSubsequence)
+          }
+
+        sequenceIndexToDisentangledPickedSubsequenceMap.toList.map(((_: (Int, List[Int]))._2) andThen (_.reverse))
+      }
+      val isNotEmpty = (!(_: Seq[_]).isEmpty)
+      assert {
+        printf("Expected: %s\n", sequences.filter(isNotEmpty))
+        printf("Got: %s\n", disentangledPickedSubsequences)
+        ((sequences.filter(isNotEmpty)).zip(disentangledPickedSubsequences))
+          .forall {
+            case (sequence, disentangledPickedSubsequence) =>
+              sequence == disentangledPickedSubsequence
+          }
+      }
+    }
+    commonTestStructureForTestingAlternatePickingFromSequences(testHandoff)
+  }
+
+  @Test
+  def testThatPickingAlternatelyFromSequencesChoosesRandomlyFromTheSequences() = {
+    val randomBehaviour = new Random(2317667)
+    def testHandoff(sequences: Seq[Seq[Int]]) = {
+      val alternatelyPickedSequence = randomBehaviour.pickAlternatelyFrom(sequences)
+      val numberOfSequences = sequences.length
+      val (sequenceIndexToPositionSumAndCount, pickedSequenceLength) =
+        ((scala.collection.immutable.Map.empty[Int, (Double, Int)], 0) /: alternatelyPickedSequence) {
+          case ((sequenceIndexToPositionSumAndCount, itemPosition),
+            item) => {
+            val sequenceIndex = item % numberOfSequences
+
+            (sequenceIndexToPositionSumAndCount.get(sequenceIndex) match {
+
+              case Some((positionSum, numberOfPositions)) =>
+                sequenceIndexToPositionSumAndCount +
+                  (sequenceIndex ->
+                    (itemPosition + positionSum, 1 + numberOfPositions))
+
+              case None =>
+                sequenceIndexToPositionSumAndCount +
+                  (sequenceIndex -> (itemPosition.toDouble, 1))
+            }) -> (1 + itemPosition)
+          }
+        }
+
+      val minumumRequiredNumberOfPositions = 50
+      val toleranceEpsilon = 6e-1
+      for ((item, (positionSum, numberOfPositions)) <- sequenceIndexToPositionSumAndCount) {
+        if (minumumRequiredNumberOfPositions <= numberOfPositions) {
+          val meanPosition =
+            positionSum.toDouble / numberOfPositions
+          printf("Item: %d, mean position: %f, picked sequence length: %d\n", item,
+            meanPosition,
+            pickedSequenceLength)
+          val shouldBeTrue =
+            Math.abs(2.0 * meanPosition - pickedSequenceLength) < pickedSequenceLength * toleranceEpsilon
+          assert(shouldBeTrue)
+        }
+      }
+    }
+    commonTestStructureForTestingAlternatePickingFromSequences(testHandoff)
   }
 }

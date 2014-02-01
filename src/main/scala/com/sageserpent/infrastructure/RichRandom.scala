@@ -246,4 +246,7 @@ class RichRandom(random: Random) {
 
     chooseASingleExemplar(exemplars)
   }
+  
+  def pickAlternatelyFrom[X](sequences: Traversable[Traversable[X]]): Seq[X] =
+    List.empty
 }
