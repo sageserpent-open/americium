@@ -1,7 +1,6 @@
 package com.sageserpent.infrastructure
 
 import junit.framework.TestCase
-import com.sageserpent.infrastructure._
 import org.junit.Test
 
 
