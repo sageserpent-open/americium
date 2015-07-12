@@ -7,9 +7,9 @@ import org.junit.Test
 class UnboundedTests extends TestCase {
   val fortyFive = Finite(45)
 
-  val negativeInfinity = NegativeInfinity
+  val negativeInfinity = NegativeInfinity[Int]
 
-  val positiveInfinity = PositiveInfinity
+  val positiveInfinity = PositiveInfinity[Int]
 
   val twentyThree = Finite(23)
 
@@ -19,47 +19,47 @@ class UnboundedTests extends TestCase {
   def testFinitesAndInfinitesInCombination() {
     assert(negativeInfinity < fortyFive)
 
-    //assert(negativeInfinity < Finite(45))  // COMPILE ERROR WHEN UNCOMMENTED: Huh?
+    assert(negativeInfinity < Finite(45))
 
-    assert(NegativeInfinity < fortyFive)
+    assert(NegativeInfinity[Int] < fortyFive)
 
-    //assert(NegativeInfinity < Finite(45))  // COMPILE ERROR WHEN UNCOMMENTED: Huh?
+    assert(NegativeInfinity[Int] < Finite(45))
 
     assert(Finite(45) > negativeInfinity)
 
-    assert(Finite(45) > NegativeInfinity)
+    assert(Finite(45) > NegativeInfinity[Int])
 
-    assert(NegativeInfinity < wrap(45))
+    assert(NegativeInfinity[Int] < wrap(45))
 
-    assert(wrap(45) > NegativeInfinity)
+    assert(wrap(45) > NegativeInfinity[Int])
 
-    assert(NegativeInfinity < (Finite(45): Unbounded[Int]))
+    assert(NegativeInfinity[Int] < (Finite(45): Unbounded[Int]))
 
-    assert(NegativeInfinity < (Finite(45): Finite[Int]))
+    assert(NegativeInfinity[Int] < (Finite(45): Finite[Int]))
 
-    assert(NegativeInfinity < twentyThree)
+    assert(NegativeInfinity[Int] < twentyThree)
 
     assert(positiveInfinity > fortyFive)
 
-    //assert(positiveInfinity > Finite(45))  // COMPILE ERROR WHEN UNCOMMENTED: Huh?
+    assert(positiveInfinity > Finite(45))
 
-    assert(PositiveInfinity > fortyFive)
+    assert(PositiveInfinity[Int] > fortyFive)
 
-    //assert(PositiveInfinity > Finite(45))  // COMPILE ERROR WHEN UNCOMMENTED: Huh?
+    assert(PositiveInfinity[Int] > Finite(45))
 
     assert(Finite(45) < positiveInfinity)
 
-    assert(Finite(45) < PositiveInfinity)
+    assert(Finite(45) < PositiveInfinity[Int])
 
-    assert(PositiveInfinity > wrap(45))
+    assert(PositiveInfinity[Int] > wrap(45))
 
-    assert(wrap(45) < PositiveInfinity)
+    assert(wrap(45) < PositiveInfinity[Int])
 
-    assert(PositiveInfinity > (Finite(45): Unbounded[Int]))
+    assert(PositiveInfinity[Int] > (Finite(45): Unbounded[Int]))
 
-    assert(PositiveInfinity > (Finite(45): Finite[Int]))
+    assert(PositiveInfinity[Int] > (Finite(45): Finite[Int]))
 
-    assert(PositiveInfinity > twentyThree)
+    assert(PositiveInfinity[Int] > twentyThree)
   }
 
   @Test
@@ -77,34 +77,23 @@ class UnboundedTests extends TestCase {
   def testInfinites() {
     assert(NegativeInfinity == NegativeInfinity)
     assert(NegativeInfinity[Nothing] == NegativeInfinity[Int])
-    assert(!(NegativeInfinity[Nothing] < NegativeInfinity[Int]))
+    assert(!(NegativeInfinity[Int] < NegativeInfinity[Int]))
 
-    assert(!(NegativeInfinity[Int]() > NegativeInfinity() || NegativeInfinity[Int]() < NegativeInfinity()))
-    assert(!(NegativeInfinity > NegativeInfinity[Nothing]()) || NegativeInfinity < NegativeInfinity[Nothing]())
-    assert(!(negativeInfinity > NegativeInfinity[Nothing] || negativeInfinity < NegativeInfinity[Nothing]))
-    assert(!(NegativeInfinity > NegativeInfinity || NegativeInfinity < NegativeInfinity))
 
-    assert(NegativeInfinity <= NegativeInfinity[Int] && NegativeInfinity >= NegativeInfinity[Int])
-    assert(NegativeInfinity[Nothing] <= negativeInfinity && NegativeInfinity[Nothing] >= negativeInfinity)
-    assert(negativeInfinity <= NegativeInfinity[Nothing] && negativeInfinity >= NegativeInfinity[Nothing])
-    assert(NegativeInfinity <= NegativeInfinity && NegativeInfinity >= NegativeInfinity)
+    assert(!(NegativeInfinity[Int] > NegativeInfinity[Int] || NegativeInfinity[Int] < NegativeInfinity[Int]))
+
+    assert(NegativeInfinity[Int] <= NegativeInfinity[Int] && NegativeInfinity[Int] >= NegativeInfinity[Int])
 
     assert(PositiveInfinity == PositiveInfinity)
     assert(PositiveInfinity[Nothing] == PositiveInfinity[Int])
-    assert(!(PositiveInfinity[Nothing] < PositiveInfinity[Int]))
+    assert(!(PositiveInfinity[Int] < PositiveInfinity[Int]))
 
-    assert(!(PositiveInfinity[Int]() > PositiveInfinity() || PositiveInfinity[Int]() < PositiveInfinity()))
-    assert(!(PositiveInfinity > PositiveInfinity[Nothing]()) || PositiveInfinity < PositiveInfinity[Nothing]())
-    assert(!(positiveInfinity > PositiveInfinity[Nothing] || positiveInfinity < PositiveInfinity[Nothing]))
-    assert(!(PositiveInfinity > PositiveInfinity || PositiveInfinity < PositiveInfinity))
+    assert(!(PositiveInfinity[Int] > PositiveInfinity[Int] || PositiveInfinity[Int] < PositiveInfinity[Int]))
 
-    assert(PositiveInfinity <= PositiveInfinity[Int] && PositiveInfinity >= PositiveInfinity[Int])
-    assert(PositiveInfinity[Nothing] <= positiveInfinity && PositiveInfinity[Nothing] >= positiveInfinity)
-    assert(positiveInfinity <= PositiveInfinity[Nothing] && positiveInfinity >= PositiveInfinity[Nothing])
-    assert(PositiveInfinity <= PositiveInfinity && PositiveInfinity >= PositiveInfinity)
+    assert(PositiveInfinity[Int] <= PositiveInfinity[Int] && PositiveInfinity[Int] >= PositiveInfinity[Int])
 
     assert(NegativeInfinity != PositiveInfinity)
-    assert(NegativeInfinity < PositiveInfinity)
-    assert(PositiveInfinity > NegativeInfinity)
+    assert(NegativeInfinity[Int] < PositiveInfinity[Int])
+    assert(PositiveInfinity[Int] > NegativeInfinity[Int])
   }
 }
