@@ -5,10 +5,17 @@ import scala.util.Random
 import scala.collection.JavaConverters._
 
 class RichRandom(random: Random) {
-  def chooseAnyNumberFromZeroToOneLessThan(exclusiveLimit: Int) = random.nextInt(exclusiveLimit)
+  def chooseAnyNumberFromZeroToOneLessThan[X: Numeric](exclusiveLimit: X): X = {
+    val typeClass = implicitly[Numeric[X]]
+    import typeClass._
+    typeClass.fromInt((random.nextDouble() * exclusiveLimit.toLong).toInt)
+  }
 
-  def chooseAnyNumberFromOneTo(inclusiveLimit: Int) =
-    1 + chooseAnyNumberFromZeroToOneLessThan(inclusiveLimit)
+  def chooseAnyNumberFromOneTo[X: Numeric](inclusiveLimit: X) = {
+    val typeClass = implicitly[Numeric[X]]
+    import typeClass._
+    typeClass.one + chooseAnyNumberFromZeroToOneLessThan(inclusiveLimit)
+  }
 
   def buildRandomSequenceOfDistinctIntegersFromZeroToOneLessThan(exclusiveLimit: Int): Stream[Int] = {
     require(0 <= exclusiveLimit)
@@ -28,7 +35,7 @@ class RichRandom(random: Random) {
         require(exclusiveUpperBound <= exclusiveLimit)
 
         this match {
-          case thisAsInteriorNode @ InteriorNode(lowerBoundForItemRange: Int, upperBoundForItemRange: Int, lesserSubtree: BinaryTreeNode, greaterSubtree: BinaryTreeNode) =>
+          case thisAsInteriorNode@InteriorNode(lowerBoundForItemRange: Int, upperBoundForItemRange: Int, lesserSubtree: BinaryTreeNode, greaterSubtree: BinaryTreeNode) =>
             require(thisAsInteriorNode.inclusiveLowerBoundForAllItemsInSubtree match { case Some(inclusiveLowerBoundForAllItemsInSubtree) => inclusiveLowerBound <= inclusiveLowerBoundForAllItemsInSubtree })
             require(thisAsInteriorNode.exclusiveUpperBoundForAllItemsInSubtree match { case Some(exclusiveUpperBoundForAllItemsInSubtree) => exclusiveUpperBoundForAllItemsInSubtree <= exclusiveUpperBound })
 
@@ -41,6 +48,7 @@ class RichRandom(random: Random) {
       }
 
       def addNewItemInTheVacantSlotAtIndex(indexOfVacantSlotAsOrderedByMissingItem: Int, inclusiveLowerBound: Int, exclusiveUpperBound: Int): (BinaryTreeNode, Int)
+
       def addNewItemInTheVacantSlotAtIndex(indexOfVacantSlotAsOrderedByMissingItem: Int): (BinaryTreeNode, Int) = addNewItemInTheVacantSlotAtIndex(indexOfVacantSlotAsOrderedByMissingItem, 0, exclusiveLimit)
     }
 
@@ -246,14 +254,12 @@ class RichRandom(random: Random) {
 
     chooseASingleExemplar(exemplars)
   }
-  
+
   def pickAlternatelyFrom[X](sequences: Traversable[Traversable[X]]): Seq[X] =
-    if (sequences isEmpty)
-    {
+    if (sequences isEmpty) {
       Seq.empty
     }
-    else
-    {
-    (sequences.toSeq)(0).toSeq
+    else {
+      (sequences.toSeq)(0).toSeq
     }
 }
