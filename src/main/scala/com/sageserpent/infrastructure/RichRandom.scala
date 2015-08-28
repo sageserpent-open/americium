@@ -1,6 +1,9 @@
 package com.sageserpent.infrastructure
 
 import scala.util.Random
+import scalaz.Scalaz
+
+import Scalaz._
 
 import scala.collection.JavaConverters._
 
@@ -255,11 +258,24 @@ class RichRandom(random: Random) {
     chooseASingleExemplar(exemplars)
   }
 
-  def pickAlternatelyFrom[X](sequences: Traversable[Traversable[X]]): Seq[X] =
-    if (sequences isEmpty) {
-      Seq.empty
+  def pickAlternatelyFrom[X](sequences: Traversable[Traversable[X]]): Stream[X] = {
+    val onlyNonEmptyFrom = (_: Traversable[Stream[X]]) filter (!_.isEmpty)
+    def pickItemsFromNonEmptyStreams(nonEmptyStreams: Array[Stream[X]]): Option[(IndexedSeq[X], Array[Stream[X]])] = {
+      val numberOfNonEmptyStreams = nonEmptyStreams.length
+      numberOfNonEmptyStreams match {
+        case 0 => None
+        case  _ => {
+          val sliceLength = chooseAnyNumberFromOneTo(numberOfNonEmptyStreams)
+          val permutationDestinationIndices = random.shuffle(Seq.range(0, numberOfNonEmptyStreams)) toArray
+          val (pickedItems, streamsPickedFrom) = 0 until sliceLength map (sourceIndex => nonEmptyStreams(permutationDestinationIndices(sourceIndex)) match {
+            case pickedItem #:: tailFromPickedStream => pickedItem -> tailFromPickedStream
+          }) unzip
+          val unchangedStreams = sliceLength until numberOfNonEmptyStreams map (sourceIndex => nonEmptyStreams(permutationDestinationIndices(sourceIndex)))
+          Some(pickedItems -> (onlyNonEmptyFrom(streamsPickedFrom) ++ unchangedStreams).toArray)
+        }
+      }
     }
-    else {
-      (sequences.toSeq)(0).toSeq
-    }
+
+    unfold(onlyNonEmptyFrom(sequences map (_.toStream)).toArray)(pickItemsFromNonEmptyStreams) flatMap identity
+  }
 }

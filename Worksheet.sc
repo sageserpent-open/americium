@@ -1,7 +1,12 @@
 import com.sageserpent.infrastructure._
+import scala.collection.immutable.TreeMap
 import scala.util.Random
 object Worksheet {
+  val tm = TreeMap(0->0, 1->1, 2->2)
+  tm.toList
   val rr = new Random(1)
+  val bigStream = rr.pickAlternatelyFrom(List(0 to 4, 7 to 9, 22 to 25))
+  bigStream.take(20).toList
   for (seed <- 0 to 100) yield {rr.nextDouble()}
   ((for (seed <- 0 to 1000000) yield {rr.nextInt(20)}).toList groupBy identity  mapValues (_.length) toSeq) sortBy (_._1)
   ((for (seed <- 0 to 1000000) yield {rr.chooseAnyNumberFromZeroToOneLessThan(20)}).toList groupBy identity  mapValues (_.length) toSeq) sortBy (_._1)
@@ -12,31 +17,22 @@ object Worksheet {
   
   "%s".format(2)                                  //> res2: String = 2
   val unbounded = Finite(75)                      //> unbounded  : com.sageserpent.infrastructure.Finite[Int] = Finite(75)
-
   unbounded < NegativeInfinity()                    //> res3: Boolean = false
 
   2 / 3.2                                         //> res4: Double(0.625) = 0.625
   Finite(3.2) >= PositiveInfinity()                 //> res5: Boolean = false
 
   Finite(8) > PositiveInfinity()                    //> res6: Boolean = false
-
   "Good morning, dampers".map(x => x.toUpper)     //> res7: String = GOOD MORNING, DAMPERS
   2 / 3                                           //> res8: Int(0) = 0
-
   val x = 2                                       //> x  : Int = 2
-
   x / 3.0                                         //> res9: Double = 0.6666666666666666
   1 until 10                                      //> res10: scala.collection.immutable.Range = Range(1, 2, 3, 4, 5, 6, 7, 8, 9)
-
-  1 to 10                                         //> res11: scala.collection.immutable.Range.Inclusive = Range(1, 2, 3, 4, 5, 6, 
+  1 to 10                                         //> res11: scala.collection.immutable.Range.Inclusive = Range(1, 2, 3, 4, 5, 6,
                                                   //| 7, 8, 9, 10)
-
   for (i <- 1 until 10) yield i * 2               //> res12: scala.collection.immutable.IndexedSeq[Int] = Vector(2, 4, 6, 8, 10, 1
                                                   //| 2, 14, 16, 18)
-
   val random = new Random(10)                     //> random  : scala.util.Random = scala.util.Random@1e0bf98
-
-
   random.buildRandomSequenceOfDistinctIntegersFromZeroToOneLessThan(9).force
                                                   //> res13: scala.collection.immutable.Stream[Int] = Stream(0, 4, 3, 1, 5, 7, 6, 
                                                   //| 2, 8)
@@ -80,10 +76,8 @@ object Worksheet {
   modifiedMap2.keys                               //> res36: Iterable[Int] = Set()
   modifiedMap2 += 4 -> 'k'
   modifiedMap2.keys                               //> res37: Iterable[Int] = Set(4)
-
   modifiedMap2 -= 3
   modifiedMap2.keys                               //> res38: Iterable[Int] = Set(4)
-
   modifiedMap2(3)                                 //> res39: Char = i
   modifiedMap2 -= 4
   modifiedMap2.keys                               //> res40: Iterable[Int] = Set()
