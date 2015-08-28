@@ -296,7 +296,7 @@ class RichRandomTests extends TestCase {
 
       val sequences =
         (sequenceSizes zipWithIndex) map {
-          case (sequenceIndex, sequenceSize) =>
+          case (sequenceSize, sequenceIndex) =>
             Seq.tabulate(sequenceSize) { itemIndex: Int =>
               sequenceIndex + numberOfSequences * itemIndex
             }
@@ -332,7 +332,7 @@ class RichRandomTests extends TestCase {
         sequences.length
       val disentangledPickedSubsequences = {
         val sequenceIndexToDisentangledPickedSubsequenceMap =
-          (scala.collection.immutable.Map.empty[Int, List[Int]] /: alternatelyPickedSequence) { (sequenceIndexToDisentangledPickedSubsequenceMap, item) =>
+          (scala.collection.immutable.TreeMap.empty[Int, List[Int]] /: alternatelyPickedSequence) { (sequenceIndexToDisentangledPickedSubsequenceMap, item) =>
             val sequenceIndex =
               item % numberOfSequences
             val disentangledSubsequence =
