@@ -278,4 +278,18 @@ class RichRandom(random: Random) {
 
     unfold(onlyNonEmptyFrom(sequences map (_.toStream)).toArray)(pickItemsFromNonEmptyStreams) flatMap identity
   }
+
+  def splitIntoNonEmptyPieces[X](items: Traversable[X]): Stream[Traversable[X]] = {
+    if (items.isEmpty) Stream.empty
+      else {
+      val numberOfItems = items.toSeq.length
+      val splitIndex = chooseAnyNumberFromZeroToOneLessThan(numberOfItems)
+      items.splitAt(splitIndex) match {
+        case (Seq(), _) => Stream(items)
+        case (_, Seq()) => Stream(items)
+        case (partOne, partTwo) => Stream(partOne, partTwo)
+      }
+
+    }
+  }
 }

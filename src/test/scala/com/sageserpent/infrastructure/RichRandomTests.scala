@@ -408,3 +408,4 @@ class RichRandomTests extends TestCase {
     commonTestStructureForTestingAlternatePickingFromSequences(testHandoff)
   }
 }
+

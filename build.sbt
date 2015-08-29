@@ -16,6 +16,10 @@ libraryDependencies += "cpsuite" % "cpsuite" % "1.2.5"
 
 libraryDependencies += "org.scalaz" %% "scalaz-core" % "7.1.3"
 
+libraryDependencies += "org.scalatest" % "scalatest_2.11" % "2.2.4" % "test"
+
+libraryDependencies += "org.scalacheck" %% "scalacheck" % "1.12.4" % "test"
+
 scalaVersion := "2.11.6"
 
 
