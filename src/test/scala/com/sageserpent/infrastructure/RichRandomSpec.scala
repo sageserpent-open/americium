@@ -6,6 +6,8 @@ import org.scalatest.prop.Checkers
 
 import scala.util.Random
 
+import Prop.BooleanOperators
+
 /**
  * Created by Gerard on 29/08/2015.
  */
@@ -22,7 +24,7 @@ class RichRandomSpec extends FlatSpec with Checkers {
     check(Prop.forAll(seedGenerator, numberOfRepeatsGenerator)((seed, numberOfRepeats) => {
       val random = new Random(seed)
 
-      (for (_ <- 1 to numberOfRepeats) yield random.splitIntoNonEmptyPieces(Traversable.empty[Int]).isEmpty).forall(identity)
+      Prop.all((for (_ <- 1 to numberOfRepeats) yield random.splitIntoNonEmptyPieces(Traversable.empty[Int])) map (pieces => pieces.isEmpty :| s"${pieces} should be empty"): _*)
 
     }
     ))
@@ -31,8 +33,7 @@ class RichRandomSpec extends FlatSpec with Checkers {
   it should "yield non empty pieces when there is more than one item" in {
     check(Prop.forAll(seedGenerator, numberOfRepeatsGenerator, itemsGenerator) { case (seed, numberOfRepeats, items) => {
       val random = new Random(seed)
-      val checks = for (_ <- 1 to numberOfRepeats) yield random.splitIntoNonEmptyPieces(items)
-      checks.forall(_.forall(!_.isEmpty))
+      Prop.all((for (_ <- 1 to numberOfRepeats) yield random.splitIntoNonEmptyPieces(items)) map (pieces => pieces.forall(!_.isEmpty) :| s"${pieces} should be composed of non-empty pieces"): _*)
     }
     })
   }
@@ -40,12 +41,14 @@ class RichRandomSpec extends FlatSpec with Checkers {
   it should "preserve all items and not introduce any others" in {
     check(Prop.forAll(seedGenerator, numberOfRepeatsGenerator, itemsGenerator) { case (seed, numberOfRepeats, items) => {
       val random = new Random(seed)
-      val checks = for {_ <- 1 to numberOfRepeats
-                        expectedItemsAndTheirFrequencies = items groupBy identity mapValues (_.length)
-                        pieces = random.splitIntoNonEmptyPieces(items)
-                        actualItemsAndTheirFrequences = pieces flatMap identity groupBy identity mapValues (_.length)
-      } yield (expectedItemsAndTheirFrequencies, actualItemsAndTheirFrequences)
-      checks.forall { case (expectedItemsAndTheirFrequencies, actualItemsAndTheirFrequences) => expectedItemsAndTheirFrequencies === actualItemsAndTheirFrequences }
+      Prop.all((for {_ <- 1 to numberOfRepeats
+                     expectedItemsAndTheirFrequencies = items groupBy identity mapValues (_.length)
+                     pieces = random.splitIntoNonEmptyPieces(items)
+                     actualItemsAndTheirFrequences = pieces flatMap identity groupBy identity mapValues (_.length)
+      } yield (expectedItemsAndTheirFrequencies, actualItemsAndTheirFrequences)).map { case (expectedItemsAndTheirFrequencies, actualItemsAndTheirFrequences) => {
+        (expectedItemsAndTheirFrequencies === actualItemsAndTheirFrequences) :| s"${expectedItemsAndTheirFrequencies} === ${actualItemsAndTheirFrequences}"
+      }
+      }: _*)
     }
     })
   }
@@ -53,11 +56,10 @@ class RichRandomSpec extends FlatSpec with Checkers {
   it should "preserve the order of items" in {
     check(Prop.forAll(seedGenerator, numberOfRepeatsGenerator, itemsGenerator) { case (seed, numberOfRepeats, items) => {
       val random = new Random(seed)
-      val checks = for {_ <- 1 to numberOfRepeats
-                        pieces = random.splitIntoNonEmptyPieces(items)
-                        rejoinedItems = pieces flatMap identity
-      } yield rejoinedItems
-      checks.forall(rejoinedItems => items === rejoinedItems)
+      Prop.all((for {_ <- 1 to numberOfRepeats
+             pieces = random.splitIntoNonEmptyPieces(items)
+             rejoinedItems = pieces flatMap identity
+      } yield rejoinedItems).map(rejoinedItems => (items === rejoinedItems) :| s"${items} === ${rejoinedItems}"): _*)
     }
     })
   }
@@ -65,8 +67,7 @@ class RichRandomSpec extends FlatSpec with Checkers {
   it should "sometimes give more than one piece back when there is more than one item" in {
     check(Prop.forAll(seedGenerator, itemsGenerator filter (1 < _.length)) { case (seed, items) => {
       val random = new Random(seed)
-      val checks = for (_ <- 0 to 10) yield random.splitIntoNonEmptyPieces(items)
-      checks.exists(1 < _.length)
+      Prop.atLeastOne((for (_ <- 0 to 10) yield random.splitIntoNonEmptyPieces(items)).map(pieces => (1 < pieces.length) :| s"1 < ${pieces}.length}"): _*)
     }
     })
   }
@@ -76,11 +77,8 @@ class RichRandomSpec extends FlatSpec with Checkers {
       val items = 1 to numberOfItems toSet
       val random = new Random(seed)
       val sizeOfPowerSet = 1 << numberOfItems
-      val setOfSets = (for (_ <- 0 to 5 * sizeOfPowerSet) yield random.splitIntoNonEmptyPieces(items) toList).toSet
-      println(items)
-      println(setOfSets)
-      println(sizeOfPowerSet, setOfSets.size)
-      sizeOfPowerSet === 2 * setOfSets.size // This is subtle - the best way to understand this is to visualise a bit string of length 'numberOfItems - 1'
+      val setOfSets = (for (_ <- 0 to 6 * sizeOfPowerSet) yield random.splitIntoNonEmptyPieces(items) toList).toSet
+      (sizeOfPowerSet === 2 * setOfSets.size) :| s"${sizeOfPowerSet} === 2 * ${setOfSets}.size" // This is subtle - the best way to understand this is to visualise a bit string of length 'numberOfItems - 1'
       // - the bit string aligns off by one with all but the first item, eg:-
       // I1, I2, I3, I4
       //      1,  0,  1
