@@ -18,7 +18,7 @@ class RichRandomSpec extends FlatSpec with Checkers {
 
   val numberOfRepeatsGenerator = Gen.choose(1, 4)
 
-  "Splitting into non empty pieces" should "yield no pieces at all" in {
+  "Splitting into non empty pieces" should "yield no pieces at all when there are no items" in {
     check(Prop.forAll(seedGenerator, numberOfRepeatsGenerator)((seed, numberOfRepeats) => {
       val random = new Random(seed)
 
@@ -76,8 +76,20 @@ class RichRandomSpec extends FlatSpec with Checkers {
       val items = 1 to numberOfItems toSet
       val random = new Random(seed)
       val sizeOfPowerSet = 1 << numberOfItems
-      val setOfSets = (for (_ <- 0 to 10 * sizeOfPowerSet) yield random.splitIntoNonEmptyPieces(items) toSet).toSet
-      sizeOfPowerSet === 1 + setOfSets.size // Add one - this accounts for the fact that we have to choose at least one piece from a non-empty group of items, the powerset includes the empty choice case.
+      val setOfSets = (for (_ <- 0 to 5 * sizeOfPowerSet) yield random.splitIntoNonEmptyPieces(items) toList).toSet
+      println(items)
+      println(setOfSets)
+      println(sizeOfPowerSet, setOfSets.size)
+      sizeOfPowerSet === 2 * setOfSets.size // This is subtle - the best way to understand this is to visualise a bit string of length 'numberOfItems - 1'
+      // - the bit string aligns off by one with all but the first item, eg:-
+      // I1, I2, I3, I4
+      //      1,  0,  1
+      // Each one-bit corresponds to the decision to start a new piece, so the above example yields:-
+      // [I1], [I2, I3], [I4]
+      // The first item *has* to be included in a piece, so it has no corresponding bit.
+      // Likewise, we don't need an off-by-one bit - the last item is either joined on
+      // to the end of a bigger piece (0) or is in a piece by itself (1) - so only 'numberOfItems - 1'
+      // bits are required. Now you see it.
     }
     })
   }
