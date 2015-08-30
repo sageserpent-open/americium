@@ -2,6 +2,10 @@ import com.sageserpent.infrastructure._
 import scala.collection.immutable.TreeMap
 import scala.util.Random
 object Worksheet {
+  val stuff = 0 to 20
+  stuff match {case Seq(a, b, x @ _*) => (a, b, x)}
+
+  stuff splitAt(stuff length)
   val tm = TreeMap(0->0, 1->1, 2->2)
   tm.toList
   val rr = new Random(1)
@@ -14,14 +18,12 @@ object Worksheet {
   println("Welcome to the Scala worksheet")       //> Welcome to the Scala worksheet
   (2, 'a')                                        //> res0: (Int, Char) = (2,a)
   2 -> 'a'                                        //> res1: (Int, Char) = (2,a)
-  
   "%s".format(2)                                  //> res2: String = 2
   val unbounded = Finite(75)                      //> unbounded  : com.sageserpent.infrastructure.Finite[Int] = Finite(75)
   unbounded < NegativeInfinity()                    //> res3: Boolean = false
 
   2 / 3.2                                         //> res4: Double(0.625) = 0.625
   Finite(3.2) >= PositiveInfinity()                 //> res5: Boolean = false
-
   Finite(8) > PositiveInfinity()                    //> res6: Boolean = false
   "Good morning, dampers".map(x => x.toUpper)     //> res7: String = GOOD MORNING, DAMPERS
   2 / 3                                           //> res8: Int(0) = 0

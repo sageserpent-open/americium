@@ -264,7 +264,7 @@ class RichRandom(random: Random) {
       val numberOfNonEmptyStreams = nonEmptyStreams.length
       numberOfNonEmptyStreams match {
         case 0 => None
-        case  _ => {
+        case _ => {
           val sliceLength = chooseAnyNumberFromOneTo(numberOfNonEmptyStreams)
           val permutationDestinationIndices = random.shuffle(Seq.range(0, numberOfNonEmptyStreams)) toArray
           val (pickedItems, streamsPickedFrom) = 0 until sliceLength map (sourceIndex => nonEmptyStreams(permutationDestinationIndices(sourceIndex)) match {
@@ -280,16 +280,18 @@ class RichRandom(random: Random) {
   }
 
   def splitIntoNonEmptyPieces[X](items: Traversable[X]): Stream[Traversable[X]] = {
-    if (items.isEmpty) Stream.empty
-      else {
-      val numberOfItems = items.toSeq.length
-      val splitIndex = chooseAnyNumberFromZeroToOneLessThan(numberOfItems)
-      items.splitAt(splitIndex) match {
-        case (Seq(), _) => Stream(items)
-        case (_, Seq()) => Stream(items)
-        case (partOne, partTwo) => Stream(partOne, partTwo)
+    val numberOfItems = items.size
+    val numberOfSplitsDesired = chooseAnyNumberFromOneTo(numberOfItems)
+    val indicesToSplitAt = buildRandomSequenceOfDistinctIntegersFromZeroToOneLessThan(numberOfItems) map (1 + _) take numberOfSplitsDesired sorted
+    def splits(indicesToSplitAt: Stream[Int], items: Traversable[X], indexOfPreviousSplit: Int): Stream[Traversable[X]] = indicesToSplitAt match {
+      case Stream.Empty =>
+        if (items.isEmpty) Stream.empty
+        else Stream(items)
+      case indexToSplitAt #:: remainingIndicesToSplitAt => {
+        val (splitPiece, remainingItems) = items splitAt (indexToSplitAt - indexOfPreviousSplit)
+        splitPiece #:: splits(remainingIndicesToSplitAt, remainingItems, indexToSplitAt)
       }
-
     }
+    splits(indicesToSplitAt, items, 0)
   }
 }
