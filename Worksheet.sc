@@ -2,9 +2,9 @@ import com.sageserpent.infrastructure._
 import scala.collection.immutable.TreeMap
 import scala.util.Random
 object Worksheet {
+  Stream(1) match {case Stream(x) => x}
   val stuff = 0 to 20
   stuff match {case Seq(a, b, x @ _*) => (a, b, x)}
-
   stuff splitAt(stuff length)
   val tm = TreeMap(0->0, 1->1, 2->2)
   tm.toList
@@ -21,7 +21,6 @@ object Worksheet {
   "%s".format(2)                                  //> res2: String = 2
   val unbounded = Finite(75)                      //> unbounded  : com.sageserpent.infrastructure.Finite[Int] = Finite(75)
   unbounded < NegativeInfinity()                    //> res3: Boolean = false
-
   2 / 3.2                                         //> res4: Double(0.625) = 0.625
   Finite(3.2) >= PositiveInfinity()                 //> res5: Boolean = false
   Finite(8) > PositiveInfinity()                    //> res6: Boolean = false
