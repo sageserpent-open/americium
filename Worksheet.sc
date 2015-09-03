@@ -1,7 +1,23 @@
 import com.sageserpent.infrastructure._
 import scala.collection.immutable.TreeMap
 import scala.util.Random
+
 object Worksheet {
+
+
+
+  def foo() = 2
+  val fooz = foo _
+
+  def bar(z:Unit) = 3
+  foo()
+  fooz()
+  bar()
+  bar(())
+  val baz = bar _
+  baz()
+  baz(())
+
   Stream(1) match {case Stream(x) => x}
   val stuff = 0 to 20
   stuff match {case Seq(a, b, x @ _*) => (a, b, x)}
