@@ -129,6 +129,12 @@ class RichRandomTests extends TestCase {
   def commonTestStructureForTestingOfChoosingSeveralItems(testOnSuperSetAndItemsChosenFromIt: (scala.collection.immutable.Set[Int], Seq[Int], Int) => Unit) {
     val random = new Random(1)
 
+    for(numberOfConsecutiveItems <- 1 to 50){
+      val superSet = 0 until numberOfConsecutiveItems toSet
+      val chosenItem = random.chooseAnyNumberFromZeroToOneLessThan(numberOfConsecutiveItems)
+      testOnSuperSetAndItemsChosenFromIt(superSet, List(chosenItem), 1)
+    }
+
     for (inclusiveLowerBound <- 58 to 98)
       for (numberOfConsecutiveItems <- 1 to 50) {
         val superSet = (inclusiveLowerBound until inclusiveLowerBound + numberOfConsecutiveItems).toSet
@@ -290,7 +296,7 @@ class RichRandomTests extends TestCase {
 
       val sequences =
         (sequenceSizes zipWithIndex) map {
-          case (sequenceIndex, sequenceSize) =>
+          case (sequenceSize, sequenceIndex) =>
             Seq.tabulate(sequenceSize) { itemIndex: Int =>
               sequenceIndex + numberOfSequences * itemIndex
             }
@@ -326,7 +332,7 @@ class RichRandomTests extends TestCase {
         sequences.length
       val disentangledPickedSubsequences = {
         val sequenceIndexToDisentangledPickedSubsequenceMap =
-          (scala.collection.immutable.Map.empty[Int, List[Int]] /: alternatelyPickedSequence) { (sequenceIndexToDisentangledPickedSubsequenceMap, item) =>
+          (scala.collection.immutable.TreeMap.empty[Int, List[Int]] /: alternatelyPickedSequence) { (sequenceIndexToDisentangledPickedSubsequenceMap, item) =>
             val sequenceIndex =
               item % numberOfSequences
             val disentangledSubsequence =
@@ -402,3 +408,4 @@ class RichRandomTests extends TestCase {
     commonTestStructureForTestingAlternatePickingFromSequences(testHandoff)
   }
 }
+
