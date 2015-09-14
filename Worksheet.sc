@@ -4,11 +4,48 @@ import scala.util.Random
 
 object Worksheet {
 
+  private val groupEverythingTogether: (Int, Int) => Boolean = {
+    case (first, second) => true
+  }
 
+  private val groupNothingTogether: (Int, Int) => Boolean = {
+    case (first, second) => false
+  }
 
+  private val group5To9Together: (Int, Int) => Boolean = {
+    case (first, second) => first >= 5 && second <= 9
+  }
+  BargainBasement.groupWhile(Seq.empty[Int], groupEverythingTogether)
+  BargainBasement.groupWhile(0 to 0, groupEverythingTogether)
+  BargainBasement.groupWhile(0 to 1, groupEverythingTogether)
+  BargainBasement.groupWhile(0 to 2, groupEverythingTogether)
+  BargainBasement.groupWhile(0 to 9, groupEverythingTogether)
+  BargainBasement.groupWhile(5 to 20, groupEverythingTogether)
+  BargainBasement.groupWhile(5 to 9, groupEverythingTogether)
+  BargainBasement.groupWhile(7 to 8, groupEverythingTogether)
+  BargainBasement.groupWhile(0 to 20, groupEverythingTogether)
+
+  BargainBasement.groupWhile(Seq.empty[Int], groupNothingTogether)
+  BargainBasement.groupWhile(0 to 0, groupNothingTogether)
+  BargainBasement.groupWhile(0 to 1, groupNothingTogether)
+  BargainBasement.groupWhile(0 to 2, groupNothingTogether)
+  BargainBasement.groupWhile(0 to 9, groupNothingTogether)
+  BargainBasement.groupWhile(5 to 20, groupNothingTogether)
+  BargainBasement.groupWhile(5 to 9, groupNothingTogether)
+  BargainBasement.groupWhile(7 to 8, groupNothingTogether)
+  BargainBasement.groupWhile(0 to 20, groupNothingTogether)
+
+  BargainBasement.groupWhile(Seq.empty[Int], group5To9Together)
+  BargainBasement.groupWhile(0 to 0, group5To9Together)
+  BargainBasement.groupWhile(0 to 1, group5To9Together)
+  BargainBasement.groupWhile(0 to 2, group5To9Together)
+  BargainBasement.groupWhile(0 to 9, group5To9Together)
+  BargainBasement.groupWhile(5 to 20, group5To9Together)
+  BargainBasement.groupWhile(5 to 9, group5To9Together)
+  BargainBasement.groupWhile(7 to 8, group5To9Together)
+  BargainBasement.groupWhile(0 to 20, group5To9Together)
   def foo() = 2
   val fooz = foo _
-
   def bar(z:Unit) = 3
   foo()
   fooz()
@@ -17,7 +54,6 @@ object Worksheet {
   val baz = bar _
   baz()
   baz(())
-
   Stream(1) match {case Stream(x) => x}
   val stuff = 0 to 20
   stuff match {case Seq(a, b, x @ _*) => (a, b, x)}
