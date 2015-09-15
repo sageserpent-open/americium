@@ -33,7 +33,7 @@ class RichRandomSpec extends FlatSpec with Checkers {
   it should "yield non empty pieces when there is more than one item" in {
     check(Prop.forAll(seedGenerator, numberOfRepeatsGenerator, itemsGenerator) { case (seed, numberOfRepeats, items) => {
       val random = new Random(seed)
-      Prop.all((for (_ <- 1 to numberOfRepeats) yield random.splitIntoNonEmptyPieces(items)) map (pieces => pieces.forall(!_.isEmpty) :| s"${pieces} should be composed of non-empty pieces"): _*)
+      Prop.all((for (_ <- 1 to numberOfRepeats) yield random.splitIntoNonEmptyPieces(items)) map (pieces => pieces.forall(_.nonEmpty) :| s"${pieces} should be composed of non-empty pieces"): _*)
     }
     })
   }

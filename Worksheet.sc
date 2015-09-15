@@ -15,6 +15,9 @@ object Worksheet {
   private val group5To9Together: (Int, Int) => Boolean = {
     case (first, second) => first >= 5 && second <= 9
   }
+
+  private val groupEqualTogether: (Int, Int) => Boolean = _ == _
+
   BargainBasement.groupWhile(Seq.empty[Int], groupEverythingTogether)
   BargainBasement.groupWhile(0 to 0, groupEverythingTogether)
   BargainBasement.groupWhile(0 to 1, groupEverythingTogether)
@@ -24,7 +27,6 @@ object Worksheet {
   BargainBasement.groupWhile(5 to 9, groupEverythingTogether)
   BargainBasement.groupWhile(7 to 8, groupEverythingTogether)
   BargainBasement.groupWhile(0 to 20, groupEverythingTogether)
-
   BargainBasement.groupWhile(Seq.empty[Int], groupNothingTogether)
   BargainBasement.groupWhile(0 to 0, groupNothingTogether)
   BargainBasement.groupWhile(0 to 1, groupNothingTogether)
@@ -34,7 +36,6 @@ object Worksheet {
   BargainBasement.groupWhile(5 to 9, groupNothingTogether)
   BargainBasement.groupWhile(7 to 8, groupNothingTogether)
   BargainBasement.groupWhile(0 to 20, groupNothingTogether)
-
   BargainBasement.groupWhile(Seq.empty[Int], group5To9Together)
   BargainBasement.groupWhile(0 to 0, group5To9Together)
   BargainBasement.groupWhile(0 to 1, group5To9Together)
@@ -44,6 +45,8 @@ object Worksheet {
   BargainBasement.groupWhile(5 to 9, group5To9Together)
   BargainBasement.groupWhile(7 to 8, group5To9Together)
   BargainBasement.groupWhile(0 to 20, group5To9Together)
+
+  BargainBasement.groupWhile(List(1, 0, 0), groupEqualTogether)
   def foo() = 2
   val fooz = foo _
   def bar(z:Unit) = 3
