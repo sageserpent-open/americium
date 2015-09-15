@@ -1,14 +1,24 @@
 package com.sageserpent.infrastructure
 
 import scala.util.Random
+import scalaz.Scalaz
+
+import Scalaz._
 
 import scala.collection.JavaConverters._
 
 class RichRandom(random: Random) {
-  def chooseAnyNumberFromZeroToOneLessThan(exclusiveLimit: Int) = random.nextInt(exclusiveLimit)
+  def chooseAnyNumberFromZeroToOneLessThan[X: Numeric](exclusiveLimit: X): X = {
+    val typeClass = implicitly[Numeric[X]]
+    import typeClass._
+    typeClass.fromInt((random.nextDouble() * exclusiveLimit.toLong).toInt)
+  }
 
-  def chooseAnyNumberFromOneTo(inclusiveLimit: Int) =
-    1 + chooseAnyNumberFromZeroToOneLessThan(inclusiveLimit)
+  def chooseAnyNumberFromOneTo[X: Numeric](inclusiveLimit: X) = {
+    val typeClass = implicitly[Numeric[X]]
+    import typeClass._
+    typeClass.one + chooseAnyNumberFromZeroToOneLessThan(inclusiveLimit)
+  }
 
   def buildRandomSequenceOfDistinctIntegersFromZeroToOneLessThan(exclusiveLimit: Int): Stream[Int] = {
     require(0 <= exclusiveLimit)
@@ -28,7 +38,7 @@ class RichRandom(random: Random) {
         require(exclusiveUpperBound <= exclusiveLimit)
 
         this match {
-          case thisAsInteriorNode @ InteriorNode(lowerBoundForItemRange: Int, upperBoundForItemRange: Int, lesserSubtree: BinaryTreeNode, greaterSubtree: BinaryTreeNode) =>
+          case thisAsInteriorNode@InteriorNode(lowerBoundForItemRange: Int, upperBoundForItemRange: Int, lesserSubtree: BinaryTreeNode, greaterSubtree: BinaryTreeNode) =>
             require(thisAsInteriorNode.inclusiveLowerBoundForAllItemsInSubtree match { case Some(inclusiveLowerBoundForAllItemsInSubtree) => inclusiveLowerBound <= inclusiveLowerBoundForAllItemsInSubtree })
             require(thisAsInteriorNode.exclusiveUpperBoundForAllItemsInSubtree match { case Some(exclusiveUpperBoundForAllItemsInSubtree) => exclusiveUpperBoundForAllItemsInSubtree <= exclusiveUpperBound })
 
@@ -41,6 +51,7 @@ class RichRandom(random: Random) {
       }
 
       def addNewItemInTheVacantSlotAtIndex(indexOfVacantSlotAsOrderedByMissingItem: Int, inclusiveLowerBound: Int, exclusiveUpperBound: Int): (BinaryTreeNode, Int)
+
       def addNewItemInTheVacantSlotAtIndex(indexOfVacantSlotAsOrderedByMissingItem: Int): (BinaryTreeNode, Int) = addNewItemInTheVacantSlotAtIndex(indexOfVacantSlotAsOrderedByMissingItem, 0, exclusiveLimit)
     }
 
@@ -246,14 +257,41 @@ class RichRandom(random: Random) {
 
     chooseASingleExemplar(exemplars)
   }
-  
-  def pickAlternatelyFrom[X](sequences: Traversable[Traversable[X]]): Seq[X] =
-    if (sequences isEmpty)
-    {
-      Seq.empty
+
+  def pickAlternatelyFrom[X](sequences: Traversable[Traversable[X]]): Stream[X] = {
+    val onlyNonEmptyFrom = (_: Traversable[Stream[X]]) filter (!_.isEmpty)
+    def pickItemsFromNonEmptyStreams(nonEmptyStreams: Array[Stream[X]]): Option[(IndexedSeq[X], Array[Stream[X]])] = {
+      val numberOfNonEmptyStreams = nonEmptyStreams.length
+      numberOfNonEmptyStreams match {
+        case 0 => None
+        case _ => {
+          val sliceLength = chooseAnyNumberFromOneTo(numberOfNonEmptyStreams)
+          val permutationDestinationIndices = random.shuffle(Seq.range(0, numberOfNonEmptyStreams)) toArray
+          val (pickedItems, streamsPickedFrom) = 0 until sliceLength map (sourceIndex => nonEmptyStreams(permutationDestinationIndices(sourceIndex)) match {
+            case pickedItem #:: tailFromPickedStream => pickedItem -> tailFromPickedStream
+          }) unzip
+          val unchangedStreams = sliceLength until numberOfNonEmptyStreams map (sourceIndex => nonEmptyStreams(permutationDestinationIndices(sourceIndex)))
+          Some(pickedItems -> (onlyNonEmptyFrom(streamsPickedFrom) ++ unchangedStreams).toArray)
+        }
+      }
     }
-    else
-    {
-    (sequences.toSeq)(0).toSeq
+
+    unfold(onlyNonEmptyFrom(sequences map (_.toStream)).toArray)(pickItemsFromNonEmptyStreams) flatMap identity
+  }
+
+  def splitIntoNonEmptyPieces[X](items: Traversable[X]): Stream[Traversable[X]] = {
+    val numberOfItems = items.size
+    val numberOfSplitsDesired = chooseAnyNumberFromOneTo(numberOfItems)
+    val indicesToSplitAt = buildRandomSequenceOfDistinctIntegersFromZeroToOneLessThan(numberOfItems) map (1 + _) take numberOfSplitsDesired sorted
+    def splits(indicesToSplitAt: Stream[Int], items: Traversable[X], indexOfPreviousSplit: Int): Stream[Traversable[X]] = indicesToSplitAt match {
+      case Stream.Empty =>
+        if (items.isEmpty) Stream.empty
+        else Stream(items)
+      case indexToSplitAt #:: remainingIndicesToSplitAt => {
+        val (splitPiece, remainingItems) = items splitAt (indexToSplitAt - indexOfPreviousSplit)
+        splitPiece #:: splits(remainingIndicesToSplitAt, remainingItems, indexToSplitAt)
+      }
     }
+    splits(indicesToSplitAt, items, 0)
+  }
 }
