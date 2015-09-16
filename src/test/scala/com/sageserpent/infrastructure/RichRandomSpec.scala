@@ -1,10 +1,12 @@
 package com.sageserpent.infrastructure
 
+import randomEnrichment._
 import org.scalacheck.{Arbitrary, Prop, Gen}
 import org.scalatest.FlatSpec
 import org.scalatest.prop.Checkers
 
 import scala.util.Random
+
 
 import Prop.BooleanOperators
 

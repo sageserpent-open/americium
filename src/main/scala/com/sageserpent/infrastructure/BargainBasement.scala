@@ -52,21 +52,4 @@ object BargainBasement {
       numberOfPermutations(originalSize, combinationSize) / factorial(combinationSize)
     else numberOfPermutations(originalSize, unpickedSize) / factorial(unpickedSize)
   }
-
-  def groupWhile[Item](items: Seq[Item], predicate: (Item, Item) => Boolean) = {
-    if (items.isEmpty)
-      Seq.empty[Seq[Item]]
-    else
-      {
-        val Seq(head, tail @ _*) = items
-        val reversedGroupsInReverse = tail.foldLeft (List(List(head))) ((groups, item) => {
-          assert(groups.nonEmpty)
-          groups match {
-            case (headGroup @ (itemToMatch :: _)) :: tailGroups if predicate(itemToMatch, item) => (item :: headGroup) :: tailGroups
-            case _ => List(item) :: groups
-          }
-        })
-        reversedGroupsInReverse map (_.reverse) reverse
-      }
-  }
 }
