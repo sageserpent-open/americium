@@ -1,13 +1,11 @@
 package com.sageserpent
 
 import scala.math.Ordered
-import scala.util.Random
-import scala.collection.immutable.List
 
-package object infrastructure {
-  implicit def enrich(random: Random) = new RichRandom(random)
-  
-  implicit def enrich[X](list: List[X]) = new RichList(list)
+package object infrastructure  {
+  object listEnrichment extends ListEnrichment
+
+  object randomEnrichment extends RandomEnrichment
 
   implicit def convertToOrdered[X](unbounded: Unbounded[X])(implicit evidence: X => Ordered[X]): Ordered[Unbounded[X]] = new Ordered[Unbounded[X]]{
     override def compare(another: Unbounded[X]): Int = (unbounded, another) match {
