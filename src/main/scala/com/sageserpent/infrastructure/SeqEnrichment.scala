@@ -2,8 +2,8 @@ package com.sageserpent.infrastructure
 
 import scala.collection.immutable.List
 
-trait ListEnrichment {
-  implicit class RichList[Item](items: Seq[Item]) {
+trait SeqEnrichment {
+  implicit class RichSeq[Item](items: Seq[Item]) {
     def groupWhile(predicate: (Item, Item) => Boolean) = {
       if (items.isEmpty)
         Seq.empty[Seq[Item]]

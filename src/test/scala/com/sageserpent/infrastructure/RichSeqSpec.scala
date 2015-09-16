@@ -1,7 +1,7 @@
 package com.sageserpent.infrastructure
 
 import com.sageserpent.infrastructure
-import infrastructure.listEnrichment._
+import infrastructure.seqEnrichment$._
 
 import org.scalacheck.Prop.BooleanOperators
 import org.scalacheck.{Arbitrary, Gen, Prop}
@@ -13,7 +13,7 @@ import scala.collection.immutable.{HashBag, HashedBagConfiguration}
 /**
  * Created by Gerard on 15/09/2015.
  */
-class BargainBasementSpec extends FlatSpec with Checkers {
+class RichSeqSpec extends FlatSpec with Checkers {
   private val groupEverythingTogether: (Int, Int) => Boolean = {
     case (first, second) => true
   }

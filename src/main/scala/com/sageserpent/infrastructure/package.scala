@@ -1,7 +1,7 @@
 package com.sageserpent
 
 package object infrastructure  {
-  object listEnrichment extends ListEnrichment
+  object seqEnrichment$ extends SeqEnrichment
 
   object randomEnrichment extends RandomEnrichment
 }
