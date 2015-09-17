@@ -22,6 +22,9 @@ libraryDependencies += "org.scalacheck" %% "scalacheck" % "1.12.4" % "test"
 
 libraryDependencies += "io.github.nicolasstucki" %% "multisets" % "0.3" % "test"
 
+scalaVersion := "2.11.6"
 
 
 
+
+publishMavenStyle := true
