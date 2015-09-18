@@ -1,5 +1,6 @@
 package com.sageserpent.infrastructure
 
+import com.sageserpent.americium.{randomEnrichment, BargainBasement}
 import randomEnrichment._
 import junit.framework.TestCase
 import org.junit.Test

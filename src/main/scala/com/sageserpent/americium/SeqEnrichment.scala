@@ -1,4 +1,4 @@
-package com.sageserpent.infrastructure
+package com.sageserpent.americium
 
 import scala.collection.immutable.List
 

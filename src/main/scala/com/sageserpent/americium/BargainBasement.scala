@@ -1,4 +1,4 @@
-package com.sageserpent.infrastructure
+package com.sageserpent.americium
 
 object BargainBasement {
   def pairwise(iterable: Iterable[_]) = {

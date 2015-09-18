@@ -1,5 +1,6 @@
 package com.sageserpent.infrastructure
 
+import com.sageserpent.americium.{Unbounded, NegativeInfinity, PositiveInfinity, Finite}
 import junit.framework.TestCase
 import org.junit.Test
 
