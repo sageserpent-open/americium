@@ -1,6 +1,6 @@
 package com.sageserpent
 
-package object infrastructure  {
+package object americium  {
   object seqEnrichment$ extends SeqEnrichment
 
   object randomEnrichment extends RandomEnrichment

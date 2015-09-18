@@ -1,3 +1,4 @@
+import com.sageserpent.americium.{NegativeInfinity, Finite, PositiveInfinity, BargainBasement}
 import com.sageserpent.infrastructure._
 import scala.collection.immutable.TreeMap
 import scala.util.Random

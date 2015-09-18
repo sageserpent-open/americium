@@ -1,5 +1,6 @@
 package com.sageserpent.infrastructure
 
+import com.sageserpent.americium.BargainBasement
 import junit.framework.TestCase
 import org.junit.Test
 

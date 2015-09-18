@@ -1,10 +1,10 @@
-assemblyJarName in assembly := "sageserpent-infrastructure.jar"
+organization := "com.sageserpent"
 
-name := "SageSerpent"
+name := "Americium"
 
-version := "0.5"
+version := "SNAPSHOT"
 
-//seq(assemblySettings: _*) ++ inConfig(Test)(seq(assemblySettings: _*))
+scalaVersion := "2.11.6"
 
 libraryDependencies += "junit" % "junit" % "4.10"
 
@@ -22,8 +22,4 @@ libraryDependencies += "org.scalacheck" %% "scalacheck" % "1.12.4" % "test"
 
 libraryDependencies += "io.github.nicolasstucki" %% "multisets" % "0.3" % "test"
 
-scalaVersion := "2.11.6"
-
-
-
-
+publishMavenStyle := true

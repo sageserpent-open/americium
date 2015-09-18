@@ -1,7 +1,8 @@
 package com.sageserpent.infrastructure
 
-import com.sageserpent.infrastructure
-import infrastructure.seqEnrichment$._
+import com.sageserpent.americium
+import com.sageserpent.americium.seqEnrichment$
+import seqEnrichment$._
 
 import org.scalacheck.Prop.BooleanOperators
 import org.scalacheck.{Arbitrary, Gen, Prop}
