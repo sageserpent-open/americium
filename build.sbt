@@ -13,4 +13,4 @@ lazy val settings = Seq(
   libraryDependencies += "io.github.nicolasstucki" %% "multisets" % "0.3" % "test",
   publishMavenStyle := true)
 
-lazy val root = (project in file(".")).settings(settings: _*)
+lazy val americium = (project in file(".")).settings(settings: _*)
