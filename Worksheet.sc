@@ -1,5 +1,6 @@
-import com.sageserpent.americium.{NegativeInfinity, Finite, PositiveInfinity, BargainBasement}
-import com.sageserpent.infrastructure._
+import com.sageserpent.americium.{NegativeInfinity, Finite, PositiveInfinity, BargainBasement, RichRandomTests}
+import com.sageserpent.americium.randomEnrichment._
+import com.sageserpent.americium.seqEnrichment._
 import scala.collection.immutable.TreeMap
 import scala.util.Random
 
@@ -16,38 +17,35 @@ object Worksheet {
   private val group5To9Together: (Int, Int) => Boolean = {
     case (first, second) => first >= 5 && second <= 9
   }
-
   private val groupEqualTogether: (Int, Int) => Boolean = _ == _
-
-  BargainBasement.groupWhile(Seq.empty[Int], groupEverythingTogether)
-  BargainBasement.groupWhile(0 to 0, groupEverythingTogether)
-  BargainBasement.groupWhile(0 to 1, groupEverythingTogether)
-  BargainBasement.groupWhile(0 to 2, groupEverythingTogether)
-  BargainBasement.groupWhile(0 to 9, groupEverythingTogether)
-  BargainBasement.groupWhile(5 to 20, groupEverythingTogether)
-  BargainBasement.groupWhile(5 to 9, groupEverythingTogether)
-  BargainBasement.groupWhile(7 to 8, groupEverythingTogether)
-  BargainBasement.groupWhile(0 to 20, groupEverythingTogether)
-  BargainBasement.groupWhile(Seq.empty[Int], groupNothingTogether)
-  BargainBasement.groupWhile(0 to 0, groupNothingTogether)
-  BargainBasement.groupWhile(0 to 1, groupNothingTogether)
-  BargainBasement.groupWhile(0 to 2, groupNothingTogether)
-  BargainBasement.groupWhile(0 to 9, groupNothingTogether)
-  BargainBasement.groupWhile(5 to 20, groupNothingTogether)
-  BargainBasement.groupWhile(5 to 9, groupNothingTogether)
-  BargainBasement.groupWhile(7 to 8, groupNothingTogether)
-  BargainBasement.groupWhile(0 to 20, groupNothingTogether)
-  BargainBasement.groupWhile(Seq.empty[Int], group5To9Together)
-  BargainBasement.groupWhile(0 to 0, group5To9Together)
-  BargainBasement.groupWhile(0 to 1, group5To9Together)
-  BargainBasement.groupWhile(0 to 2, group5To9Together)
-  BargainBasement.groupWhile(0 to 9, group5To9Together)
-  BargainBasement.groupWhile(5 to 20, group5To9Together)
-  BargainBasement.groupWhile(5 to 9, group5To9Together)
-  BargainBasement.groupWhile(7 to 8, group5To9Together)
-  BargainBasement.groupWhile(0 to 20, group5To9Together)
-
-  BargainBasement.groupWhile(List(1, 0, 0), groupEqualTogether)
+  Seq.empty[Int].groupWhile(groupEverythingTogether)
+  (0 to 0).groupWhile(groupEverythingTogether)
+  (0 to 1).groupWhile(groupEverythingTogether)
+  (0 to 2).groupWhile(groupEverythingTogether)
+  (0 to 9).groupWhile(groupEverythingTogether)
+  (5 to 20).groupWhile(groupEverythingTogether)
+  (5 to 9).groupWhile(groupEverythingTogether)
+  (7 to 8).groupWhile(groupEverythingTogether)
+  (0 to 20).groupWhile(groupEverythingTogether)
+  (Seq.empty[Int]).groupWhile(groupNothingTogether)
+  (0 to 0).groupWhile(groupNothingTogether)
+  (0 to 1).groupWhile(groupNothingTogether)
+  (0 to 2).groupWhile(groupNothingTogether)
+  (0 to 9).groupWhile(groupNothingTogether)
+  (5 to 20).groupWhile(groupNothingTogether)
+  (5 to 9).groupWhile(groupNothingTogether)
+  (7 to 8).groupWhile(groupNothingTogether)
+  (0 to 20).groupWhile(groupNothingTogether)
+  (Seq.empty[Int]).groupWhile(group5To9Together)
+  (0 to 0).groupWhile(group5To9Together)
+  (0 to 1).groupWhile(group5To9Together)
+  (0 to 2).groupWhile(group5To9Together)
+  (0 to 9).groupWhile(group5To9Together)
+  (5 to 20).groupWhile(group5To9Together)
+  (5 to 9).groupWhile(group5To9Together)
+  (7 to 8).groupWhile(group5To9Together)
+  (0 to 20).groupWhile(group5To9Together)
+  List(1, 0, 0, 2, 0, 0).groupWhile(groupEqualTogether)
   def foo() = 2
   val fooz = foo _
   def bar(z:Unit) = 3
@@ -90,6 +88,8 @@ object Worksheet {
   for (i <- 1 until 10) yield i * 2               //> res12: scala.collection.immutable.IndexedSeq[Int] = Vector(2, 4, 6, 8, 10, 1
                                                   //| 2, 14, 16, 18)
   val random = new Random(10)                     //> random  : scala.util.Random = scala.util.Random@1e0bf98
+  val average = (Iterator.continually(random.chooseOneOf(0 to 7100)) take 1000).sum / 1000
+
   random.buildRandomSequenceOfDistinctIntegersFromZeroToOneLessThan(9).force
                                                   //> res13: scala.collection.immutable.Stream[Int] = Stream(0, 4, 3, 1, 5, 7, 6, 
                                                   //| 2, 8)
@@ -110,6 +110,7 @@ object Worksheet {
   BargainBasement.numberOfCombinations(20, 0)     //> res22: Int = 1
   BargainBasement.numberOfCombinations(20, 20)    //> res23: Int = 1
   BargainBasement.numberOfPermutations(5, 5)      //> res24: Int = 120
+  BargainBasement.numberOfCombinations(98, 4)
   for (size <- 0 to 16)
     yield 0 to size map { BargainBasement.numberOfCombinations(size, _) } reduce (_ + _)
                                                   //> res25: scala.collection.immutable.IndexedSeq[Int] = Vector(1, 2, 4, 8, 16, 
@@ -152,24 +153,4 @@ object Worksheet {
                                                   //| , (35,207), (36,217), (37,209), (38,197), (39,188), (40,192), (41,188), (42
                                                   //| ,218), (43,197), (44,245), (45,205), (46,196), (47,180), (48,185), (49,212)
                                                   //| )
-  new RichRandomTests() commonTestStructureForTestingAlternatePickingFromSequences(println)
-                                                  //> List()
-                                                  //| List(List())
-                                                  //| List(List(), List(74))
-                                                  //| List(List(), List(96), List(37, 40))
-                                                  //| List(List(), List(1), List(15, 19), List(21, 25, 29))
-                                                  //| List(List(), List(87), List(97, 102), List(26, 31, 36), List(0, 5, 10, 15))
-                                                  //| 
-                                                  //| List(List(), List(32), List(61, 67), List(65, 71, 77), List(52, 58, 64, 70)
-                                                  //| , List(99, 105, 111, 117, 123))
-                                                  //| List(List(), List(36), List(55, 62), List(19, 26, 33), List(3, 10, 17, 24),
-                                                  //|  List(12, 19, 26, 33, 40), List(77, 84, 91, 98, 105, 112))
-                                                  //| List(List(), List(63), List(85, 93), List(18, 26, 34), List(93, 101, 109, 1
-                                                  //| 17), List(96, 104, 112, 120, 128), List(89, 97, 105, 113, 121, 129), List(8
-                                                  //| , 16, 24, 32, 40, 48, 56))
-                                                  //| List(List(), List(66), List(72, 81), List(0, 9, 18), List(56, 65, 74, 83), 
-                                                  //| List(29, 38, 47, 56, 65), List(6, 15, 24, 33, 42, 51), List(50, 59, 68, 77,
-                                                  //|  86, 95, 104), List(18, 27, 36, 45, 54, 63, 72, 81))
-                                                  //| List(List(), List(29), List(54, 64), List(0, 10, 20), List(86,
-                                                  //| Output exceeds cutoff limit.
 }

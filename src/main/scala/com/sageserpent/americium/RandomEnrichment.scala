@@ -9,6 +9,8 @@ import scala.collection.JavaConverters._
 
 trait RandomEnrichment {
   implicit class RichRandom(random: Random) {
+    // TODO - throw all this rubbish out and use reservoir sampling!
+
     def chooseAnyNumberFromZeroToOneLessThan[X: Numeric](exclusiveLimit: X): X = {
       val typeClass = implicitly[Numeric[X]]
       import typeClass._
@@ -228,6 +230,14 @@ trait RandomEnrichment {
     }
 
     def chooseOneOf[X](candidates: Traversable[X]) = {
+      // How does this algorithm work? It is a generalisation of the old trick of choosing an item from a sequence working down the sequence,
+      // either picking the head or recursing on to the tail of the sequence. The probablity of picking the head a each stage of recursion
+      // increases in such a way that the cumulative product of the failure to pick probabilities and the final successful pick probability
+      // always comes out to be the same. That's the standard algorithm, the generalisation here is to pick blocks rather than single items,
+      // then to pick an exemplar from the chosen block as a final step. The block sizes go up geometrically, so the algorithm gets greedier as it carries
+      // on through a potentially very large sequence. The point of this is to avoid converting all of 'candidates' into a whopping great array-backed
+      // data structure to avoid overly large memory allocations. When reading this code, bear in mind that the algorithm actually traverses the
+      // sequence from back to front - the blocks and their lazily-evaluated exemplars are built up in forward order but picked from in reverse order.
       @scala.annotation.tailrec
       def chooseExemplarsFromCandidateBlocks(candidates: Traversable[X], blockSize: Int, cumulativeNumberOfCandidatesPreviouslySeen: Int, exemplarTuples: List[(() => X, Int, Int)]): List[(() => X, Int, Int)] = {
         val (candidateBlock, remainingCandidates) = candidates splitAt blockSize
@@ -236,7 +246,7 @@ trait RandomEnrichment {
           exemplarTuples
         else {
           val candidateBlockSize = candidateBlock size
-          val exemplar = () => buildRandomSequenceOfDistinctCandidatesChosenFrom(candidateBlock).take(1).head
+          val exemplar = () => buildRandomSequenceOfDistinctCandidatesChosenFrom(candidateBlock).head
 
           chooseExemplarsFromCandidateBlocks(remainingCandidates, blockSize * 7 / 6, candidateBlockSize + cumulativeNumberOfCandidatesPreviouslySeen, (exemplar, candidateBlockSize, cumulativeNumberOfCandidatesPreviouslySeen) :: exemplarTuples)
         }

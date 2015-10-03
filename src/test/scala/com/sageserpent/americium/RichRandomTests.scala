@@ -1,7 +1,6 @@
-package com.sageserpent.infrastructure
+package com.sageserpent.americium
 
-import com.sageserpent.americium.{randomEnrichment, BargainBasement}
-import randomEnrichment._
+import com.sageserpent.americium.randomEnrichment._
 import junit.framework.TestCase
 import org.junit.Test
 
@@ -103,14 +102,18 @@ class RichRandomTests extends TestCase {
   def testDistributionOfSuccessiveSequencesWithTheSameUpperBound() {
     val random = new Random(1)
 
-    val maximumUpperBound = 20
-
-    for (upperBound <- 1 to maximumUpperBound) {
+    for (upperBound <- (1 to 15) ++ (98 to 105) ++ (598 to 610)) {
       val concreteRangeOfIntegers = 0 until upperBound
 
       sampleDistributions(upperBound, 1, { _ => List(random.chooseOneOf(concreteRangeOfIntegers)) })
 
-      val sampleSizes = Set(1, Math.min(1 + random.nextInt(upperBound), upperBound), upperBound)
+      val numberOfStepsFromOffTheEndsToGetToLimitsOnTestSampleSizes = (210 / upperBound) min upperBound max 1
+
+      val lowerSampleSize = 1 + random.nextInt(numberOfStepsFromOffTheEndsToGetToLimitsOnTestSampleSizes)
+
+      val upperSampleSize = upperBound - random.nextInt(numberOfStepsFromOffTheEndsToGetToLimitsOnTestSampleSizes)
+
+      val sampleSizes = Set(1, lowerSampleSize, upperSampleSize, upperBound)
 
       for (sampleSize <- sampleSizes) {
 
@@ -131,7 +134,7 @@ class RichRandomTests extends TestCase {
   def commonTestStructureForTestingOfChoosingSeveralItems(testOnSuperSetAndItemsChosenFromIt: (scala.collection.immutable.Set[Int], Seq[Int], Int) => Unit) {
     val random = new Random(1)
 
-    for(numberOfConsecutiveItems <- 1 to 50){
+    for(numberOfConsecutiveItems <- 1 to 105){
       val superSet = 0 until numberOfConsecutiveItems toSet
       val chosenItem = random.chooseAnyNumberFromZeroToOneLessThan(numberOfConsecutiveItems)
       testOnSuperSetAndItemsChosenFromIt(superSet, List(chosenItem), 1)
@@ -175,22 +178,35 @@ class RichRandomTests extends TestCase {
     val random = new Random(1)
 
     for (inclusiveLowerBound <- 58 to 98)
-      for (numberOfConsecutiveItems <- 1 to 7) {
-        val superSet = (inclusiveLowerBound until inclusiveLowerBound + numberOfConsecutiveItems).toSet
+      {
+        // When testing the choosing of one item, we can afford to work with larger supersets without blowing our testing
+        // budget due to a huge number of permutations - so break out a copy of the loop below as a special case.
+        for (numberOfConsecutiveItems <- (1 to 7) ++ (98 to 105)) {
+          val superSet = (inclusiveLowerBound until inclusiveLowerBound + numberOfConsecutiveItems).toSet
 
-        val expectedNumberOfPermutations = BargainBasement.numberOfPermutations(numberOfConsecutiveItems, 1)
+          val expectedNumberOfPermutations = BargainBasement.numberOfPermutations(numberOfConsecutiveItems, 1)
 
-        val oversampledOutputs = for (_ <- 1 to scala.math.ceil(empiricallyDeterminedMultiplicationFactorToEnsureCoverage * expectedNumberOfPermutations).toInt) yield { random.chooseOneOf(superSet.toSeq) }
-        assert(oversampledOutputs.toSet.size == expectedNumberOfPermutations)
+          val oversampledOutputs = for (_ <- 1 to scala.math.ceil(empiricallyDeterminedMultiplicationFactorToEnsureCoverage * expectedNumberOfPermutations).toInt) yield {
+            random.chooseOneOf(superSet.toSeq)
+          }
+          assert(oversampledOutputs.toSet.size == expectedNumberOfPermutations)}
 
-        for (subsetSize <- 1 to numberOfConsecutiveItems) {
-          val expectedNumberOfPermutations = BargainBasement.numberOfPermutations(numberOfConsecutiveItems, subsetSize)
+        for (numberOfConsecutiveItems <- (1 to 7)) {
+          val superSet = (inclusiveLowerBound until inclusiveLowerBound + numberOfConsecutiveItems).toSet
 
-          val oversampledOutputs = for (_ <- 1 to scala.math.ceil(empiricallyDeterminedMultiplicationFactorToEnsureCoverage * expectedNumberOfPermutations).toInt) yield { random.chooseSeveralOf(superSet.toSeq, subsetSize) toList }
-          assert(oversampledOutputs.toSet.size == expectedNumberOfPermutations)
+          for (subsetSize <- 1 to (numberOfConsecutiveItems min 7)) {
+            val expectedNumberOfPermutations = BargainBasement.numberOfPermutations(numberOfConsecutiveItems, subsetSize)
 
-          val oversampledOutputsViaAnotherWay = for (_ <- 1 to scala.math.ceil(empiricallyDeterminedMultiplicationFactorToEnsureCoverage * expectedNumberOfPermutations).toInt) yield { anotherWayOfChoosingSeveralOf(random, superSet.toSeq, subsetSize) toList }
-          assert(oversampledOutputsViaAnotherWay.toSet.size == expectedNumberOfPermutations)
+            val oversampledOutputs = for (_ <- 1 to scala.math.ceil(empiricallyDeterminedMultiplicationFactorToEnsureCoverage * expectedNumberOfPermutations).toInt) yield {
+              random.chooseSeveralOf(superSet.toSeq, subsetSize) toList
+            }
+            assert(oversampledOutputs.toSet.size == expectedNumberOfPermutations)
+
+            val oversampledOutputsViaAnotherWay = for (_ <- 1 to scala.math.ceil(empiricallyDeterminedMultiplicationFactorToEnsureCoverage * expectedNumberOfPermutations).toInt) yield {
+              anotherWayOfChoosingSeveralOf(random, superSet.toSeq, subsetSize) toList
+            }
+            assert(oversampledOutputsViaAnotherWay.toSet.size == expectedNumberOfPermutations)
+          }
         }
       }
   }
