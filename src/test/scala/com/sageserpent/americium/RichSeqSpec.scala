@@ -1,9 +1,6 @@
-package com.sageserpent.infrastructure
+package com.sageserpent.americium
 
-import com.sageserpent.americium
-import com.sageserpent.americium.seqEnrichment$
-import seqEnrichment$._
-
+import com.sageserpent.americium.seqEnrichment._
 import org.scalacheck.Prop.BooleanOperators
 import org.scalacheck.{Arbitrary, Gen, Prop}
 import org.scalatest.FlatSpec

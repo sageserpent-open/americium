@@ -1,6 +1,5 @@
-package com.sageserpent.infrastructure
+package com.sageserpent.americium
 
-import com.sageserpent.americium.randomEnrichment
 import randomEnrichment._
 import org.scalacheck.{Arbitrary, Prop, Gen}
 import org.scalatest.FlatSpec
