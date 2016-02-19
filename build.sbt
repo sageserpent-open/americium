@@ -1,7 +1,7 @@
 lazy val settings = Seq(
   organization := "com.sageserpent",
-  name := "Americium",
-  version := "0.1.0-SNAPSHOT",
+  name := "americium",
+  version := "0.1.0",
   scalaVersion := "2.11.7",
   libraryDependencies += "junit" % "junit" % "4.10" % "test",
   libraryDependencies += "com.novocode" % "junit-interface" % "0.10" % "test",
@@ -11,6 +11,11 @@ lazy val settings = Seq(
   libraryDependencies += "org.scalatest" % "scalatest_2.11" % "2.2.4" % "test",
   libraryDependencies += "org.scalacheck" %% "scalacheck" % "1.12.4" % "test",
   libraryDependencies += "io.github.nicolasstucki" %% "multisets" % "0.3" % "test",
-  publishMavenStyle := true)
+  publishMavenStyle := true,
+  bintrayReleaseOnPublish in ThisBuild := false,
+  licenses += ("MIT", url("http://opensource.org/licenses/MIT")),
+  bintrayVcsUrl := Some("git@github.com:sageserpent-open/americium.git"))
 
 lazy val americium = (project in file(".")).settings(settings: _*)
+
+resolvers += Resolver.jcenterRepo
