@@ -151,7 +151,7 @@ class RichRandomTests extends TestCase {
             testOnSuperSetAndItemsChosenFromIt(superSet, chosenItems, subsetSize)
 
             val anotherBunchOfChosenItems = anotherWayOfChoosingSeveralOf(random, superSet, subsetSize)
-            testOnSuperSetAndItemsChosenFromIt(superSet, chosenItems, subsetSize)
+            testOnSuperSetAndItemsChosenFromIt(superSet, anotherBunchOfChosenItems, subsetSize)
           }
       }
   }

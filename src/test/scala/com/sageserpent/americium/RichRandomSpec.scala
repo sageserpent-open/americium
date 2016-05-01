@@ -60,7 +60,7 @@ class RichRandomSpec extends FlatSpec with Checkers {
       val random = new Random(seed)
       Prop.all((for {_ <- 1 to numberOfRepeats
              pieces = random.splitIntoNonEmptyPieces(items)
-             rejoinedItems = pieces flatMap identity
+             rejoinedItems = pieces flatten
       } yield rejoinedItems).map(rejoinedItems => (items === rejoinedItems) :| s"${items} === ${rejoinedItems}"): _*)
     }
     })
