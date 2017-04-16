@@ -3,7 +3,6 @@ package com.sageserpent.americium
 import junit.framework.TestCase
 import org.junit.Test
 
-
 class UnboundedTests extends TestCase {
   val fortyFive = Finite(45)
 
@@ -79,18 +78,21 @@ class UnboundedTests extends TestCase {
     assert(NegativeInfinity[Nothing] == NegativeInfinity[Int])
     assert(!(NegativeInfinity[Int] < NegativeInfinity[Int]))
 
+    assert(!(NegativeInfinity[Int] > NegativeInfinity[Int] || NegativeInfinity[
+      Int] < NegativeInfinity[Int]))
 
-    assert(!(NegativeInfinity[Int] > NegativeInfinity[Int] || NegativeInfinity[Int] < NegativeInfinity[Int]))
-
-    assert(NegativeInfinity[Int] <= NegativeInfinity[Int] && NegativeInfinity[Int] >= NegativeInfinity[Int])
+    assert(NegativeInfinity[Int] <= NegativeInfinity[Int] && NegativeInfinity[
+      Int] >= NegativeInfinity[Int])
 
     assert(PositiveInfinity == PositiveInfinity)
     assert(PositiveInfinity[Nothing] == PositiveInfinity[Int])
     assert(!(PositiveInfinity[Int] < PositiveInfinity[Int]))
 
-    assert(!(PositiveInfinity[Int] > PositiveInfinity[Int] || PositiveInfinity[Int] < PositiveInfinity[Int]))
+    assert(!(PositiveInfinity[Int] > PositiveInfinity[Int] || PositiveInfinity[
+      Int] < PositiveInfinity[Int]))
 
-    assert(PositiveInfinity[Int] <= PositiveInfinity[Int] && PositiveInfinity[Int] >= PositiveInfinity[Int])
+    assert(PositiveInfinity[Int] <= PositiveInfinity[Int] && PositiveInfinity[
+      Int] >= PositiveInfinity[Int])
 
     assert(NegativeInfinity != PositiveInfinity)
     assert(NegativeInfinity[Int] < PositiveInfinity[Int])
