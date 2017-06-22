@@ -1,12 +1,17 @@
 package com.sageserpent.americium
 
+import scala.collection.generic.CanBuildFrom
 import scala.collection.immutable.List
 
 trait SeqEnrichment {
-  implicit class RichSeq[Item](items: Seq[Item]) {
-    def groupWhile(predicate: (Item, Item) => Boolean) = {
+  implicit class RichSeq[Container[Element] <: Seq[Element] forSome {
+    type Element
+  }, Item](items: Seq[Item]) {
+    def groupWhile(predicate: (Item, Item) => Boolean)(
+        implicit cbf: CanBuildFrom[List[Item], Item, Container[Item]])
+      : Seq[Container[Item]] = {
       if (items.isEmpty)
-        Seq.empty[Seq[Item]]
+        Seq.empty[Container[Item]]
       else {
         val Seq(head, tail @ _ *) = items
         val reversedGroupsInReverse =
@@ -19,7 +24,11 @@ trait SeqEnrichment {
               case _ => List(item) :: groups
             }
           })
-        reversedGroupsInReverse map (_.reverse) reverse
+        reversedGroupsInReverse map (_.reverse) map { items =>
+          val builder = cbf()
+          items.foreach(builder += _)
+          builder.result
+        } reverse
       }
     }
   }
