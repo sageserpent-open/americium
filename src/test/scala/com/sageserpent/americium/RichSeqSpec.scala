@@ -32,8 +32,10 @@ class RichSeqSpec
     Gen.const(groupEqualTogether) :| "Group equal things together"
   )
 
-  private val inputSequenceGenerator =
-    Gen.nonEmptyListOf(Arbitrary.arbitrary[Int])
+  private val nonEmptyInputSequenceGenerator =
+    Gen.nonEmptyListOf(Arbitrary.arbInt.arbitrary)
+
+  private val possiblyEmptyInputSequenceGenerator = Gen.listOf(Arbitrary.arbInt.arbitrary)
 
   "groupWhile" should "respect the exact sequence type that it works on" in {
     "val groups: Seq[List[Int]] = List(1, 2, 2).groupWhile(groupEverythingTogether)" should compile
@@ -48,7 +50,7 @@ class RichSeqSpec
     }
 
   it should "yield non empty groups if the input sequence is not empty" in
-    forAll(predicateGenerator, inputSequenceGenerator) {
+    forAll(predicateGenerator, nonEmptyInputSequenceGenerator) {
       (predicate, inputSequence) =>
         val groups = inputSequence.groupWhile(groupEverythingTogether)
         all(groups) should not be empty
@@ -57,7 +59,7 @@ class RichSeqSpec
   it should "preserve all items in the input sequence" in {
     val bagConfiguration = HashedBagConfiguration.compact[Int]
     val emptyBag         = HashBag.empty(bagConfiguration)
-    forAll(predicateGenerator, inputSequenceGenerator) {
+    forAll(predicateGenerator, nonEmptyInputSequenceGenerator) {
       (predicate, inputSequence) =>
         val expectedItemsAsBag = (emptyBag /: inputSequence)(_ + _)
         val actualItems        = inputSequence.groupWhile(predicate) flatMap identity
@@ -67,26 +69,26 @@ class RichSeqSpec
   }
 
   it should "preserve the order of items in the input sequence" in
-    forAll(predicateGenerator, inputSequenceGenerator) {
+    forAll(predicateGenerator, nonEmptyInputSequenceGenerator) {
       (predicate, inputSequence) =>
         val actualItems = inputSequence.groupWhile(predicate) flatMap identity
         actualItems should contain theSameElementsInOrderAs inputSequence
     }
 
   it should "fragment the input sequence into single item groups if the predicate is always false" in
-    forAll(inputSequenceGenerator) { inputSequence =>
+    forAll(nonEmptyInputSequenceGenerator) { inputSequence =>
       val groups = inputSequence.groupWhile(groupNothingTogether)
       all(groups map (_.loneElement))
     }
 
   it should "reproduce the input sequence as a single group if the predicate is always true" in
-    forAll(inputSequenceGenerator) { inputSequence =>
+    forAll(nonEmptyInputSequenceGenerator) { inputSequence =>
       val groups = inputSequence.groupWhile(groupEverythingTogether)
       groups.loneElement should contain theSameElementsInOrderAs inputSequence
     }
 
   it should "identify runs of adjacent duplicates if the predicate is equality" in
-    forAll(inputSequenceGenerator) { inputSequence =>
+    forAll(nonEmptyInputSequenceGenerator) { inputSequence =>
       val groups          = inputSequence.groupWhile(groupEqualTogether)
       val collapsedGroups = groups map (_.distinct)
       all(collapsedGroups map (_.loneElement))
@@ -103,9 +105,23 @@ class RichSeqSpec
     "val stream: Stream[List[Int]] = Seq(Seq(1 , 2), Seq(3, 4), Seq.empty[Int]).zipN" shouldNot typeCheck
   }
 
-  it should "result in an empty stream when presented with an empty input sequence" in {
-    Seq
-      .empty[List[Int]]
-      .zipN should be(Stream.empty[List[Int]])
+  it should "result in an empty stream for an empty input sequence" in {
+    val links = Seq.empty[List[Int]].zipN
+    links should be(empty)
   }
+
+  it should "result in an empty stream if all of the input inner sequences are empty" in
+  forAll(Gen.nonEmptyListOf(Gen.const(List.empty[Int]))) {
+    emptyInnerSequences =>
+      val links = emptyInnerSequences.zipN
+      links should be(empty)
+  }
+
+  it should "yield non empty inner sequences if at least one of the input inner sequences is not empty" in
+    forAll(Gen.nonEmptyListOf(nonEmptyInputSequenceGenerator)) {
+      innerSequences =>
+        val links = innerSequences.zipN
+        links should not be empty
+        all(links) should not be empty
+    }
 }
