@@ -35,7 +35,8 @@ class RichSeqSpec
   private val nonEmptyInputSequenceGenerator =
     Gen.nonEmptyListOf(Arbitrary.arbInt.arbitrary)
 
-  private val possiblyEmptyInputSequenceGenerator = Gen.listOf(Arbitrary.arbInt.arbitrary)
+  private val possiblyEmptyInputSequenceGenerator =
+    Gen.listOf(Arbitrary.arbInt.arbitrary)
 
   "groupWhile" should "respect the exact sequence type that it works on" in {
     "val groups: Seq[List[Int]] = List(1, 2, 2).groupWhile(groupEverythingTogether)" should compile
@@ -56,17 +57,12 @@ class RichSeqSpec
         all(groups) should not be empty
     }
 
-  it should "preserve all items in the input sequence" in {
-    val bagConfiguration = HashedBagConfiguration.compact[Int]
-    val emptyBag         = HashBag.empty(bagConfiguration)
+  it should "preserve all items in the input sequence" in
     forAll(predicateGenerator, nonEmptyInputSequenceGenerator) {
       (predicate, inputSequence) =>
-        val expectedItemsAsBag = (emptyBag /: inputSequence)(_ + _)
-        val actualItems        = inputSequence.groupWhile(predicate) flatMap identity
-        val actualItemsAsBag   = (emptyBag /: actualItems)(_ + _)
-        actualItemsAsBag should contain theSameElementsAs expectedItemsAsBag
+        val actualItems = inputSequence.groupWhile(predicate) flatMap identity
+        actualItems should contain theSameElementsAs inputSequence
     }
-  }
 
   it should "preserve the order of items in the input sequence" in
     forAll(predicateGenerator, nonEmptyInputSequenceGenerator) {
@@ -111,11 +107,11 @@ class RichSeqSpec
   }
 
   it should "result in an empty stream if all of the input inner sequences are empty" in
-  forAll(Gen.nonEmptyListOf(Gen.const(List.empty[Int]))) {
-    emptyInnerSequences =>
-      val links = emptyInnerSequences.zipN
-      links should be(empty)
-  }
+    forAll(Gen.nonEmptyListOf(Gen.const(List.empty[Int]))) {
+      emptyInnerSequences =>
+        val links = emptyInnerSequences.zipN
+        links should be(empty)
+    }
 
   it should "yield non empty inner sequences if at least one of the input inner sequences is not empty" in
     forAll(Gen.nonEmptyListOf(nonEmptyInputSequenceGenerator)) {
@@ -123,5 +119,13 @@ class RichSeqSpec
         val links = innerSequences.zipN
         links should not be empty
         all(links) should not be empty
+    }
+
+  it should "preserve all items in the input inner sequences" in
+    forAll(Gen.nonEmptyListOf(possiblyEmptyInputSequenceGenerator)) {
+      inputSequences =>
+        val expectedItems = inputSequences.flatten
+        val actualItems   = inputSequences.zipN.flatten
+        actualItems should contain theSameElementsAs expectedItems
     }
 }
