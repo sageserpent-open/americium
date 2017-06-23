@@ -30,6 +30,6 @@ trait SeqEnrichment {
       }
     }
 
-    def zipN[InnerContainer[Element] <: Seq[Element], Element](implicit evidence: Item <:< InnerContainer[Element]): Stream[InnerContainer[Element]] = ???
+    def zipN[InnerContainer[Element] <: Seq[Element], Element](implicit evidence: Item <:< InnerContainer[Element]): Stream[InnerContainer[Element]] = Stream.empty[InnerContainer[Element]]
   }
 }
