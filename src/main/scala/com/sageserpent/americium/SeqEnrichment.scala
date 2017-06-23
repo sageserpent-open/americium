@@ -29,5 +29,7 @@ trait SeqEnrichment {
         } reverse
       }
     }
+
+    def zipN[InnerContainer[Element] <: Seq[Element], Element](implicit evidence: Item <:< InnerContainer[Element]): Stream[InnerContainer[Element]] = ???
   }
 }

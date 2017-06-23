@@ -35,7 +35,13 @@ class RichSeqSpec
   private val inputSequenceGenerator =
     Gen.nonEmptyListOf(Arbitrary.arbitrary[Int])
 
-  "groupWhile" should "result in an empty sequence of groups when presented with an empty input sequence" in {
+
+  "groupWhile" should "respect the exact sequence type that it works on" in {
+    "val groups: Seq[List[Int]] = List(1, 2, 2).groupWhile(groupEverythingTogether)" should compile
+    "val groups: Seq[List[Int]] = Seq(1, 2, 2).groupWhile(groupEverythingTogether)" shouldNot typeCheck
+  }
+
+  it should "result in an empty sequence of groups when presented with an empty input sequence" in {
     forAll(predicateGenerator) { predicate =>
       List
         .empty[Int]
@@ -94,8 +100,8 @@ class RichSeqSpec
       }
     }
 
-  it should "respect the exact sequence type it works on" in {
-    "val groups: Seq[List[Int]] = List(1, 2, 2).groupWhile(groupEverythingTogether)" should compile
-    "val groups: Seq[List[Int]] = Seq(1, 2, 2).groupWhile(groupEverythingTogether)" shouldNot typeCheck
+  "zipN" should "respect the exact inner sequence types that it works on" in {
+    "val stream: Stream[List[Int]] = Seq(List(1 , 2), List(3, 4), List.empty[Int]).zipN" should compile
+    "val stream: Stream[List[Int]] = Seq(Seq(1 , 2), Seq(3, 4), Seq.empty[Int]).zipN" shouldNot typeCheck
   }
 }
