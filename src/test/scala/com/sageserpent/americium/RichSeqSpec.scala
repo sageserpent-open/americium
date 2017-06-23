@@ -7,6 +7,7 @@ import org.scalacheck.{Arbitrary, Gen, Prop}
 import org.scalatest.{FlatSpec, Matchers}
 import org.scalatest.prop.GeneratorDrivenPropertyChecks
 
+import scala.collection.immutable
 import scala.collection.immutable.{HashBag, HashedBagConfiguration}
 
 /**
@@ -127,5 +128,25 @@ class RichSeqSpec
         val expectedItems = inputSequences.flatten
         val actualItems   = inputSequences.zipN.flatten
         actualItems should contain theSameElementsAs expectedItems
+    }
+
+  it should "preserve the order of items as they appear in their own input inner sequence" in
+    forAll(Gen.nonEmptyListOf(possiblyEmptyInputSequenceGenerator)) {
+      inputSequences =>
+        val actualItems = inputSequences.zipN.flatten
+        for (inputSequence <- inputSequences)
+          actualItems should contain inOrderElementsOf (inputSequence)
+    }
+
+  it should "preserve the order of items as they appear across the input sequences" in
+    forAll(Gen.nonEmptyListOf(possiblyEmptyInputSequenceGenerator)) {
+      inputMultiplierSequences =>
+        val numberOfSequences = inputMultiplierSequences.length
+        val inputSequences = inputMultiplierSequences.zipWithIndex.map {
+          case (multipliers, sequenceMarker) =>
+            multipliers map (sequenceMarker + numberOfSequences * _)
+        }
+        val links = inputSequences.zipN
+        withClue("The markers from each input inner sequence should appear in sorted order in each link")(all(links map (_.map (_ % numberOfSequences))) shouldBe sorted)
     }
 }
