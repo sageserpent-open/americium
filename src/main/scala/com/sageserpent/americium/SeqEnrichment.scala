@@ -4,9 +4,7 @@ import scala.collection.generic.CanBuildFrom
 import scala.collection.immutable.List
 
 trait SeqEnrichment {
-  implicit class RichSeq[Container[Element] <: Seq[Element] forSome {
-    type Element
-  }, Item](items: Seq[Item]) {
+  implicit class RichSeq[Container[Item] <: Seq[Item], Item](items: Container[Item]) {
     def groupWhile(predicate: (Item, Item) => Boolean)(
         implicit cbf: CanBuildFrom[List[Item], Item, Container[Item]])
       : Seq[Container[Item]] = {

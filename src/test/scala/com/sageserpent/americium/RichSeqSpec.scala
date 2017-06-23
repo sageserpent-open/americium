@@ -1,17 +1,21 @@
 package com.sageserpent.americium
 
 import com.sageserpent.americium.seqEnrichment._
-import org.scalacheck.Prop.BooleanOperators
+import org.scalatest.enablers.Collecting._
+import org.scalatest.LoneElement._
 import org.scalacheck.{Arbitrary, Gen, Prop}
-import org.scalatest.FlatSpec
-import org.scalatest.prop.Checkers
+import org.scalatest.{FlatSpec, Matchers}
+import org.scalatest.prop.GeneratorDrivenPropertyChecks
 
 import scala.collection.immutable.{HashBag, HashedBagConfiguration}
 
 /**
   * Created by Gerard on 15/09/2015.
   */
-class RichSeqSpec extends FlatSpec with Checkers {
+class RichSeqSpec
+    extends FlatSpec
+    with Matchers
+    with GeneratorDrivenPropertyChecks {
   private val groupEverythingTogether: (Int, Int) => Boolean = {
     case (first, second) => true
   }
@@ -32,73 +36,66 @@ class RichSeqSpec extends FlatSpec with Checkers {
     Gen.nonEmptyListOf(Arbitrary.arbitrary[Int])
 
   "groupWhile" should "result in an empty sequence of groups when presented with an empty input sequence" in {
-    check(
-      Prop.forAll(predicateGenerator)(predicate =>
-        (Seq.empty[Seq[Int]] === Seq
-          .empty[Int]
-          .groupWhile(predicate)) :| "Seq.empty[Seq[Int]] === BargainBasement.groupWhile(Seq.empty[Int], predicate)"))
+    forAll(predicateGenerator) { predicate =>
+      List
+        .empty[Int]
+        .groupWhile(predicate) should be(Seq.empty[List[Int]])
+    }
   }
 
-  it should "yield non empty groups if the input sequence is not empty" in {
-    check(
-      Prop.forAll(predicateGenerator, inputSequenceGenerator)(
-        (predicate, inputSequence) => {
-          val groups = inputSequence.groupWhile(groupEverythingTogether)
-          Prop.all(
-            groups map (_.nonEmpty :| s"Each group should be non-empty"): _*)
-        }))
-  }
+  it should "yield non empty groups if the input sequence is not empty" in
+    forAll(predicateGenerator, inputSequenceGenerator) {
+      (predicate, inputSequence) =>
+        val groups = inputSequence.groupWhile(groupEverythingTogether)
+        all(groups) should not be empty
+    }
 
   it should "preserve all items in the input sequence" in {
     val bagConfiguration = HashedBagConfiguration.compact[Int]
     val emptyBag         = HashBag.empty(bagConfiguration)
-    check(Prop.forAll(predicateGenerator, inputSequenceGenerator)(
-      (predicate, inputSequence) => {
+    forAll(predicateGenerator, inputSequenceGenerator) {
+      (predicate, inputSequence) =>
         val expectedItemsAsBag = (emptyBag /: inputSequence)(_ + _)
         val actualItems        = inputSequence.groupWhile(predicate) flatMap identity
         val actualItemsAsBag   = (emptyBag /: actualItems)(_ + _)
-        (expectedItemsAsBag === actualItemsAsBag) :| s"(${expectedItemsAsBag} === ${actualItemsAsBag})"
-      }))
+        actualItemsAsBag should contain theSameElementsAs expectedItemsAsBag
+    }
   }
 
-  it should "preserve the order of items in the input sequence" in {
-    check(Prop.forAll(predicateGenerator, inputSequenceGenerator)((
-        predicate,
-        inputSequence) => {
-      val actualItems = inputSequence.groupWhile(predicate) flatMap identity
-      (inputSequence === actualItems) :| s"(${inputSequence} === ${actualItems})"
-    }))
-  }
+  it should "preserve the order of items in the input sequence" in
+    forAll(predicateGenerator, inputSequenceGenerator) {
+      (predicate, inputSequence) =>
+        val actualItems = inputSequence.groupWhile(predicate) flatMap identity
+        actualItems should contain theSameElementsInOrderAs inputSequence
+    }
 
-  it should "fragment the input sequence into single item groups if the predicate is always false" in {
-    check(Prop.forAll(inputSequenceGenerator)(inputSequence => {
+  it should "fragment the input sequence into single item groups if the predicate is always false" in
+    forAll(inputSequenceGenerator) { inputSequence =>
       val groups = inputSequence.groupWhile(groupNothingTogether)
-      Prop.all(groups map (group =>
-        PartialFunction
-          .cond(group) { case Seq(_) => true } :| s"${group} should contain one and only one item"): _*)
-    }))
-  }
+      all(groups map (_.loneElement))
+    }
 
-  it should "reproduce the input sequence as a single group if the predicate is always true" in {
-    check(Prop.forAll(inputSequenceGenerator)(inputSequence => {
+  it should "reproduce the input sequence as a single group if the predicate is always true" in
+    forAll(inputSequenceGenerator) { inputSequence =>
       val groups = inputSequence.groupWhile(groupEverythingTogether)
-      PartialFunction.cond(groups) {
-        case Seq(allItems) => inputSequence === allItems
-      } :| s"${groups} should consist of a single group that is ${inputSequence}"
-    }))
-  }
+      groups.loneElement should contain theSameElementsInOrderAs inputSequence
+    }
 
-  it should "identify runs of adjacent duplicates if the predicate is equality" in {
-    check(Prop.forAll(inputSequenceGenerator)(inputSequence => {
-      val groups = inputSequence.groupWhile(groupEqualTogether)
-      Prop.all(groups filter (1 < _.size) map (groupOfDuplicates =>
-        (1 == groupOfDuplicates.distinct.size) :| s"${groupOfDuplicates} should contain only duplicate items"): _*) &&
-      Prop.all(groups zip groups.tail map (groupPair =>
-        groupPair match {
-          case (Seq(first), Seq(second)) =>
-            (first != second) :| s"Items from adjacent single-item groups should be unequal"
-          case _ => Prop(true)
-        }): _*)
-    }))
+  it should "identify runs of adjacent duplicates if the predicate is equality" in
+    forAll(inputSequenceGenerator) { inputSequence =>
+      val groups          = inputSequence.groupWhile(groupEqualTogether)
+      val collapsedGroups = groups map (_.distinct)
+      all(collapsedGroups map (_.loneElement))
+      collapsedGroups zip collapsedGroups.tail foreach {
+        case (predecessor, successor) =>
+          withClue(
+            "Comparing the single element from a previous group and the single element from the following group: ")(
+            predecessor.loneElement should not be successor.loneElement)
+      }
+    }
+
+  it should "respect the exact sequence type it works on" in {
+    "val groups: Seq[List[Int]] = List(1, 2, 2).groupWhile(groupEverythingTogether)" should compile
+    "val groups: Seq[List[Int]] = Seq(1, 2, 2).groupWhile(groupEverythingTogether)" shouldNot typeCheck
   }
 }
