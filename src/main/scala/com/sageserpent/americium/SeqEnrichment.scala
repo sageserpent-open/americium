@@ -31,15 +31,21 @@ trait SeqEnrichment {
         } reverse
       }
     }
+  }
 
-    def zipN[InnerContainer[Element] <: Seq[Element], Element](
-        implicit cbf: CanBuildFrom[InnerContainer[Element],
-                                   Element,
-                                   InnerContainer[Element]],
-        evidence: Item <:< InnerContainer[Element])
-      : Stream[InnerContainer[Element]] = {
-      def linkAndRemainingInnerSequencesFrom(innerSequences: Seq[Seq[Element]])
-        : Option[(InnerContainer[Element], Seq[Seq[Element]])] = {
+  implicit class RichSequenceOfSequences[Container[Item] <: Seq[Item] forSome {
+    type Item
+  }, InnerContainer[Subelement] <: Traversable[Subelement], Subelement](
+      innerSequences: Container[InnerContainer[Subelement]]) {
+
+    def zipN(
+        implicit cbf: CanBuildFrom[InnerContainer[Subelement],
+                                   Subelement,
+                                   InnerContainer[Subelement]])
+      : Stream[InnerContainer[Subelement]] = {
+      def linkAndRemainingInnerSequencesFrom(
+          innerSequences: Seq[Traversable[Subelement]]): Option[
+        (InnerContainer[Subelement], Seq[Traversable[Subelement]])] = {
         val nonEmptyInnerSequences = innerSequences filter (_.nonEmpty)
         if (nonEmptyInnerSequences.nonEmpty) {
           val (link, remainingInnerSequences) =
@@ -53,7 +59,7 @@ trait SeqEnrichment {
           Some(convertedLink -> remainingInnerSequences)
         } else None
       }
-      stream.unfold(items.asInstanceOf[Seq[Seq[Element]]])(
+      stream.unfold(innerSequences.asInstanceOf[Seq[Traversable[Subelement]]])(
         linkAndRemainingInnerSequencesFrom)
     }
   }

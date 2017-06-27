@@ -1,7 +1,9 @@
 import com.sageserpent.americium.seqEnrichment._
 
+import scala.collection.immutable.SortedSet
+
 object Worksheet {
-  Seq(Vector(), Vector(1), Vector(1073741826)).zipN[Vector, Int].force
+  Seq(SortedSet.empty[Int], SortedSet(1), SortedSet(1073741826), SortedSet(21, 56, -3)).zipN.force
 
   val groups = Vector(1, 2, 2).groupWhile((_, _) => false)
 }
