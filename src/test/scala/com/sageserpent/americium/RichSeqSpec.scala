@@ -7,7 +7,7 @@ import org.scalatest.enablers.Collecting._
 import org.scalatest.prop.GeneratorDrivenPropertyChecks
 import org.scalatest.{FlatSpec, Matchers}
 
-import scala.collection.immutable.SortedSet
+import scala.collection.breakOut
 
 /**
   * Created by Gerard on 15/09/2015.
@@ -98,26 +98,26 @@ class RichSeqSpec
     }
 
   "zipN" should "respect the exact inner sequence types that it works on" in {
-    "val stream: Stream[List[Int]] = Seq(List(1 , 2), List(3, 4), List.empty[Int]).zipN" should compile
-    "val stream: Stream[List[Int]] = Seq(Seq(1 , 2), Seq(3, 4), Seq.empty[Int]).zipN" shouldNot typeCheck
+    "val stream: Stream[List[Int]] = Seq(List(1 , 2), List(3, 4), List.empty[Int]).zipN[List, Int]" should compile
+    "val stream: Stream[List[Int]] = Seq(Seq(1 , 2), Seq(3, 4), Seq.empty[Int]).zipN[Seq, Int]" shouldNot typeCheck
   }
 
   it should "result in an empty stream for an empty input sequence" in {
-    val links = Seq.empty[List[Int]].zipN
+    val links: Stream[List[Int]] = Seq.empty[List[Int]].zipN[List, Int]
     links should be(empty)
   }
 
   it should "result in an empty stream if all of the input inner sequences are empty" in
     forAll(Gen.nonEmptyListOf(Gen.const(List.empty[Int]))) {
       emptyInnerSequences =>
-        val links = emptyInnerSequences.zipN
+        val links = emptyInnerSequences.zipN[List, Int]
         links should be(empty)
     }
 
   it should "yield non empty inner sequences if at least one of the input inner sequences is not empty" in
     forAll(Gen.nonEmptyListOf(nonEmptyInputSequenceGenerator)) {
       innerSequences =>
-        val links = innerSequences.zipN
+        val links = innerSequences.zipN[List, Int]
         links should not be empty
         all(links) should not be empty
     }
@@ -126,7 +126,7 @@ class RichSeqSpec
     forAll(Gen.nonEmptyListOf(possiblyEmptyInputSequenceGenerator)) {
       inputSequences =>
         val expectedItems = inputSequences.flatten
-        val actualItems   = inputSequences.zipN.flatten
+        val actualItems   = inputSequences.zipN[List, Int].flatten
         actualItems should contain theSameElementsAs expectedItems
     }
 
@@ -139,7 +139,7 @@ class RichSeqSpec
           case (multipliers, sequenceMarker) =>
             multipliers map (sequenceMarker + numberOfSequences * _)
         }
-        val actualItems = inputSequences.zipN.flatten
+        val actualItems = inputSequences.zipN[List, Long].flatten
         for ((inputSequence, sequenceMarker) <- inputSequences zipWithIndex)
           actualItems filter (sequenceMarker == Math.floorMod(
             _,
@@ -156,7 +156,7 @@ class RichSeqSpec
           case (multipliers, sequenceMarker) =>
             multipliers map (sequenceMarker + numberOfSequences * _)
         }
-        val links = inputSequences.zipN
+        val links = inputSequences.zipN[List, Long]
         withClue(
           "The markers from each input inner sequence should appear in sorted order in each link")(
           all(links map (_.map(Math.floorMod(_, numberOfSequences)))) shouldBe sorted)

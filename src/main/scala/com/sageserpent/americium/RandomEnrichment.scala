@@ -1,6 +1,5 @@
 package com.sageserpent.americium
 
-import scala.collection.generic.CanBuildFrom
 import scala.util.Random
 import scalaz.Scalaz
 

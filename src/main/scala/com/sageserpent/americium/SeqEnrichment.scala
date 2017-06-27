@@ -8,7 +8,7 @@ trait SeqEnrichment {
   implicit class RichSeq[Container[Item] <: Seq[Item], Item](
       items: Container[Item]) {
     def groupWhile(predicate: (Item, Item) => Boolean)(
-        implicit cbf: CanBuildFrom[List[Item], Item, Container[Item]])
+        implicit cbf: CanBuildFrom[Container[Item], Item, Container[Item]])
       : Seq[Container[Item]] = {
       if (items.isEmpty)
         Seq.empty[Container[Item]]
@@ -33,22 +33,27 @@ trait SeqEnrichment {
     }
 
     def zipN[InnerContainer[Element] <: Seq[Element], Element](
-        implicit evidence: Item <:< InnerContainer[Element])
+        implicit cbf: CanBuildFrom[InnerContainer[Element],
+                                   Element,
+                                   InnerContainer[Element]],
+        evidence: Item <:< InnerContainer[Element])
       : Stream[InnerContainer[Element]] = {
-      def linkAndRemainingInnerSequencesFrom(
-          innerSequences: Seq[InnerContainer[Element]])
-        : Option[(InnerContainer[Element], Seq[InnerContainer[Element]])] = {
-        val nonEmptyInnerSequences
-          : Seq[InnerContainer[Element]] = innerSequences filter (_.nonEmpty)
+      def linkAndRemainingInnerSequencesFrom(innerSequences: Seq[Seq[Element]])
+        : Option[(InnerContainer[Element], Seq[Seq[Element]])] = {
+        val nonEmptyInnerSequences = innerSequences filter (_.nonEmpty)
         if (nonEmptyInnerSequences.nonEmpty) {
-          val (link: InnerContainer[Element],
-               remainingInnerSequences: Seq[InnerContainer[Element]]) =
+          val (link, remainingInnerSequences) =
             (nonEmptyInnerSequences map (innerSequence =>
               innerSequence.head -> innerSequence.tail)).unzip
-          Some(link -> remainingInnerSequences)
+          val convertedLink = {
+            val builder = cbf()
+            link.foreach(builder += _)
+            builder.result()
+          }
+          Some(convertedLink -> remainingInnerSequences)
         } else None
       }
-      stream.unfold(items.asInstanceOf[Seq[InnerContainer[Element]]])(
+      stream.unfold(items.asInstanceOf[Seq[Seq[Element]]])(
         linkAndRemainingInnerSequencesFrom)
     }
   }
