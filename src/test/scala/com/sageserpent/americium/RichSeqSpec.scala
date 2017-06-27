@@ -1,14 +1,13 @@
 package com.sageserpent.americium
 
 import com.sageserpent.americium.seqEnrichment._
-import org.scalatest.enablers.Collecting._
+import org.scalacheck.{Arbitrary, Gen, ShrinkLowPriority}
 import org.scalatest.LoneElement._
-import org.scalacheck.{Arbitrary, Gen, Prop}
-import org.scalatest.{FlatSpec, Matchers}
+import org.scalatest.enablers.Collecting._
 import org.scalatest.prop.GeneratorDrivenPropertyChecks
+import org.scalatest.{FlatSpec, Matchers}
 
-import scala.collection.immutable
-import scala.collection.immutable.{HashBag, HashedBagConfiguration}
+import scala.collection.immutable.SortedSet
 
 /**
   * Created by Gerard on 15/09/2015.
@@ -16,7 +15,8 @@ import scala.collection.immutable.{HashBag, HashedBagConfiguration}
 class RichSeqSpec
     extends FlatSpec
     with Matchers
-    with GeneratorDrivenPropertyChecks {
+    with GeneratorDrivenPropertyChecks
+    with ShrinkLowPriority {
   private val groupEverythingTogether: (Int, Int) => Boolean = {
     case (first, second) => true
   }
@@ -131,15 +131,25 @@ class RichSeqSpec
     }
 
   it should "preserve the order of items as they appear in their own input inner sequence" in
-    forAll(Gen.nonEmptyListOf(possiblyEmptyInputSequenceGenerator)) {
-      inputSequences =>
+    forAll(Gen.nonEmptyListOf(
+      possiblyEmptyInputSequenceGenerator map (_.sorted) map (_ map (_.toLong)))) {
+      inputMultiplierSequences =>
+        val numberOfSequences = inputMultiplierSequences.length
+        val inputSequences = inputMultiplierSequences.zipWithIndex.map {
+          case (multipliers, sequenceMarker) =>
+            multipliers map (sequenceMarker + numberOfSequences * _)
+        }
         val actualItems = inputSequences.zipN.flatten
-        for (inputSequence <- inputSequences)
-          actualItems should contain inOrderElementsOf (inputSequence)
+        for ((inputSequence, sequenceMarker) <- inputSequences zipWithIndex)
+          actualItems filter (sequenceMarker == Math.floorMod(
+            _,
+            numberOfSequences)) should contain inOrderElementsOf (inputSequence)
     }
 
-  it should "preserve the order of items as they appear across the input sequences" in
-    forAll(Gen.nonEmptyListOf(possiblyEmptyInputSequenceGenerator)) {
+  it should "preserve the order of items as they appear across the input sequences, if the inner sequence type preserves the original order" in
+    forAll(
+      Gen.nonEmptyListOf(
+        possiblyEmptyInputSequenceGenerator map (_ map (_.toLong)))) {
       inputMultiplierSequences =>
         val numberOfSequences = inputMultiplierSequences.length
         val inputSequences = inputMultiplierSequences.zipWithIndex.map {
@@ -147,6 +157,18 @@ class RichSeqSpec
             multipliers map (sequenceMarker + numberOfSequences * _)
         }
         val links = inputSequences.zipN
-        withClue("The markers from each input inner sequence should appear in sorted order in each link")(all(links map (_.map (_ % numberOfSequences))) shouldBe sorted)
+        withClue(
+          "The markers from each input inner sequence should appear in sorted order in each link")(
+          all(links map (_.map(Math.floorMod(_, numberOfSequences)))) shouldBe sorted)
     }
+  /*
+  it should "impose the inner sequence type's ordering on items taken from across the input sequence, if such an ordering is defined" in
+    forAll(
+      Gen
+        .nonEmptyListOf(possiblyEmptyInputSequenceGenerator map (items =>
+          SortedSet(items: _*)))) { inputSequences =>
+      val expectedItems = inputSequences.flatten
+      val links         = inputSequences.zipN
+      all(links) shouldBe sorted
+    }*/
 }
