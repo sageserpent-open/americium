@@ -1,4 +1,4 @@
-Americium
+Americium [![Build Status](https://travis-ci.org/sageserpent-open/americium.svg?branch=master)](https://travis-ci.org/sageserpent-open/americium)
 =========
 
 This used to be: "A very slow port of NTestCaseBuilder (written in F#) to Scala."
