@@ -1,7 +1,7 @@
 lazy val settings = Seq(
   organization := "com.sageserpent",
   name := "americium",
-  scalaVersion := "2.12.1",
+  scalaVersion := "2.12.4",
   libraryDependencies += "junit"                   % "junit"           % "4.10" % "test",
   libraryDependencies += "com.novocode"            % "junit-interface" % "0.10" % "test",
   libraryDependencies += "org.scalaz"              %% "scalaz-core"    % "7.3.0-M10",

@@ -3,12 +3,12 @@ package com.sageserpent.americium
 import scala.math.Ordered
 
 object Unbounded {
-  implicit def convertToOrdered[X](unbounded: Unbounded[X])(
-      implicit evidence: X => Ordered[X]): Ordered[Unbounded[X]] =
+  implicit def convertToOrdered[X: Ordering](
+      unbounded: Unbounded[X]): Ordered[Unbounded[X]] =
     (another: Unbounded[X]) =>
       (unbounded, another) match {
         case (Finite(thisUnlifted), Finite(anotherUnlifted)) =>
-          thisUnlifted compare anotherUnlifted
+          Ordering[X].compare(thisUnlifted, anotherUnlifted)
         case (PositiveInfinity(), PositiveInfinity()) => 0
         case (NegativeInfinity(), NegativeInfinity()) => 0
         case (_, PositiveInfinity())                  => -1

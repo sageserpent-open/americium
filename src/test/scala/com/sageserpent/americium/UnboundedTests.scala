@@ -1,5 +1,7 @@
 package com.sageserpent.americium
 
+import java.time.Instant
+
 import junit.framework.TestCase
 import org.junit.Test
 
@@ -14,8 +16,14 @@ class UnboundedTests extends TestCase {
 
   def wrap(x: Int) = Finite(x)
 
+  val sooner = Instant.ofEpochSecond(0L)
+
+  val later = sooner plusSeconds 1L
+
   @Test
   def testFinitesAndInfinitesInCombination() {
+    assert(negativeInfinity < twentyThree)
+
     assert(negativeInfinity < fortyFive)
 
     assert(negativeInfinity < Finite(45))
@@ -63,8 +71,6 @@ class UnboundedTests extends TestCase {
 
   @Test
   def testFinites() {
-    assert(negativeInfinity < twentyThree)
-
     assert(twentyThree < fortyFive)
 
     assert(!(twentyThree > fortyFive))
@@ -97,5 +103,13 @@ class UnboundedTests extends TestCase {
     assert(NegativeInfinity != PositiveInfinity)
     assert(NegativeInfinity[Int] < PositiveInfinity[Int])
     assert(PositiveInfinity[Int] > NegativeInfinity[Int])
+  }
+
+  @Test
+  def testLiftingANonOrdered() = {
+    assert(Finite(sooner) < Finite(later))
+    assert(Finite(later) > Finite(sooner))
+    assert(NegativeInfinity[Instant] < Finite(sooner))
+    assert(Finite(later) < PositiveInfinity[Instant])
   }
 }
