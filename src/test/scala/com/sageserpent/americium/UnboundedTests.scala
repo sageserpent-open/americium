@@ -100,7 +100,7 @@ class UnboundedTests extends TestCase {
     assert(PositiveInfinity[Int] <= PositiveInfinity[Int] && PositiveInfinity[
       Int] >= PositiveInfinity[Int])
 
-    assert(NegativeInfinity != PositiveInfinity)
+    assert(NegativeInfinity[Int] != PositiveInfinity[Int])
     assert(NegativeInfinity[Int] < PositiveInfinity[Int])
     assert(PositiveInfinity[Int] > NegativeInfinity[Int])
   }

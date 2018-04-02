@@ -18,10 +18,10 @@ object Unbounded {
     }
 }
 
-abstract class Unbounded[X] {}
+sealed trait Unbounded[X]
 
-case class Finite[X](unlifted: X) extends Unbounded[X] {}
+case class Finite[X](unlifted: X) extends Unbounded[X]
 
-case class NegativeInfinity[X]() extends Unbounded[X] {}
+case class NegativeInfinity[X]() extends Unbounded[X]
 
-case class PositiveInfinity[X]() extends Unbounded[X] {}
+case class PositiveInfinity[X]() extends Unbounded[X]
