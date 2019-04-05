@@ -9,15 +9,13 @@ import scala.util.Random
 
 import Prop.BooleanOperators
 
-/**
-  * Created by Gerard on 29/08/2015.
-  */
+
 class RichRandomSpec extends FlatSpec with Checkers {
   val seedGenerator = Arbitrary.arbitrary[Long]
 
   val itemGenerator = Arbitrary.arbitrary[Char]
 
-  val itemsGenerator = Gen.listOf(itemGenerator) filter (!_.isEmpty)
+  val itemsGenerator = Gen.nonEmptyListOf(itemGenerator)
 
   val numberOfRepeatsGenerator = Gen.choose(1, 4)
 
@@ -34,16 +32,15 @@ class RichRandomSpec extends FlatSpec with Checkers {
       }))
   }
 
-  it should "yield non empty pieces when there is more than one item" in {
-    check(
-      Prop.forAll(seedGenerator, numberOfRepeatsGenerator, itemsGenerator) {
-        case (seed, numberOfRepeats, items) => {
-          val random = new Random(seed)
-          Prop.all((for (_ <- 1 to numberOfRepeats)
-            yield random.splitIntoNonEmptyPieces(items)) map (pieces =>
-            pieces.forall(_.nonEmpty) :| s"${pieces} should be composed of non-empty pieces"): _*)
-        }
-      })
+  it should "yield non empty pieces when there is at least one item" in {
+    check(Prop.forAll(seedGenerator, numberOfRepeatsGenerator, itemsGenerator) {
+      case (seed, numberOfRepeats, items) => {
+        val random = new Random(seed)
+        Prop.all((for (_ <- 1 to numberOfRepeats)
+          yield random.splitIntoNonEmptyPieces(items)) map (pieces =>
+          pieces.forall(_.nonEmpty) :| s"${pieces} should be composed of non-empty pieces"): _*)
+      }
+    })
   }
 
   it should "preserve all items and not introduce any others" in {
@@ -68,18 +65,17 @@ class RichRandomSpec extends FlatSpec with Checkers {
   }
 
   it should "preserve the order of items" in {
-    check(
-      Prop.forAll(seedGenerator, numberOfRepeatsGenerator, itemsGenerator) {
-        case (seed, numberOfRepeats, items) => {
-          val random = new Random(seed)
-          Prop.all((for {
-            _ <- 1 to numberOfRepeats
-            pieces        = random.splitIntoNonEmptyPieces(items)
-            rejoinedItems = pieces flatten
-          } yield rejoinedItems).map(rejoinedItems =>
-            (items === rejoinedItems) :| s"${items} === ${rejoinedItems}"): _*)
-        }
-      })
+    check(Prop.forAll(seedGenerator, numberOfRepeatsGenerator, itemsGenerator) {
+      case (seed, numberOfRepeats, items) => {
+        val random = new Random(seed)
+        Prop.all((for {
+          _ <- 1 to numberOfRepeats
+          pieces        = random.splitIntoNonEmptyPieces(items)
+          rejoinedItems = pieces flatten
+        } yield rejoinedItems).map(rejoinedItems =>
+          (items === rejoinedItems) :| s"${items} === ${rejoinedItems}"): _*)
+      }
+    })
   }
 
   it should "sometimes give more than one piece back when there is more than one item" in {
@@ -99,10 +95,7 @@ class RichRandomSpec extends FlatSpec with Checkers {
       case (seed, numberOfItems) => {
         val items          = 1 to numberOfItems toSet
         val random         = new Random(seed)
-        val sizeOfPowerSet = 1 << numberOfItems
-        val setOfSets = (for (_ <- 0 to 6 * sizeOfPowerSet)
-          yield random.splitIntoNonEmptyPieces(items) toList).toSet
-        (sizeOfPowerSet === 2 * setOfSets.size) :| s"${sizeOfPowerSet} === 2 * ${setOfSets}.size" // This is subtle - the best way to understand this is to visualise a bit string of length 'numberOfItems - 1'
+        // This is subtle - the best way to understand this is to visualise a bit string of length 'numberOfItems - 1'
         // - the bit string aligns off by one with all but the first item, eg:-
         // I1, I2, I3, I4
         //      1,  0,  1
@@ -112,6 +105,10 @@ class RichRandomSpec extends FlatSpec with Checkers {
         // Likewise, we don't need an off-by-one bit - the last item is either joined on
         // to the end of a bigger piece (0) or is in a piece by itself (1) - so only 'numberOfItems - 1'
         // bits are required. Now you see it.
+        val expectedNumberOfPossibleSplits = (1 << numberOfItems) / 2 // Avoid passing -1 to the right hand of the left shift invocation.
+        val setOfSets = (for (_ <- 0 to 6 * expectedNumberOfPossibleSplits)
+          yield random.splitIntoNonEmptyPieces(items) toList).toSet
+        (expectedNumberOfPossibleSplits === setOfSets.size) :| s"${expectedNumberOfPossibleSplits} === ${setOfSets}.size"
       }
     })
   }

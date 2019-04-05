@@ -10,9 +10,6 @@ import org.scalatest.{FlatSpec, Matchers}
 import scala.collection.breakOut
 import scala.collection.immutable.SortedSet
 
-/**
-  * Created by Gerard on 15/09/2015.
-  */
 class RichSeqSpec
     extends FlatSpec
     with Matchers

@@ -460,13 +460,12 @@ trait RandomEnrichment {
           case Stream.Empty =>
             if (items.isEmpty) Stream.empty
             else Stream(items)
-          case indexToSplitAt #:: remainingIndicesToSplitAt => {
+          case indexToSplitAt #:: remainingIndicesToSplitAt =>
             val (splitPiece, remainingItems) = items splitAt (indexToSplitAt - indexOfPreviousSplit)
             splitPiece.asInstanceOf[Container[X]] #:: splits(
               remainingIndicesToSplitAt,
               remainingItems.asInstanceOf[Container[X]],
               indexToSplitAt)
-          }
         }
       splits(indicesToSplitAt, items, 0)
     }

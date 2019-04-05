@@ -1,8 +1,5 @@
 package com.sageserpent.americium
 
-/**
-  * Created by Gerard on 19/02/2016.
-  */
 object BargainBasement {
   def numberOfPermutations(originalSize: Int, permutationSize: Int) = {
     require(originalSize >= 0)
