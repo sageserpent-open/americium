@@ -1,3 +1,5 @@
+val hedgehogVersion = "0.2.5"
+
 lazy val settings = Seq(
   organization := "com.sageserpent",
   name := "americium",
@@ -8,6 +10,9 @@ lazy val settings = Seq(
   libraryDependencies += "org.scalatest"           %% "scalatest"      % "3.0.1" % "test",
   libraryDependencies += "org.scalacheck"          %% "scalacheck"     % "1.13.5" % "test",
   libraryDependencies += "io.github.nicolasstucki" %% "multisets"      % "0.4" % "test",
+  libraryDependencies += "qa.hedgehog" %% "hedgehog-core" % hedgehogVersion % "test",
+  libraryDependencies += "qa.hedgehog" %% "hedgehog-runner" % hedgehogVersion % "test",
+  libraryDependencies += "qa.hedgehog" %% "hedgehog-sbt" % hedgehogVersion % "test",
   publishMavenStyle := true,
   bintrayReleaseOnPublish in ThisBuild := false,
   licenses += ("MIT", url("http://opensource.org/licenses/MIT")),
@@ -17,3 +22,5 @@ lazy val settings = Seq(
 lazy val americium = (project in file(".")).settings(settings: _*)
 
 resolvers += Resolver.jcenterRepo
+
+resolvers += "bintray-scala-hedgehog" at "https://dl.bintray.com/hedgehogqa/scala-hedgehog"
