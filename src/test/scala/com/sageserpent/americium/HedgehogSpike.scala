@@ -7,7 +7,7 @@ import org.scalatest.{Failed => _, _}
 
 class HedgehogSpike extends FlatSpec with Matchers {
   val configuration: PropertyConfig =
-    PropertyConfig(SuccessCount(20000), DiscardCount(200), ShrinkLimit(20000))
+    PropertyConfig(SuccessCount(5000), DiscardCount(100), ShrinkLimit(100))
 
   val generator: Gen[List[Int]] = Gen
     .list(Gen.int(Range.linear(1, 100 / 7)).map(_ * 7), Range.linear(3, 10))
@@ -32,7 +32,7 @@ class HedgehogSpike extends FlatSpec with Matchers {
         case OK =>
         case GaveUp =>
           fail(
-            "Gave up after only ${report.tests.value} passed test. ${report.discards.value} were discarded")
+            s"Gave up after only ${report.tests.value} passed test. ${report.discards.value} were discarded")
         case Failed(shrinks, log) =>
           fail(
             (s"Falsified after ${report.tests.value} passed tests, did ${shrinks.value} shrinks" :: log
