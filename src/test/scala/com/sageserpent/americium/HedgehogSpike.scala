@@ -1,33 +1,8 @@
 package com.sageserpent.americium
 
-import hedgehog._
-import hedgehog.core.{Result, _}
-import hedgehog.runner.Test
-import org.scalatest.{Failed => _, _}
-
-trait HedgehogIntegration {
-  import Assertions.fail
-
-  def check(property: PropertyT[Assertion])(
-      implicit configuration: PropertyConfig): Unit = {
-    val report = Property.check(
-      configuration,
-      property.map(_ => Result.success),
-      Seed.fromLong(1L)
-    )
-
-    report.status match {
-      case OK =>
-      case GaveUp =>
-        fail(
-          s"Gave up after only ${report.tests.value} passed test. ${report.discards.value} were discarded")
-      case Failed(shrinks, log) =>
-        fail(
-          (s"Falsified after ${report.tests.value} passed tests, did ${shrinks.value} shrinks" :: log
-            .map(Test.renderLog)).mkString("\n"))
-    }
-  }
-}
+import hedgehog.core.{DiscardCount, PropertyConfig, ShrinkLimit, SuccessCount}
+import hedgehog.{Gen, Range}
+import org.scalatest.{FlatSpec, Matchers}
 
 class HedgehogSpike extends FlatSpec with Matchers with HedgehogIntegration {
   val generator: Gen[List[Int]] = Gen

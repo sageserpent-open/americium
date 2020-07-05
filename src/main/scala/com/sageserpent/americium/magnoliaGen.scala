@@ -1,10 +1,8 @@
 package com.sageserpent.americium
 
-import hedgehog.core._
-import hedgehog.{Gen, Property, Range, Result}
-import magnolia._
+import hedgehog.Gen
+import magnolia.{CaseClass, Magnolia, SealedTrait}
 import mercator.Monadic
-
 import scala.language.experimental.macros
 
 object magnoliaGen {
@@ -38,22 +36,4 @@ object magnoliaGen {
   }
 
   implicit def gen[T]: Typeclass[T] = macro Magnolia.gen[T]
-}
-
-object testBed extends App {
-  implicit val ints: Gen[Int]       = Gen.int(Range.linear(1, 45))
-  implicit val strings: Gen[String] = Gen.string(Gen.alpha, Range.linear(1, 35))
-
-  val eithers: Gen[Either[Int, String]] = magnoliaGen.gen
-
-  val configuration: PropertyConfig =
-    PropertyConfig(SuccessCount(20000), DiscardCount(200), ShrinkLimit(20000))
-
-  val report = Property.check(
-    configuration,
-    eithers.forAll
-      .map(println)
-      .map(_ => Result.success),
-    Seed.fromLong(1L)
-  )
 }
