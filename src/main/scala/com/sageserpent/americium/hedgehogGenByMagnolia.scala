@@ -3,9 +3,10 @@ package com.sageserpent.americium
 import hedgehog.Gen
 import magnolia.{CaseClass, Magnolia, SealedTrait}
 import mercator.Monadic
+
 import scala.language.experimental.macros
 
-object magnoliaGen {
+object hedgehogGenByMagnolia {
   type Typeclass[T] = Gen[T]
 
   // HACK: had to write an explicit implicit implementation
