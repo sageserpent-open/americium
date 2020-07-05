@@ -19,7 +19,7 @@ class HedgehogSpike extends FlatSpec with Matchers {
       val property: PropertyT[Assertion] = generator.forAll
         .map(
           testCase =>
-            assert(testCase.length <= 5 ||
+            assert(testCase.length > 5 ||
               testCase.sum < 500))
 
       val report = Property.check(
