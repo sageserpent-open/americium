@@ -3,7 +3,7 @@ package com.sageserpent.americium
 import hedgehog.core._
 import hedgehog.{Gen, Property, Range, Result}
 import magnolia._
-import mercator._
+import mercator.Monadic
 
 import scala.language.experimental.macros
 
