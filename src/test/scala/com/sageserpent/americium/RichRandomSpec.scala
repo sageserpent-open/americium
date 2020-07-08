@@ -1,8 +1,8 @@
 package com.sageserpent.americium
 
 import com.sageserpent.americium.randomEnrichment._
-import org.scalacheck.{Arbitrary, Gen}
-import org.scalatest.prop.GeneratorDrivenPropertyChecks
+import hedgehog.core.{DiscardCount, PropertyConfig, ShrinkLimit, SuccessCount}
+import hedgehog.{Gen, Range}
 import org.scalatest.{FlatSpec, Inspectors, Matchers}
 
 import scala.util.Random
@@ -11,27 +11,29 @@ class RichRandomSpec
     extends FlatSpec
     with Matchers
     with Inspectors
-    with GeneratorDrivenPropertyChecks {
-  val seedGenerator = Arbitrary.arbitrary[Long]
+    with HedgehogScalatestIntegration {
+  val seedGenerator = Gen.long(Range.linear(0L, 100000L))
 
-  val itemGenerator = Arbitrary.arbitrary[Char]
+  val itemGenerator = Gen.alphaNum
 
-  val itemsGenerator = Gen.nonEmptyListOf(itemGenerator)
+  val itemsGenerator = Gen.list(itemGenerator, Range.linear(1, 100))
 
-  val numberOfRepeatsGenerator = Gen.choose(1, 4)
+  val numberOfRepeatsGenerator = Gen.int(Range.linear(1, 4))
 
-  "Splitting into non empty pieces" should "yield no pieces at all when there are no items" in {
-    forAll(seedGenerator, numberOfRepeatsGenerator)((seed, numberOfRepeats) => {
+  implicit val configuration: PropertyConfig =
+    PropertyConfig(SuccessCount(5000), DiscardCount(1000), ShrinkLimit(100))
+
+  "Splitting into non empty pieces" should "yield no pieces at all when there are no items" in
+    check(seedGenerator, numberOfRepeatsGenerator)((seed, numberOfRepeats) => {
       val random = new Random(seed)
 
       for (_ <- 1 to numberOfRepeats) {
         random.splitIntoNonEmptyPieces(Traversable.empty[Int]) shouldBe empty
       }
     })
-  }
 
   it should "yield non empty pieces when there is at least one item" in {
-    forAll(seedGenerator, numberOfRepeatsGenerator, itemsGenerator) {
+    check(seedGenerator, numberOfRepeatsGenerator, itemsGenerator) {
       case (seed, numberOfRepeats, items) =>
         val random = new Random(seed)
         for (_ <- 1 to numberOfRepeats) {
@@ -41,7 +43,7 @@ class RichRandomSpec
   }
 
   it should "preserve all items and not introduce any others" in {
-    forAll(seedGenerator, numberOfRepeatsGenerator, itemsGenerator) {
+    check(seedGenerator, numberOfRepeatsGenerator, itemsGenerator) {
       case (seed, numberOfRepeats, items) =>
         val random = new Random(seed)
         for {
@@ -56,7 +58,7 @@ class RichRandomSpec
   }
 
   it should "preserve the order of items" in {
-    forAll(seedGenerator, numberOfRepeatsGenerator, itemsGenerator) {
+    check(seedGenerator, numberOfRepeatsGenerator, itemsGenerator) {
       case (seed, numberOfRepeats, items) =>
         val random = new Random(seed)
         for {
@@ -70,7 +72,7 @@ class RichRandomSpec
   }
 
   it should "sometimes give more than one piece back when there is more than one item" in {
-    forAll(seedGenerator, itemsGenerator filter (1 < _.length)) {
+    check(seedGenerator, itemsGenerator filter (1 < _.length)) {
       case (seed, items) =>
         val random = new Random(seed)
 
@@ -83,11 +85,11 @@ class RichRandomSpec
   }
 
   it should "eventually yield all possible splits" in {
-    forAll(seedGenerator, Gen.choose(1, 5)) {
+    check(seedGenerator, Gen.int(Range.linear(1, 5))) {
       case (seed, numberOfItems) =>
         // Do not include the case of zero items in this test, it is tested elsewhere;
         // it also doesn't play well with the logic below of making a set of repeated split outcomes.
-        whenever(0 < numberOfItems) {
+        if (0 < numberOfItems) {
           val items  = 1 to numberOfItems toSet
           val random = new Random(seed)
           // This is subtle - the best way to understand this is to visualise a bit string of length 'numberOfItems - 1'
@@ -109,7 +111,7 @@ class RichRandomSpec
   }
 
   it should "yield splits whose lengths only depend on the number of items" in {
-    forAll(seedGenerator, itemsGenerator) {
+    check(seedGenerator, itemsGenerator) {
       case (seed, originalItems) =>
         val transformedItems = originalItems.map(item => (1 + item).toString)
 

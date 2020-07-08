@@ -3,10 +3,9 @@ package com.sageserpent.americium
 import hedgehog.core._
 import hedgehog.runner.Test
 import hedgehog.{Gen, Property, Result, forTupled}
-import org.scalatest.Assertion
 
 trait HedgehogScalatestIntegration {
-  def check(property: PropertyT[Assertion])(
+  def check(property: PropertyT[Unit])(
       implicit configuration: PropertyConfig): Unit = {
     import org.scalatest.Assertions.fail
 
@@ -28,18 +27,17 @@ trait HedgehogScalatestIntegration {
     }
   }
 
-  def check[T](generator: Gen[T])(test: T => Assertion)(
+  def check[T](generator: Gen[T])(test: T => Unit)(
       implicit configuration: PropertyConfig): Unit =
     check(generator.forAll.map(test))
 
   def check[T1, T2](generator1: Gen[T1], generator2: Gen[T2])(
-      test: (T1, T2) => Assertion)(
-      implicit configuration: PropertyConfig): Unit =
+      test: (T1, T2) => Unit)(implicit configuration: PropertyConfig): Unit =
     check(forTupled(generator1, generator2).forAll.map(test.tupled))
 
   def check[T1, T2, T3](generator1: Gen[T1],
                         generator2: Gen[T2],
-                        generator3: Gen[T3])(test: (T1, T2, T3) => Assertion)(
+                        generator3: Gen[T3])(test: (T1, T2, T3) => Unit)(
       implicit configuration: PropertyConfig): Unit =
     check(forTupled(generator1, generator2, generator3).forAll.map(test.tupled))
 
@@ -47,7 +45,7 @@ trait HedgehogScalatestIntegration {
       generator1: Gen[T1],
       generator2: Gen[T2],
       generator3: Gen[T3],
-      generator4: Gen[T4])(test: (T1, T2, T3, T4) => Assertion)(
+      generator4: Gen[T4])(test: (T1, T2, T3, T4) => Unit)(
       implicit configuration: PropertyConfig): Unit =
     check(
       forTupled(generator1, generator2, generator3, generator4).forAll
