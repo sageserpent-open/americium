@@ -89,7 +89,7 @@ class RichRandomSpec
       case (seed, numberOfItems) =>
         // Do not include the case of zero items in this test, it is tested elsewhere;
         // it also doesn't play well with the logic below of making a set of repeated split outcomes.
-        if (0 < numberOfItems) {
+        whenever(0 < numberOfItems) {
           val items  = 1 to numberOfItems toSet
           val random = new Random(seed)
           // This is subtle - the best way to understand this is to visualise a bit string of length 'numberOfItems - 1'

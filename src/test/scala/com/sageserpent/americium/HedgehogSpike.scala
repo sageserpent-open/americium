@@ -9,7 +9,7 @@ class HedgehogSpike
     with Matchers
     with HedgehogScalatestIntegration {
   implicit val configuration: PropertyConfig =
-    PropertyConfig(SuccessCount(5000), DiscardCount(1000), ShrinkLimit(100))
+    PropertyConfig(SuccessCount(2000), DiscardCount(4000), ShrinkLimit(100))
 
   private val sortedMultiplesOfSevenGenerator: Gen[List[Int]] = Gen
     .list(Gen.int(Range.linear(1, 100 / 7)).map(_ * 7), Range.linear(3, 10))
@@ -29,12 +29,14 @@ class HedgehogSpike
   "Hedgehog" should "eat all your bugs" in
     check(sortedMultiplesOfSevenGenerator, shoutGenerator, choiceGenerator) {
       (sortedMultiplesOfSeven, shout, choice) =>
-        // Gibber to stdout.
-        println(choice)
-        // This is just for the sake of having some assertions - they don't mean anything special.
-        assert(
-          sortedMultiplesOfSeven.length > 5 ||
-            sortedMultiplesOfSeven.sum < 500)
-        shout should be(shout.toUpperCase)
+        whenever(sortedMultiplesOfSeven.sum % 3 == 0){
+          // Gibber to stdout.
+          println(sortedMultiplesOfSeven, shout, choice)
+          // This is just for the sake of having some assertions - they don't mean anything special.
+          assert(
+            sortedMultiplesOfSeven.length > 5 ||
+              sortedMultiplesOfSeven.sum < 500)
+          shout should be(shout.toUpperCase)
+        }
     }
 }
