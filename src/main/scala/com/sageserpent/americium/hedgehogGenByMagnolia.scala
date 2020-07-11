@@ -23,16 +23,19 @@ object hedgehogGenByMagnolia {
   }
 
   def combine[T](caseClass: CaseClass[Typeclass, T]): Typeclass[T] =
-    // TODO - use a wildcard capture or something to work in hand with
-    // the Scala type system.
-    caseClass.constructMonadic[Gen, Any](parameter =>
-      parameter.typeclass.asInstanceOf[Gen[Any]])
+    caseClass.constructMonadic[Typeclass, T](
+      parameter =>
+        // HACK: 'Gen' should be covariant in its type parameter,
+        // but at time of writing this, it is invariant - so use
+        // a type cast as a workaround.
+        parameter.typeclass.asInstanceOf[Typeclass[T]])
 
   def dispatch[T](sealedTrait: SealedTrait[Typeclass, T]): Typeclass[T] = {
-    // TODO - use a wildcard capture or something to work in hand with
-    // the Scala type system.
     val subtypeGenerators: Seq[Typeclass[T]] =
-      sealedTrait.subtypes.map(_.typeclass).asInstanceOf[Seq[Typeclass[T]]]
+      // HACK: 'Gen' should be covariant in its type parameter,
+      // but at time of writing this, it is invariant - so use
+      // a type cast as a workaround.
+      sealedTrait.subtypes.map(_.typeclass.asInstanceOf[Typeclass[T]])
     Gen.choice(subtypeGenerators.head, subtypeGenerators.tail.toList)
   }
 
