@@ -22,22 +22,24 @@ class UnboundedSpec
   "lifted finite values" should "be ordered correspondingly to the underlying finite values" in
     check(integerGenerator, integerGenerator) {
       (firstUnderlying, secondUnderlying) =>
-        Finite(firstUnderlying).compare(Finite(secondUnderlying)) shouldBe firstUnderlying
-          .compare(secondUnderlying)
+        withClue(s"Comparing $firstUnderlying and $secondUnderlying as lifted finite values and then directly: "){
+          Finite(firstUnderlying).compare(Finite(secondUnderlying)) shouldBe firstUnderlying
+            .compare(secondUnderlying)
+        }
     }
 
   "negative infinity" should "be less than all finite values" in
     check(integerGenerator) { underlying =>
-      NegativeInfinity[Int]().compare(Finite(underlying)) should be < 0
+      (NegativeInfinity[Int](): Unbounded[Int]) shouldBe < (Finite(underlying): Unbounded[Int])
     }
 
   "positive infinity" should "be greater than all finite values" in check(
     integerGenerator) { underlying =>
-    PositiveInfinity[Int]().compare(Finite(underlying)) should be > 0
+    (PositiveInfinity[Int](): Unbounded[Int]) shouldBe > (Finite(underlying): Unbounded[Int])
   }
 
   "negative infinity" should "be less than positive infinity" in {
-    NegativeInfinity[Int]().compare(PositiveInfinity[Int]()) shouldBe -1
+    (NegativeInfinity[Int](): Unbounded[Int]) shouldBe < (PositiveInfinity[Int](): Unbounded[Int])
   }
 
   // TODO - use a laws approach for this, there will be one out there somewhere, probably in Cats...
@@ -51,25 +53,35 @@ class UnboundedSpec
   // TODO - use a laws approach for this, there will be one out there somewhere, probably in Cats...
   "swapping two items" should "negate the comparison" in
     check(unboundedGenerator, unboundedGenerator) { (one, another) =>
-      withClue(s"The result of comparison of $another with $one: ") {
+      withClue(s"Comparing $another with $one and then negating the reverse comparison: ") {
         another.compare(one) shouldBe (-one.compare(another))
       }
     }
 
   // TODO - use a laws approach for this, there will be one out there somewhere, probably in Cats...
-  "transitive comparisons" should "be possible when step wise comparisons do not change sign" in {
+  "transitive unequal comparisons" should "be possible with step wise unequal comparisons that agree in sense" in
     check(unboundedGenerator, unboundedGenerator, unboundedGenerator) {
       (first, common, last) =>
-        whenever(0 < first.compare(common) * common.compare(last)) {
-          first.compare(last) shouldBe first.compare(common)
+        val firstWithCommon = first.compare(common)
+        val commonWithLast  = common.compare(last)
+
+        whenever(0 < firstWithCommon * commonWithLast) {
+          assert(firstWithCommon.signum == commonWithLast.signum)
+          withClue(s"Comparing $first with $last and then with $common"){
+            first.compare(last).signum shouldBe firstWithCommon.signum
+          }
         }
     }
 
+  // TODO - use a laws approach for this, there will be one out there somewhere, probably in Cats...
+  "transitive equal comparisons" should "be possible with step wise equal comparisons" in
     check(unboundedGenerator, unboundedGenerator, unboundedGenerator) {
       (first, common, last) =>
-        whenever(0 == first.compare(common) && 0 == common.compare(last)) {
-          first.compare(last) shouldBe first.compare(common)
+        val firstWithCommon = first.compare(common)
+        val commonWithLast  = common.compare(last)
+
+        whenever(0 == firstWithCommon && 0 == commonWithLast) {
+          first.compare(last) shouldBe 0
         }
     }
-  }
 }
