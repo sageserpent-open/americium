@@ -7,7 +7,7 @@ import org.scalatest.{FlatSpec, Inspectors, Matchers}
 
 import scala.util.Random
 
-class RichRandomSpec
+class RichRandomSplittingSpec
     extends FlatSpec
     with Matchers
     with Inspectors

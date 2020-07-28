@@ -1,16 +1,15 @@
 package com.sageserpent.americium
 
 import com.sageserpent.americium.randomEnrichment._
-import junit.framework.TestCase
-import org.junit.Test
+import org.scalatest.FlatSpec
 
 import scala.collection.immutable.Set
 import scala.collection.mutable.Map
 import scala.util.Random
 
-class RichRandomTests extends TestCase {
-  @Test
-  def testCoverageOfIntegersUpToExclusiveUpperBound() {
+class RichRandomMiscellaneaSpec extends FlatSpec {
+
+  "a rich random" should "cover all integers up to an exclusive upper bound" in {
     val random = new Random(29)
 
     val maximumUpperBound = 30
@@ -28,36 +27,13 @@ class RichRandomTests extends TestCase {
     }
   }
 
-  @Test
-  def testUniquenessOfIntegersProduced() {
-    val random = new Random(678)
-
-    val maximumUpperBound = 30
-
-    for (upperBound <- 0 to maximumUpperBound) {
-      val concreteRangeOfIntegers = 0 until upperBound
-
-      val chosenItems =
-        random.chooseSeveralOf(concreteRangeOfIntegers, upperBound)
-      assert(upperBound == chosenItems.toSet.size)
-      assert(upperBound == chosenItems.length)
-
-      val chosenItemsViaAnotherWay =
-        random.buildRandomSequenceOfDistinctIntegersFromZeroToOneLessThan(
-          upperBound)
-      assert(upperBound == chosenItemsViaAnotherWay.toSet.size)
-      assert(upperBound == chosenItemsViaAnotherWay.length)
-    }
-  }
-
   private def sampleDistributions(
       upperBound: Int,
       sampleSize: Int,
       buildRandomSequenceOfDistinctIntegersOfSize: Int => Seq[Int]) {
 
-    val numberOfTrials = BargainBasement.numberOfCombinations(
-      upperBound,
-      sampleSize) * 1000
+    val numberOfTrials = BargainBasement.numberOfCombinations(upperBound,
+                                                              sampleSize) * 1000
 
     println(
       "Number of trials: %d, upperBound: %d, sampleSize: %d"
@@ -116,8 +92,7 @@ class RichRandomTests extends TestCase {
         .size >= 9e-1 * itemToCountAndSumOfPositionsMap.size)
   }
 
-  @Test
-  def testDistributionOfSuccessiveSequencesWithTheSameUpperBound() {
+  it should "uniformly distribute items chosen from a sequence" in {
     val random = new Random(1)
 
     for (upperBound <- (1 to 15) ++ (98 to 105) ++ (598 to 610)) {
@@ -199,27 +174,24 @@ class RichRandomTests extends TestCase {
       }
   }
 
-  @Test
-  def testThatAllItemsChosenBelongToTheSourceSequence() {
-    commonTestStructureForTestingOfChoosingSeveralItems(
-      (superSet, chosenItems, _) =>
-        assert(chosenItems.toSet.subsetOf(superSet)))
+  it should "only yield items from the sequence chosen from" in {
+    commonTestStructureForTestingOfChoosingSeveralItems((superSet,
+                                                         chosenItems,
+                                                         _) =>
+      assert(chosenItems.toSet.subsetOf(superSet)))
   }
 
-  @Test
-  def testThatTheNumberOfItemsRequestedIsHonouredIfPossible() {
+  it should "yield the requested number of items if there are at least that many in the sequence chosen from" in {
     commonTestStructureForTestingOfChoosingSeveralItems(
       (_, chosenItems, subsetSize) => assert(chosenItems.length == subsetSize))
   }
 
-  @Test
-  def testThatUniqueItemsInTheSourceSequenceAreNotDuplicated() {
+  it should "not duplicate items chosen from a sequence" in {
     commonTestStructureForTestingOfChoosingSeveralItems((_, chosenItems, _) =>
       assert(chosenItems.toSet.size == chosenItems.length))
   }
 
-  @Test
-  def testThatChoosingItemsRepeatedlyEventuallyCoversAllPermutations() {
+  it should "eventually cover all permutations when repearedly chosing from a sequence" in {
     val empiricallyDeterminedMultiplicationFactorToEnsureCoverage = 79200.toDouble / BargainBasement
       .factorial(7)
 
@@ -276,22 +248,6 @@ class RichRandomTests extends TestCase {
     }
   }
 
-  @Test
-  def testJustAFew() {
-    val random                  = new Random(678)
-    val maximumUpperBound       = 1000000
-    val concreteRangeOfIntegers = 0 until maximumUpperBound
-
-    val chosenItem = random.chooseOneOf(concreteRangeOfIntegers)
-
-    for (_ <- 1 to 10) {
-      val sampleSize = maximumUpperBound / 2
-      val chosenItems =
-        random.chooseSeveralOf(concreteRangeOfIntegers, sampleSize)
-      for (chosenItem <- chosenItems) {}
-    }
-  }
-
   def commonTestStructureForTestingAlternatePickingFromSequences(
       testOnSequences: Seq[Seq[Int]] => Unit) = {
     val randomBehaviour =
@@ -316,8 +272,7 @@ class RichRandomTests extends TestCase {
     }
   }
 
-  @Test
-  def testThatPickingAlternatelyFromSequencesPreservesTheItemsInTheOriginalSequences() = {
+  it should "yield the items in each sequence when picking alternately from several sequences" in {
     val randomBehaviour = new Random(89734873)
     def testHandoff(sequences: Seq[Seq[Int]]) {
       val alternatelyPickedSequence =
@@ -335,8 +290,7 @@ class RichRandomTests extends TestCase {
     commonTestStructureForTestingAlternatePickingFromSequences(testHandoff)
   }
 
-  @Test
-  def testThatPickingAlternatelyFromSequencesPreservesTheOrderOfItemsInTheOriginalSequences() = {
+  it should "preserve the item order in each sequence when picking alternately from several sequences" in {
     val randomBehaviour = new Random(2317667)
     def testHandoff(sequences: Seq[Seq[Int]]) = {
       val alternatelyPickedSequence =
@@ -382,8 +336,7 @@ class RichRandomTests extends TestCase {
     commonTestStructureForTestingAlternatePickingFromSequences(testHandoff)
   }
 
-  @Test
-  def testThatPickingAlternatelyFromSequencesChoosesRandomlyFromTheSequences() = {
+  it should "pick fairly from each sequence when picking alternately from several sequences" in {
     val randomBehaviour = new Random(2317667)
     def testHandoff(sequences: Seq[Seq[Int]]) = {
       val alternatelyPickedSequence =
