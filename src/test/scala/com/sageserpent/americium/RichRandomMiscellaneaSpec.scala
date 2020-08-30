@@ -1,7 +1,7 @@
 package com.sageserpent.americium
 
 import com.sageserpent.americium.randomEnrichment._
-import org.scalatest.FlatSpec
+import org.scalatest.{Assertion, FlatSpec}
 
 import scala.collection.immutable.Set
 import scala.collection.mutable.Map
@@ -61,14 +61,11 @@ class RichRandomMiscellaneaSpec extends FlatSpec {
 
     val numberOfDistinctSamplesObtained = sampleToCountMap.size
 
-    assert(
-      sampleToCountMap.values
-        .filter({ count =>
-          val expectedCount = 1.0 * numberOfTrials / numberOfDistinctSamplesObtained
-          val tolerance     = 1e-1
-          Math.abs(count - expectedCount) <= tolerance * expectedCount
-        })
-        .size >= 9e-1 * sampleToCountMap.size)
+    assert(sampleToCountMap.values.count { count =>
+      val expectedCount = 1.0 * numberOfTrials / numberOfDistinctSamplesObtained
+      val tolerance     = 1e-1
+      Math.abs(count - expectedCount) <= tolerance * expectedCount
+    } >= 9e-1 * sampleToCountMap.size)
 
     assert(upperBound == itemToCountAndSumOfPositionsMap.size)
 
@@ -78,18 +75,14 @@ class RichRandomMiscellaneaSpec extends FlatSpec {
       }
     }))
 
-    assert(
-      itemToCountAndSumOfPositionsMap.values
-        .filter({
-          case (count, sumOfPositions) => {
-            val meanPosition         = sumOfPositions / count
-            val expectedMeanPosition = (sampleSize - 1) / 2.0
-            val difference           = Math.abs(meanPosition - expectedMeanPosition)
-            val tolerance            = 1e-1
-            difference <= tolerance * expectedMeanPosition
-          }
-        })
-        .size >= 9e-1 * itemToCountAndSumOfPositionsMap.size)
+    assert(itemToCountAndSumOfPositionsMap.values.count {
+      case (count, sumOfPositions) =>
+        val meanPosition         = sumOfPositions / count
+        val expectedMeanPosition = (sampleSize - 1) / 2.0
+        val difference           = Math.abs(meanPosition - expectedMeanPosition)
+        val tolerance            = 1e-1
+        difference <= tolerance * expectedMeanPosition
+    } >= 9e-1 * itemToCountAndSumOfPositionsMap.size)
   }
 
   it should "uniformly distribute items chosen from a sequence" in {
@@ -217,7 +210,7 @@ class RichRandomMiscellaneaSpec extends FlatSpec {
         assert(oversampledOutputs.toSet.size == expectedNumberOfPermutations)
       }
 
-      for (numberOfConsecutiveItems <- (1 to 7)) {
+      for (numberOfConsecutiveItems <- 1 to 7) {
         val superSet =
           (inclusiveLowerBound until inclusiveLowerBound + numberOfConsecutiveItems).toSet
 
@@ -249,7 +242,7 @@ class RichRandomMiscellaneaSpec extends FlatSpec {
   }
 
   def commonTestStructureForTestingAlternatePickingFromSequences(
-      testOnSequences: Seq[Seq[Int]] => Unit) = {
+      testOnSequences: Seq[Seq[Int]] => Unit): Unit = {
     val randomBehaviour =
       new Random(232)
     for (numberOfSequences <- 0 until 50) {
@@ -278,13 +271,11 @@ class RichRandomMiscellaneaSpec extends FlatSpec {
       val alternatelyPickedSequence =
         randomBehaviour.pickAlternatelyFrom(sequences)
       val setOfAllItemsPickedFrom =
-        Set((sequences.map(Set(_: _*))) flatten: _*)
+        Set(sequences.flatMap(Set(_: _*)): _*)
       val setofAllItemsActuallyPicked =
         Set(alternatelyPickedSequence: _*)
       assert(setOfAllItemsPickedFrom == setofAllItemsActuallyPicked)
-      assert(
-        (0 /: sequences
-          .map(_.length))(_ + _) == (alternatelyPickedSequence.length))
+      assert(sequences.map(_.length).sum == alternatelyPickedSequence.length)
     }
 
     commonTestStructureForTestingAlternatePickingFromSequences(testHandoff)
@@ -292,15 +283,16 @@ class RichRandomMiscellaneaSpec extends FlatSpec {
 
   it should "preserve the item order in each sequence when picking alternately from several sequences" in {
     val randomBehaviour = new Random(2317667)
-    def testHandoff(sequences: Seq[Seq[Int]]) = {
+    def testHandoff(sequences: Seq[Seq[Int]]): Assertion = {
       val alternatelyPickedSequence =
         randomBehaviour.pickAlternatelyFrom(sequences)
       val numberOfSequences =
         sequences.length
       val disentangledPickedSubsequences = {
         val sequenceIndexToDisentangledPickedSubsequenceMap =
-          (scala.collection.immutable.TreeMap
-            .empty[Int, List[Int]] /: alternatelyPickedSequence) {
+          alternatelyPickedSequence.foldLeft(
+            scala.collection.immutable.TreeMap
+              .empty[Int, List[Int]]) {
             (sequenceIndexToDisentangledPickedSubsequenceMap, item) =>
               val sequenceIndex =
                 item % numberOfSequences
@@ -318,7 +310,7 @@ class RichRandomMiscellaneaSpec extends FlatSpec {
         sequenceIndexToDisentangledPickedSubsequenceMap.toList.map(
           ((_: (Int, List[Int]))._2) andThen (_.reverse))
       }
-      val isNotEmpty = (!(_: Seq[_]).isEmpty)
+      val isNotEmpty = (_: Seq[_]).nonEmpty
       assert {
         val expectedSequences = sequences.filter(isNotEmpty)
 
@@ -338,13 +330,15 @@ class RichRandomMiscellaneaSpec extends FlatSpec {
 
   it should "pick fairly from each sequence when picking alternately from several sequences" in {
     val randomBehaviour = new Random(2317667)
-    def testHandoff(sequences: Seq[Seq[Int]]) = {
+    def testHandoff(sequences: Seq[Seq[Int]]): Unit = {
       val alternatelyPickedSequence =
         randomBehaviour.pickAlternatelyFrom(sequences)
       val numberOfSequences = sequences.length
       val (sequenceIndexToPositionSumAndCount, pickedSequenceLength) =
-        ((scala.collection.immutable.Map.empty[Int, (Double, Int)], 0) /: alternatelyPickedSequence) {
-          case ((sequenceIndexToPositionSumAndCount, itemPosition), item) => {
+        alternatelyPickedSequence.foldLeft(
+          scala.collection.immutable.Map.empty[Int, (Double, Int)],
+          0) {
+          case ((sequenceIndexToPositionSumAndCount, itemPosition), item) =>
             val sequenceIndex = item % numberOfSequences
 
             (sequenceIndexToPositionSumAndCount.get(sequenceIndex) match {
@@ -358,7 +352,6 @@ class RichRandomMiscellaneaSpec extends FlatSpec {
                 sequenceIndexToPositionSumAndCount +
                   (sequenceIndex -> (itemPosition.toDouble, 1))
             }) -> (1 + itemPosition)
-          }
         }
 
       val minumumRequiredNumberOfPositions = 50

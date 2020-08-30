@@ -15,13 +15,13 @@ class RichRandomSplittingSpec
   implicit val configuration: PropertyConfig =
     PropertyConfig(SuccessCount(5000), DiscardCount(1000), ShrinkLimit(100))
 
-  val seedGenerator = Gen.long(Range.linear(0L, 100000L))
+  private val seedGenerator = Gen.long(Range.linear(0L, 100000L))
 
-  val itemGenerator = Gen.alphaNum
+  private val itemGenerator = Gen.alphaNum
 
-  val itemsGenerator = Gen.list(itemGenerator, Range.linear(1, 100))
+  private val itemsGenerator = Gen.list(itemGenerator, Range.linear(1, 100))
 
-  val numberOfRepeatsGenerator = Gen.int(Range.linear(1, 4))
+  private val numberOfRepeatsGenerator = Gen.int(Range.linear(1, 4))
 
   "Splitting into non empty pieces" should "yield no pieces at all when there are no items" in
     check(seedGenerator, numberOfRepeatsGenerator)((seed, numberOfRepeats) => {
@@ -50,7 +50,7 @@ class RichRandomSplittingSpec
           _ <- 1 to numberOfRepeats
           expectedItemsAndTheirFrequencies = items groupBy identity mapValues (_.length)
           pieces                           = random.splitIntoNonEmptyPieces(items)
-          actualItemsAndTheirFrequences    = pieces flatMap identity groupBy identity mapValues (_.length)
+          actualItemsAndTheirFrequences    = pieces.flatten groupBy identity mapValues (_.length)
         } {
           actualItemsAndTheirFrequences should contain theSameElementsAs expectedItemsAndTheirFrequencies
         }

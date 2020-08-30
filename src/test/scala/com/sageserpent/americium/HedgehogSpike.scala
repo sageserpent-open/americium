@@ -21,8 +21,8 @@ class HedgehogSpike
 
   private val choiceGenerator: Gen[Either[String, Boolean]] = {
     // Implicit (but locally scoped) context so that we know what Magnolia will pick up.
-    implicit val stringGenerator  = shoutGenerator
-    implicit val booleanGenerator = Gen.boolean
+    implicit val stringGenerator: Gen[String] = shoutGenerator
+    implicit val booleanGenerator: Gen[Boolean] = Gen.boolean
     hedgehogGenByMagnolia.gen // Use an explicit call for clarity; we're capturing into a non-implicit val anyway.
   }
 

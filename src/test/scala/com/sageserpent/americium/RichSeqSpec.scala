@@ -51,23 +51,22 @@ class RichSeqSpec
     }
 
   it should "yield non empty groups if the input sequence is not empty" in
-    check(predicateGenerator, nonEmptyInputSequenceGenerator) {
-      (predicate, inputSequence) =>
-        val groups = inputSequence.groupWhile(groupEverythingTogether)
-        all(groups) should not be empty
+    check(nonEmptyInputSequenceGenerator) { inputSequence =>
+      val groups = inputSequence.groupWhile(groupEverythingTogether)
+      all(groups) should not be empty
     }
 
   it should "preserve all items in the input sequence" in
     check(predicateGenerator, nonEmptyInputSequenceGenerator) {
       (predicate, inputSequence) =>
-        val actualItems = inputSequence.groupWhile(predicate) flatMap identity
+        val actualItems = inputSequence.groupWhile(predicate).flatten
         actualItems should contain theSameElementsAs inputSequence
     }
 
   it should "preserve the order of items in the input sequence" in
     check(predicateGenerator, nonEmptyInputSequenceGenerator) {
       (predicate, inputSequence) =>
-        val actualItems = inputSequence.groupWhile(predicate) flatMap identity
+        val actualItems = inputSequence.groupWhile(predicate).flatten
         actualItems should contain theSameElementsInOrderAs inputSequence
     }
 

@@ -18,7 +18,7 @@ trait SeqEnrichment {
           tail.foldLeft(List(List(head)))((groups, item) => {
             assert(groups.nonEmpty)
             groups match {
-              case (headGroup @ (itemToMatch :: _)) :: tailGroups
+              case (headGroup @ itemToMatch :: _) :: tailGroups
                   if predicate(itemToMatch, item) =>
                 (item :: headGroup) :: tailGroups
               case _ => List(item) :: groups
