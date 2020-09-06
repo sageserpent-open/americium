@@ -12,7 +12,6 @@ lazy val settings = Seq(
   libraryDependencies += "qa.hedgehog"             %% "hedgehog-sbt"    % hedgehogVersion,
   libraryDependencies += "org.scalatest"           %% "scalatest"       % "3.0.1",
   libraryDependencies += "org.scala-lang"          % "scala-reflect"    % scalaVersion.value % Provided,
-  libraryDependencies += "io.github.nicolasstucki" %% "multisets"       % "0.4" % "test",
   publishMavenStyle := true,
   bintrayReleaseOnPublish in ThisBuild := false,
   licenses += ("MIT", url("http://opensource.org/licenses/MIT")),
