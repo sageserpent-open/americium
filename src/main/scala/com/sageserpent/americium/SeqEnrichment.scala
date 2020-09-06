@@ -2,7 +2,6 @@ package com.sageserpent.americium
 
 import scala.collection.generic.CanBuildFrom
 import scala.collection.immutable.List
-import scalaz.std.stream
 
 trait SeqEnrichment {
   implicit class RichSeq[Container[Item] <: Seq[Item], Item](
@@ -13,7 +12,7 @@ trait SeqEnrichment {
       if (items.isEmpty)
         Seq.empty[Container[Item]]
       else {
-        val Seq(head, tail @ _ *) = items
+        val Seq(head, tail @ _*) = items
         val reversedGroupsInReverse =
           tail.foldLeft(List(List(head)))((groups, item) => {
             assert(groups.nonEmpty)
@@ -44,8 +43,8 @@ trait SeqEnrichment {
                                    InnerContainer[Subelement]])
       : Stream[InnerContainer[Subelement]] = {
       def linkAndRemainingInnerSequencesFrom(
-          innerSequences: Seq[Traversable[Subelement]]): Option[
-        (InnerContainer[Subelement], Seq[Traversable[Subelement]])] = {
+          innerSequences: Seq[Traversable[Subelement]])
+        : Stream[InnerContainer[Subelement]] = {
         val nonEmptyInnerSequences = innerSequences filter (_.nonEmpty)
         if (nonEmptyInnerSequences.nonEmpty) {
           val (link, remainingInnerSequences) =
@@ -56,11 +55,12 @@ trait SeqEnrichment {
             link.foreach(builder += _)
             builder.result()
           }
-          Some(convertedLink -> remainingInnerSequences)
-        } else None
+          convertedLink #:: linkAndRemainingInnerSequencesFrom(
+            remainingInnerSequences)
+        } else Stream.empty
       }
-      stream.unfold(innerSequences.asInstanceOf[Seq[Traversable[Subelement]]])(
-        linkAndRemainingInnerSequencesFrom)
+      linkAndRemainingInnerSequencesFrom(
+        innerSequences.asInstanceOf[Seq[Traversable[Subelement]]])
     }
   }
 }

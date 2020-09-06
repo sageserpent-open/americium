@@ -1,10 +1,9 @@
 package com.sageserpent.americium
 
-import scalaz.Scalaz
-import scalaz.Scalaz._
-
 import scala.collection.JavaConverters._
 import scala.util.Random
+
+import scala.annotation.tailrec
 
 trait RandomEnrichment {
   implicit class RichRandom(random: Random) {
@@ -400,12 +399,13 @@ trait RandomEnrichment {
 
     def pickAlternatelyFrom[X](
         sequences: Traversable[Traversable[X]]): Stream[X] = {
-      val onlyNonEmptyFrom = (_: Traversable[Stream[X]]) filter (_.nonEmpty)
-      def pickItemsFromNonEmptyStreams(nonEmptyStreams: Array[Stream[X]])
-        : Option[(IndexedSeq[X], Array[Stream[X]])] = {
+      val onlyNonEmptyFrom = (_: IndexedSeq[Stream[X]]) filter (_.nonEmpty)
+
+      def pickItemsFromNonEmptyStreams(nonEmptyStreams: IndexedSeq[Stream[X]])
+        : Stream[X] = {
         val numberOfNonEmptyStreams = nonEmptyStreams.length
         numberOfNonEmptyStreams match {
-          case 0 => None
+          case 0 => Stream.empty
           case _ =>
             val sliceLength = chooseAnyNumberFromOneTo(numberOfNonEmptyStreams)
             val permutationDestinationIndices =
@@ -419,13 +419,10 @@ trait RandomEnrichment {
             val unchangedStreams = sliceLength until numberOfNonEmptyStreams map (
                 sourceIndex =>
                   nonEmptyStreams(permutationDestinationIndices(sourceIndex)))
-            Some(
-              pickedItems -> (onlyNonEmptyFrom(streamsPickedFrom) ++ unchangedStreams).toArray)
+                   pickedItems.toStream ++ pickItemsFromNonEmptyStreams(onlyNonEmptyFrom(streamsPickedFrom) ++ unchangedStreams)
         }
       }
-
-      unfold(onlyNonEmptyFrom(sequences map (_.toStream)).toArray)(
-        pickItemsFromNonEmptyStreams).flatten
+        pickItemsFromNonEmptyStreams(onlyNonEmptyFrom(sequences map (_.toStream) toIndexedSeq))
     }
 
     def splitIntoNonEmptyPieces[
