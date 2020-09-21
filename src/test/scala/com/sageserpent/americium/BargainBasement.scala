@@ -1,7 +1,9 @@
 package com.sageserpent.americium
 
+import scala.annotation.tailrec
+
 object BargainBasement {
-  def numberOfPermutations(originalSize: Int, permutationSize: Int) = {
+  def numberOfPermutations(originalSize: Int, permutationSize: Int): Int = {
     require(originalSize >= 0)
     require(permutationSize >= 0)
 
@@ -9,6 +11,7 @@ object BargainBasement {
       0
     else {
       val numberOfItemsLeftOutOfPermutation = originalSize - permutationSize
+      @tailrec
       def productOfPartialResultAndNumberOfSubpermutations(
           originalSize: Int,
           partialResult: Int): Int =
@@ -16,16 +19,16 @@ object BargainBasement {
           partialResult
         else
           productOfPartialResultAndNumberOfSubpermutations(
-            (originalSize - 1),
-            (originalSize * partialResult))
+            originalSize - 1,
+            originalSize * partialResult)
       productOfPartialResultAndNumberOfSubpermutations(originalSize, 1)
     }
   }
 
-  def factorial(x: Int) =
+  def factorial(x: Int): Int =
     numberOfPermutations(x, x)
 
-  def numberOfCombinations(originalSize: Int, combinationSize: Int) = {
+  def numberOfCombinations(originalSize: Int, combinationSize: Int): Int = {
     val unpickedSize = originalSize - combinationSize
     if (combinationSize < unpickedSize)
       numberOfPermutations(originalSize, combinationSize) / factorial(

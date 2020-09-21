@@ -1,11 +1,7 @@
 package com.sageserpent.americium
 
-import scala.util.Random
-import scalaz.Scalaz
-
-import Scalaz._
-
 import scala.collection.JavaConverters._
+import scala.util.Random
 
 trait RandomEnrichment {
   implicit class RichRandom(random: Random) {
@@ -45,11 +41,7 @@ trait RandomEnrichment {
           require(exclusiveUpperBound <= exclusiveLimit)
 
           this match {
-            case thisAsInteriorNode @ InteriorNode(
-                  lowerBoundForItemRange: Int,
-                  upperBoundForItemRange: Int,
-                  lesserSubtree: BinaryTreeNode,
-                  greaterSubtree: BinaryTreeNode) =>
+            case thisAsInteriorNode: InteriorNode =>
               require(
                 thisAsInteriorNode.inclusiveLowerBoundForAllItemsInSubtree match {
                   case Some(inclusiveLowerBoundForAllItemsInSubtree) =>
@@ -91,10 +83,7 @@ trait RandomEnrichment {
         require(lowerBoundForItemRange <= upperBoundForItemRange)
 
         lesserSubtree match {
-          case InteriorNode(_,
-                            upperBoundForItemRangeFromLesserSubtree,
-                            _,
-                            _) =>
+          case InteriorNode(_, upperBoundForItemRangeFromLesserSubtree, _, _) =>
             require(
               upperBoundForItemRangeFromLesserSubtree + 1 < lowerBoundForItemRange)
           case _ => ()
@@ -115,11 +104,11 @@ trait RandomEnrichment {
 
         val numberOfItemsInRange = 1 + upperBoundForItemRange - lowerBoundForItemRange
 
-        val inclusiveLowerBoundForAllItemsInSubtree = lesserSubtree.inclusiveLowerBoundForAllItemsInSubtree orElse (Some(
-          lowerBoundForItemRange))
+        val inclusiveLowerBoundForAllItemsInSubtree = lesserSubtree.inclusiveLowerBoundForAllItemsInSubtree orElse Some(
+          lowerBoundForItemRange)
 
-        val exclusiveUpperBoundForAllItemsInSubtree = greaterSubtree.exclusiveUpperBoundForAllItemsInSubtree orElse (Some(
-          upperBoundForItemRange))
+        val exclusiveUpperBoundForAllItemsInSubtree = greaterSubtree.exclusiveUpperBoundForAllItemsInSubtree orElse Some(
+          upperBoundForItemRange)
 
         val numberOfInteriorNodesInSubtree = 1 + lesserSubtree.numberOfInteriorNodesInSubtree + greaterSubtree.numberOfInteriorNodesInSubtree
 
@@ -229,30 +218,26 @@ trait RandomEnrichment {
           def lesserSubtreeCanBeConsidered(inclusiveLowerBound: Int): Boolean =
             inclusiveLowerBound < lowerBoundForItemRange
 
-          def greaterSubtreeCanBeConsidered(
-              exclusiveUpperBound: Int): Boolean =
+          def greaterSubtreeCanBeConsidered(exclusiveUpperBound: Int): Boolean =
             1 + upperBoundForItemRange < exclusiveUpperBound
 
           (lesserSubtreeCanBeConsidered(inclusiveLowerBound),
            greaterSubtreeCanBeConsidered(exclusiveUpperBound)) match {
-            case (true, false) => {
+            case (true, false) =>
               assume(exclusiveUpperBound == exclusiveLimit) // NOTE: in theory this case can occur for other values of 'exclusiveUpperBound', but range-fusion prevents this happening in practice.
               recurseOnLesserSubtree()
-            }
 
-            case (false, true) => {
+            case (false, true) =>
               assume(0 == inclusiveLowerBound) // NOTE: in theory this case can occur for other values of 'inclusiveLowerBound', but range-fusion prevents this happening in practice.
               recurseOnGreaterSubtree()
-            }
 
-            case (true, true) => {
+            case (true, true) =>
               if (0 > indexOfVacantSlotAsOrderedByMissingItem.compare(
                     effectiveIndexAssociatedWithThisInteriorNode)) {
                 recurseOnLesserSubtree()
               } else {
                 recurseOnGreaterSubtree()
               }
-            }
           }
         }
       }
@@ -331,8 +316,7 @@ trait RandomEnrichment {
 
           val candidatesWithSwapsApplied = swappedCandidates orElse candidatesWithRandomAccess
 
-          val chosenCandidate = candidatesWithSwapsApplied(
-            chosenCandidateIndex)
+          val chosenCandidate = candidatesWithSwapsApplied(chosenCandidateIndex)
 
           if (numberOfCandidatesAlreadyChosen < chosenCandidateIndex) {
             swappedCandidates += chosenCandidateIndex -> candidatesWithSwapsApplied(
@@ -400,15 +384,12 @@ trait RandomEnrichment {
       def chooseASingleExemplar(exemplars: List[(() => X, Int, Int)]): X =
         exemplars match {
           case List((exemplar, _, _)) => exemplar()
-          case (exemplar,
-                blockSize,
-                cumulativeNumberOfCandidatesPreviouslySeen) :: remainingExemplars => {
+          case (exemplar, blockSize, cumulativeNumberOfCandidatesPreviouslySeen) :: remainingExemplars =>
             val numberOfCandidates = blockSize + cumulativeNumberOfCandidatesPreviouslySeen
             if (chooseAnyNumberFromOneTo(numberOfCandidates) <= blockSize)
               exemplar()
             else
               chooseASingleExemplar(remainingExemplars)
-          }
         }
 
       chooseASingleExemplar(exemplars)
@@ -416,13 +397,14 @@ trait RandomEnrichment {
 
     def pickAlternatelyFrom[X](
         sequences: Traversable[Traversable[X]]): Stream[X] = {
-      val onlyNonEmptyFrom = (_: Traversable[Stream[X]]) filter (!_.isEmpty)
-      def pickItemsFromNonEmptyStreams(nonEmptyStreams: Array[Stream[X]])
-        : Option[(IndexedSeq[X], Array[Stream[X]])] = {
+      val onlyNonEmptyFrom = (_: IndexedSeq[Stream[X]]) filter (_.nonEmpty)
+
+      def pickItemsFromNonEmptyStreams(nonEmptyStreams: IndexedSeq[Stream[X]])
+        : Stream[X] = {
         val numberOfNonEmptyStreams = nonEmptyStreams.length
         numberOfNonEmptyStreams match {
-          case 0 => None
-          case _ => {
+          case 0 => Stream.empty
+          case _ =>
             val sliceLength = chooseAnyNumberFromOneTo(numberOfNonEmptyStreams)
             val permutationDestinationIndices =
               random.shuffle(Seq.range(0, numberOfNonEmptyStreams)) toArray
@@ -435,14 +417,10 @@ trait RandomEnrichment {
             val unchangedStreams = sliceLength until numberOfNonEmptyStreams map (
                 sourceIndex =>
                   nonEmptyStreams(permutationDestinationIndices(sourceIndex)))
-            Some(
-              pickedItems -> (onlyNonEmptyFrom(streamsPickedFrom) ++ unchangedStreams).toArray)
-          }
+                   pickedItems.toStream ++ pickItemsFromNonEmptyStreams(onlyNonEmptyFrom(streamsPickedFrom) ++ unchangedStreams)
         }
       }
-
-      unfold(onlyNonEmptyFrom(sequences map (_.toStream)).toArray)(
-        pickItemsFromNonEmptyStreams) flatMap identity
+        pickItemsFromNonEmptyStreams(onlyNonEmptyFrom(sequences map (_.toStream) toIndexedSeq))
     }
 
     def splitIntoNonEmptyPieces[

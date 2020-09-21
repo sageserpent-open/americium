@@ -7,7 +7,6 @@ import org.scalatest.enablers.Collecting._
 import org.scalatest.prop.GeneratorDrivenPropertyChecks
 import org.scalatest.{FlatSpec, Matchers}
 
-import scala.collection.breakOut
 import scala.collection.immutable.SortedSet
 
 class RichSeqSpec
@@ -16,11 +15,11 @@ class RichSeqSpec
     with GeneratorDrivenPropertyChecks
     with ShrinkLowPriority {
   private val groupEverythingTogether: (Int, Int) => Boolean = {
-    case (first, second) => true
+    case (_, _) => true
   }
 
   private val groupNothingTogether: (Int, Int) => Boolean = {
-    case (first, second) => false
+    case (_, _) => false
   }
 
   private val groupEqualTogether: (Int, Int) => Boolean = _ == _
@@ -52,21 +51,21 @@ class RichSeqSpec
   it should "yield non empty groups if the input sequence is not empty" in
     forAll(predicateGenerator, nonEmptyInputSequenceGenerator) {
       (predicate, inputSequence) =>
-        val groups = inputSequence.groupWhile(groupEverythingTogether)
+        val groups = inputSequence.groupWhile(predicate)
         all(groups) should not be empty
     }
 
   it should "preserve all items in the input sequence" in
     forAll(predicateGenerator, nonEmptyInputSequenceGenerator) {
       (predicate, inputSequence) =>
-        val actualItems = inputSequence.groupWhile(predicate) flatMap identity
+        val actualItems = inputSequence.groupWhile(predicate).flatten
         actualItems should contain theSameElementsAs inputSequence
     }
 
   it should "preserve the order of items in the input sequence" in
     forAll(predicateGenerator, nonEmptyInputSequenceGenerator) {
       (predicate, inputSequence) =>
-        val actualItems = inputSequence.groupWhile(predicate) flatMap identity
+        val actualItems = inputSequence.groupWhile(predicate).flatten
         actualItems should contain theSameElementsInOrderAs inputSequence
     }
 
