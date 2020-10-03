@@ -6,48 +6,59 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
-public class Trials {
-    public interface Trial<Case> {
-        <TransformedCase> Trial<TransformedCase> map(Function<Case, TransformedCase> transform);
+public abstract class Trials<Case> {
+    abstract <TransformedCase> Trials<TransformedCase> map(Function<Case, TransformedCase> transform);
 
-        <TransformedCase> Trial<TransformedCase> flatMap(Function<Case, Trial<TransformedCase>> step);
+    abstract <TransformedCase> Trials<TransformedCase> flatMap(Function<Case, Trials<TransformedCase>> step);
 
-        Trial<Case> filter(Predicate<Case> predicate);
+    abstract Trials<Case> filter(Predicate<Case> predicate);
 
-        class TrialException extends RuntimeException{
+    abstract static class TrialException extends RuntimeException {
+        /**
+         * @return The case that provoked the exception.
+         */
+        abstract Object provokingCase();
 
-        }
 
         /**
-         * Consume trial cases until either there are no more or an exception is thrown by {@code consumer}.
-         * If an exception is thrown, attempts will be made to shrink the trial case that caused the
-         * exception to a simpler case that throws an exception - the specific kind of exception isn't
-         * necessarily the same between the first exceptional case and the final simplified one. The exception
-         * from the simplified case (or the original exceptional case if it could not be simplified) is wrapped
-         * in an instance of {@link TrialException} which also contains the corresponding exceptional trial.
-         *
-         * @param consumer An operation that consumes a 'Case', and may throw an exception.
+         * @return A recipe that can be used to reproduce the provoking case
+         * when supplied to the corresponding trials instance.
          */
-        void yieldOrSimplifyExceptionalCase(Consumer<Case> consumer);
+        abstract String recipe();
     }
 
-    public static <Case> Trial<Case> constant(Case value) {
+    /**
+     * Consume trial cases until either there are no more or an exception is thrown by {@code consumer}.
+     * If an exception is thrown, attempts will be made to shrink the trial case that caused the
+     * exception to a simpler case that throws an exception - the specific kind of exception isn't
+     * necessarily the same between the first exceptional case and the final simplified one. The exception
+     * from the simplified case (or the original exceptional case if it could not be simplified) is wrapped
+     * in an instance of {@link TrialException} which also contains the case that provoked the exception.
+     *
+     * @param consumer An operation that consumes a 'Case', and may throw an exception.
+     */
+    abstract void supplyTo(Consumer<Case> consumer);
+
+    abstract Case reproduce(String recipe);
+
+
+    public static <Case> Trials<Case> constant(Case value) {
         throw new NotImplementedError();
     }
 
-    public static <Case> Trial<Case> choose(Case... choices) {
+    public static <Case> Trials<Case> choose(Case... choices) {
         throw new NotImplementedError();
     }
 
-    public static <Case> Trial<Case> choose(Iterable<Case> choices) {
+    public static <Case> Trials<Case> choose(Iterable<Case> choices) {
         throw new NotImplementedError();
     }
 
-    public static <Case> Trial<Case> alternate(Trial<Case>... alternatives) {
+    public static <Case> Trials<Case> alternate(Trials<Case>... alternatives) {
         throw new NotImplementedError();
     }
 
-    public static <Case> Trial<Case> alternate(Iterable<Trial<Case>> alternatives) {
+    public static <Case> Trials<Case> alternate(Iterable<Trials<Case>> alternatives) {
         throw new NotImplementedError();
     }
 }
