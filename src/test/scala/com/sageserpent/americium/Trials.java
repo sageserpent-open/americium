@@ -39,6 +39,16 @@ public abstract class Trials<Case> {
      */
     abstract void supplyTo(Consumer<Case> consumer);
 
+    /**
+     * Reproduce a specific case in a repeatable fashion, based on a recipe.
+     *
+     * @param recipe This encodes a specific case and will only be understood by the
+     *               same *value* of trials instance that was used to obtain it.
+     * @return The specific case denoted by the recipe.
+     *
+     * @throws RuntimeException if the recipe is not one corresponding to the receiver,
+     * either due to it being created by a different flavour of trials instance.
+     */
     abstract Case reproduce(String recipe);
 
 
