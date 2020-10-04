@@ -45,11 +45,25 @@ public abstract class Trials<Case> {
      * @param recipe This encodes a specific case and will only be understood by the
      *               same *value* of trials instance that was used to obtain it.
      * @return The specific case denoted by the recipe.
-     *
-     * @throws RuntimeException if the recipe is not one corresponding to the receiver,
-     * either due to it being created by a different flavour of trials instance.
+     * @throws RuntimeException if the recipe does not correspond to the receiver,
+     *                          either due to it being created by a different
+     *                          flavour of trials instance or subsequent code changes.
      */
     abstract Case reproduce(String recipe);
+
+    /**
+     * Consume the single trial case reproduced by a recipe. This is intended
+     * to repeatedly run a test against a known failing case when debugging, so
+     * the expectation is for this to *eventually* not throw an exception after
+     * code changes are made in the system under test.
+     *
+     * @param recipe   This encodes a specific case and will only be understood by the
+     *                 same *value* of trials instance that was used to obtain it.
+     * @param consumer An operation that consumes a 'Case', and may throw an exception.
+     * @throws RuntimeException if the recipe is not one corresponding to the receiver,
+     *                          either due to it being created by a different flavour of trials instance.
+     */
+    abstract void supplyTo(String recipe, Consumer<Case> consumer);
 
 
     public static <Case> Trials<Case> constant(Case value) {
