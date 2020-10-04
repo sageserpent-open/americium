@@ -11,13 +11,13 @@ trait RandomEnrichment {
         exclusiveLimit: X): X = {
       val typeClass = implicitly[Numeric[X]]
       import typeClass._
-      typeClass.fromInt((random.nextDouble() * exclusiveLimit.toLong).toInt)
+      fromInt((random.nextDouble() * exclusiveLimit.toLong).toInt)
     }
 
     def chooseAnyNumberFromOneTo[X: Numeric](inclusiveLimit: X) = {
       val typeClass = implicitly[Numeric[X]]
       import typeClass._
-      typeClass.one + chooseAnyNumberFromZeroToOneLessThan(inclusiveLimit)
+      one + chooseAnyNumberFromZeroToOneLessThan(inclusiveLimit)
     }
 
     def buildRandomSequenceOfDistinctIntegersFromZeroToOneLessThan(
@@ -343,7 +343,7 @@ trait RandomEnrichment {
 
     def chooseOneOf[X](candidates: Traversable[X]) = {
       // How does this algorithm work? It is a generalisation of the old trick of choosing an item from a sequence working down the sequence,
-      // either picking the head or recursing on to the tail of the sequence. The probablity of picking the head a each stage of recursion
+      // either picking the head or recursing on to the tail of the sequence. The probability of picking the head at each stage of recursion
       // increases in such a way that the cumulative product of the failure to pick probabilities and the final successful pick probability
       // always comes out to be the same. That's the standard algorithm, the generalisation here is to pick blocks rather than single items,
       // then to pick an exemplar from the chosen block as a final step. The block sizes go up geometrically, so the algorithm gets greedier as it carries
