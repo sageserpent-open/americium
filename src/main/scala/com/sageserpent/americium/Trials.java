@@ -37,7 +37,7 @@ public abstract class Trials<Case> {
      *
      * @param consumer An operation that consumes a 'Case', and may throw an exception.
      */
-    abstract void supplyTo(Consumer<Case> consumer);
+    abstract void supplyTo(Consumer<? super Case> consumer);
 
     /**
      * Reproduce a specific case in a repeatable fashion, based on a recipe.
@@ -66,23 +66,23 @@ public abstract class Trials<Case> {
     abstract void supplyTo(String recipe, Consumer<Case> consumer);
 
 
-    public static <Case> Trials<Case> constant(Case value) {
+    public static <SomeCase> Trials<SomeCase> constant(SomeCase value) {
         throw new NotImplementedError();
     }
 
-    public static <Case> Trials<Case> choose(Case... choices) {
+    public static <SomeCase> Trials<SomeCase> choose(SomeCase... choices) {
         throw new NotImplementedError();
     }
 
-    public static <Case> Trials<Case> choose(Iterable<Case> choices) {
+    public static <SomeCase> Trials<SomeCase> choose(Iterable<SomeCase> choices) {
         throw new NotImplementedError();
     }
 
-    public static <Case> Trials<Case> alternate(Trials<Case>... alternatives) {
+    public static <SomeCase> Trials<SomeCase> alternate(Trials<SomeCase>... alternatives) {
         throw new NotImplementedError();
     }
 
-    public static <Case> Trials<Case> alternate(Iterable<Trials<Case>> alternatives) {
+    public static <SomeCase> Trials<SomeCase> alternate(Iterable<Trials<SomeCase>> alternatives) {
         throw new NotImplementedError();
     }
 }
