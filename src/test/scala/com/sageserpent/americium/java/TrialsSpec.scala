@@ -1,4 +1,4 @@
-package com.sageserpent.americium
+package com.sageserpent.americium.java
 
 import java.util.function.Consumer
 
