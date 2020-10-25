@@ -7,24 +7,24 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 
 public abstract class Trials<Case> {
-    abstract <TransformedCase> Trials<TransformedCase> map(Function<Case, TransformedCase> transform);
+    public abstract <TransformedCase> Trials<TransformedCase> map(Function<Case, TransformedCase> transform);
 
-    abstract <TransformedCase> Trials<TransformedCase> flatMap(Function<Case, Trials<TransformedCase>> step);
+    public abstract <TransformedCase> Trials<TransformedCase> flatMap(Function<Case, Trials<TransformedCase>> step);
 
-    abstract Trials<Case> filter(Predicate<Case> predicate);
+    public abstract Trials<Case> filter(Predicate<Case> predicate);
 
-    abstract static class TrialException extends RuntimeException {
+    public abstract static class TrialException extends RuntimeException {
         /**
          * @return The case that provoked the exception.
          */
-        abstract Object provokingCase();
+        public abstract Object provokingCase();
 
 
         /**
          * @return A recipe that can be used to reproduce the provoking case
          * when supplied to the corresponding trials instance.
          */
-        abstract String recipe();
+        public abstract String recipe();
     }
 
     /**
@@ -37,7 +37,7 @@ public abstract class Trials<Case> {
      *
      * @param consumer An operation that consumes a 'Case', and may throw an exception.
      */
-    abstract void supplyTo(Consumer<? super Case> consumer);
+    public abstract void supplyTo(Consumer<? super Case> consumer);
 
     /**
      * Reproduce a specific case in a repeatable fashion, based on a recipe.
@@ -49,7 +49,7 @@ public abstract class Trials<Case> {
      *                          either due to it being created by a different
      *                          flavour of trials instance or subsequent code changes.
      */
-    abstract Case reproduce(String recipe);
+    public abstract Case reproduce(String recipe);
 
     /**
      * Consume the single trial case reproduced by a recipe. This is intended
@@ -63,7 +63,7 @@ public abstract class Trials<Case> {
      * @throws RuntimeException if the recipe is not one corresponding to the receiver,
      *                          either due to it being created by a different flavour of trials instance.
      */
-    abstract void supplyTo(String recipe, Consumer<Case> consumer);
+    public abstract void supplyTo(String recipe, Consumer<? super Case> consumer);
 
 
     public static <SomeCase> Trials<SomeCase> constant(SomeCase value) {
