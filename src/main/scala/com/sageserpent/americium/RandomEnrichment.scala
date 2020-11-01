@@ -303,7 +303,7 @@ trait RandomEnrichment {
       val swappedCandidates =
         if (500000 >= numberOfCandidates)
           scala.collection.mutable.Map[Int, X]()
-        else new java.util.TreeMap[Int, X] asScala
+        else new _root_.java.util.TreeMap[Int, X] asScala
 
       def chooseAndRecordUniqueCandidates(
           numberOfCandidatesAlreadyChosen: Int): Stream[X] = {
