@@ -7,11 +7,11 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 
 public abstract class Trials<Case> {
-    public abstract <TransformedCase> Trials<TransformedCase> map(Function<Case, TransformedCase> transform);
+    public abstract <TransformedCase> Trials<TransformedCase> map(Function<? super Case, TransformedCase> transform);
 
-    public abstract <TransformedCase> Trials<TransformedCase> flatMap(Function<Case, Trials<TransformedCase>> step);
+    public abstract <TransformedCase> Trials<TransformedCase> flatMap(Function<? super Case, Trials<TransformedCase>> step);
 
-    public abstract Trials<Case> filter(Predicate<Case> predicate);
+    public abstract Trials<Case> filter(Predicate<? super Case> predicate);
 
     public abstract static class TrialException extends RuntimeException {
         /**
