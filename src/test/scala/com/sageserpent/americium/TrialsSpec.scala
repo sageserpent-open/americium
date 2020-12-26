@@ -1,12 +1,9 @@
-package com.sageserpent.americium.java
+package com.sageserpent.americium
 
-import java.util.function.Consumer
-
+import com.sageserpent.americium.java.{Trials => JavaTrials}
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.prop.TableDrivenPropertyChecks
 import org.scalatest.{FlatSpec, Matchers}
-
-import scala.collection.JavaConverters._
 
 class TrialsSpec
     extends FlatSpec
@@ -28,28 +25,28 @@ class TrialsSpec
   12.  When a case provokes an exception, the exception yielded refers to a case that is either the same as the original or is simpler.
    */
 
-  "a constant case" should "yield just one trial" in
+  "only one case" should "yield just one trial" in
     forAll(Table("case", 1, "foo", 2.3, List(false, 0, true))) { dataCase =>
-      val sut = Trials.constant(dataCase)
+      val sut = Trials.only(dataCase)
 
-      val mockConsumer = mock[Consumer[Any]]
+      val mockConsumer = mock[Any => Unit]
 
       sut.supplyTo(mockConsumer)
 
-      (mockConsumer.accept _).verify(dataCase)
+      (mockConsumer.apply _).verify(dataCase)
     }
 
-  "a constant case that provokes an exception" should "result in an exception that references it" in
+  "only one case that provokes an exception" should "result in an exception that references it" in
     forAll(Table("case", 1, "foo", 2.3, Seq(false, 0, true))) { dataCase =>
-      val sut = Trials.constant(dataCase)
+      val sut = Trials.only(dataCase)
 
       val problem = new RuntimeException("Test problem")
 
-      val mockConsumer = mock[Consumer[Any]]
+      val mockConsumer = mock[Any => Unit]
 
-      (mockConsumer.accept _).when(dataCase).throwing(problem)
+      (mockConsumer.apply _).when(dataCase).throwing(problem)
 
-      val exception = intercept[Trials.TrialException]{
+      val exception = intercept[JavaTrials.TrialException] {
         sut.supplyTo(mockConsumer)
       }
 
@@ -58,14 +55,21 @@ class TrialsSpec
     }
 
   "a choice" should "yield all and only the cases given to it" in
-    forAll(Table("possibleChoices", Seq.empty, 1 to 10, -5 to 5 map (_.toString), Seq(true), Seq(4.3))) { possibleChoices =>
-      val sut: Trials[Any] = Trials.choose(possibleChoices.asJavaCollection)
+    forAll(
+      Table("possibleChoices",
+            Seq.empty,
+            1 to 10,
+            -5 to 5 map (_.toString),
+            Seq(true),
+            Seq(4.3))) { possibleChoices =>
+      val sut: Trials[Any] = Trials.choose(possibleChoices)
 
-      val mockConsumer = mock[Consumer[Any]]
+      val mockConsumer = mock[Any => Unit]
 
       sut.supplyTo(mockConsumer)
 
-      possibleChoices.foreach(possibleChoice => (mockConsumer.accept _).verify(possibleChoice))
+      possibleChoices.foreach(possibleChoice =>
+        (mockConsumer.apply _).verify(possibleChoice))
     }
 
 }
