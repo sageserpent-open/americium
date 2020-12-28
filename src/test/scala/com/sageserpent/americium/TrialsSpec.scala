@@ -1,6 +1,5 @@
 package com.sageserpent.americium
 
-import com.sageserpent.americium.java.{Trials => JavaTrials}
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.prop.TableDrivenPropertyChecks
 import org.scalatest.{FlatSpec, Matchers}
@@ -46,7 +45,7 @@ class TrialsSpec
 
       (mockConsumer.apply _).when(dataCase).throwing(problem)
 
-      val exception = intercept[JavaTrials.TrialException] {
+      val exception = intercept[sut.TrialException] {
         sut.supplyTo(mockConsumer)
       }
 

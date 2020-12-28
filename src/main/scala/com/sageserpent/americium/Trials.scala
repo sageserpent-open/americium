@@ -1,47 +1,12 @@
 package com.sageserpent.americium
 
-import com.sageserpent.americium.java.{Trials => JavaTrials}
-
-import _root_.java.util.function.{Consumer, Predicate, Function => JavaFunction}
+import java.lang.{Iterable => JavaIterable}
+import java.util.function.{Consumer, Predicate, Function => JavaFunction}
+import scala.annotation.varargs
+import scala.collection.JavaConverters._
 
 object Trials {
-  implicit class JavaTrialsSyntax[Case](val trials: Trials[Case])
-      extends JavaTrials[Case] {
-    override def map[TransformedCase](
-        transform: JavaFunction[_ >: Case, TransformedCase])
-      : JavaTrials[TransformedCase] =
-      new JavaTrialsSyntax(trials.map(transform.apply))
-
-    override def flatMap[TransformedCase](
-        step: JavaFunction[_ >: Case, JavaTrials[TransformedCase]])
-      : JavaTrials[TransformedCase] =
-      new JavaTrialsSyntax(trials.flatMap(step.apply _ andThen (javaResult =>
-        new Trials[TransformedCase] {
-          override def supplyTo(consumer: TransformedCase => Unit): Unit =
-            javaResult.supplyTo(consumer.apply)
-          override def reproduce(recipe: String): TransformedCase =
-            javaResult.reproduce(recipe)
-        })))
-
-    override def filter(predicate: Predicate[_ >: Case]): JavaTrials[Case] =
-      new JavaTrialsSyntax(trials.filter(predicate.test))
-
-    override def supplyTo(consumer: Consumer[_ >: Case]): Unit =
-      trials.supplyTo(consumer)
-
-    override def reproduce(recipe: String): Case = trials.reproduce(recipe)
-
-    override def supplyTo(recipe: String, consumer: Consumer[_ >: Case]): Unit =
-      trials.supplyTo(recipe, consumer)
-  }
-
   def only[SomeCase](onlyCase: SomeCase): Trials[SomeCase] = {
-    throw new NotImplementedError
-  }
-
-  def choose[SomeCase](firstChoice: SomeCase,
-                       secondChoice: SomeCase,
-                       otherChoices: SomeCase*): Trials[SomeCase] = {
     throw new NotImplementedError
   }
 
@@ -49,16 +14,56 @@ object Trials {
     throw new NotImplementedError
 
   def alternate[SomeCase](
-      firstAlternative: Trials[SomeCase],
-      secondAlternative: Trials[SomeCase],
-      otherAlternatives: Trials[SomeCase]*): Trials[SomeCase] = {
-    throw new NotImplementedError
-  }
-
-  def alternate[SomeCase](
       alternatives: Iterable[Trials[SomeCase]]): Trials[SomeCase] = {
     throw new NotImplementedError
   }
+
+  /**
+    * Produce a trials instance that chooses between several cases.
+    * <p>
+    * NOTE: the peculiar signature is to avoid ambiguity with the overloads for an iterable / array of cases.
+    *
+    * @param firstChoice  Mandatory first choice, so there is at least one case.
+    * @param secondChoice Mandatory second choice, so there is always some element of choice.
+    * @param otherChoices Optional further choices.
+    * @return The trials instance.
+    */
+  @varargs
+  def choose[SomeCase](firstChoice: SomeCase,
+                       secondChoice: SomeCase,
+                       otherChoices: SomeCase*): Trials[SomeCase] =
+    choose(firstChoice +: secondChoice +: otherChoices)
+
+  def choose[SomeCase](choices: JavaIterable[SomeCase]): Trials[SomeCase] =
+    choose(choices.asScala)
+
+  def choose[SomeCase](choices: Array[SomeCase]): Trials[SomeCase] =
+    choose(choices.toSeq)
+
+  /**
+    * Produce a trials instance that alternates between the cases of the given alternatives.
+    * <p>
+    * NOTE: the peculiar signature is to avoid ambiguity with the overloads for an iterable / array of cases.
+    *
+    * @param firstAlternative  Mandatory first alternative, so there is at least one trials.
+    * @param secondAlternative Mandatory second alternative, so there is always some element of choice.
+    * @param otherAlternatives Optional further alternatives.
+    * @return The trials instance.
+    */
+  @varargs
+  def alternate[SomeCase](
+      firstAlternative: Trials[SomeCase],
+      secondAlternative: Trials[SomeCase],
+      otherAlternatives: Trials[SomeCase]*): Trials[SomeCase] =
+    alternate(firstAlternative +: secondAlternative +: otherAlternatives)
+
+  def alternate[SomeCase](
+      alternatives: JavaIterable[Trials[SomeCase]]): Trials[SomeCase] =
+    alternate(alternatives.asScala)
+
+  def alternate[SomeCase](
+      alternatives: Array[Trials[SomeCase]]): Trials[SomeCase] =
+    alternate(alternatives.toSeq)
 }
 
 trait Trials[+Case] {
@@ -72,8 +77,67 @@ trait Trials[+Case] {
 
   def supplyTo(consumer: Case => Unit): Unit
 
-  def reproduce(recipe: String): Case
-
   def supplyTo(recipe: String, consumer: Case => Unit): Unit =
     consumer(reproduce(recipe))
+
+  def map[TransformedCase](transform: JavaFunction[_ >: Case, TransformedCase])
+    : Trials[TransformedCase]
+
+  def flatMap[TransformedCase](
+      step: JavaFunction[_ >: Case, Trials[TransformedCase]])
+    : Trials[TransformedCase]
+
+  def filter(predicate: Predicate[_ >: Case]): Trials[Case]
+
+  abstract class TrialException extends RuntimeException {
+
+    /**
+      * @return The case that provoked the exception.
+      */
+    def provokingCase: Case
+
+    /**
+      * @return A recipe that can be used to reproduce the provoking case
+      *         when supplied to the corresponding trials instance.
+      */
+    def recipe: String
+  }
+
+  /**
+    * Consume trial cases until either there are no more or an exception is thrown by {@code consumer}.
+    * If an exception is thrown, attempts will be made to shrink the trial case that caused the
+    * exception to a simpler case that throws an exception - the specific kind of exception isn't
+    * necessarily the same between the first exceptional case and the final simplified one. The exception
+    * from the simplified case (or the original exceptional case if it could not be simplified) is wrapped
+    * in an instance of {@link TrialException} which also contains the case that provoked the exception.
+    *
+    * @param consumer An operation that consumes a 'Case', and may throw an exception.
+    */
+  def supplyTo(consumer: Consumer[_ >: Case]): Unit
+
+  /**
+    * Reproduce a specific case in a repeatable fashion, based on a recipe.
+    *
+    * @param recipe This encodes a specific case and will only be understood by the
+    *               same *value* of trials instance that was used to obtain it.
+    * @return The specific case denoted by the recipe.
+    * @throws RuntimeException if the recipe does not correspond to the receiver,
+    *                          either due to it being created by a different
+    *                          flavour of trials instance or subsequent code changes.
+    */
+  def reproduce(recipe: String): Case
+
+  /**
+    * Consume the single trial case reproduced by a recipe. This is intended
+    * to repeatedly run a test against a known failing case when debugging, so
+    * the expectation is for this to *eventually* not throw an exception after
+    * code changes are made in the system under test.
+    *
+    * @param recipe   This encodes a specific case and will only be understood by the
+    *                 same *value* of trials instance that was used to obtain it.
+    * @param consumer An operation that consumes a 'Case', and may throw an exception.
+    * @throws RuntimeException if the recipe is not one corresponding to the receiver,
+    *                          either due to it being created by a different flavour of trials instance.
+    */
+  def supplyTo(recipe: String, consumer: Consumer[_ >: Case]): Unit
 }
