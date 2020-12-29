@@ -7,7 +7,7 @@ import scala.collection.JavaConverters._
 
 object Trials {
   // Scala-only API ...
-  def choose[SomeCase](choices: Iterable[SomeCase]) =
+  def choose[SomeCase](choices: Iterable[SomeCase]): Trials[SomeCase] =
     throw new NotImplementedError
 
   def alternate[SomeCase](
