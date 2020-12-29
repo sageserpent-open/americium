@@ -16,6 +16,8 @@ object Trials extends TrialsApi {
     throw new NotImplementedError
   }
 
+  def api: TrialsApi = this
+
   // Java/Scala API ...
 
   def only[SomeCase](onlyCase: SomeCase): Trials[SomeCase] = {
