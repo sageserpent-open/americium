@@ -6,15 +6,18 @@ import scala.annotation.varargs
 import scala.collection.JavaConverters._
 
 object Trials {
-  def only[SomeCase](onlyCase: SomeCase): Trials[SomeCase] = {
-    throw new NotImplementedError
-  }
-
+  // Scala-only API ...
   def choose[SomeCase](choices: Iterable[SomeCase]) =
     throw new NotImplementedError
 
   def alternate[SomeCase](
       alternatives: Iterable[Trials[SomeCase]]): Trials[SomeCase] = {
+    throw new NotImplementedError
+  }
+
+  // Java/Scala API ...
+
+  def only[SomeCase](onlyCase: SomeCase): Trials[SomeCase] = {
     throw new NotImplementedError
   }
 
@@ -44,6 +47,13 @@ object Trials {
     * Produce a trials instance that alternates between the cases of the given alternatives.
     * <p>
     * NOTE: the peculiar signature is to avoid ambiguity with the overloads for an iterable / array of cases.
+    * <p>
+    * TODO: The original plan was to use 'Trials[_ <: SomeCase]' for the two leading arguments *and* for
+    * the optional ones - but this won't compile, see <a href="https://github.com/scala/bug/issues/11024">this bug</a>,
+    * <a href="https://github.com/scala/scala-dev/issues/591">this issue</a> and
+    * <a href="https://github.com/scala/scala/pull/7703">this pull request</a> for some insight.
+    * It would be good to sort this out so that Java clients can enjoy covariance on the arguments,
+    * just as Scala clients already can.
     *
     * @param firstAlternative  Mandatory first alternative, so there is at least one trials.
     * @param secondAlternative Mandatory second alternative, so there is always some element of choice.
@@ -67,6 +77,8 @@ object Trials {
 }
 
 trait Trials[+Case] {
+  // Scala-only API ...
+
   def map[TransformedCase](
       transform: Case => TransformedCase): Trials[TransformedCase] = ???
 
@@ -80,14 +92,17 @@ trait Trials[+Case] {
   def supplyTo(recipe: String, consumer: Case => Unit): Unit =
     consumer(reproduce(recipe))
 
+  // Java/Scala API ...
+
   def map[TransformedCase](transform: JavaFunction[_ >: Case, TransformedCase])
-    : Trials[TransformedCase]
+    : Trials[TransformedCase] = map(transform.apply _)
 
   def flatMap[TransformedCase](
       step: JavaFunction[_ >: Case, Trials[TransformedCase]])
-    : Trials[TransformedCase]
+    : Trials[TransformedCase] = flatMap(step.apply _)
 
-  def filter(predicate: Predicate[_ >: Case]): Trials[Case]
+  def filter(predicate: Predicate[_ >: Case]): Trials[Case] =
+    filter(predicate.test _)
 
   abstract class TrialException extends RuntimeException {
 
@@ -113,7 +128,8 @@ trait Trials[+Case] {
     *
     * @param consumer An operation that consumes a 'Case', and may throw an exception.
     */
-  def supplyTo(consumer: Consumer[_ >: Case]): Unit
+  def supplyTo(consumer: Consumer[_ >: Case]): Unit =
+    supplyTo(consumer.accept _)
 
   /**
     * Reproduce a specific case in a repeatable fashion, based on a recipe.
@@ -139,5 +155,6 @@ trait Trials[+Case] {
     * @throws RuntimeException if the recipe is not one corresponding to the receiver,
     *                          either due to it being created by a different flavour of trials instance.
     */
-  def supplyTo(recipe: String, consumer: Consumer[_ >: Case]): Unit
+  def supplyTo(recipe: String, consumer: Consumer[_ >: Case]): Unit =
+    supplyTo(recipe, consumer.accept _)
 }
