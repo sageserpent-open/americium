@@ -1,7 +1,10 @@
 
 import com.sageserpent.americium.Trials
+import com.sageserpent.americium.java.TrialsApi
 
 import java.util.function.{Consumer, Predicate, Function => JavaFunction}
+
+val trialsApi: TrialsApi = Trials
 
 val trials: Trials[Int] = new Trials[Int] {
 
@@ -15,11 +18,11 @@ val trials: Trials[Int] = new Trials[Int] {
       *                          either due to it being created by a different
       *                          flavour of trials instance or subsequent code changes.
       */
-  override def reproduce(recipe: String) = ???
+  override def reproduce(recipe: String): Int = ???
 
   override def supplyTo(consumer: Int => Unit): Unit = ???
 
-  override def filter(predicate: Predicate[_ >: Int]) = ???
+  override def filter(predicate: Predicate[_ >: Int]): Trials[Int] = ???
 
   /**
       * Consume trial cases until either there are no more or an exception is thrown by {@code consumer}.
@@ -50,7 +53,7 @@ val trials: Trials[Int] = new Trials[Int] {
 }
 
 val flatMappedTrials: Trials[Int] = trials flatMap ((integer =>
-  Trials.only(integer)): JavaFunction[Int, Trials[Int]])
+  trialsApi.only(integer)): JavaFunction[Int, Trials[Int]])
 
 val mappedTrials
   : Trials[Double] = trials map ((_ * 2.5): JavaFunction[Int, Double])

@@ -1,11 +1,12 @@
 package com.sageserpent.americium
 
-import java.lang.{Iterable => JavaIterable}
-import java.util.function.{Consumer, Predicate, Function => JavaFunction}
-import scala.annotation.varargs
+import com.sageserpent.americium.java.TrialsApi
+
+import _root_.java.lang.{Iterable => JavaIterable}
+import _root_.java.util.function.{Consumer, Predicate, Function => JavaFunction}
 import scala.collection.JavaConverters._
 
-object Trials {
+object Trials extends TrialsApi {
   // Scala-only API ...
   def choose[SomeCase](choices: Iterable[SomeCase]): Trials[SomeCase] =
     throw new NotImplementedError
@@ -21,17 +22,6 @@ object Trials {
     throw new NotImplementedError
   }
 
-  /**
-    * Produce a trials instance that chooses between several cases.
-    * <p>
-    * NOTE: the peculiar signature is to avoid ambiguity with the overloads for an iterable / array of cases.
-    *
-    * @param firstChoice  Mandatory first choice, so there is at least one case.
-    * @param secondChoice Mandatory second choice, so there is always some element of choice.
-    * @param otherChoices Optional further choices.
-    * @return The trials instance.
-    */
-  @varargs
   def choose[SomeCase](firstChoice: SomeCase,
                        secondChoice: SomeCase,
                        otherChoices: SomeCase*): Trials[SomeCase] =
@@ -40,32 +30,16 @@ object Trials {
   def choose[SomeCase](choices: JavaIterable[SomeCase]): Trials[SomeCase] =
     choose(choices.asScala)
 
-  def choose[SomeCase](choices: Array[SomeCase]): Trials[SomeCase] =
+  def choose[SomeCase](choices: Array[SomeCase with AnyRef]): Trials[SomeCase] =
     choose(choices.toSeq)
 
-  /**
-    * Produce a trials instance that alternates between the cases of the given alternatives.
-    * <p>
-    * NOTE: the peculiar signature is to avoid ambiguity with the overloads for an iterable / array of cases.
-    * <p>
-    * TODO: The original plan was to use 'Trials[_ <: SomeCase]' for the two leading arguments *and* for
-    * the optional ones - but this won't compile, see <a href="https://github.com/scala/bug/issues/11024">this bug</a>,
-    * <a href="https://github.com/scala/scala-dev/issues/591">this issue</a> and
-    * <a href="https://github.com/scala/scala/pull/7703">this pull request</a> for some insight.
-    * It would be good to sort this out so that Java clients can enjoy covariance on the arguments,
-    * just as Scala clients already can.
-    *
-    * @param firstAlternative  Mandatory first alternative, so there is at least one trials.
-    * @param secondAlternative Mandatory second alternative, so there is always some element of choice.
-    * @param otherAlternatives Optional further alternatives.
-    * @return The trials instance.
-    */
-  @varargs
   def alternate[SomeCase](
-      firstAlternative: Trials[SomeCase],
-      secondAlternative: Trials[SomeCase],
-      otherAlternatives: Trials[SomeCase]*): Trials[SomeCase] =
-    alternate(firstAlternative +: secondAlternative +: otherAlternatives)
+      firstAlternative: com.sageserpent.americium.Trials[_ <: SomeCase],
+      secondAlternative: com.sageserpent.americium.Trials[_ <: SomeCase],
+      otherAlternatives: com.sageserpent.americium.Trials[_ <: SomeCase]*)
+    : com.sageserpent.americium.Trials[SomeCase] =
+    alternate(
+      firstAlternative +: secondAlternative +: Seq(otherAlternatives: _*))
 
   def alternate[SomeCase](
       alternatives: JavaIterable[Trials[SomeCase]]): Trials[SomeCase] =
