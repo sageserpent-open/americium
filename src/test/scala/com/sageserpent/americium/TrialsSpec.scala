@@ -28,11 +28,11 @@ class TrialsSpec
     forAll(Table("case", 1, "foo", 2.3, List(false, 0, true))) { dataCase =>
       val sut = Trials.only(dataCase)
 
-      val mockConsumer = mock[Any => Unit]
+      val mockConsumer = stubFunction[Any, Unit]
 
       sut.supplyTo(mockConsumer)
 
-      (mockConsumer.apply _).verify(dataCase)
+      mockConsumer.verify(dataCase)
     }
 
   "only one case that provokes an exception" should "result in an exception that references it" in
@@ -41,9 +41,9 @@ class TrialsSpec
 
       val problem = new RuntimeException("Test problem")
 
-      val mockConsumer = mock[Any => Unit]
+      val mockConsumer = stubFunction[Any, Unit]
 
-      (mockConsumer.apply _).when(dataCase).throwing(problem)
+      mockConsumer.when(dataCase).throwing(problem)
 
       val exception = intercept[sut.TrialException] {
         sut.supplyTo(mockConsumer)
@@ -63,12 +63,12 @@ class TrialsSpec
             Seq(4.3))) { possibleChoices =>
       val sut: Trials[Any] = Trials.choose(possibleChoices)
 
-      val mockConsumer = mock[Any => Unit]
+      val mockConsumer = stubFunction[Any, Unit]
 
       sut.supplyTo(mockConsumer)
 
       possibleChoices.foreach(possibleChoice =>
-        (mockConsumer.apply _).verify(possibleChoice))
+        mockConsumer.verify(possibleChoice))
     }
 
 }

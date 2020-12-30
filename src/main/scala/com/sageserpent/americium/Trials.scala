@@ -1,5 +1,6 @@
 package com.sageserpent.americium
 
+import com.sageserpent.americium.Trials.dummy
 import com.sageserpent.americium.java.TrialsApi
 
 import _root_.java.lang.{Iterable => JavaIterable}
@@ -7,13 +8,29 @@ import _root_.java.util.function.{Consumer, Predicate, Function => JavaFunction}
 import scala.collection.JavaConverters._
 
 object Trials extends TrialsApi {
+  private val dummy: Trials[Nothing] = new Trials[Nothing] {
+    override def supplyTo(consumer: Nothing => Unit): Unit = {}
+
+    /**
+      * Reproduce a specific case in a repeatable fashion, based on a recipe.
+      *
+      * @param recipe This encodes a specific case and will only be understood by the
+      *               same *value* of trials instance that was used to obtain it.
+      * @return The specific case denoted by the recipe.
+      * @throws RuntimeException if the recipe does not correspond to the receiver,
+      *                          either due to it being created by a different
+      *                          flavour of trials instance or subsequent code changes.
+      */
+    override def reproduce(recipe: String): Nothing = ???
+  }
+
   // Scala-only API ...
   def choose[SomeCase](choices: Iterable[SomeCase]): Trials[SomeCase] =
-    throw new NotImplementedError
+    dummy
 
   def alternate[SomeCase](
       alternatives: Iterable[Trials[SomeCase]]): Trials[SomeCase] = {
-    throw new NotImplementedError
+    dummy
   }
 
   def api: TrialsApi = this
@@ -21,7 +38,7 @@ object Trials extends TrialsApi {
   // Java/Scala API ...
 
   def only[SomeCase](onlyCase: SomeCase): Trials[SomeCase] = {
-    throw new NotImplementedError
+    dummy
   }
 
   def choose[SomeCase](firstChoice: SomeCase,
@@ -56,12 +73,12 @@ trait Trials[+Case] {
   // Scala-only API ...
 
   def map[TransformedCase](
-      transform: Case => TransformedCase): Trials[TransformedCase] = ???
+      transform: Case => TransformedCase): Trials[TransformedCase] = dummy
 
   def flatMap[TransformedCase](
-      step: Case => Trials[TransformedCase]): Trials[TransformedCase] = ???
+      step: Case => Trials[TransformedCase]): Trials[TransformedCase] = dummy
 
-  def filter(predicate: Case => Boolean): Trials[Case] = ???
+  def filter(predicate: Case => Boolean): Trials[Case] = dummy
 
   def supplyTo(consumer: Case => Unit): Unit
 
