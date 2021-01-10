@@ -9,6 +9,7 @@ class TrialsSpec
     with Matchers
     with MockFactory
     with TableDrivenPropertyChecks {
+  autoVerify = false
   /*
   1.   A constant case yields just one trial.
   2.   A constant case that provokes an exception will result in an exception referencing that case.
@@ -26,31 +27,35 @@ class TrialsSpec
 
   "only one case" should "yield just one trial" in
     forAll(Table("case", 1, "foo", 2.3, List(false, 0, true))) { dataCase =>
-      val sut = Trials.only(dataCase)
+      withExpectations {
+        val sut = Trials.only(dataCase)
 
-      val mockConsumer = stubFunction[Any, Unit]
+        val mockConsumer = stubFunction[Any, Unit]
 
-      sut.supplyTo(mockConsumer)
+        sut.supplyTo(mockConsumer)
 
-      mockConsumer.verify(dataCase)
+        mockConsumer.verify(dataCase)
+      }
     }
 
   "only one case that provokes an exception" should "result in an exception that references it" in
     forAll(Table("case", 1, "foo", 2.3, Seq(false, 0, true))) { dataCase =>
-      val sut = Trials.only(dataCase)
+      withExpectations {
+        val sut = Trials.only(dataCase)
 
-      val problem = new RuntimeException("Test problem")
+        val problem = new RuntimeException("Test problem")
 
-      val mockConsumer = stubFunction[Any, Unit]
+        val mockConsumer = stubFunction[Any, Unit]
 
-      mockConsumer.when(dataCase).throwing(problem)
+        mockConsumer.when(dataCase).throwing(problem)
 
-      val exception = intercept[sut.TrialException] {
-        sut.supplyTo(mockConsumer)
+        val exception = intercept[sut.TrialException] {
+          sut.supplyTo(mockConsumer)
+        }
+
+        exception.getCause should be(problem)
+        exception.provokingCase should be(dataCase)
       }
-
-      exception.getCause should be(problem)
-      exception.provokingCase should be(dataCase)
     }
 
   "a choice" should "yield all and only the cases given to it" in
@@ -61,14 +66,16 @@ class TrialsSpec
             -5 to 5 map (_.toString),
             Seq(true),
             Seq(4.3))) { possibleChoices =>
-      val sut: Trials[Any] = Trials.choose(possibleChoices)
+      withExpectations {
+        val sut: Trials[Any] = Trials.choose(possibleChoices)
 
-      val mockConsumer = stubFunction[Any, Unit]
+        val mockConsumer = stubFunction[Any, Unit]
 
-      sut.supplyTo(mockConsumer)
+        sut.supplyTo(mockConsumer)
 
-      possibleChoices.foreach(possibleChoice =>
-        mockConsumer.verify(possibleChoice))
+        possibleChoices.foreach(possibleChoice =>
+          mockConsumer.verify(possibleChoice))
+      }
     }
 
 }
