@@ -2,6 +2,7 @@ package com.sageserpent.americium
 
 import com.sageserpent.americium.Trials.MutableState
 import com.sageserpent.americium.java.TrialsApi
+import com.sageserpent.americium.randomEnrichment._
 
 import _root_.java.lang.{Iterable => JavaIterable}
 import _root_.java.util.function.{Consumer, Predicate, Function => JavaFunction}
@@ -14,7 +15,12 @@ object Trials extends TrialsApi {
     TrialsImplementation(_.randomBehaviour.shuffle(choices).toStream)
 
   def alternate[SomeCase](
-      alternatives: Iterable[Trials[SomeCase]]): Trials[SomeCase] = ???
+      alternatives: Iterable[Trials[SomeCase]]): Trials[SomeCase] =
+    TrialsImplementation { mutableState =>
+      // FIXME: this implementation is completely wrong; need a test to prove it is....
+      val alternative = mutableState.randomBehaviour.chooseOneOf(alternatives)
+      alternative.generate(mutableState)
+    }
 
   def api: TrialsApi = this
 
