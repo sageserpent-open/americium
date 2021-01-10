@@ -10,7 +10,8 @@ import scala.util.Random
 
 object Trials extends TrialsApi {
   // Scala-only API ...
-  def choose[SomeCase](choices: Iterable[SomeCase]): Trials[SomeCase] = ???
+  def choose[SomeCase](choices: Iterable[SomeCase]): Trials[SomeCase] =
+    TrialsImplementation(_.randomBehaviour.shuffle(choices).toStream)
 
   def alternate[SomeCase](
       alternatives: Iterable[Trials[SomeCase]]): Trials[SomeCase] = ???
