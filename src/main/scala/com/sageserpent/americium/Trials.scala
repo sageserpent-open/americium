@@ -1,45 +1,26 @@
 package com.sageserpent.americium
 
-import com.sageserpent.americium.Trials.dummy
+import com.sageserpent.americium.Trials.MutableState
 import com.sageserpent.americium.java.TrialsApi
 
 import _root_.java.lang.{Iterable => JavaIterable}
 import _root_.java.util.function.{Consumer, Predicate, Function => JavaFunction}
 import scala.collection.JavaConverters._
+import scala.util.Random
 
 object Trials extends TrialsApi {
-  private val dummy: Trials[Nothing] = new Trials[Nothing] {
-    override def supplyTo(consumer: Nothing => Unit): Unit = {}
-
-    /**
-      * Reproduce a specific case in a repeatable fashion, based on a recipe.
-      *
-      * @param recipe This encodes a specific case and will only be understood by the
-      *               same *value* of trials instance that was used to obtain it.
-      * @return The specific case denoted by the recipe.
-      * @throws RuntimeException if the recipe does not correspond to the receiver,
-      *                          either due to it being created by a different
-      *                          flavour of trials instance or subsequent code changes.
-      */
-    override def reproduce(recipe: String): Nothing = ???
-  }
-
   // Scala-only API ...
-  def choose[SomeCase](choices: Iterable[SomeCase]): Trials[SomeCase] =
-    dummy
+  def choose[SomeCase](choices: Iterable[SomeCase]): Trials[SomeCase] = ???
 
   def alternate[SomeCase](
-      alternatives: Iterable[Trials[SomeCase]]): Trials[SomeCase] = {
-    dummy
-  }
+      alternatives: Iterable[Trials[SomeCase]]): Trials[SomeCase] = ???
 
   def api: TrialsApi = this
 
   // Java/Scala API ...
 
-  def only[SomeCase](onlyCase: SomeCase): Trials[SomeCase] = {
-    dummy
-  }
+  def only[SomeCase](onlyCase: SomeCase): Trials[SomeCase] =
+    TrialsImplementation(_ => Stream(onlyCase))
 
   def choose[SomeCase](firstChoice: SomeCase,
                        secondChoice: SomeCase,
@@ -67,25 +48,27 @@ object Trials extends TrialsApi {
   def alternate[SomeCase](
       alternatives: Array[Trials[SomeCase]]): Trials[SomeCase] =
     alternate(alternatives.toSeq)
+
+  case class MutableState(randomBehaviour: Random)
 }
 
 trait Trials[+Case] {
   // Scala-only API ...
 
   def map[TransformedCase](
-      transform: Case => TransformedCase): Trials[TransformedCase] = dummy
+      transform: Case => TransformedCase): Trials[TransformedCase]
 
   def flatMap[TransformedCase](
-      step: Case => Trials[TransformedCase]): Trials[TransformedCase] = dummy
+      step: Case => Trials[TransformedCase]): Trials[TransformedCase]
 
-  def filter(predicate: Case => Boolean): Trials[Case] = dummy
+  def filter(predicate: Case => Boolean): Trials[Case]
 
   def supplyTo(consumer: Case => Unit): Unit
 
   def supplyTo(recipe: String, consumer: Case => Unit): Unit =
     consumer(reproduce(recipe))
 
-  // Java/Scala API ...
+  // Java API ...
 
   def map[TransformedCase](transform: JavaFunction[_ >: Case, TransformedCase])
     : Trials[TransformedCase] = map(transform.apply _)
@@ -96,20 +79,6 @@ trait Trials[+Case] {
 
   def filter(predicate: Predicate[_ >: Case]): Trials[Case] =
     filter(predicate.test _)
-
-  abstract class TrialException extends RuntimeException {
-
-    /**
-      * @return The case that provoked the exception.
-      */
-    def provokingCase: Case
-
-    /**
-      * @return A recipe that can be used to reproduce the provoking case
-      *         when supplied to the corresponding trials instance.
-      */
-    def recipe: String
-  }
 
   /**
     * Consume trial cases until either there are no more or an exception is thrown by {@code consumer}.
@@ -146,8 +115,34 @@ trait Trials[+Case] {
     *                 same *value* of trials instance that was used to obtain it.
     * @param consumer An operation that consumes a 'Case', and may throw an exception.
     * @throws RuntimeException if the recipe is not one corresponding to the receiver,
-    *                          either due to it being created by a different flavour of trials instance.
+    *                          either due to it being created by a different flavour
+    *                          of trials instance.
     */
   def supplyTo(recipe: String, consumer: Consumer[_ >: Case]): Unit =
     supplyTo(recipe, consumer.accept _)
+
+  // Scala and Java API ...
+
+  abstract class TrialException extends RuntimeException {
+
+    /**
+      * @return The case that provoked the exception.
+      */
+    def provokingCase: Case
+
+    /**
+      * @return A recipe that can be used to reproduce the provoking case
+      *         when supplied to the corresponding trials instance.
+      */
+    def recipe: String
+  }
+
+  // Embarrassing stuff...
+
+  // NASTY HACK: this is leakage of the implementation subclass, and should at least
+  // be protected or pulled in via a self-type annotation, but this doesn't play well
+  // with the signature of 'flatMap'. Any suggestions as to how to workaround this are
+  // welcome, ideally this entire trait would be a free monad or something similar, with
+  // its interpreter hidden away.
+  val generate: MutableState => Stream[Case]
 }
