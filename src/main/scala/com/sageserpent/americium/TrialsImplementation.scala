@@ -28,7 +28,18 @@ case class TrialsImplementation[+Case](
   override def supplyTo(consumer: Case => Unit): Unit = {
     val randomBehaviour = new Random(734874)
 
-    generate(MutableState(randomBehaviour)).foreach(consumer)
+    generate(MutableState(randomBehaviour)).foreach { testCase =>
+      try {
+        consumer(testCase)
+      } catch {
+        case exception =>
+          throw new TrialException(exception) {
+            override def provokingCase: Case = testCase
+
+            override def recipe: String = ???
+          }
+      }
+    }
   }
 
   override def reproduce(recipe: String): Case = ???

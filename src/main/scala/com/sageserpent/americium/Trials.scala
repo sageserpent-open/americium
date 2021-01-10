@@ -123,7 +123,8 @@ trait Trials[+Case] {
 
   // Scala and Java API ...
 
-  abstract class TrialException extends RuntimeException {
+  abstract class TrialException(cause: Throwable)
+      extends RuntimeException(cause) {
 
     /**
       * @return The case that provoked the exception.
