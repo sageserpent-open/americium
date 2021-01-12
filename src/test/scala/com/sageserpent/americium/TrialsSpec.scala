@@ -78,4 +78,23 @@ class TrialsSpec
       }
     }
 
+  "an alternation" should "yield all and only the cases that would be yielded by its alternatives" in
+    forAll(
+      Table("alternatives",
+            Seq.empty,
+            Seq(1 to 10),
+            Seq(1 to 10, 20 to 30 map (_.toString)),
+            Seq(1 to 10, 20 to 30, Seq(true, false)))) { alternatives =>
+      withExpectations {
+        val sut: Trials[Any] =
+          Trials.alternate(alternatives map (Trials.choose(_)))
+
+        val mockConsumer = stubFunction[Any, Unit]
+
+        sut.supplyTo(mockConsumer)
+
+        alternatives.flatten.foreach(possibleChoice =>
+          mockConsumer.verify(possibleChoice))
+      }
+    }
 }
