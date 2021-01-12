@@ -1,6 +1,6 @@
 package com.sageserpent.americium
 
-import com.sageserpent.americium.Trials.MutableState
+import com.sageserpent.americium.Trials.GenerationSupport
 import com.sageserpent.americium.java.TrialsApi
 import com.sageserpent.americium.randomEnrichment._
 
@@ -24,10 +24,7 @@ object Trials extends TrialsApi {
 
   def api: TrialsApi = this
 
-  // Java/Scala API ...
-
-  def only[SomeCase](onlyCase: SomeCase): Trials[SomeCase] =
-    TrialsImplementation(_ => Stream(onlyCase))
+  // Java API ...
 
   def choose[SomeCase](firstChoice: SomeCase,
                        secondChoice: SomeCase,
@@ -56,10 +53,19 @@ object Trials extends TrialsApi {
       alternatives: Array[Trials[SomeCase]]): Trials[SomeCase] =
     alternate(alternatives.toSeq)
 
+  // Scala and Java API ...
+
+  def only[SomeCase](onlyCase: SomeCase): Trials[SomeCase] =
+    TrialsImplementation(_ => Stream(onlyCase))
+
   case class MutableState(randomBehaviour: Random)
+
+  private[americium] trait GenerationSupport[+Case] {
+    val generate: MutableState => Stream[Case]
+  }
 }
 
-trait Trials[+Case] {
+trait Trials[+Case] extends GenerationSupport[Case] {
   // Scala-only API ...
 
   def map[TransformedCase](
@@ -144,13 +150,4 @@ trait Trials[+Case] {
       */
     def recipe: String
   }
-
-  // Embarrassing stuff...
-
-  // NASTY HACK: this is leakage of the implementation subclass, and should at least
-  // be protected or pulled in via a self-type annotation, but this doesn't play well
-  // with the signature of 'flatMap'. Any suggestions as to how to workaround this are
-  // welcome, ideally this entire trait would be a free monad or something similar, with
-  // its interpreter hidden away.
-  val generate: MutableState => Stream[Case]
 }
