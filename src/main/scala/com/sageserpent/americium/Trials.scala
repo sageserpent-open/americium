@@ -17,9 +17,8 @@ object Trials extends TrialsApi {
   def alternate[SomeCase](
       alternatives: Iterable[Trials[SomeCase]]): Trials[SomeCase] =
     TrialsImplementation { mutableState =>
-      // FIXME: this implementation is completely wrong; need a test to prove it is....
-      val alternative = mutableState.randomBehaviour.chooseOneOf(alternatives)
-      alternative.generate(mutableState)
+      mutableState.randomBehaviour.pickAlternatelyFrom(
+        alternatives map (_.generate(mutableState)))
     }
 
   def api: TrialsApi = this
