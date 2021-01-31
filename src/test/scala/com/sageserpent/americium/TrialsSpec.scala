@@ -11,8 +11,7 @@ class TrialsSpec
     with TableDrivenPropertyChecks {
   autoVerify = false
   /*
-  6.   An alternation that over trials that in isolation include cases that provoke exceptions will result in an exception that references one of those cases.
-  7.   In general, trials yield the same cases.
+  6.   In general, trials yield the same cases.
   8.   In general, trials result in the same exception and referenced case (and recipe).
   9.   In general, a trial that results in an exception provides a recipe that will recreate the same case.
   10.  'Trials' is a functor.
@@ -120,23 +119,35 @@ class TrialsSpec
     }
   }
 
-  "an alternation" should "yield all and only the cases that would be yielded by its alternatives" in
+  "an alternation over finite alternatives" should "yield all and only the cases that would be yielded by its alternatives" in
     forAll(
-      Table("alternatives",
-            Seq.empty,
-            Seq(1 to 10),
-            Seq(1 to 10, 20 to 30 map (_.toString)),
-            Seq(1 to 10, 20 to 30, Seq(true, false)))) { alternatives =>
+      Table(
+        "alternatives",
+        Seq.empty,
+        Seq(1 to 10),
+        Seq(1 to 10, 20 to 30 map (_.toString)),
+        Seq(1 to 10, Seq(true, false), 20 to 30),
+        Seq(1, "3", 99),
+        Seq(1 to 10, Seq(12), -3 to -1),
+        Seq(Seq(0), 1 to 10, 13, -3 to -1)
+      )) { alternatives =>
       withExpectations {
         val sut: Trials[Any] =
-          Trials.alternate(alternatives map (Trials.choose(_)))
+          Trials.alternate(alternatives map {
+            case sequence: Seq[_] => Trials.choose(sequence)
+            case singleton        => Trials.only(singleton)
+          })
 
         val mockConsumer = stubFunction[Any, Unit]
 
         sut.supplyTo(mockConsumer)
 
-        alternatives.flatten.foreach(possibleChoice =>
-          mockConsumer.verify(possibleChoice))
+        alternatives
+          .flatMap {
+            case several: Seq[_] => several
+            case singleton       => Seq(singleton)
+          }
+          .foreach(possibleChoice => mockConsumer.verify(possibleChoice))
       }
     }
 }
