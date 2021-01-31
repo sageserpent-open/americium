@@ -16,7 +16,9 @@ class TrialsSpec
   9.   In general, a trial that results in an exception provides a recipe that will recreate the same case.
   10.  'Trials' is a functor.
   11.  'Trials' is a monad.
-  12.  When a case provokes an exception, the exception yielded refers to a case that is either the same as the original or is simpler.
+  12.  In general, when a case provokes an exception, the exception yielded refers to a case that is either the same as the original or is simpler.
+  13.  In general, an alternation submits cases that must satisfy at least one alternative's case invariant.
+  14.  In general, trials that result in an exception yield a case that satisfies the trials' invariant.
    */
 
   "only one case" should "yield just one trial" in
