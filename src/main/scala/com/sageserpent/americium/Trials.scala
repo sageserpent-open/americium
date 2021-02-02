@@ -1,107 +1,49 @@
 package com.sageserpent.americium
 
-import com.sageserpent.americium.Trials.GenerationSupport
-import com.sageserpent.americium.java.TrialsApi
-import com.sageserpent.americium.randomEnrichment._
+import com.sageserpent.americium.java.{Trials => JavaTrials}
 
-import _root_.java.lang.{Iterable => JavaIterable}
 import _root_.java.util.function.{Consumer, Predicate, Function => JavaFunction}
-import scala.collection.JavaConverters._
 import scala.language.implicitConversions
 import scala.util.Random
 
-object Trials extends TrialsApi {
-  // Scala-only API ...
-  def choose[SomeCase](choices: Iterable[SomeCase]): Trials[SomeCase] =
-    TrialsImplementation(_.randomBehaviour.shuffle(choices).toStream)
+object Trials extends TrialsJavaScalaFusionApi {
+  override def api: TrialsJavaScalaFusionApi = this
 
-  def alternate[SomeCase](
-      alternatives: Iterable[Trials[SomeCase]]): Trials[SomeCase] =
-    TrialsImplementation { mutableState =>
-      mutableState.randomBehaviour.pickAlternatelyFrom(
-        alternatives map (_.generate(mutableState)))
-    }
+  case class MutableState(randomBehaviour: Random)
 
-  def api: TrialsApi = this
-
-  // Java API ...
-
-  def choose[SomeCase](firstChoice: SomeCase,
-                       secondChoice: SomeCase,
-                       otherChoices: SomeCase*): Trials[SomeCase] =
-    choose(firstChoice +: secondChoice +: otherChoices)
-
-  def choose[SomeCase](choices: JavaIterable[SomeCase]): Trials[SomeCase] =
-    choose(choices.asScala)
-
-  def choose[SomeCase](choices: Array[SomeCase with AnyRef]): Trials[SomeCase] =
-    choose(choices.toSeq)
-
-  def alternate[SomeCase](
-      firstAlternative: com.sageserpent.americium.Trials[_ <: SomeCase],
-      secondAlternative: com.sageserpent.americium.Trials[_ <: SomeCase],
-      otherAlternatives: com.sageserpent.americium.Trials[_ <: SomeCase]*)
-    : com.sageserpent.americium.Trials[SomeCase] =
-    alternate(
-      firstAlternative +: secondAlternative +: Seq(otherAlternatives: _*))
-
-  def alternate[SomeCase](
-      alternatives: JavaIterable[Trials[SomeCase]]): Trials[SomeCase] =
-    alternate(alternatives.asScala)
-
-  def alternate[SomeCase](
-      alternatives: Array[Trials[SomeCase]]): Trials[SomeCase] =
-    alternate(alternatives.toSeq)
-
-  // Scala and Java API ...
-
-  def only[SomeCase](onlyCase: SomeCase): Trials[SomeCase] =
-    TrialsImplementation(_ => Stream(onlyCase))
-
-  private[americium] case class MutableState(randomBehaviour: Random)
-
-  private[americium] trait GenerationSupport[+Case] {
+  trait GenerationSupport[+Case] {
     val generate: MutableState => Stream[Case]
-  }
-
-  /**
-    * This is a syntax enhancement for {@link Trials}. It is required to avoid placing
-    * the enhancing methods in as competing overloads with the Java-facing methods
-    * already defined in {@link Trials}, as while that alternative would be perfectly
-    * OK for Scala client code, it confuses the Java compiler and would force Java client
-    * code to have to specify lots of disambiguating casts of lambda values to select
-    * the correct overload.
-    */
-  implicit class ScalaApiSyntax[Case](trials: Trials[Case]) {
-    def map[TransformedCase](
-        transform: Case => TransformedCase): Trials[TransformedCase] =
-      trials.map(transform(_))
-
-    def flatMap[TransformedCase](
-        step: Case => Trials[TransformedCase]): Trials[TransformedCase] =
-      trials.flatMap(step(_))
-
-    def filter(predicate: Case => Boolean): Trials[Case] =
-      trials.filter(predicate(_))
-
-    def supplyTo(consumer: Case => Unit): Unit = trials.supplyTo(consumer(_))
-
-    def supplyTo(recipe: String, consumer: Case => Unit): Unit =
-      trials.supplyTo(recipe, consumer(_))
   }
 }
 
-trait Trials[+Case] extends GenerationSupport[Case] {
-  // Java API ...
+trait Trials[+Case] extends JavaTrials[Case] {
+  // Scala-only API ...
 
-  def map[TransformedCase](transform: JavaFunction[_ >: Case, TransformedCase])
-    : Trials[TransformedCase]
+  def map[TransformedCase](
+      transform: Case => TransformedCase): Trials[TransformedCase]
 
   def flatMap[TransformedCase](
-      step: JavaFunction[_ >: Case, Trials[TransformedCase]])
-    : Trials[TransformedCase]
+      step: Case => Trials[TransformedCase]): Trials[TransformedCase]
 
-  def filter(predicate: Predicate[_ >: Case]): Trials[Case]
+  def filter(predicate: Case => Boolean): Trials[Case]
+
+  def supplyTo(consumer: Case => Unit): Unit
+
+  def supplyTo(recipe: String, consumer: Case => Unit): Unit =
+    consumer(reproduce(recipe))
+
+  // Java API ...
+
+  override def map[TransformedCase](
+      transform: JavaFunction[_ >: Case, TransformedCase])
+    : Trials[TransformedCase] = map(transform.apply _)
+
+  override def flatMap[TransformedCase](
+      step: JavaFunction[_ >: Case, JavaTrials[TransformedCase]])
+    : Trials[TransformedCase] = flatMap(step.apply _ andThen (_.scalaTrials))
+
+  override def filter(predicate: Predicate[_ >: Case]): Trials[Case] =
+    filter(predicate.test _)
 
   /**
     * Consume trial cases until either there are no more or an exception is thrown by {@code consumer}.
@@ -113,7 +55,8 @@ trait Trials[+Case] extends GenerationSupport[Case] {
     *
     * @param consumer An operation that consumes a 'Case', and may throw an exception.
     */
-  def supplyTo(consumer: Consumer[_ >: Case]): Unit
+  override def supplyTo(consumer: Consumer[_ >: Case]): Unit =
+    supplyTo(consumer.accept _)
 
   /**
     * Reproduce a specific case in a repeatable fashion, based on a recipe.
@@ -140,23 +83,8 @@ trait Trials[+Case] extends GenerationSupport[Case] {
     *                          either due to it being created by a different flavour
     *                          of trials instance.
     */
-  def supplyTo(recipe: String, consumer: Consumer[_ >: Case]): Unit =
-    consumer.accept(reproduce(recipe))
+  override def supplyTo(recipe: String, consumer: Consumer[_ >: Case]): Unit =
+    supplyTo(recipe, consumer.accept _)
 
-  // Scala and Java API ...
-
-  abstract class TrialException(cause: Throwable)
-      extends RuntimeException(cause) {
-
-    /**
-      * @return The case that provoked the exception.
-      */
-    def provokingCase: Case
-
-    /**
-      * @return A recipe that can be used to reproduce the provoking case
-      *         when supplied to the corresponding trials instance.
-      */
-    def recipe: String
-  }
+  override private[americium] val scalaTrials = this
 }

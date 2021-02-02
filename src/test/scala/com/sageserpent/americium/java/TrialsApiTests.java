@@ -1,6 +1,5 @@
 package com.sageserpent.americium.java;
 
-import com.sageserpent.americium.Trials;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;

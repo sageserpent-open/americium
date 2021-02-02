@@ -1,8 +1,8 @@
 package com.sageserpent.americium.java;
 
-import com.sageserpent.americium.Trials;
-
 public interface TrialsApi {
+    TrialsApi api();
+
     <SomeCase> Trials<SomeCase> only(SomeCase onlyCase);
 
     /**
@@ -33,11 +33,11 @@ public interface TrialsApi {
      * @param otherAlternatives Optional further alternatives.
      * @return The trials instance.
      */
-    <SomeCase> Trials<SomeCase> alternate(com.sageserpent.americium.Trials<? extends SomeCase> firstAlternative,
-                                          com.sageserpent.americium.Trials<? extends SomeCase> secondAlternative,
-                                          com.sageserpent.americium.Trials<? extends SomeCase>... otherAlternatives);
+    <SomeCase> Trials<SomeCase> alternate(Trials<? extends SomeCase> firstAlternative,
+                                          Trials<? extends SomeCase> secondAlternative,
+                                          Trials<? extends SomeCase>... otherAlternatives);
 
-    <SomeCase> Trials<SomeCase> alternate(Iterable<com.sageserpent.americium.Trials<SomeCase>> alternatives);
+    <SomeCase> Trials<SomeCase> alternate(Iterable<Trials<SomeCase>> alternatives);
 
-    <SomeCase> Trials<SomeCase> alternate(com.sageserpent.americium.Trials<SomeCase>[] alternatives);
+    <SomeCase> Trials<SomeCase> alternate(Trials<SomeCase>[] alternatives);
 }

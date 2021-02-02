@@ -1,9 +1,12 @@
 package com.sageserpent.americium
 
+import com.sageserpent.americium.java.{Trials => JavaTrials}
 import org.scalamock.function.StubFunction1
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.prop.TableDrivenPropertyChecks
 import org.scalatest.{FlatSpec, Matchers}
+
+import _root_.java.util.function.{Predicate, Function => JavaFunction}
 
 class TrialsSpec
     extends FlatSpec
@@ -154,8 +157,19 @@ class TrialsSpec
       }
     }
 
+  type TypeRequirements = (JavaTrials[_], JavaFunction[_, _], Predicate[_])
+
+  "mapping using a Java function" should "compile" in {
+    assertCompiles("Trials.only(1).map((_ + 1): JavaFunction[Int, Int])")
+  }
+
   "mapping using a Scala function" should "compile" in {
     assertCompiles("Trials.only(1).map((_ + 1): Int => Int)")
+  }
+
+  "flatmapping using a Java function" should "compile" in {
+    assertCompiles(
+      "Trials.only(1).flatMap((value => Trials.choose(value, 1.0 + value)): JavaFunction[Int, JavaTrials[Double]])")
   }
 
   "flatmapping using a Scala function" should "compile" in {
@@ -163,8 +177,11 @@ class TrialsSpec
       "Trials.only(1).flatMap((value => Trials.choose(value, 1.0 + value)): Int => Trials[Double])")
   }
 
+  "filtering using a Java predicate" should "compile" in {
+    assertCompiles("Trials.only(1).filter((1 == _): Predicate[Int])")
+  }
+
   "filtering using a Scala function" should "compile" in {
-    val _ = Trials.only(1).filter((1 == _): Int => Boolean)
     assertCompiles("Trials.only(1).filter((1 == _): Int => Boolean)")
   }
 }

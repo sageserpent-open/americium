@@ -1,10 +1,10 @@
 
 import com.sageserpent.americium.Trials
-import com.sageserpent.americium.java.TrialsApi
+import com.sageserpent.americium.java.Trials
 
 import java.util.function.{Consumer, Function => JavaFunction}
 
-val trialsApi: TrialsApi = Trials
+val trialsApi = Trials.api
 
 val trials: Trials[Int] = trialsApi.choose(2, -4, 3)
 
