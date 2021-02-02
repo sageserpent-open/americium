@@ -7,6 +7,7 @@ import com.sageserpent.americium.randomEnrichment._
 import _root_.java.lang.{Iterable => JavaIterable}
 import _root_.java.util.function.{Consumer, Predicate, Function => JavaFunction}
 import scala.collection.JavaConverters._
+import scala.language.implicitConversions
 import scala.util.Random
 
 object Trials extends TrialsApi {
@@ -57,40 +58,50 @@ object Trials extends TrialsApi {
   def only[SomeCase](onlyCase: SomeCase): Trials[SomeCase] =
     TrialsImplementation(_ => Stream(onlyCase))
 
-  case class MutableState(randomBehaviour: Random)
+  private[americium] case class MutableState(randomBehaviour: Random)
 
   private[americium] trait GenerationSupport[+Case] {
     val generate: MutableState => Stream[Case]
   }
+
+  /**
+    * This is a syntax enhancement for {@link Trials}. It is required to avoid placing
+    * the enhancing methods in as competing overloads with the Java-facing methods
+    * already defined in {@link Trials}, as while that alternative would be perfectly
+    * OK for Scala client code, it confuses the Java compiler and would force Java client
+    * code to have to specify lots of disambiguating casts of lambda values to select
+    * the correct overload.
+    */
+  implicit class ScalaApiSyntax[Case](trials: Trials[Case]) {
+    def map[TransformedCase](
+        transform: Case => TransformedCase): Trials[TransformedCase] =
+      trials.map(transform(_))
+
+    def flatMap[TransformedCase](
+        step: Case => Trials[TransformedCase]): Trials[TransformedCase] =
+      trials.flatMap(step(_))
+
+    def filter(predicate: Case => Boolean): Trials[Case] =
+      trials.filter(predicate(_))
+
+    def supplyTo(consumer: Case => Unit): Unit = trials.supplyTo(consumer(_))
+
+    def supplyTo(recipe: String, consumer: Case => Unit): Unit =
+      trials.supplyTo(recipe, consumer(_))
+  }
 }
 
 trait Trials[+Case] extends GenerationSupport[Case] {
-  // Scala-only API ...
-
-  def map[TransformedCase](
-      transform: Case => TransformedCase): Trials[TransformedCase]
-
-  def flatMap[TransformedCase](
-      step: Case => Trials[TransformedCase]): Trials[TransformedCase]
-
-  def filter(predicate: Case => Boolean): Trials[Case]
-
-  def supplyTo(consumer: Case => Unit): Unit
-
-  def supplyTo(recipe: String, consumer: Case => Unit): Unit =
-    consumer(reproduce(recipe))
-
   // Java API ...
 
   def map[TransformedCase](transform: JavaFunction[_ >: Case, TransformedCase])
-    : Trials[TransformedCase] = map(transform.apply _)
+    : Trials[TransformedCase]
 
   def flatMap[TransformedCase](
       step: JavaFunction[_ >: Case, Trials[TransformedCase]])
-    : Trials[TransformedCase] = flatMap(step.apply _)
+    : Trials[TransformedCase]
 
-  def filter(predicate: Predicate[_ >: Case]): Trials[Case] =
-    filter(predicate.test _)
+  def filter(predicate: Predicate[_ >: Case]): Trials[Case]
 
   /**
     * Consume trial cases until either there are no more or an exception is thrown by {@code consumer}.
@@ -102,8 +113,7 @@ trait Trials[+Case] extends GenerationSupport[Case] {
     *
     * @param consumer An operation that consumes a 'Case', and may throw an exception.
     */
-  def supplyTo(consumer: Consumer[_ >: Case]): Unit =
-    supplyTo(consumer.accept _)
+  def supplyTo(consumer: Consumer[_ >: Case]): Unit
 
   /**
     * Reproduce a specific case in a repeatable fashion, based on a recipe.
@@ -131,7 +141,7 @@ trait Trials[+Case] extends GenerationSupport[Case] {
     *                          of trials instance.
     */
   def supplyTo(recipe: String, consumer: Consumer[_ >: Case]): Unit =
-    supplyTo(recipe, consumer.accept _)
+    consumer.accept(reproduce(recipe))
 
   // Scala and Java API ...
 

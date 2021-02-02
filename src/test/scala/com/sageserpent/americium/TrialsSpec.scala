@@ -1,5 +1,6 @@
 package com.sageserpent.americium
 
+import org.scalamock.function.StubFunction1
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.prop.TableDrivenPropertyChecks
 import org.scalatest.{FlatSpec, Matchers}
@@ -26,7 +27,7 @@ class TrialsSpec
       withExpectations {
         val sut = Trials.only(dataCase)
 
-        val mockConsumer = stubFunction[Any, Unit]
+        val mockConsumer: StubFunction1[Any, Unit] = stubFunction[Any, Unit]
 
         sut.supplyTo(mockConsumer)
 
@@ -152,4 +153,18 @@ class TrialsSpec
           .foreach(possibleChoice => mockConsumer.verify(possibleChoice))
       }
     }
+
+  "mapping using a Scala function" should "compile" in {
+    assertCompiles("Trials.only(1).map((_ + 1): Int => Int)")
+  }
+
+  "flatmapping using a Scala function" should "compile" in {
+    assertCompiles(
+      "Trials.only(1).flatMap((value => Trials.choose(value, 1.0 + value)): Int => Trials[Double])")
+  }
+
+  "filtering using a Scala function" should "compile" in {
+    val _ = Trials.only(1).filter((1 == _): Int => Boolean)
+    assertCompiles("Trials.only(1).filter((1 == _): Int => Boolean)")
+  }
 }
