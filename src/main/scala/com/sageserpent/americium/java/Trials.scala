@@ -4,13 +4,20 @@ import _root_.com.sageserpent.americium.{
   TrialsJavaScalaFusionApi,
   Trials => ScalaTrials
 }
-import com.sageserpent.americium.Trials.GenerationSupport
+import com.sageserpent.americium.java.Trials.GenerationSupport
 
 import _root_.java.util.function.{Consumer, Predicate}
 import java.util.function
+import scala.util.Random
 
 object Trials extends TrialsJavaScalaFusionApi {
   override def api(): TrialsApi = this
+
+  private[americium] case class MutableState(randomBehaviour: Random)
+
+  private[americium] trait GenerationSupport[+Case] {
+    val generate: MutableState => Stream[Case]
+  }
 }
 
 trait Trials[+Case] extends GenerationSupport[Case] {

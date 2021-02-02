@@ -1,11 +1,11 @@
 package com.sageserpent.americium
 
-import com.sageserpent.americium.Trials.MutableState
+import com.sageserpent.americium.java.Trials.MutableState
 
 import scala.util.Random
 
 case class TrialsImplementation[+Case](
-    override val generate: Trials.MutableState => Stream[Case])
+    override val generate: MutableState => Stream[Case])
     extends Trials[Case] {
   override def map[TransformedCase](
       transform: Case => TransformedCase): Trials[TransformedCase] =
