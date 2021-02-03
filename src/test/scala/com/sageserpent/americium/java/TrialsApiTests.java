@@ -13,14 +13,15 @@ public class TrialsApiTests {
         final Trials<Double> doubleTrials =
                 api.choose(new Double[]{1.2, 5.6, 0.1 + 0.1 + 0.1})
                         .map(value -> 10 * value);
+        final BigDecimal oneTenthAsABigDecimal = BigDecimal.ONE.divide(BigDecimal.TEN);
         final Trials<BigDecimal> bigDecimalTrials =
-                api.only(BigDecimal.ONE.divide(BigDecimal.TEN).add(BigDecimal.ONE.divide(BigDecimal.TEN)).add(BigDecimal.ONE.divide(BigDecimal.TEN)))
+                api.only(oneTenthAsABigDecimal.add(oneTenthAsABigDecimal).add(oneTenthAsABigDecimal))
                         .map(value -> value.multiply(BigDecimal.TEN));
 
         final Trials<? extends Number> alternateTrials = api.alternate(integerTrials, doubleTrials, bigDecimalTrials);
 
         alternateTrials.supplyTo(number -> {
-            System.out.println(number);
+            System.out.println(number.doubleValue());
         });
     }
 }
