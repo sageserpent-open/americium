@@ -14,17 +14,6 @@ class TrialsSpec
     with MockFactory
     with TableDrivenPropertyChecks {
   autoVerify = false
-  /*
-  6.   In general, trials yield the same cases.
-  8.   In general, trials result in the same exception and referenced case (and recipe).
-  9.   In general, a trial that results in an exception provides a recipe that will recreate the same case.
-  10.  'Trials' is a functor.
-  11.  'Trials' is a monad.
-  12.  In general, when a case provokes an exception, the exception yielded refers to a case that is either the same as the original or is simpler.
-  13.  In general, an alternation submits cases that must satisfy at least one alternative's case invariant.
-  14.  In general, trials that result in an exception yield a case that satisfies the trials' invariant.
-   */
-
   "only one case" should "yield just one trial" in
     forAll(Table("case", 1, "foo", 2.3, List(false, 0, true))) { dataCase =>
       withExpectations {
@@ -155,6 +144,25 @@ class TrialsSpec
           }
           .foreach(possibleChoice => mockConsumer.verify(possibleChoice))
       }
+    }
+
+  "trials" should "yield repeatable cases" in
+    forAll(
+      Table("trails",
+            Trials.only(1),
+            Trials.choose(1, false, 99),
+            Trials.alternate(Trials.choose(0 until 10 map (_.toString)),
+                             Trials.choose(-10 until 0)))) { sut =>
+      withExpectations {
+        val mockConsumer = mockFunction[Any, Unit]
+
+        // Whatever cases are supplied set the expectations...
+        sut.supplyTo(mockConsumer.expects(_: Any): Unit)
+
+        // ... now let's see if we see the same cases.
+        sut.supplyTo(mockConsumer)
+      }
+
     }
 
   type TypeRequirements = (JavaTrials[_], JavaFunction[_, _], Predicate[_])
