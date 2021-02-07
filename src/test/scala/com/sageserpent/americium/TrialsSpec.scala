@@ -7,6 +7,7 @@ import org.scalatest.prop.TableDrivenPropertyChecks
 import org.scalatest.{FlatSpec, Matchers}
 
 import _root_.java.util.function.{Predicate, Function => JavaFunction}
+import scala.util.Try
 
 class TrialsSpec
     extends FlatSpec
@@ -79,13 +80,13 @@ class TrialsSpec
           case (possibleChoices, exceptionCriterion) =>
             val sut = Trials.choose(possibleChoices)
 
-            val mockConsumer = { caze: X =>
+            val complainingConsumer = { caze: X =>
               if (exceptionCriterion(caze))
                 throw ExceptionWithCasePayload(caze)
             }
 
             val exception = intercept[sut.TrialException] {
-              sut.supplyTo(mockConsumer)
+              sut.supplyTo(complainingConsumer)
             }
 
             val underlyingException = exception.getCause
@@ -163,6 +164,35 @@ class TrialsSpec
         sut.supplyTo(mockConsumer)
       }
 
+    }
+
+  case class JackInABox[Caze](caze: Caze)
+
+  they should "yield repeatable exceptions" in
+    forAll(
+      Table(
+        "trails",
+        Trials.only(JackInABox(1)),
+        Trials.choose(1, false, JackInABox(99)),
+        Trials.alternate(
+          Trials.only(true),
+          Trials.choose(0 until 10 map (_.toString) map JackInABox.apply),
+          Trials.choose(-10 until 0))
+      )) { sut =>
+      withExpectations {
+        val surprisedConsumer: Any => Unit = {
+          case JackInABox(caze) => throw ExceptionWithCasePayload(caze)
+          case _                =>
+        }
+
+        val exception = Try { sut.supplyTo(surprisedConsumer) }.failed.get
+          .asInstanceOf[sut.TrialException]
+
+        val exceptionFromSecondAttempt = Try { sut.supplyTo(surprisedConsumer) }.failed.get
+          .asInstanceOf[sut.TrialException]
+
+        exceptionFromSecondAttempt.provokingCase shouldBe exception.provokingCase
+      }
     }
 
   type TypeRequirements = (JavaTrials[_], JavaFunction[_, _], Predicate[_])
