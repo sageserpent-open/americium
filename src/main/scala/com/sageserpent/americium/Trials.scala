@@ -1,5 +1,6 @@
 package com.sageserpent.americium
 
+import cats._
 import com.sageserpent.americium.java.{Trials => JavaTrials}
 
 import _root_.java.util.function.{Consumer, Predicate, Function => JavaFunction}
@@ -7,6 +8,14 @@ import scala.language.implicitConversions
 
 object Trials extends TrialsJavaScalaFusionApi {
   override def api: TrialsJavaScalaFusionApi = this
+
+  implicit val monadInstance: Monad[Trials] = new Monad[Trials]
+  with StackSafeMonad[Trials] {
+    override def pure[A](x: A): Trials[A] = Trials.only(x)
+
+    override def flatMap[A, B](fa: Trials[A])(f: A => Trials[B]): Trials[B] =
+      fa.flatMap(f)
+  }
 }
 
 trait Trials[+Case] extends JavaTrials[Case] {
