@@ -1,34 +1,55 @@
 package com.sageserpent.americium
 
-import com.sageserpent.americium.java.Trials.MutableState
+import cats.free.Free.liftF
+import cats.~>
+import com.sageserpent.americium.java.Trials._
+import com.sageserpent.americium.randomEnrichment.RichRandom
 
 import scala.util.Random
 
 case class TrialsImplementation[+Case](
-    override val generate: MutableState => Stream[Case])
+    override val generation: Generation[_ <: Case])
     extends Trials[Case] {
   override def map[TransformedCase](
       transform: Case => TransformedCase): Trials[TransformedCase] =
-    TrialsImplementation(generate andThen (_ map transform))
+    TrialsImplementation(generation map transform)
 
   override def flatMap[TransformedCase](
-      step: Case => Trials[TransformedCase]): Trials[TransformedCase] =
-    TrialsImplementation { state =>
-      // NASTY HACK: essentially this is the reader monad, only using a mutable context. Read 'em and weep!
-      for {
-        stepInput <- generate(state)
-        stepOutput = step(stepInput)
-        overallOutput <- stepOutput.generate(state)
-      } yield overallOutput
-    }
+      step: Case => Trials[TransformedCase]): Trials[TransformedCase] = {
+    val adaptedStep = (step andThen (_.generation))
+      .asInstanceOf[Case => Generation[TransformedCase]]
+    TrialsImplementation(generation flatMap adaptedStep)
+  }
 
   override def filter(predicate: Case => Boolean): Trials[Case] =
-    TrialsImplementation(generate andThen (_ filter predicate))
+    flatMap(
+      (caze: Case) =>
+        TrialsImplementation(
+          liftF(FiltrationResult(Some(caze).filter(predicate)))))
 
   override def supplyTo(consumer: Case => Unit): Unit = {
     val randomBehaviour = new Random(734874)
 
-    generate(MutableState(randomBehaviour)).foreach { testCase =>
+    // NASTY HACK: what follows is an abuse of the reader monad whereby the injected context is *mutable*,
+    // but at least it's buried in the interpreter for `Trials.Generation`. The reified `Filtration` values
+    // are also handled by the interpreter too. If it's any consolation, it means that flat-mapping is
+    // stack-safe. Read 'em and weep!
+
+    def interpreter: GenerationOperation ~> Stream =
+      new (GenerationOperation ~> Stream) {
+        override def apply[Case](
+            generationOperation: GenerationOperation[Case]): Stream[Case] = {
+          generationOperation match {
+            case Choice(choices) => randomBehaviour.shuffle(choices).toStream
+            case Alternation(alternatives) =>
+              randomBehaviour.pickAlternatelyFrom(
+                alternatives map (_.generation.foldMap(interpreter)))
+            case FiltrationResult(result) => result.toStream
+          }
+        }
+      }
+
+    generation.foldMap(interpreter).foreach { testCase =>
       try {
         consumer(testCase)
       } catch {

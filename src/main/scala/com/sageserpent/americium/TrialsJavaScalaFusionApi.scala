@@ -1,10 +1,11 @@
 package com.sageserpent.americium
 
+import cats.free.Free.{liftF, pure}
+import com.sageserpent.americium.java.Trials.{Alternation, Choice}
 import com.sageserpent.americium.java.{
   Trials => JavaTrials,
   TrialsApi => JavaTrialsApi
 }
-import com.sageserpent.americium.randomEnrichment.RichRandom
 
 import _root_.java.lang.{Iterable => JavaIterable}
 import scala.collection.JavaConverters._
@@ -13,7 +14,7 @@ trait TrialsJavaScalaFusionApi extends JavaTrialsApi {
   // Java API ...
 
   override def only[Case](onlyCase: Case): Trials[Case] =
-    TrialsImplementation(_ => Stream(onlyCase))
+    TrialsImplementation(pure(onlyCase))
 
   override def choose[Case](firstChoice: Case,
                             secondChoice: Case,
@@ -43,11 +44,8 @@ trait TrialsJavaScalaFusionApi extends JavaTrialsApi {
 
   // Scala-only API ...
   def choose[Case](choices: Iterable[Case]): Trials[Case] =
-    TrialsImplementation(_.randomBehaviour.shuffle(choices).toStream)
+    TrialsImplementation(liftF(Choice(choices)))
 
   def alternate[Case](alternatives: Iterable[JavaTrials[Case]]): Trials[Case] =
-    TrialsImplementation { mutableState =>
-      mutableState.randomBehaviour.pickAlternatelyFrom(
-        alternatives map (_.generate(mutableState)))
-    }
+    TrialsImplementation(liftF(Alternation(alternatives)))
 }
