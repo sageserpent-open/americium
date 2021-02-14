@@ -12,43 +12,40 @@ import scala.collection.JavaConverters._
 trait TrialsJavaScalaFusionApi extends JavaTrialsApi {
   // Java API ...
 
-  override def only[SomeCase](onlyCase: SomeCase): Trials[SomeCase] =
+  override def only[Case](onlyCase: Case): Trials[Case] =
     TrialsImplementation(_ => Stream(onlyCase))
 
-  override def choose[SomeCase](firstChoice: SomeCase,
-                                secondChoice: SomeCase,
-                                otherChoices: SomeCase*): Trials[SomeCase] =
+  override def choose[Case](firstChoice: Case,
+                            secondChoice: Case,
+                            otherChoices: Case*): Trials[Case] =
     choose(firstChoice +: secondChoice +: otherChoices)
 
-  override def choose[SomeCase](
-      choices: JavaIterable[SomeCase]): Trials[SomeCase] =
+  override def choose[Case](choices: JavaIterable[Case]): Trials[Case] =
     choose(choices.asScala)
 
-  override def choose[SomeCase](
-      choices: Array[SomeCase with AnyRef]): Trials[SomeCase] =
+  override def choose[Case](choices: Array[Case with AnyRef]): Trials[Case] =
     choose(choices.toSeq)
 
-  override def alternate[SomeCase](
-      firstAlternative: JavaTrials[_ <: SomeCase],
-      secondAlternative: JavaTrials[_ <: SomeCase],
-      otherAlternatives: JavaTrials[_ <: SomeCase]*): Trials[SomeCase] =
+  override def alternate[Case](
+      firstAlternative: JavaTrials[_ <: Case],
+      secondAlternative: JavaTrials[_ <: Case],
+      otherAlternatives: JavaTrials[_ <: Case]*): Trials[Case] =
     alternate(
       firstAlternative +: secondAlternative +: Seq(otherAlternatives: _*))
 
-  override def alternate[SomeCase](
-      alternatives: JavaIterable[JavaTrials[SomeCase]]): Trials[SomeCase] =
+  override def alternate[Case](
+      alternatives: JavaIterable[JavaTrials[Case]]): Trials[Case] =
     alternate(alternatives.asScala)
 
-  override def alternate[SomeCase](
-      alternatives: Array[JavaTrials[SomeCase]]): Trials[SomeCase] =
+  override def alternate[Case](
+      alternatives: Array[JavaTrials[Case]]): Trials[Case] =
     alternate(alternatives.toSeq)
 
   // Scala-only API ...
-  def choose[SomeCase](choices: Iterable[SomeCase]): Trials[SomeCase] =
+  def choose[Case](choices: Iterable[Case]): Trials[Case] =
     TrialsImplementation(_.randomBehaviour.shuffle(choices).toStream)
 
-  def alternate[SomeCase](
-      alternatives: Iterable[JavaTrials[SomeCase]]): Trials[SomeCase] =
+  def alternate[Case](alternatives: Iterable[JavaTrials[Case]]): Trials[Case] =
     TrialsImplementation { mutableState =>
       mutableState.randomBehaviour.pickAlternatelyFrom(
         alternatives map (_.generate(mutableState)))
