@@ -16,6 +16,19 @@ object Trials extends TrialsJavaScalaFusionApi {
     override def flatMap[A, B](fa: Trials[A])(f: A => Trials[B]): Trials[B] =
       fa.flatMap(f)
   }
+
+  implicit val functorFilterInstance: FunctorFilter[Trials] =
+    new FunctorFilter[Trials] {
+      override def functor: Functor[Trials] = monadInstance
+
+      override def mapFilter[A, B](fa: Trials[A])(
+          f: A => Option[B]): Trials[B] = {
+        // TODO: this implementation is hokey - do something better!
+        // An explicit implementation of `collect` as a method in `Trials`
+        // might work...
+        fa.map(f).filter((_: Option[B]).isDefined).map((_: Option[B]).get)
+      }
+    }
 }
 
 trait Trials[+Case] extends JavaTrials[Case] {
