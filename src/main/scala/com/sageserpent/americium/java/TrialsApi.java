@@ -3,7 +3,7 @@ package com.sageserpent.americium.java;
 public interface TrialsApi {
     TrialsApi api();
 
-    <SomeCase> Trials<SomeCase> only(SomeCase onlyCase);
+    <Case> Trials<Case> only(Case onlyCase);
 
     /**
      * Produce a trials instance that chooses between several cases.
@@ -15,13 +15,13 @@ public interface TrialsApi {
      * @param otherChoices Optional further choices.
      * @return The trials instance.
      */
-    <SomeCase> Trials<SomeCase> choose(SomeCase firstChoice,
-                                       SomeCase secondChoice,
-                                       SomeCase... otherChoices);
+    <Case> Trials<Case> choose(Case firstChoice,
+                               Case secondChoice,
+                               Case... otherChoices);
 
-    <SomeCase> Trials<SomeCase> choose(Iterable<SomeCase> choices);
+    <Case> Trials<Case> choose(Iterable<Case> choices);
 
-    <SomeCase> Trials<SomeCase> choose(SomeCase[] choices);
+    <Case> Trials<Case> choose(Case[] choices);
 
     /**
      * Produce a trials instance that alternates between the cases of the given alternatives.
@@ -33,11 +33,11 @@ public interface TrialsApi {
      * @param otherAlternatives Optional further alternatives.
      * @return The trials instance.
      */
-    <SomeCase> Trials<SomeCase> alternate(Trials<? extends SomeCase> firstAlternative,
-                                          Trials<? extends SomeCase> secondAlternative,
-                                          Trials<? extends SomeCase>... otherAlternatives);
+    <Case> Trials<Case> alternate(Trials<? extends Case> firstAlternative,
+                                  Trials<? extends Case> secondAlternative,
+                                  Trials<? extends Case>... otherAlternatives);
 
-    <SomeCase> Trials<SomeCase> alternate(Iterable<Trials<SomeCase>> alternatives);
+    <Case> Trials<Case> alternate(Iterable<Trials<Case>> alternatives);
 
-    <SomeCase> Trials<SomeCase> alternate(Trials<SomeCase>[] alternatives);
+    <Case> Trials<Case> alternate(Trials<Case>[] alternatives);
 }

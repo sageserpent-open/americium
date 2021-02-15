@@ -4,19 +4,33 @@ import _root_.com.sageserpent.americium.{
   TrialsJavaScalaFusionApi,
   Trials => ScalaTrials
 }
+import cats.free.Free
 import com.sageserpent.americium.java.Trials.GenerationSupport
 
 import _root_.java.util.function.{Consumer, Predicate}
 import java.util.function
-import scala.util.Random
 
 object Trials extends TrialsJavaScalaFusionApi {
   override def api(): TrialsApi = this
 
-  private[americium] case class MutableState(randomBehaviour: Random)
+  sealed trait GenerationOperation[Case]
+
+  case class Choice[Case](choices: Iterable[Case])
+      extends GenerationOperation[Case]
+
+  case class Alternation[Case](alternatives: Iterable[Trials[Case]])
+      extends GenerationOperation[Case]
+
+  // NASTY HACK: as `Free` does not support `filter/withFilter`, reify
+  // the optional results of a flat-mapped filtration; the interpreter
+  // will deal with these.
+  case class FiltrationResult[Case](result: Option[Case])
+      extends GenerationOperation[Case]
+
+  type Generation[Case] = Free[GenerationOperation, Case]
 
   private[americium] trait GenerationSupport[+Case] {
-    val generate: MutableState => Stream[Case]
+    val generation: Generation[_ <: Case]
   }
 }
 
