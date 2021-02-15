@@ -27,11 +27,17 @@ case class TrialsImplementation[+Case](
         TrialsImplementation(
           liftF(FiltrationResult(Some(caze).filter(predicate)))))
 
+  override def mapFilter[TransformedCase](
+      filteringTransform: Case => Option[TransformedCase])
+    : Trials[TransformedCase] =
+    flatMap((caze: Case) =>
+      TrialsImplementation(liftF(FiltrationResult(filteringTransform(caze)))))
+
   override def supplyTo(consumer: Case => Unit): Unit = {
     val randomBehaviour = new Random(734874)
 
     // NASTY HACK: what follows is an abuse of the reader monad whereby the injected context is *mutable*,
-    // but at least it's buried in the interpreter for `Trials.Generation`. The reified `Filtration` values
+    // but at least it's buried in the interpreter for `Trials.FiltrationResult`. The reified `Filtration` values
     // are also handled by the interpreter too. If it's any consolation, it means that flat-mapping is
     // stack-safe. Read 'em and weep!
 

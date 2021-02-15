@@ -3,6 +3,7 @@ package com.sageserpent.americium
 import cats._
 import com.sageserpent.americium.java.{Trials => JavaTrials}
 
+import _root_.java.util.Optional
 import _root_.java.util.function.{Consumer, Predicate, Function => JavaFunction}
 import scala.language.implicitConversions
 
@@ -22,12 +23,7 @@ object Trials extends TrialsJavaScalaFusionApi {
       override def functor: Functor[Trials] = monadInstance
 
       override def mapFilter[A, B](fa: Trials[A])(
-          f: A => Option[B]): Trials[B] = {
-        // TODO: this implementation is hokey - do something better!
-        // An explicit implementation of `collect` as a method in `Trials`
-        // might work...
-        fa.map(f).filter((_: Option[B]).isDefined).map((_: Option[B]).get)
-      }
+          f: A => Option[B]): Trials[B] = fa.mapFilter(f)
     }
 }
 
@@ -41,6 +37,10 @@ trait Trials[+Case] extends JavaTrials[Case] {
       step: Case => Trials[TransformedCase]): Trials[TransformedCase]
 
   def filter(predicate: Case => Boolean): Trials[Case]
+
+  def mapFilter[TransformedCase](
+      filteringTransform: Case => Option[TransformedCase])
+    : Trials[TransformedCase]
 
   def supplyTo(consumer: Case => Unit): Unit
 
@@ -59,6 +59,14 @@ trait Trials[+Case] extends JavaTrials[Case] {
 
   override def filter(predicate: Predicate[_ >: Case]): Trials[Case] =
     filter(predicate.test _)
+
+  def mapFilter[TransformedCase](
+      filteringTransform: JavaFunction[_ >: Case, Optional[TransformedCase]])
+    : Trials[TransformedCase] =
+    mapFilter(filteringTransform.apply _ andThen {
+      case withPayload if withPayload.isPresent => Some(withPayload.get())
+      case _                                    => None
+    })
 
   /**
     * Consume trial cases until either there are no more or an exception is thrown by {@code consumer}.

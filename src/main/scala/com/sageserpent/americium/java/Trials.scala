@@ -8,7 +8,7 @@ import cats.free.Free
 import com.sageserpent.americium.java.Trials.GenerationSupport
 
 import _root_.java.util.function.{Consumer, Predicate}
-import java.util.function
+import java.util.{Optional, function}
 
 object Trials extends TrialsJavaScalaFusionApi {
   override def api(): TrialsApi = this
@@ -44,6 +44,11 @@ trait Trials[+Case] extends GenerationSupport[Case] {
     : Trials[TransformedCase]
 
   def filter(predicate: Predicate[_ >: Case]): Trials[Case]
+
+  def mapFilter[TransformedCase](
+      filteringTransform: function.Function[_ >: Case,
+                                            Optional[TransformedCase]])
+    : Trials[TransformedCase]
 
   /**
     * Consume trial cases until either there are no more or an exception is thrown by {@code consumer}.
