@@ -14,7 +14,9 @@ class TrialsLaws extends FlatSpec with Checkers {
       def capturesOf(trials: Trials[X]) = {
         val captures = mutable.ListBuffer.empty[X]
 
-        trials.supplyTo(captures :+ (_: X): Unit)
+        trials.supplyTo {
+          captures += (_: X): Unit
+        }
 
         captures.toList
       }
@@ -39,7 +41,7 @@ class TrialsLaws extends FlatSpec with Checkers {
     Arbitrary(Gen.oneOf(viaOnly, viaChoose, viaAlternate))
   }
 
-  they should "be a monad" in {
+  they should "be a monad" in
     check(
       Prop.all(
         (discipline
@@ -52,5 +54,4 @@ class TrialsLaws extends FlatSpec with Checkers {
           .all
           .properties)
           .map { case (label, property) => label |: property }: _*))
-  }
 }
