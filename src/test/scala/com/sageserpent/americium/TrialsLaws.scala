@@ -1,7 +1,8 @@
 package com.sageserpent.americium
 
 import cats.Eq
-import cats.laws.discipline
+import cats.kernel.laws.discipline._
+import cats.laws.{IsEqArrow, discipline}
 import org.scalacheck.{Arbitrary, Gen, Prop}
 import org.scalatest.FlatSpec
 import org.scalatest.prop.Checkers
@@ -54,4 +55,12 @@ class TrialsLaws extends FlatSpec with Checkers {
           .all
           .properties)
           .map { case (label, property) => label |: property }: _*))
+
+  they should "have consistent semantics for `filter` and `mapFilter`" in
+    check((trials: Trials[Int]) => {
+      // TODO - all of these explicit type annotations are getting on my nerves...
+      trials.filter(1 == (_: Int) % 2).map((_: Int).toDouble / 2) <-> trials
+        .mapFilter((caze: Int) =>
+          if (1 == caze % 2) Some(caze.toDouble / 2) else None)
+    })
 }
