@@ -1,6 +1,9 @@
 package com.sageserpent.americium
 
-import com.sageserpent.americium.java.{Trials => JavaTrials}
+import com.sageserpent.americium.java.{
+  Trials => JavaTrials,
+  TrialsApi => JavaTrialsApi
+}
 import org.scalamock.function.StubFunction1
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.prop.TableDrivenPropertyChecks
@@ -15,10 +18,15 @@ class TrialsSpec
     with MockFactory
     with TableDrivenPropertyChecks {
   autoVerify = false
+  type TypeRequirementsToProtectCodeInStringsFromUnusedImportOptimisation =
+    (JavaTrials[_], JavaFunction[_, _], Predicate[_])
+  val api: TrialsApi         = TrialsImplementation
+  val javaApi: JavaTrialsApi = TrialsImplementation
+
   "only one case" should "yield just one trial" in
     forAll(Table("case", 1, "foo", 2.3, List(false, 0, true))) { dataCase =>
       withExpectations {
-        val sut = Trials.only(dataCase)
+        val sut = api.only(dataCase)
 
         val mockConsumer: StubFunction1[Any, Unit] = stubFunction[Any, Unit]
 
@@ -31,7 +39,7 @@ class TrialsSpec
   "only one case that provokes an exception" should "result in an exception that references it" in
     forAll(Table("case", 1, "foo", 2.3, Seq(false, 0, true))) { dataCase =>
       withExpectations {
-        val sut = Trials.only(dataCase)
+        val sut = api.only(dataCase)
 
         val problem = new RuntimeException("Test problem")
 
@@ -57,7 +65,7 @@ class TrialsSpec
             Seq(true),
             Seq(4.3))) { possibleChoices =>
       withExpectations {
-        val sut: Trials[Any] = Trials.choose(possibleChoices)
+        val sut: Trials[Any] = api.choose(possibleChoices)
 
         val mockConsumer = stubFunction[Any, Unit]
 
@@ -68,8 +76,6 @@ class TrialsSpec
       }
     }
 
-  case class ExceptionWithCasePayload[Case](caze: Case) extends RuntimeException
-
   "a choice that includes exceptional cases" should "result in one of the corresponding exceptions" in {
     type ChoicesAndCriterion[X] = (Seq[X], X => Boolean)
 
@@ -78,7 +84,7 @@ class TrialsSpec
       withExpectations {
         choicesAndCriterion match {
           case (possibleChoices, exceptionCriterion) =>
-            val sut = Trials.choose(possibleChoices)
+            val sut = api.choose(possibleChoices)
 
             val complainingConsumer = { caze: X =>
               if (exceptionCriterion(caze))
@@ -129,9 +135,9 @@ class TrialsSpec
       )) { alternatives =>
       withExpectations {
         val sut: Trials[Any] =
-          Trials.alternate(alternatives map {
-            case sequence: Seq[_] => Trials.choose(sequence)
-            case singleton        => Trials.only(singleton)
+          api.alternate(alternatives map {
+            case sequence: Seq[_] => api.choose(sequence)
+            case singleton        => api.only(singleton)
           })
 
         val mockConsumer = stubFunction[Any, Unit]
@@ -150,10 +156,10 @@ class TrialsSpec
   "trials" should "yield repeatable cases" in
     forAll(
       Table("trails",
-            Trials.only(1),
-            Trials.choose(1, false, 99),
-            Trials.alternate(Trials.choose(0 until 10 map (_.toString)),
-                             Trials.choose(-10 until 0)))) { sut =>
+            api.only(1),
+            api.choose(1, false, 99),
+            api.alternate(api.choose(0 until 10 map (_.toString)),
+                          api.choose(-10 until 0)))) { sut =>
       withExpectations {
         val mockConsumer = mockFunction[Any, Unit]
 
@@ -166,18 +172,18 @@ class TrialsSpec
 
     }
 
-  case class JackInABox[Caze](caze: Caze)
+  case class ExceptionWithCasePayload[Case](caze: Case) extends RuntimeException
 
   they should "yield repeatable exceptions" in
     forAll(
       Table(
         "trails",
-        Trials.only(JackInABox(1)),
-        Trials.choose(1, false, JackInABox(99)),
-        Trials.alternate(
-          Trials.only(true),
-          Trials.choose(0 until 10 map (_.toString) map JackInABox.apply),
-          Trials.choose(-10 until 0))
+        api.only(JackInABox(1)),
+        api.choose(1, false, JackInABox(99)),
+        api.alternate(
+          api.only(true),
+          api.choose(0 until 10 map (_.toString) map JackInABox.apply),
+          api.choose(-10 until 0))
       )) { sut =>
       withExpectations {
         val surprisedConsumer: Any => Unit = {
@@ -195,32 +201,31 @@ class TrialsSpec
       }
     }
 
-  type TypeRequirementsToProtectCodeInStringsFromUnusedImportOptimisation =
-    (JavaTrials[_], JavaFunction[_, _], Predicate[_])
+  case class JackInABox[Caze](caze: Caze)
 
   "mapping using a Java function" should "compile" in {
-    assertCompiles("Trials.only(1).map((_ + 1): JavaFunction[Int, Int])")
+    assertCompiles("javaApi.only(1).map((_ + 1): JavaFunction[Int, Int])")
   }
 
   "mapping using a Scala function" should "compile" in {
-    assertCompiles("Trials.only(1).map((_ + 1): Int => Int)")
+    assertCompiles("api.only(1).map(_ + 1)")
   }
 
   "flatmapping using a Java function" should "compile" in {
     assertCompiles(
-      "Trials.only(1).flatMap((value => Trials.choose(value, 1.0 + value)): JavaFunction[Int, JavaTrials[Double]])")
+      "javaApi.only(1).flatMap(value => javaApi.choose(value, 1.0 + value))")
   }
 
   "flatmapping using a Scala function" should "compile" in {
     assertCompiles(
-      "Trials.only(1).flatMap((value => Trials.choose(value, 1.0 + value)): Int => Trials[Double])")
+      "api.only(1).flatMap(value => api.choose(value, 1.0 + value))")
   }
 
   "filtering using a Java predicate" should "compile" in {
-    assertCompiles("Trials.only(1).filter((1 == _): Predicate[Int])")
+    assertCompiles("javaApi.only(1).filter(1 == _)")
   }
 
   "filtering using a Scala function" should "compile" in {
-    assertCompiles("Trials.only(1).filter((1 == _): Int => Boolean)")
+    assertCompiles("api.only(1).filter(1 == _)")
   }
 }

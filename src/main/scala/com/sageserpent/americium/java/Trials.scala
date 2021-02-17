@@ -1,40 +1,21 @@
 package com.sageserpent.americium.java
 
 import _root_.com.sageserpent.americium.{
-  TrialsJavaScalaFusionApi,
+  TrialsImplementation,
   Trials => ScalaTrials
 }
-import cats.free.Free
-import com.sageserpent.americium.java.Trials.GenerationSupport
+import com.sageserpent.americium.TrialsImplementation.GenerationSupport
 
 import _root_.java.util.function.{Consumer, Predicate}
 import java.util.{Optional, function}
 
-object Trials extends TrialsJavaScalaFusionApi {
-  override def api(): TrialsApi = this
-
-  sealed trait GenerationOperation[Case]
-
-  case class Choice[Case](choices: Iterable[Case])
-      extends GenerationOperation[Case]
-
-  case class Alternation[Case](alternatives: Iterable[Trials[Case]])
-      extends GenerationOperation[Case]
-
-  // NASTY HACK: as `Free` does not support `filter/withFilter`, reify
-  // the optional results of a flat-mapped filtration; the interpreter
-  // will deal with these.
-  case class FiltrationResult[Case](result: Option[Case])
-      extends GenerationOperation[Case]
-
-  type Generation[Case] = Free[GenerationOperation, Case]
-
-  private[americium] trait GenerationSupport[+Case] {
-    val generation: Generation[_ <: Case]
-  }
+object Trials {
+  def api(): TrialsApi = TrialsImplementation
 }
 
-trait Trials[+Case] extends GenerationSupport[Case] {
+trait Trials[+Case] extends TrialsFactoring[Case] with GenerationSupport[Case] {
+  private[americium] val scalaTrials: ScalaTrials[Case]
+
   def map[TransformedCase](
       transform: function.Function[_ >: Case, TransformedCase])
     : Trials[TransformedCase]
@@ -75,24 +56,6 @@ trait Trials[+Case] extends GenerationSupport[Case] {
     *                          either due to it being created by a different flavour
     *                          of trials instance.
     */
-  def supplyTo(recipe: String, consumer: Consumer[_ >: Case]): Unit
-
-  // Scala and Java API ...
-
-  abstract class TrialException(cause: Throwable)
-      extends RuntimeException(cause) {
-
-    /**
-      * @return The case that provoked the exception.
-      */
-    def provokingCase: Case
-
-    /**
-      * @return A recipe that can be used to reproduce the provoking case
-      *         when supplied to the corresponding trials instance.
-      */
-    def recipe: String
-  }
-
-  private[americium] val scalaTrials: ScalaTrials[Case]
+  def supplyTo(recipe: String, consumer: Consumer[_ >: Case]): Unit =
+    consumer.accept(reproduce(recipe))
 }

@@ -1,8 +1,6 @@
 package com.sageserpent.americium.java;
 
 public interface TrialsApi {
-    TrialsApi api();
-
     <Case> Trials<Case> only(Case onlyCase);
 
     /**

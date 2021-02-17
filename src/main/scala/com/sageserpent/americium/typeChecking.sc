@@ -1,28 +1,35 @@
 
 import com.sageserpent.americium.Trials
-import com.sageserpent.americium.java.Trials
-
-import java.util.function.{Consumer, Function => JavaFunction}
+import com.sageserpent.americium.java.{Trials => JavaTrials}
 
 val trialsApi = Trials.api
 
-val trials: Trials[Int] = trialsApi.choose(2, -4, 3)
+val trials = trialsApi.choose(2, -4, 3)
 
-val flatMappedTrials: Trials[Double] = trials flatMap ((integer =>
-  trialsApi.only(1.1 * integer)): JavaFunction[Int, Trials[Double]])
+val flatMappedTrials = trials flatMap ((integer =>
+  trialsApi.only(1.1 * integer)))
 
-flatMappedTrials.supplyTo(println: Consumer[Double])
+flatMappedTrials.supplyTo(println)
 
-val flatMappedTrials2: Trials[Double] = trials flatMap (integer =>
-  trialsApi.only(1.1 * integer))
+val mappedTrials = trials map (_ * 2.5)
 
-flatMappedTrials2.supplyTo(println)
+mappedTrials.supplyTo(println)
 
-val mappedTrials
-  : Trials[Double] = trials map ((_ * 2.5): JavaFunction[Int, Double])
+trialsApi.alternate(flatMappedTrials, mappedTrials).supplyTo(println)
 
-mappedTrials.supplyTo(println: Consumer[Double])
+val javaTrialsApi = JavaTrials.api
 
-val mappedTrials2: Trials[Double] = trials map (_ * 2.5)
+val javaTrials = javaTrialsApi.choose(2, -4, 3)
 
-mappedTrials2.supplyTo(println)
+val flatMappedJavaTrials = javaTrials flatMap ((integer =>
+  javaTrialsApi.only(1.1 * integer)))
+
+flatMappedJavaTrials.supplyTo(println)
+
+val mappedJavaTrials = javaTrials map (_ * 2.5)
+
+mappedJavaTrials.supplyTo(println)
+
+javaTrialsApi
+  .alternate(flatMappedJavaTrials, mappedJavaTrials)
+  .supplyTo(println)
