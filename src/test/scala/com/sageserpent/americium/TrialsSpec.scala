@@ -10,6 +10,7 @@ import org.scalatest.prop.TableDrivenPropertyChecks
 import org.scalatest.{FlatSpec, Matchers}
 
 import _root_.java.util.function.{Predicate, Function => JavaFunction}
+import scala.collection.JavaConverters._
 import scala.util.Try
 
 class TrialsSpec
@@ -22,6 +23,49 @@ class TrialsSpec
     (JavaTrials[_], JavaFunction[_, _], Predicate[_])
   val api: TrialsApi         = TrialsImplementation
   val javaApi: JavaTrialsApi = TrialsImplementation
+
+  "test driving the Scala API" should "not produce smoke" in {
+    val trials = api.choose(2, -4, 3)
+
+    val flatMappedTrials = trials flatMap (integer => api.only(1.1 * integer))
+
+    flatMappedTrials.supplyTo(println)
+
+    val mappedTrials = trials map (_ * 2.5)
+
+    mappedTrials.supplyTo(println)
+
+    api.alternate(flatMappedTrials, mappedTrials).supplyTo(println)
+
+    api.choose(0 to 20).supplyTo(println)
+
+    api.alternate(Seq(flatMappedTrials, mappedTrials)).supplyTo(println)
+
+    api.choose(Array(1, 2, 3)).supplyTo(println)
+  }
+
+  "test driving the Java API" should "not produce smoke" in {
+    val javaTrials = javaApi.choose(2, -4, 3)
+
+    val flatMappedJavaTrials = javaTrials flatMap (integer =>
+      javaApi.only(1.1 * integer))
+
+    flatMappedJavaTrials.supplyTo(println)
+
+    val mappedJavaTrials = javaTrials map (_ * 2.5)
+
+    mappedJavaTrials.supplyTo(println)
+
+    javaApi
+      .alternate(flatMappedJavaTrials, mappedJavaTrials)
+      .supplyTo(println)
+
+    javaApi.choose((0 to 20).asJava).supplyTo(println)
+
+    javaApi
+      .alternate(Seq(flatMappedJavaTrials, mappedJavaTrials).asJava)
+      .supplyTo(println)
+  }
 
   "only one case" should "yield just one trial" in
     forAll(Table("case", 1, "foo", 2.3, List(false, 0, true))) { dataCase =>

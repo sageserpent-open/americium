@@ -23,5 +23,11 @@ public class TrialsApiTests {
         alternateTrials.supplyTo(number -> {
             System.out.println(number.doubleValue());
         });
+
+        final Trials<? extends Number> alternateTrailsFromArray = api.alternate(new Trials[]{integerTrials, doubleTrials, bigDecimalTrials});
+
+        alternateTrailsFromArray.supplyTo(number -> {
+            System.out.println(number.doubleValue());
+        });
     }
 }
