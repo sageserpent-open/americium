@@ -95,15 +95,13 @@ case class TrialsImplementation[+Case](
 
   override private[americium] val scalaTrials = this
 
+  // Factoring API ...
+  override def reproduce(recipe: String): Case = ???
+
   // Java-only API ...
   override def map[TransformedCase](
       transform: JavaFunction[_ >: Case, TransformedCase])
     : TrialsImplementation[TransformedCase] = map(transform.apply _)
-
-  // Scala-only API ...
-  override def map[TransformedCase](transform: Case => TransformedCase)
-    : TrialsImplementation[TransformedCase] =
-    TrialsImplementation(generation map transform)
 
   override def flatMap[TransformedCase](
       step: JavaFunction[_ >: Case, JavaTrials[TransformedCase]])
@@ -114,12 +112,6 @@ case class TrialsImplementation[+Case](
       predicate: Predicate[_ >: Case]): TrialsImplementation[Case] =
     filter(predicate.test _)
 
-  override def filter(predicate: Case => Boolean): TrialsImplementation[Case] =
-    flatMap(
-      (caze: Case) =>
-        TrialsImplementation(
-          liftF(FiltrationResult(Some(caze).filter(predicate)))))
-
   def mapFilter[TransformedCase](
       filteringTransform: JavaFunction[_ >: Case, Optional[TransformedCase]])
     : TrialsImplementation[TransformedCase] =
@@ -128,11 +120,25 @@ case class TrialsImplementation[+Case](
       case _                                    => None
     })
 
+  override def supplyTo(consumer: Consumer[_ >: Case]): Unit =
+    supplyTo(consumer.accept _)
+
+  // Scala-only API ...
+  override def map[TransformedCase](transform: Case => TransformedCase)
+    : TrialsImplementation[TransformedCase] =
+    TrialsImplementation(generation map transform)
+
   override def mapFilter[TransformedCase](
       filteringTransform: Case => Option[TransformedCase])
     : TrialsImplementation[TransformedCase] =
     flatMap((caze: Case) =>
       TrialsImplementation(liftF(FiltrationResult(filteringTransform(caze)))))
+
+  override def filter(predicate: Case => Boolean): TrialsImplementation[Case] =
+    flatMap(
+      (caze: Case) =>
+        TrialsImplementation(
+          liftF(FiltrationResult(Some(caze).filter(predicate)))))
 
   override def flatMap[TransformedCase](step: Case => Trials[TransformedCase])
     : TrialsImplementation[TransformedCase] = {
@@ -140,9 +146,6 @@ case class TrialsImplementation[+Case](
       .asInstanceOf[Case => Generation[TransformedCase]]
     TrialsImplementation(generation flatMap adaptedStep)
   }
-
-  override def supplyTo(consumer: Consumer[_ >: Case]): Unit =
-    supplyTo(consumer.accept _)
 
   override def supplyTo(consumer: Case => Unit): Unit = {
     val randomBehaviour = new Random(734874)
@@ -179,6 +182,4 @@ case class TrialsImplementation[+Case](
       }
     }
   }
-
-  override def reproduce(recipe: String): Case = ???
 }
