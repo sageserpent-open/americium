@@ -41,6 +41,5 @@ trait Trials[+Case] extends TrialsFactoring[Case] with GenerationSupport[Case] {
 
   def supplyTo(consumer: Case => Unit): Unit
 
-  def supplyTo(recipe: String, consumer: Case => Unit): Unit =
-    consumer(reproduce(recipe))
+  def supplyTo(recipe: String, consumer: Case => Unit): Unit
 }

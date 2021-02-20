@@ -56,6 +56,5 @@ trait Trials[+Case] extends TrialsFactoring[Case] with GenerationSupport[Case] {
     *                          either due to it being created by a different flavour
     *                          of trials instance.
     */
-  def supplyTo(recipe: String, consumer: Consumer[_ >: Case]): Unit =
-    consumer.accept(reproduce(recipe))
+  def supplyTo(recipe: String, consumer: Consumer[_ >: Case]): Unit
 }

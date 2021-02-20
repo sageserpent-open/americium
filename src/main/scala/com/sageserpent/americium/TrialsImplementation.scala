@@ -98,7 +98,8 @@ case class TrialsImplementation[+Case](
   override private[americium] val scalaTrials = this
 
   // Java and Scala API ...
-  override def reproduce(recipe: String): Case = ???
+  override def reproduce(recipe: String): Case =
+    hokeyReproductionOfCase(recipe)._1
 
   // Java-only API ...
   override def map[TransformedCase](
@@ -125,6 +126,9 @@ case class TrialsImplementation[+Case](
   override def supplyTo(consumer: Consumer[_ >: Case]): Unit =
     supplyTo(consumer.accept _)
 
+  override def supplyTo(recipe: String, consumer: Consumer[_ >: Case]): Unit =
+    supplyTo(recipe, consumer.accept _)
+
   // Scala-only API ...
   override def map[TransformedCase](transform: Case => TransformedCase)
     : TrialsImplementation[TransformedCase] =
@@ -149,7 +153,43 @@ case class TrialsImplementation[+Case](
     TrialsImplementation(generation flatMap adaptedStep)
   }
 
-  override def supplyTo(consumer: Case => Unit): Unit = {
+  override def supplyTo(consumer: Case => Unit): Unit =
+    cases.zipWithIndex.foreach {
+      case (testCase, index) =>
+        try {
+          consumer(testCase)
+        } catch {
+          case exception: Throwable =>
+            throw new TrialException(exception) {
+              override def provokingCase: Case = testCase
+
+              override def recipe: String = index.toString
+            }
+        }
+    }
+
+  override def supplyTo(recipe: String, consumer: Case => Unit): Unit = {
+    val (reproducedCase, index) = hokeyReproductionOfCase(recipe)
+    try {
+      consumer(reproducedCase)
+    } catch {
+      case exception: Throwable =>
+        throw new TrialException(exception) {
+          override def provokingCase: Case = reproducedCase
+
+          override def recipe: String = index.toString
+        }
+    }
+  }
+
+  // TODO - its name is accurate. Find a way of a) not having to slog through
+  // all the generation of dropped test cases and b) make the recipe something
+  // that can deal with changes in representation, maybe?
+  private def hokeyReproductionOfCase(recipe: String) = {
+    cases.zipWithIndex.drop(recipe.toInt).head
+  }
+
+  private def cases: Stream[Case] = {
     val randomBehaviour = new Random(734874)
 
     // NASTY HACK: what follows is an abuse of the reader monad whereby the injected context is *mutable*,
@@ -171,17 +211,6 @@ case class TrialsImplementation[+Case](
         }
       }
 
-    generation.foldMap(interpreter).foreach { testCase =>
-      try {
-        consumer(testCase)
-      } catch {
-        case exception: Throwable =>
-          throw new TrialException(exception) {
-            override def provokingCase: Case = testCase
-
-            override def recipe: String = ???
-          }
-      }
-    }
+    generation.foldMap(interpreter)
   }
 }
