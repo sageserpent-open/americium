@@ -247,6 +247,37 @@ class TrialsSpec
 
   case class JackInABox[Caze](caze: Caze)
 
+  "an exceptional case" should "be reproduced via its recipe" in forAll(
+    Table(
+      "trails",
+      api.only(JackInABox(1)),
+      api.choose(1, false, JackInABox(99)),
+      api.alternate(
+        api.only(true),
+        api.choose(0 until 10 map (_.toString) map JackInABox.apply),
+        api.choose(-10 until 0))
+    )) { sut =>
+    withExpectations {
+      val surprisedConsumer: Any => Unit = {
+        case JackInABox(caze) => throw ExceptionWithCasePayload(caze)
+        case _                =>
+      }
+
+      val exception = Try { sut.supplyTo(surprisedConsumer) }.failed.get
+        .asInstanceOf[sut.TrialException]
+
+      val exceptionRecreatedViaRecipe = Try {
+        sut.supplyTo(exception.recipe, surprisedConsumer)
+      }.failed.get
+        .asInstanceOf[sut.TrialException]
+
+      exceptionRecreatedViaRecipe.provokingCase shouldBe exception.provokingCase
+      exceptionRecreatedViaRecipe.recipe shouldBe exception.recipe
+    }
+  }
+
+  type TypeRequirements = (JavaTrials[_], JavaFunction[_, _], Predicate[_])
+
   "mapping using a Java function" should "compile" in {
     assertCompiles("javaApi.only(1).map((_ + 1): JavaFunction[Int, Int])")
   }
