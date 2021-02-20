@@ -153,8 +153,8 @@ case class TrialsImplementation[+Case](
     val randomBehaviour = new Random(734874)
 
     // NASTY HACK: what follows is an abuse of the reader monad whereby the injected context is *mutable*,
-    // but at least it's buried in the interpreter for `Trials.FiltrationResult`. The reified `Filtration` values
-    // are also handled by the interpreter too. If it's any consolation, it means that flat-mapping is
+    // but at least it's buried in the interpreter for `GenerationOperation`. The reified `FiltrationResult`
+    // values are also handled by the interpreter too. If it's any consolation, it means that flat-mapping is
     // stack-safe. Read 'em and weep!
 
     def interpreter: GenerationOperation ~> Stream =
