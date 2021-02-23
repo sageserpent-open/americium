@@ -276,8 +276,6 @@ class TrialsSpec
     }
   }
 
-  type TypeRequirements = (JavaTrials[_], JavaFunction[_, _], Predicate[_])
-
   "mapping using a Java function" should "compile" in {
     assertCompiles("javaApi.only(1).map((_ + 1): JavaFunction[Int, Int])")
   }
