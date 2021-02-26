@@ -5,6 +5,15 @@ import cats.free.FreeT
 import cats.free.FreeT.{liftF, pure}
 import cats.implicits._
 import cats.~>
+import com.sageserpent.americium.TrialsImplementation.{
+  Alternation,
+  Choice,
+  DecisionIndices,
+  DecisionsWriter,
+  FiltrationResult,
+  Generation,
+  GenerationOperation
+}
 import com.sageserpent.americium.java.{
   Trials => JavaTrials,
   TrialsApi => JavaTrialsApi
@@ -65,8 +74,7 @@ object TrialsImplementation extends JavaTrialsApi with TrialsApi {
 
   override def choose[Case](
       choices: Iterable[Case]): TrialsImplementation[Case] =
-    TrialsImplementation(
-      liftF[GenerationOperation, DecisionsWriter, Case](Choice(choices)))
+    new TrialsImplementation(Choice(choices))
 
   override def alternate[Case](firstAlternative: Trials[Case],
                                secondAlternative: Trials[Case],
@@ -76,9 +84,7 @@ object TrialsImplementation extends JavaTrialsApi with TrialsApi {
 
   override def alternate[Case](
       alternatives: Iterable[Trials[Case]]): TrialsImplementation[Case] =
-    TrialsImplementation(
-      liftF[GenerationOperation, DecisionsWriter, Case](
-        Alternation(alternatives)))
+    new TrialsImplementation(Alternation(alternatives))
 
   sealed trait GenerationOperation[Case]
 
@@ -103,7 +109,10 @@ case class TrialsImplementation[+Case](
     override val generation: TrialsImplementation.Generation[_ <: Case])
     extends JavaTrials[Case]
     with Trials[Case] {
-  import TrialsImplementation._
+
+  def this(generationOperation: GenerationOperation[Case]) = {
+    this(liftF[GenerationOperation, DecisionsWriter, Case](generationOperation))
+  }
 
   override private[americium] val scalaTrials = this
 
@@ -147,18 +156,12 @@ case class TrialsImplementation[+Case](
   override def mapFilter[TransformedCase](
       filteringTransform: Case => Option[TransformedCase])
     : TrialsImplementation[TransformedCase] =
-    flatMap(
-      (caze: Case) =>
-        TrialsImplementation(
-          liftF[GenerationOperation, DecisionsWriter, TransformedCase](
-            FiltrationResult(filteringTransform(caze)))))
+    flatMap((caze: Case) =>
+      new TrialsImplementation(FiltrationResult(filteringTransform(caze))))
 
   override def filter(predicate: Case => Boolean): TrialsImplementation[Case] =
-    flatMap(
-      (caze: Case) =>
-        TrialsImplementation(
-          liftF[GenerationOperation, DecisionsWriter, Case](
-            FiltrationResult(Some(caze).filter(predicate)))))
+    flatMap((caze: Case) =>
+      new TrialsImplementation(FiltrationResult(Some(caze).filter(predicate))))
 
   override def flatMap[TransformedCase](step: Case => Trials[TransformedCase])
     : TrialsImplementation[TransformedCase] = {
@@ -213,8 +216,8 @@ case class TrialsImplementation[+Case](
 
     def interpreter: GenerationOperation ~> DecisionsWriter =
       new (GenerationOperation ~> DecisionsWriter) {
-        override def apply[Case](
-            generationOperation: GenerationOperation[Case]) = {
+        override def apply[Case](generationOperation: GenerationOperation[Case])
+          : WriterT[Stream, DecisionIndices, Case] = {
           generationOperation match {
             case Choice(choices) =>
               WriterT.liftF(randomBehaviour.shuffle(choices).toStream)
