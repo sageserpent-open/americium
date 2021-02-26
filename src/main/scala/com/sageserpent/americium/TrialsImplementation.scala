@@ -1,7 +1,9 @@
 package com.sageserpent.americium
 
-import cats.free.Free
-import cats.free.Free.{liftF, pure}
+import cats.data.WriterT
+import cats.free.FreeT
+import cats.free.FreeT.{liftF, pure}
+import cats.implicits._
 import cats.~>
 import com.sageserpent.americium.java.{
   Trials => JavaTrials,
@@ -16,12 +18,17 @@ import scala.collection.JavaConverters._
 import scala.util.Random
 
 object TrialsImplementation extends JavaTrialsApi with TrialsApi {
-  type Generation[Case] = Free[GenerationOperation, Case]
+  type DecisionIndices = List[Int]
+
+  type DecisionsWriter[Case] = WriterT[Stream, DecisionIndices, Case]
+
+  type Generation[Case] = FreeT[GenerationOperation, DecisionsWriter, Case]
 
   // Java and Scala API ...
 
   override def only[Case](onlyCase: Case): TrialsImplementation[Case] =
-    TrialsImplementation(pure(onlyCase))
+    TrialsImplementation(
+      pure[GenerationOperation, DecisionsWriter, Case](onlyCase))
 
   override def choose[Case](firstChoice: Case,
                             secondChoice: Case,
@@ -58,7 +65,8 @@ object TrialsImplementation extends JavaTrialsApi with TrialsApi {
 
   override def choose[Case](
       choices: Iterable[Case]): TrialsImplementation[Case] =
-    TrialsImplementation(liftF(Choice(choices)))
+    TrialsImplementation(
+      liftF[GenerationOperation, DecisionsWriter, Case](Choice(choices)))
 
   override def alternate[Case](firstAlternative: Trials[Case],
                                secondAlternative: Trials[Case],
@@ -68,7 +76,9 @@ object TrialsImplementation extends JavaTrialsApi with TrialsApi {
 
   override def alternate[Case](
       alternatives: Iterable[Trials[Case]]): TrialsImplementation[Case] =
-    TrialsImplementation(liftF(Alternation(alternatives)))
+    TrialsImplementation(
+      liftF[GenerationOperation, DecisionsWriter, Case](
+        Alternation(alternatives)))
 
   sealed trait GenerationOperation[Case]
 
@@ -137,14 +147,18 @@ case class TrialsImplementation[+Case](
   override def mapFilter[TransformedCase](
       filteringTransform: Case => Option[TransformedCase])
     : TrialsImplementation[TransformedCase] =
-    flatMap((caze: Case) =>
-      TrialsImplementation(liftF(FiltrationResult(filteringTransform(caze)))))
+    flatMap(
+      (caze: Case) =>
+        TrialsImplementation(
+          liftF[GenerationOperation, DecisionsWriter, TransformedCase](
+            FiltrationResult(filteringTransform(caze)))))
 
   override def filter(predicate: Case => Boolean): TrialsImplementation[Case] =
     flatMap(
       (caze: Case) =>
         TrialsImplementation(
-          liftF(FiltrationResult(Some(caze).filter(predicate)))))
+          liftF[GenerationOperation, DecisionsWriter, Case](
+            FiltrationResult(Some(caze).filter(predicate)))))
 
   override def flatMap[TransformedCase](step: Case => Trials[TransformedCase])
     : TrialsImplementation[TransformedCase] = {
@@ -197,20 +211,28 @@ case class TrialsImplementation[+Case](
     // values are also handled by the interpreter too. If it's any consolation, it means that flat-mapping is
     // stack-safe. Read 'em and weep!
 
-    def interpreter: GenerationOperation ~> Stream =
-      new (GenerationOperation ~> Stream) {
+    def interpreter: GenerationOperation ~> DecisionsWriter =
+      new (GenerationOperation ~> DecisionsWriter) {
         override def apply[Case](
-            generationOperation: GenerationOperation[Case]): Stream[Case] = {
+            generationOperation: GenerationOperation[Case]) = {
           generationOperation match {
-            case Choice(choices) => randomBehaviour.shuffle(choices).toStream
+            case Choice(choices) =>
+              WriterT.liftF(randomBehaviour.shuffle(choices).toStream)
             case Alternation(alternatives) =>
-              randomBehaviour.pickAlternatelyFrom(
-                alternatives map (_.generation.foldMap(interpreter)))
-            case FiltrationResult(result) => result.toStream
+              WriterT(
+                randomBehaviour.pickAlternatelyFrom(alternatives map (value => {
+                  value.generation
+                    .foldMap(interpreter)
+                    .run // Ahem. Could this be done without recursively interpreting?
+                })))
+            case FiltrationResult(result) => WriterT.liftF(result.toStream)
           }
         }
       }
 
-    generation.foldMap(interpreter)
+    val stuff: Stream[(DecisionIndices, Case)] =
+      generation.foldMap(interpreter).run
+
+    stuff.map(_._2)
   }
 }
