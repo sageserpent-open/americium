@@ -39,9 +39,13 @@ class TrialsLaws extends FlatSpec with Checkers {
       for {
         first  <- viaOnly
         second <- viaChoose
-      } yield api.alternate(first, second)
+        third  <- byHookOrByCrook
+      } yield api.alternate(first, second, third)
 
-    Arbitrary(Gen.oneOf(viaOnly, viaChoose, viaAlternate))
+    def byHookOrByCrook: Gen[Trials[X]] =
+      Gen.oneOf(viaOnly, viaChoose, viaAlternate)
+
+    Arbitrary(byHookOrByCrook)
   }
 
   they should "be a monad" in
