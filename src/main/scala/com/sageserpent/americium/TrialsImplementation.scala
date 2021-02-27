@@ -5,15 +5,6 @@ import cats.free.FreeT
 import cats.free.FreeT.{liftF, pure}
 import cats.implicits._
 import cats.~>
-import com.sageserpent.americium.TrialsImplementation.{
-  Alternation,
-  Choice,
-  DecisionIndices,
-  DecisionsWriter,
-  FiltrationResult,
-  Generation,
-  GenerationOperation
-}
 import com.sageserpent.americium.java.{
   Trials => JavaTrials,
   TrialsApi => JavaTrialsApi
@@ -109,9 +100,14 @@ case class TrialsImplementation[+Case](
     override val generation: TrialsImplementation.Generation[_ <: Case])
     extends JavaTrials[Case]
     with Trials[Case] {
+  import TrialsImplementation._
 
-  def this(generationOperation: GenerationOperation[Case]) = {
-    this(liftF[GenerationOperation, DecisionsWriter, Case](generationOperation))
+  def this(
+      generationOperation: TrialsImplementation.GenerationOperation[Case]) = {
+    this(
+      liftF[TrialsImplementation.GenerationOperation,
+            TrialsImplementation.DecisionsWriter,
+            Case](generationOperation))
   }
 
   override private[americium] val scalaTrials = this
@@ -220,14 +216,28 @@ case class TrialsImplementation[+Case](
           : WriterT[Stream, DecisionIndices, Case] = {
           generationOperation match {
             case Choice(choices) =>
-              WriterT.liftF(randomBehaviour.shuffle(choices).toStream)
+              WriterT(
+                randomBehaviour
+                  .shuffle(choices.zipWithIndex)
+                  .map {
+                    case (caze, decisionIndex) => List(decisionIndex) -> caze
+                  }
+                  .toStream
+              )
             case Alternation(alternatives) =>
               WriterT(
-                randomBehaviour.pickAlternatelyFrom(alternatives map (value => {
-                  value.generation
-                    .foldMap(interpreter)
-                    .run // Ahem. Could this be done without recursively interpreting?
-                })))
+                randomBehaviour
+                  .pickAlternatelyFrom(alternatives.zipWithIndex
+                    .map {
+                      case (value, decisionIndex) =>
+                        value.generation
+                          .foldMap(interpreter)
+                          .run // Ahem. Could this be done without recursively interpreting?
+                          .map {
+                            case (decisionIndices, caze) =>
+                              (decisionIndex :: decisionIndices) -> caze
+                          }
+                    }))
             case FiltrationResult(result) => WriterT.liftF(result.toStream)
           }
         }
@@ -235,6 +245,8 @@ case class TrialsImplementation[+Case](
 
     val stuff: Stream[(DecisionIndices, Case)] =
       generation.foldMap(interpreter).run
+
+    println(stuff.toList) // TODO - take this out.
 
     stuff.map(_._2)
   }
