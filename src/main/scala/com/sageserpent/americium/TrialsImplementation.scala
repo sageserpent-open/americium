@@ -1,6 +1,6 @@
 package com.sageserpent.americium
 
-import cats.data.WriterT
+import cats.data.{State, WriterT}
 import cats.free.FreeT
 import cats.free.FreeT.{liftF, pure}
 import cats.implicits._
@@ -10,6 +10,8 @@ import com.sageserpent.americium.java.{
   TrialsApi => JavaTrialsApi
 }
 import com.sageserpent.americium.randomEnrichment.RichRandom
+import io.circe.parser._
+import io.circe.syntax._
 
 import _root_.java.lang.{Iterable => JavaIterable}
 import _root_.java.util.Optional
@@ -114,7 +116,7 @@ case class TrialsImplementation[+Case](
 
   // Java and Scala API ...
   override def reproduce(recipe: String): Case =
-    hokeyReproductionOfCase(recipe)._1
+    incomprehensibleVoodooReproductionOfCase(recipe)._2
 
   // Java-only API ...
   override def map[TransformedCase](
@@ -167,8 +169,8 @@ case class TrialsImplementation[+Case](
   }
 
   override def supplyTo(consumer: Case => Unit): Unit =
-    cases.zipWithIndex.foreach {
-      case (testCase, index) =>
+    cases.foreach {
+      case (decisionIndices, testCase) =>
         try {
           consumer(testCase)
         } catch {
@@ -176,13 +178,15 @@ case class TrialsImplementation[+Case](
             throw new TrialException(exception) {
               override def provokingCase: Case = testCase
 
-              override def recipe: String = index.toString
+              override def recipe: String = decisionIndices.asJson.spaces4
             }
         }
     }
 
   override def supplyTo(recipe: String, consumer: Case => Unit): Unit = {
-    val (reproducedCase, index) = hokeyReproductionOfCase(recipe)
+    val (decisionIndices, reproducedCase) =
+      incomprehensibleVoodooReproductionOfCase(recipe)
+
     try {
       consumer(reproducedCase)
     } catch {
@@ -190,19 +194,64 @@ case class TrialsImplementation[+Case](
         throw new TrialException(exception) {
           override def provokingCase: Case = reproducedCase
 
-          override def recipe: String = index.toString
+          override def recipe: String = decisionIndices.asJson.spaces4
         }
     }
   }
 
-  // TODO - its name is accurate. Find a way of a) not having to slog through
-  // all the generation of dropped test cases and b) make the recipe something
-  // that can deal with changes in representation, maybe?
-  private def hokeyReproductionOfCase(recipe: String) = {
-    cases.zipWithIndex.drop(recipe.toInt).head
+  // TODO - its name is accurate.
+  private def incomprehensibleVoodooReproductionOfCase(
+      recipe: String): (DecisionIndices, Case) = {
+    val decisionIndices: DecisionIndices =
+      decode[DecisionIndices](recipe).right.get // TODO: what could possibly go wrong?
+
+    println(decisionIndices) // TODO - remove this debugging cruft...
+
+    type Frankenstein[Caze] = State[DecisionIndices, Caze] // TODO - name, please...
+
+    def jolt: DecisionsWriter ~> Frankenstein =
+      new (DecisionsWriter ~> Frankenstein) {
+        override def apply[A](
+            decisionsWriter: DecisionsWriter[A]): Frankenstein[A] =
+          decisionsWriter.run.head._2.pure[Frankenstein]
+      }
+
+    def interpreter: GenerationOperation ~> Frankenstein =
+      new (GenerationOperation ~> Frankenstein) {
+        override def apply[Case](generationOperation: GenerationOperation[Case])
+          : Frankenstein[Case] = {
+          generationOperation match {
+            case Choice(choices) =>
+              for {
+                decisionIndices <- State.get[DecisionIndices]
+                decisionIndex :: remainingDecisionIndices = decisionIndices
+                _ <- State.set(remainingDecisionIndices)
+              } yield choices.drop(decisionIndex).head
+
+            case Alternation(alternatives) =>
+              for {
+                decisionIndices <- State.get[DecisionIndices]
+                decisionIndex :: remainingDecisionIndices = decisionIndices
+                _ <- State.set(remainingDecisionIndices)
+                result <- {
+                  val chosenAlternative = alternatives.drop(decisionIndex).head
+                  chosenAlternative.generation.mapK(jolt).foldMap(interpreter)
+                }
+              } yield result
+
+            case FiltrationResult(result) => result.get.pure[Frankenstein]
+          }
+        }
+      }
+
+    decisionIndices -> generation
+      .mapK(jolt)
+      .foldMap(interpreter)
+      .runA(decisionIndices)
+      .value
   }
 
-  private def cases: Stream[Case] = {
+  private def cases: Stream[(DecisionIndices, Case)] = {
     val randomBehaviour = new Random(734874)
 
     // NASTY HACK: what follows is an abuse of the reader monad whereby the injected context is *mutable*,
@@ -243,11 +292,6 @@ case class TrialsImplementation[+Case](
         }
       }
 
-    val stuff: Stream[(DecisionIndices, Case)] =
-      generation.foldMap(interpreter).run
-
-    println(stuff.toList) // TODO - take this out.
-
-    stuff.map(_._2)
+    generation.foldMap(interpreter).run
   }
 }

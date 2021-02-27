@@ -255,7 +255,18 @@ class TrialsSpec
       api.alternate(
         api.only(true),
         api.choose(0 until 10 map (_.toString) map JackInABox.apply),
-        api.choose(-10 until 0))
+        api.choose(-10 until 0)),
+      api.alternate(
+        api.only(true),
+        api.choose(-10 until 0),
+        api.alternate(api.choose(-99 to -50), api.only(JackInABox(-2)))
+      ),
+      api.alternate(
+        api.only(true),
+        api.alternate(api.choose(-99 to -50),
+                      api.choose("Red herring", false, JackInABox(-2))),
+        api.choose(-10 until 0)
+      )
     )) { sut =>
     withExpectations {
       val surprisedConsumer: Any => Unit = {
