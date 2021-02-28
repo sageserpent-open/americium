@@ -60,11 +60,17 @@ class TrialsLaws extends FlatSpec with Checkers {
           .functorFilter[Int, Int, String]
           .all
           .properties)
-          .map { case (label, property) => label |: property }: _*))
+          .map { case (label, property) => label |: property }: _*),
+      MinSuccessful(200)
+    )
 
   they should "have consistent semantics for `filter` and `mapFilter`" in
-    check((trials: Trials[Int]) => {
-      trials.filter(1 == _               % 2).map(_.toDouble / 2) <-> trials
-        .mapFilter(caze => if (1 == caze % 2) Some(caze.toDouble / 2) else None)
-    })
+    check(
+      (trials: Trials[Int]) => {
+        trials.filter(1 == _ % 2).map(_.toDouble / 2) <-> trials
+          .mapFilter(caze =>
+            if (1 == caze % 2) Some(caze.toDouble / 2) else None)
+      },
+      MinSuccessful(200)
+    )
 }
