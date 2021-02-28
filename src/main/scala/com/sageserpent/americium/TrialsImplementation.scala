@@ -1,8 +1,8 @@
 package com.sageserpent.americium
 
 import cats.data.{State, WriterT}
-import cats.free.FreeT
-import cats.free.FreeT.{liftF, pure}
+import cats.free.Free
+import cats.free.Free.{liftF, pure}
 import cats.implicits._
 import cats.~>
 import com.sageserpent.americium.java.{
@@ -22,15 +22,12 @@ import scala.util.Random
 object TrialsImplementation extends JavaTrialsApi with TrialsApi {
   type DecisionIndices = List[Int]
 
-  type DecisionsWriter[Case] = WriterT[Stream, DecisionIndices, Case]
-
-  type Generation[Case] = FreeT[GenerationOperation, DecisionsWriter, Case]
+  type Generation[Case] = Free[GenerationOperation, Case]
 
   // Java and Scala API ...
 
   override def only[Case](onlyCase: Case): TrialsImplementation[Case] =
-    TrialsImplementation(
-      pure[GenerationOperation, DecisionsWriter, Case](onlyCase))
+    TrialsImplementation(pure[GenerationOperation, Case](onlyCase))
 
   override def choose[Case](firstChoice: Case,
                             secondChoice: Case,
@@ -107,16 +104,15 @@ case class TrialsImplementation[+Case](
   def this(
       generationOperation: TrialsImplementation.GenerationOperation[Case]) = {
     this(
-      liftF[TrialsImplementation.GenerationOperation,
-            TrialsImplementation.DecisionsWriter,
-            Case](generationOperation))
+      liftF[TrialsImplementation.GenerationOperation, Case](
+        generationOperation))
   }
 
   override private[americium] val scalaTrials = this
 
   // Java and Scala API ...
   override def reproduce(recipe: String): Case =
-    incomprehensibleVoodooReproductionOfCase(recipe)._2
+    reproduce(parseDecisionIndices(recipe))
 
   // Java-only API ...
   override def map[TransformedCase](
@@ -184,8 +180,8 @@ case class TrialsImplementation[+Case](
     }
 
   override def supplyTo(recipe: String, consumer: Case => Unit): Unit = {
-    val (decisionIndices, reproducedCase) =
-      incomprehensibleVoodooReproductionOfCase(recipe)
+    val decisionIndices = parseDecisionIndices(recipe)
+    val reproducedCase  = reproduce(decisionIndices)
 
     try {
       consumer(reproducedCase)
@@ -199,27 +195,16 @@ case class TrialsImplementation[+Case](
     }
   }
 
-  // TODO - its name is accurate.
-  private def incomprehensibleVoodooReproductionOfCase(
-      recipe: String): (DecisionIndices, Case) = {
-    val decisionIndices: DecisionIndices =
-      decode[DecisionIndices](recipe).right.get // TODO: what could possibly go wrong?
+  private def reproduce(decisionIndices: DecisionIndices): Case = {
 
-    println(decisionIndices) // TODO - remove this debugging cruft...
+    type DecisionIndicesContext[Caze] = State[DecisionIndices, Caze]
 
-    type Frankenstein[Caze] = State[DecisionIndices, Caze] // TODO - name, please...
-
-    def jolt: DecisionsWriter ~> Frankenstein =
-      new (DecisionsWriter ~> Frankenstein) {
-        override def apply[A](
-            decisionsWriter: DecisionsWriter[A]): Frankenstein[A] =
-          decisionsWriter.run.head._2.pure[Frankenstein]
-      }
-
-    def interpreter: GenerationOperation ~> Frankenstein =
-      new (GenerationOperation ~> Frankenstein) {
+    // NOTE: unlike the companion interpreter in `cases`,
+    // this one has a relatively sane implementation.
+    def interpreter: GenerationOperation ~> DecisionIndicesContext =
+      new (GenerationOperation ~> DecisionIndicesContext) {
         override def apply[Case](generationOperation: GenerationOperation[Case])
-          : Frankenstein[Case] = {
+          : DecisionIndicesContext[Case] = {
           generationOperation match {
             case Choice(choices) =>
               for {
@@ -235,29 +220,38 @@ case class TrialsImplementation[+Case](
                 _ <- State.set(remainingDecisionIndices)
                 result <- {
                   val chosenAlternative = alternatives.drop(decisionIndex).head
-                  chosenAlternative.generation.mapK(jolt).foldMap(interpreter)
+                  chosenAlternative.generation.foldMap(interpreter) // Ahem. Could this be done without recursively interpreting?
                 }
               } yield result
 
-            case FiltrationResult(result) => result.get.pure[Frankenstein]
+            // NOTE: pattern-match only on `Some`, as we are reproducing a caze that
+            // therefore must have passed filtration the first time around.
+            case FiltrationResult(Some(caze)) =>
+              caze.pure[DecisionIndicesContext]
           }
         }
       }
 
-    decisionIndices -> generation
-      .mapK(jolt)
+    generation
       .foldMap(interpreter)
       .runA(decisionIndices)
       .value
   }
 
+  private def parseDecisionIndices(recipe: String): DecisionIndices = {
+    decode[DecisionIndices](recipe).right.get // TODO: what could possibly go wrong?
+  }
+
   private def cases: Stream[(DecisionIndices, Case)] = {
     val randomBehaviour = new Random(734874)
 
-    // NASTY HACK: what follows is an abuse of the reader monad whereby the injected context is *mutable*,
-    // but at least it's buried in the interpreter for `GenerationOperation`. The reified `FiltrationResult`
-    // values are also handled by the interpreter too. If it's any consolation, it means that flat-mapping is
-    // stack-safe. Read 'em and weep!
+    type DecisionsWriter[Case] = WriterT[Stream, DecisionIndices, Case]
+
+    // NASTY HACK: what follows is a hacked alternative to using the reader monad whereby the injected
+    // context is *mutable*, but at least it's buried in the interpreter for `GenerationOperation`, expressed
+    // as a closure over `randomBehaviour`. The reified `FiltrationResult` values are also handled by the
+    // interpreter too. If it's any consolation, it means that flat-mapping is stack-safe - although I'm not
+    // entirely sure about alternation. Read 'em and weep!
 
     def interpreter: GenerationOperation ~> DecisionsWriter =
       new (GenerationOperation ~> DecisionsWriter) {
@@ -273,6 +267,7 @@ case class TrialsImplementation[+Case](
                   }
                   .toStream
               )
+
             case Alternation(alternatives) =>
               WriterT(
                 randomBehaviour
@@ -287,6 +282,7 @@ case class TrialsImplementation[+Case](
                               (decisionIndex :: decisionIndices) -> caze
                           }
                     }))
+
             case FiltrationResult(result) => WriterT.liftF(result.toStream)
           }
         }
