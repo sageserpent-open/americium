@@ -9,6 +9,7 @@ import org.scalamock.scalatest.MockFactory
 import org.scalatest.prop.TableDrivenPropertyChecks
 import org.scalatest.{FlatSpec, Matchers}
 
+import _root_.java.util.UUID
 import _root_.java.util.function.{Predicate, Function => JavaFunction}
 import scala.collection.JavaConverters._
 import scala.util.Try
@@ -194,6 +195,51 @@ class TrialsSpec
             case singleton       => Seq(singleton)
           }
           .foreach(possibleChoice => mockConsumer.verify(possibleChoice))
+      }
+    }
+
+  "an alternation" should "yield cases that satisfy an invariant of one of its alternatives" in
+    forAll(
+      Table(
+        "alternatives",
+        Seq.empty,
+        Seq(1 to 10),
+        Seq(1 to 10, 20 to 30 map (_.toString)),
+        Seq(1 to 10, Seq(true, false), 20 to 30),
+        Seq(1, "3", 99),
+        Seq(1 to 10, Seq(12), -3 to -1),
+        Seq(Seq(0), 1 to 10, 13, -3 to -1)
+      )) { alternatives =>
+      withExpectations {
+        val alternativeIds = Vector.fill(alternatives.size) {
+          UUID.randomUUID()
+        }
+
+        def predicateOnHash(caze: Any) = 0 == caze.hashCode() % 3
+
+        val sut: Trials[(Any, UUID)] =
+          api.alternate(alternatives map {
+            case sequence: Seq[_] => api.choose(sequence)
+            case singleton        => api.only(singleton)
+          } zip alternativeIds map {
+            // Set up a unique invariant on each alternative - it should supply pairs,
+            // each of which has the same id component that denotes the alternative. As
+            // the id is unique, the implementation of `Trials.alternative` cannot fake
+            // the id values - so they must come from the alternatives somehow. Furthermore,
+            // the pair should satisfy a predicate on its hash.
+            case (trials, id) => trials.map(_ -> id).filter(predicateOnHash)
+          })
+
+        val mockConsumer = mockFunction[(Any, UUID), Unit]
+
+        mockConsumer
+          .expects(where { identifiedCase: (Any, UUID) =>
+            alternativeIds.contains(identifiedCase._2) && predicateOnHash(
+              identifiedCase)
+          })
+          .anyNumberOfTimes()
+
+        sut.supplyTo(mockConsumer)
       }
     }
 
