@@ -10,6 +10,7 @@ import com.sageserpent.americium.java.{
   TrialsApi => JavaTrialsApi
 }
 import com.sageserpent.americium.randomEnrichment.RichRandom
+import io.circe.generic.auto._
 import io.circe.parser._
 import io.circe.syntax._
 
@@ -20,7 +21,12 @@ import scala.collection.JavaConverters._
 import scala.util.Random
 
 object TrialsImplementation extends JavaTrialsApi with TrialsApi {
-  type DecisionIndices = List[Int]
+  sealed trait Decision;
+
+  case class ChoiceOf(index: Int)      extends Decision
+  case class AlternativeOf(index: Int) extends Decision
+
+  type DecisionIndices = List[Decision]
 
   type Generation[Case] = Free[GenerationOperation, Case]
 
@@ -209,14 +215,14 @@ case class TrialsImplementation[+Case](
             case Choice(choices) =>
               for {
                 decisionIndices <- State.get[DecisionIndices]
-                decisionIndex :: remainingDecisionIndices = decisionIndices
+                ChoiceOf(decisionIndex) :: remainingDecisionIndices = decisionIndices
                 _ <- State.set(remainingDecisionIndices)
               } yield choices.drop(decisionIndex).head
 
             case Alternation(alternatives) =>
               for {
                 decisionIndices <- State.get[DecisionIndices]
-                decisionIndex :: remainingDecisionIndices = decisionIndices
+                AlternativeOf(decisionIndex) :: remainingDecisionIndices = decisionIndices
                 _ <- State.set(remainingDecisionIndices)
                 result <- {
                   val chosenAlternative = alternatives.drop(decisionIndex).head
@@ -263,25 +269,25 @@ case class TrialsImplementation[+Case](
                 randomBehaviour
                   .shuffle(choices.zipWithIndex)
                   .map {
-                    case (caze, decisionIndex) => List(decisionIndex) -> caze
+                    case (caze, decisionIndex) =>
+                      List(ChoiceOf(decisionIndex)) -> caze
                   }
                   .toStream
               )
 
             case Alternation(alternatives) =>
-              WriterT(
-                randomBehaviour
-                  .pickAlternatelyFrom(alternatives.zipWithIndex
-                    .map {
-                      case (value, decisionIndex) =>
-                        value.generation
-                          .foldMap(interpreter)
-                          .run // Ahem. Could this be done without recursively interpreting?
-                          .map {
-                            case (decisionIndices, caze) =>
-                              (decisionIndex :: decisionIndices) -> caze
-                          }
-                    }))
+              WriterT(randomBehaviour
+                .pickAlternatelyFrom(alternatives.zipWithIndex
+                  .map {
+                    case (value, decisionIndex) =>
+                      value.generation
+                        .foldMap(interpreter)
+                        .run // Ahem. Could this be done without recursively interpreting?
+                        .map {
+                          case (decisionIndices, caze) =>
+                            (AlternativeOf(decisionIndex) :: decisionIndices) -> caze
+                        }
+                  }))
 
             case FiltrationResult(result) => WriterT.liftF(result.toStream)
           }
