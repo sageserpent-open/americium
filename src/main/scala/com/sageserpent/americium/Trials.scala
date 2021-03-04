@@ -1,6 +1,7 @@
 package com.sageserpent.americium
 
 import cats._
+import com.sageserpent.americium.Trials.WithLimit
 import com.sageserpent.americium.TrialsImplementation.GenerationSupport
 import com.sageserpent.americium.java.TrialsFactoring
 
@@ -24,6 +25,10 @@ object Trials {
       override def mapFilter[A, B](fa: Trials[A])(
           f: A => Option[B]): Trials[B] = fa.mapFilter(f)
     }
+
+  trait WithLimit[+Case] {
+    def supplyTo(consumer: Case => Unit): Unit
+  }
 }
 
 trait Trials[+Case] extends TrialsFactoring[Case] with GenerationSupport[Case] {
@@ -39,7 +44,7 @@ trait Trials[+Case] extends TrialsFactoring[Case] with GenerationSupport[Case] {
       filteringTransform: Case => Option[TransformedCase])
     : Trials[TransformedCase]
 
-  def supplyTo(consumer: Case => Unit): Unit
+  def withLimit(limit: Int): WithLimit[Case]
 
   def supplyTo(recipe: String, consumer: Case => Unit): Unit
 }

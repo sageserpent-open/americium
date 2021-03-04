@@ -5,12 +5,33 @@ import _root_.com.sageserpent.americium.{
   Trials => ScalaTrials
 }
 import com.sageserpent.americium.TrialsImplementation.GenerationSupport
+import com.sageserpent.americium.java.Trials.WithLimit
 
 import _root_.java.util.function.{Consumer, Predicate}
 import java.util.{Optional, function}
 
 object Trials {
   def api(): TrialsApi = TrialsImplementation
+
+  trait WithLimit[+Case] {
+
+    /**
+      * Consume trial cases until either there are no more or an exception is thrown by {@code consumer}.
+      * If an exception is thrown, attempts will be made to shrink the trial case that caused the
+      * exception to a simpler case that throws an exception - the specific kind of exception isn't
+      * necessarily the same between the first exceptional case and the final simplified one. The exception
+      * from the simplified case (or the original exceptional case if it could not be simplified) is wrapped
+      * in an instance of {@link TrialException} which also contains the case that provoked the exception.
+      *
+      * @param consumer An operation that consumes a 'Case', and may throw an exception.
+      * @note The limit applies to the count of the number of supplied
+      *       cases, regardless of whether some of these cases are
+      *       duplicated or not. There is no guarantee that all of
+      *       the non-duplicated cases have to be supplied, even if
+      *       they could potentially all fit within the limit.
+      */
+    def supplyTo(consumer: Consumer[_ >: Case]): Unit
+  }
 }
 
 trait Trials[+Case] extends TrialsFactoring[Case] with GenerationSupport[Case] {
@@ -32,16 +53,13 @@ trait Trials[+Case] extends TrialsFactoring[Case] with GenerationSupport[Case] {
     : Trials[TransformedCase]
 
   /**
-    * Consume trial cases until either there are no more or an exception is thrown by {@code consumer}.
-    * If an exception is thrown, attempts will be made to shrink the trial case that caused the
-    * exception to a simpler case that throws an exception - the specific kind of exception isn't
-    * necessarily the same between the first exceptional case and the final simplified one. The exception
-    * from the simplified case (or the original exceptional case if it could not be simplified) is wrapped
-    * in an instance of {@link TrialException} which also contains the case that provoked the exception.
+    * Fluent syntax for configuring a limit to the number of cases
+    * supplied to a consumer.
     *
-    * @param consumer An operation that consumes a 'Case', and may throw an exception.
+    * @param limit
+    * @return An instance of {@link WithLimit} with the limit configured.
     */
-  def supplyTo(consumer: Consumer[_ >: Case]): Unit
+  def withLimit(limit: Int): WithLimit[Case]
 
   /**
     * Consume the single trial case reproduced by a recipe. This is intended

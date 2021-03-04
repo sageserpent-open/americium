@@ -20,13 +20,15 @@ public class TrialsApiTests {
 
         final Trials<? extends Number> alternateTrials = api.alternate(integerTrials, doubleTrials, bigDecimalTrials);
 
-        alternateTrials.supplyTo(number -> {
+        final int limit = 20;
+
+        alternateTrials.withLimit(limit).supplyTo(number -> {
             System.out.println(number.doubleValue());
         });
 
         final Trials<? extends Number> alternateTrailsFromArray = api.alternate(new Trials[]{integerTrials, doubleTrials, bigDecimalTrials});
 
-        alternateTrailsFromArray.supplyTo(number -> {
+        alternateTrailsFromArray.withLimit(limit).supplyTo(number -> {
             System.out.println(number.doubleValue());
         });
     }

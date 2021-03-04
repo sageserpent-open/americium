@@ -120,6 +120,31 @@ case class TrialsImplementation[+Case](
   override def reproduce(recipe: String): Case =
     reproduce(parseDecisionIndices(recipe))
 
+  override def withLimit(
+      limit: Int): JavaTrials.WithLimit[Case] with Trials.WithLimit[Case] =
+    new JavaTrials.WithLimit[Case] with Trials.WithLimit[Case] {
+
+      // Java-only API ...
+      override def supplyTo(consumer: Consumer[_ >: Case]): Unit =
+        supplyTo(consumer.accept _)
+
+      // Scala-only API ...
+      override def supplyTo(consumer: Case => Unit): Unit =
+        cases.foreach {
+          case (decisionIndices, testCase) =>
+            try {
+              consumer(testCase)
+            } catch {
+              case exception: Throwable =>
+                throw new TrialException(exception) {
+                  override def provokingCase: Case = testCase
+
+                  override def recipe: String = decisionIndices.asJson.spaces4
+                }
+            }
+        }
+    }
+
   // Java-only API ...
   override def map[TransformedCase](
       transform: JavaFunction[_ >: Case, TransformedCase])
@@ -141,9 +166,6 @@ case class TrialsImplementation[+Case](
       case withPayload if withPayload.isPresent => Some(withPayload.get())
       case _                                    => None
     })
-
-  override def supplyTo(consumer: Consumer[_ >: Case]): Unit =
-    supplyTo(consumer.accept _)
 
   override def supplyTo(recipe: String, consumer: Consumer[_ >: Case]): Unit =
     supplyTo(recipe, consumer.accept _)
@@ -169,21 +191,6 @@ case class TrialsImplementation[+Case](
       .asInstanceOf[Case => Generation[TransformedCase]]
     TrialsImplementation(generation flatMap adaptedStep)
   }
-
-  override def supplyTo(consumer: Case => Unit): Unit =
-    cases.foreach {
-      case (decisionIndices, testCase) =>
-        try {
-          consumer(testCase)
-        } catch {
-          case exception: Throwable =>
-            throw new TrialException(exception) {
-              override def provokingCase: Case = testCase
-
-              override def recipe: String = decisionIndices.asJson.spaces4
-            }
-        }
-    }
 
   override def supplyTo(recipe: String, consumer: Case => Unit): Unit = {
     val decisionIndices = parseDecisionIndices(recipe)

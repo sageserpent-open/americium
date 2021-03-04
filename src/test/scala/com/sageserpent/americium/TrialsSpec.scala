@@ -25,24 +25,32 @@ class TrialsSpec
   val api: TrialsApi         = TrialsImplementation
   val javaApi: JavaTrialsApi = TrialsImplementation
 
+  val limit: Int = 500
+
   "test driving the Scala API" should "not produce smoke" in {
     val trials = api.choose(2, -4, 3)
 
     val flatMappedTrials = trials flatMap (integer => api.only(1.1 * integer))
 
-    flatMappedTrials.supplyTo(println)
+    flatMappedTrials.withLimit(limit).supplyTo(println)
 
     val mappedTrials = trials map (_ * 2.5)
 
-    mappedTrials.supplyTo(println)
+    mappedTrials.withLimit(limit).supplyTo(println)
 
-    api.alternate(flatMappedTrials, mappedTrials).supplyTo(println)
+    api
+      .alternate(flatMappedTrials, mappedTrials)
+      .withLimit(limit)
+      .supplyTo(println)
 
-    api.choose(0 to 20).supplyTo(println)
+    api.choose(0 to 20).withLimit(limit).supplyTo(println)
 
-    api.alternate(Seq(flatMappedTrials, mappedTrials)).supplyTo(println)
+    api
+      .alternate(Seq(flatMappedTrials, mappedTrials))
+      .withLimit(limit)
+      .supplyTo(println)
 
-    api.choose(Array(1, 2, 3)).supplyTo(println)
+    api.choose(Array(1, 2, 3)).withLimit(limit).supplyTo(println)
   }
 
   "test driving the Java API" should "not produce smoke" in {
@@ -51,20 +59,22 @@ class TrialsSpec
     val flatMappedJavaTrials = javaTrials flatMap (integer =>
       javaApi.only(1.1 * integer))
 
-    flatMappedJavaTrials.supplyTo(println)
+    flatMappedJavaTrials.withLimit(limit).supplyTo(println)
 
     val mappedJavaTrials = javaTrials map (_ * 2.5)
 
-    mappedJavaTrials.supplyTo(println)
+    mappedJavaTrials.withLimit(limit).supplyTo(println)
 
     javaApi
       .alternate(flatMappedJavaTrials, mappedJavaTrials)
+      .withLimit(limit)
       .supplyTo(println)
 
-    javaApi.choose((0 to 20).asJava).supplyTo(println)
+    javaApi.choose((0 to 20).asJava).withLimit(limit).supplyTo(println)
 
     javaApi
       .alternate(Seq(flatMappedJavaTrials, mappedJavaTrials).asJava)
+      .withLimit(limit)
       .supplyTo(println)
   }
 
@@ -75,7 +85,7 @@ class TrialsSpec
 
         val mockConsumer: StubFunction1[Any, Unit] = stubFunction[Any, Unit]
 
-        sut.supplyTo(mockConsumer)
+        sut.withLimit(limit).supplyTo(mockConsumer)
 
         mockConsumer.verify(dataCase)
       }
@@ -93,7 +103,7 @@ class TrialsSpec
         mockConsumer.when(dataCase).throwing(problem)
 
         val exception = intercept[sut.TrialException] {
-          sut.supplyTo(mockConsumer)
+          sut.withLimit(limit).supplyTo(mockConsumer)
         }
 
         exception.getCause should be(problem)
@@ -114,7 +124,7 @@ class TrialsSpec
 
         val mockConsumer = stubFunction[Any, Unit]
 
-        sut.supplyTo(mockConsumer)
+        sut.withLimit(limit).supplyTo(mockConsumer)
 
         possibleChoices.foreach(possibleChoice =>
           mockConsumer.verify(possibleChoice))
@@ -137,7 +147,7 @@ class TrialsSpec
             }
 
             val exception = intercept[sut.TrialException] {
-              sut.supplyTo(complainingConsumer)
+              sut.withLimit(limit).supplyTo(complainingConsumer)
             }
 
             val underlyingException = exception.getCause
@@ -187,7 +197,7 @@ class TrialsSpec
 
         val mockConsumer = stubFunction[Any, Unit]
 
-        sut.supplyTo(mockConsumer)
+        sut.withLimit(limit).supplyTo(mockConsumer)
 
         alternatives
           .flatMap {
@@ -239,7 +249,7 @@ class TrialsSpec
           })
           .anyNumberOfTimes()
 
-        sut.supplyTo(mockConsumer)
+        sut.withLimit(limit).supplyTo(mockConsumer)
       }
     }
 
@@ -254,10 +264,10 @@ class TrialsSpec
         val mockConsumer = mockFunction[Any, Unit]
 
         // Whatever cases are supplied set the expectations...
-        sut.supplyTo(mockConsumer.expects(_: Any): Unit)
+        sut.withLimit(limit).supplyTo(mockConsumer.expects(_: Any): Unit)
 
         // ... now let's see if we see the same cases.
-        sut.supplyTo(mockConsumer)
+        sut.withLimit(limit).supplyTo(mockConsumer)
       }
 
     }
@@ -281,10 +291,12 @@ class TrialsSpec
           case _                =>
         }
 
-        val exception = Try { sut.supplyTo(surprisedConsumer) }.failed.get
+        val exception = Try { sut.withLimit(limit).supplyTo(surprisedConsumer) }.failed.get
           .asInstanceOf[sut.TrialException]
 
-        val exceptionFromSecondAttempt = Try { sut.supplyTo(surprisedConsumer) }.failed.get
+        val exceptionFromSecondAttempt = Try {
+          sut.withLimit(limit).supplyTo(surprisedConsumer)
+        }.failed.get
           .asInstanceOf[sut.TrialException]
 
         exceptionFromSecondAttempt.provokingCase shouldBe exception.provokingCase
@@ -320,7 +332,7 @@ class TrialsSpec
         case _                =>
       }
 
-      val exception = Try { sut.supplyTo(surprisedConsumer) }.failed.get
+      val exception = Try { sut.withLimit(limit).supplyTo(surprisedConsumer) }.failed.get
         .asInstanceOf[sut.TrialException]
 
       val exceptionRecreatedViaRecipe = Try {

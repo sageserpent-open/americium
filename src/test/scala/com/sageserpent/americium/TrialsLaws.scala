@@ -14,10 +14,12 @@ class TrialsLaws extends FlatSpec with Checkers {
 
   implicit def equality[X: Eq]: Eq[Trials[X]] =
     (first: Trials[X], second: Trials[X]) => {
-      def capturesOf(trials: Trials[X]) = {
+      val capturesSizeLimit = 100
+
+      def capturesOf(trials: Trials[X]): List[X] = {
         val captures = mutable.ListBuffer.empty[X]
 
-        trials.supplyTo {
+        trials.withLimit(capturesSizeLimit).supplyTo {
           captures += (_: X): Unit
         }
 
