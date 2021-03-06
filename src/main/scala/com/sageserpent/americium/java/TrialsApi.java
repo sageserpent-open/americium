@@ -1,5 +1,7 @@
 package com.sageserpent.americium.java;
 
+import java.util.function.Function;
+
 public interface TrialsApi {
     <Case> Trials<Case> only(Case onlyCase);
 
@@ -37,4 +39,23 @@ public interface TrialsApi {
     <Case> Trials<Case> alternate(Iterable<Trials<Case>> alternatives);
 
     <Case> Trials<Case> alternate(Trials<Case>[] alternatives);
+
+    /**
+     * Produce a trials instance that stream cases from a factory.
+     * <p>
+     * This is used where we want to generate a supposedly potentially
+     * unbounded number of cases, although there is an implied upper limit
+     * based on the number of distinct long values in practice.
+     *
+     * @param factory Pure (in other words, stateless) function that produces
+     *                a case from a long value. Each call taking the same long
+     *                value is expected to yield the same case. The factory is
+     *                expected to be an injection, so it can be fed with any
+     *                potential long value, negative, zero or positive. It is
+     *                not expected to be a surjection, even if there are at most
+     *                as many possible values of Case as there are long values.,
+     *                so distinct long values may result in equivalent cases.
+     * @return The trials instance
+     */
+    <Case> Trials<Case> stream(Function<Long, Case> factory);
 }

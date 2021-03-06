@@ -14,4 +14,6 @@ trait TrialsApi {
                       otherAlternatives: Trials[Case]*): Trials[Case]
 
   def alternate[Case](alternatives: Iterable[Trials[Case]]): Trials[Case]
+
+  def stream[Case](factory: Long => Case): Trials[Case]
 }

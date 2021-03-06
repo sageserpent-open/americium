@@ -5,16 +5,13 @@ import cats.free.Free
 import cats.free.Free.{liftF, pure}
 import cats.implicits._
 import cats.~>
-import com.sageserpent.americium.java.{
-  Trials => JavaTrials,
-  TrialsApi => JavaTrialsApi
-}
+import java.{Trials => JavaTrials, TrialsApi => JavaTrialsApi}
 import com.sageserpent.americium.randomEnrichment.RichRandom
 import io.circe.generic.auto._
 import io.circe.parser._
 import io.circe.syntax._
 
-import _root_.java.lang.{Iterable => JavaIterable}
+import _root_.java.lang.{Iterable => JavaIterable, Long => JavaLong}
 import _root_.java.util.Optional
 import _root_.java.util.function.{Consumer, Predicate, Function => JavaFunction}
 import scala.collection.JavaConverters._
@@ -66,6 +63,9 @@ object TrialsImplementation extends JavaTrialsApi with TrialsApi {
       alternatives: Array[JavaTrials[Case]]): TrialsImplementation[Case] =
     alternate(alternatives.toSeq.map(_.scalaTrials))
 
+  override def stream[Case](
+      factory: JavaFunction[JavaLong, Case]): JavaTrials[Case] = ???
+
   // Scala-only API ...
 
   override def choose[Case](
@@ -81,6 +81,8 @@ object TrialsImplementation extends JavaTrialsApi with TrialsApi {
   override def alternate[Case](
       alternatives: Iterable[Trials[Case]]): TrialsImplementation[Case] =
     new TrialsImplementation(Alternation(alternatives))
+
+  override def stream[Case](factory: Long => Case): Trials[Case] = ???
 
   sealed trait GenerationOperation[Case]
 
