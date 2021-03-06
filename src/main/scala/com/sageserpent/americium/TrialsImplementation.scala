@@ -130,7 +130,7 @@ case class TrialsImplementation[+Case](
 
       // Scala-only API ...
       override def supplyTo(consumer: Case => Unit): Unit =
-        cases.foreach {
+        cases.take(limit).foreach {
           case (decisionIndices, testCase) =>
             try {
               consumer(testCase)
