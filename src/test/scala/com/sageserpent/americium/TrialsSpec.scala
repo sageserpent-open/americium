@@ -269,7 +269,22 @@ class TrialsSpec
         // ... now let's see if we see the same cases.
         sut.withLimit(limit).supplyTo(mockConsumer)
       }
+    }
 
+  they should "produce no more than the limiting number of cases" in
+    forAll(
+      Table("trails"                 -> "limit",
+            api.only(1)              -> 1,
+            api.choose(1, false, 99) -> 3,
+            api.alternate(api.choose(0 until 10 map (_.toString)),
+                          api.choose(-10 until 0)) -> 4)) { (sut, limit) =>
+      withExpectations {
+        val mockConsumer = stubFunction[Any, Unit]
+
+        sut.withLimit(limit).supplyTo(mockConsumer)
+
+        mockConsumer.verify(*).repeat(1 to limit)
+      }
     }
 
   case class ExceptionWithCasePayload[Case](caze: Case) extends RuntimeException
