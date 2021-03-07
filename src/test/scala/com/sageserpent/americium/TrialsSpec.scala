@@ -239,7 +239,7 @@ class TrialsSpec
         Seq(1 to 10, Seq(12), -3 to -1),
         Seq(Seq(0), 1 to 10, 13, -3 to -1),
         Seq((_: Long).toString),
-        Seq(Seq(0), 1 to 10, 13, identity _, -3 to -1),
+        Seq(Seq(0), 1 to 10, 13, identity[Long] _, -3 to -1)
       )) { alternatives =>
       withExpectations {
         val alternativeIds = Vector.fill(alternatives.size) {
