@@ -63,23 +63,23 @@ class TrialsSpec
       .withLimit(limit)
       .supplyTo(println)
 
-    api.scalaIntegers
+    Trials.integers
       .withLimit(limit)
       .supplyTo(println)
 
-    api.scalaLongs
+    Trials.longs
       .withLimit(limit)
       .supplyTo(println)
 
-    api.scalaDoubles
+    Trials.doubles
       .withLimit(limit)
       .supplyTo(println)
 
-    api.scalaCoinFlip
+    Trials.coinFlip
       .withLimit(limit)
       .supplyTo(println)
 
-    api.scalaTrueOrFalse
+    Trials.trueOrFalse
       .withLimit(limit)
       .supplyTo(println)
   }
@@ -116,23 +116,23 @@ class TrialsSpec
       .withLimit(limit)
       .supplyTo(println)
 
-    javaApi.javaIntegers
+    JavaTrials.integers
       .withLimit(limit)
       .supplyTo(println)
 
-    javaApi.javaLongs
+    JavaTrials.longs
       .withLimit(limit)
       .supplyTo(println)
 
-    javaApi.javaDoubles
+    JavaTrials.doubles
       .withLimit(limit)
       .supplyTo(println)
 
-    javaApi.javaCoinFlip
+    JavaTrials.coinFlip
       .withLimit(limit)
       .supplyTo(println)
 
-    javaApi.javaTrueOrFalse
+    JavaTrials.trueOrFalse
       .withLimit(limit)
       .supplyTo(println)
   }

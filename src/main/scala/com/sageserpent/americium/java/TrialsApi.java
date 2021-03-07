@@ -58,30 +58,4 @@ public interface TrialsApi {
      * @return The trials instance
      */
     <Case> Trials<Case> stream(Function<Long, Case> factory);
-
-    default Trials<Integer> javaIntegers() {
-        return stream(Object::hashCode);
-    }
-
-    default Trials<Long> javaLongs() {
-        return stream(Function.identity());
-    }
-
-    default Trials<Double> javaDoubles() {
-        return stream(Double::longBitsToDouble);
-    }
-
-    default Trials<Boolean> javaTrueOrFalse() {
-        return choose(true, false);
-    }
-
-    /**
-     * Yields a *streaming* trials of true or false values.
-     *
-     * @return Either true or false.
-     * @seealso {@link TrialsApi#javaTrueOrFalse()}
-     */
-    default Trials<Boolean> javaCoinFlip() {
-        return stream(value -> 0 == value % 2);
-    }
 }
