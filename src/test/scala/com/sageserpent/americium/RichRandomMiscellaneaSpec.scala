@@ -185,7 +185,7 @@ class RichRandomMiscellaneaSpec extends FlatSpec with Matchers {
       assert(chosenItems.toSet.size == chosenItems.length))
   }
 
-  it should "eventually cover all permutations when repearedly chosing from a sequence" in {
+  it should "eventually cover all permutations when repeatedly choosing from a sequence" in {
     val empiricallyDeterminedMultiplicationFactorToEnsureCoverage = 79200.toDouble / BargainBasement
       .factorial(7)
 
