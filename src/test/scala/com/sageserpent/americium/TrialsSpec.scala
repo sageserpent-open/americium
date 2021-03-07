@@ -43,14 +43,25 @@ class TrialsSpec
       .withLimit(limit)
       .supplyTo(println)
 
-    api.choose(0 to 20).withLimit(limit).supplyTo(println)
+    api
+      .choose(0 to 20)
+      .withLimit(limit)
+      .supplyTo(println)
 
     api
       .alternate(Seq(flatMappedTrials, mappedTrials))
       .withLimit(limit)
       .supplyTo(println)
 
-    api.choose(Array(1, 2, 3)).withLimit(limit).supplyTo(println)
+    api
+      .choose(Array(1, 2, 3))
+      .withLimit(limit)
+      .supplyTo(println)
+
+    api
+      .stream(_.toString)
+      .withLimit(limit)
+      .supplyTo(println)
   }
 
   "test driving the Java API" should "not produce smoke" in {
@@ -70,10 +81,18 @@ class TrialsSpec
       .withLimit(limit)
       .supplyTo(println)
 
-    javaApi.choose((0 to 20).asJava).withLimit(limit).supplyTo(println)
+    javaApi
+      .choose((0 to 20).asJava)
+      .withLimit(limit)
+      .supplyTo(println)
 
     javaApi
       .alternate(Seq(flatMappedJavaTrials, mappedJavaTrials).asJava)
+      .withLimit(limit)
+      .supplyTo(println)
+
+    javaApi
+      .stream(_.toString)
       .withLimit(limit)
       .supplyTo(println)
   }
@@ -218,7 +237,9 @@ class TrialsSpec
         Seq(1 to 10, Seq(true, false), 20 to 30),
         Seq(1, "3", 99),
         Seq(1 to 10, Seq(12), -3 to -1),
-        Seq(Seq(0), 1 to 10, 13, -3 to -1)
+        Seq(Seq(0), 1 to 10, 13, -3 to -1),
+        Seq((_: Long).toString),
+        Seq(Seq(0), 1 to 10, 13, identity _, -3 to -1),
       )) { alternatives =>
       withExpectations {
         val alternativeIds = Vector.fill(alternatives.size) {
@@ -230,7 +251,9 @@ class TrialsSpec
         val sut: Trials[(Any, UUID)] =
           api.alternate(alternatives map {
             case sequence: Seq[_] => api.choose(sequence)
-            case singleton        => api.only(singleton)
+            case factory: (Long => Any) =>
+              api.stream(factory)
+            case singleton => api.only(singleton)
           } zip alternativeIds map {
             // Set up a unique invariant on each alternative - it should supply pairs,
             // each of which has the same id component that denotes the alternative. As
@@ -255,11 +278,17 @@ class TrialsSpec
 
   "trials" should "yield repeatable cases" in
     forAll(
-      Table("trails",
-            api.only(1),
-            api.choose(1, false, 99),
-            api.alternate(api.choose(0 until 10 map (_.toString)),
-                          api.choose(-10 until 0)))) { sut =>
+      Table(
+        "trails",
+        api.only(1),
+        api.choose(1, false, 99),
+        api.alternate(api.choose(0 until 10 map (_.toString)),
+                      api.choose(-10 until 0)),
+        api.stream(_ * 1.46),
+        api.alternate(api.stream(_ * 1.46),
+                      api.choose(0 until 10 map (_.toString)),
+                      api.choose(-10 until 0))
+      )) { sut =>
       withExpectations {
         val mockConsumer = mockFunction[Any, Unit]
 
@@ -273,11 +302,15 @@ class TrialsSpec
 
   they should "produce no more than the limiting number of cases" in
     forAll(
-      Table("trails"                 -> "limit",
-            api.only(1)              -> 1,
-            api.choose(1, false, 99) -> 3,
-            api.alternate(api.choose(0 until 10 map (_.toString)),
-                          api.choose(-10 until 0)) -> 4)) { (sut, limit) =>
+      Table(
+        "trails"                 -> "limit",
+        api.only(1)              -> 1,
+        api.choose(1, false, 99) -> 3,
+        api.alternate(api.choose(0 until 10 map (_.toString)),
+                      api.choose(-10 until 0)) -> 4,
+        api.stream(identity)                   -> 200
+      )
+    ) { (sut, limit) =>
       withExpectations {
         val mockConsumer = stubFunction[Any, Unit]
 
@@ -298,7 +331,14 @@ class TrialsSpec
         api.alternate(
           api.only(true),
           api.choose(0 until 10 map (_.toString) map JackInABox.apply),
-          api.choose(-10 until 0))
+          api.choose(-10 until 0)),
+        api.stream({
+          case value if 0 == value % 3 => JackInABox(value)
+          case value => value
+        }),
+        api.alternate(api.only(true),
+                      api.choose(-10 until 0),
+                      api.stream(JackInABox.apply)),
       )) { sut =>
       withExpectations {
         val surprisedConsumer: Any => Unit = {
@@ -338,6 +378,18 @@ class TrialsSpec
         api.only(true),
         api.alternate(api.choose(-99 to -50),
                       api.choose("Red herring", false, JackInABox(-2))),
+        api.choose(-10 until 0)
+      ),
+      api.stream({
+        case value if 0 == value % 3 => JackInABox(value)
+        case value => value
+      }),
+      api.alternate(
+        api.only(true),
+        api.stream({
+          case value if 0 == value % 3 => JackInABox(value)
+          case value => value
+        }),
         api.choose(-10 until 0)
       )
     )) { sut =>
