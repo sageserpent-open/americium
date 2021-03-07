@@ -62,6 +62,26 @@ class TrialsSpec
       .stream(_.toString)
       .withLimit(limit)
       .supplyTo(println)
+
+    api.scalaIntegers
+      .withLimit(limit)
+      .supplyTo(println)
+
+    api.scalaLongs
+      .withLimit(limit)
+      .supplyTo(println)
+
+    api.scalaDoubles
+      .withLimit(limit)
+      .supplyTo(println)
+
+    api.scalaCoinFlip
+      .withLimit(limit)
+      .supplyTo(println)
+
+    api.scalaTrueOrFalse
+      .withLimit(limit)
+      .supplyTo(println)
   }
 
   "test driving the Java API" should "not produce smoke" in {
@@ -93,6 +113,26 @@ class TrialsSpec
 
     javaApi
       .stream(_.toString)
+      .withLimit(limit)
+      .supplyTo(println)
+
+    javaApi.javaIntegers
+      .withLimit(limit)
+      .supplyTo(println)
+
+    javaApi.javaLongs
+      .withLimit(limit)
+      .supplyTo(println)
+
+    javaApi.javaDoubles
+      .withLimit(limit)
+      .supplyTo(println)
+
+    javaApi.javaCoinFlip
+      .withLimit(limit)
+      .supplyTo(println)
+
+    javaApi.javaTrueOrFalse
       .withLimit(limit)
       .supplyTo(println)
   }
