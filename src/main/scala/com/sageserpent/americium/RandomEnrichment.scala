@@ -399,9 +399,10 @@ trait RandomEnrichment {
         sequences: Traversable[Traversable[X]]): Stream[X] = {
       val onlyNonEmptyFrom = (_: IndexedSeq[Stream[X]]) filter (_.nonEmpty)
 
-      def pickItemsFromNonEmptyStreams(nonEmptyStreams: IndexedSeq[Stream[X]])
-        : Stream[X] = {
+      def pickItemsFromNonEmptyStreams(
+          nonEmptyStreams: IndexedSeq[Stream[X]]): Stream[X] = {
         val numberOfNonEmptyStreams = nonEmptyStreams.length
+
         numberOfNonEmptyStreams match {
           case 0 => Stream.empty
           case _ =>
@@ -414,13 +415,22 @@ trait RandomEnrichment {
                   case pickedItem #:: tailFromPickedStream =>
                     pickedItem -> tailFromPickedStream
                 }) unzip
+
             val unchangedStreams = sliceLength until numberOfNonEmptyStreams map (
                 sourceIndex =>
                   nonEmptyStreams(permutationDestinationIndices(sourceIndex)))
-                   pickedItems.toStream ++ pickItemsFromNonEmptyStreams(onlyNonEmptyFrom(streamsPickedFrom) ++ unchangedStreams)
+
+            // NOTE: use `append` rather than `++` to get laziness on the appended
+            // stream expression, which has a recursive call embedded in it. This
+            // prevents stack overflow by unwinding the recursion as the final stream
+            // is traversed.
+            pickedItems.toStream.append(
+              pickItemsFromNonEmptyStreams(
+                onlyNonEmptyFrom(streamsPickedFrom) ++ unchangedStreams))
         }
       }
-        pickItemsFromNonEmptyStreams(onlyNonEmptyFrom(sequences map (_.toStream) toIndexedSeq))
+      pickItemsFromNonEmptyStreams(
+        onlyNonEmptyFrom(sequences map (_.toStream) toIndexedSeq))
     }
 
     def splitIntoNonEmptyPieces[
