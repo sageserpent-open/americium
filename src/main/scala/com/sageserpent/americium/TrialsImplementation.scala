@@ -5,7 +5,10 @@ import cats.free.Free
 import cats.free.Free.{liftF, pure}
 import cats.implicits._
 import cats.~>
-import java.{Trials => JavaTrials, TrialsApi => JavaTrialsApi}
+import com.sageserpent.americium.java.{
+  Trials => JavaTrials,
+  TrialsApi => JavaTrialsApi
+}
 import com.sageserpent.americium.randomEnrichment.RichRandom
 import io.circe.generic.auto._
 import io.circe.parser._
@@ -20,8 +23,9 @@ import scala.util.Random
 object TrialsImplementation extends JavaTrialsApi with TrialsApi {
   sealed trait Decision;
 
-  case class ChoiceOf(index: Int)      extends Decision
-  case class AlternativeOf(index: Int) extends Decision
+  case class ChoiceOf(index: Int)        extends Decision
+  case class AlternativeOf(index: Int)   extends Decision
+  case class FactoryInputOf(input: Long) extends Decision
 
   type DecisionIndices = List[Decision]
 
@@ -64,7 +68,8 @@ object TrialsImplementation extends JavaTrialsApi with TrialsApi {
     alternate(alternatives.toSeq.map(_.scalaTrials))
 
   override def stream[Case](
-      factory: JavaFunction[JavaLong, Case]): JavaTrials[Case] = ???
+      factory: JavaFunction[JavaLong, Case]): TrialsImplementation[Case] =
+    stream(Long.box _ andThen factory.apply)
 
   // Scala-only API ...
 
@@ -82,7 +87,8 @@ object TrialsImplementation extends JavaTrialsApi with TrialsApi {
       alternatives: Iterable[Trials[Case]]): TrialsImplementation[Case] =
     new TrialsImplementation(Alternation(alternatives))
 
-  override def stream[Case](factory: Long => Case): Trials[Case] = ???
+  override def stream[Case](factory: Long => Case): TrialsImplementation[Case] =
+    new TrialsImplementation(Factory(factory))
 
   sealed trait GenerationOperation[Case]
 
@@ -94,6 +100,9 @@ object TrialsImplementation extends JavaTrialsApi with TrialsApi {
       extends GenerationOperation[Case]
 
   case class Alternation[Case](alternatives: Iterable[Trials[Case]])
+      extends GenerationOperation[Case]
+
+  case class Factory[Case](factory: Long => Case)
       extends GenerationOperation[Case]
 
   // NASTY HACK: as `Free` does not support `filter/withFilter`, reify
@@ -239,6 +248,13 @@ case class TrialsImplementation[+Case](
                 }
               } yield result
 
+            case Factory(factory) =>
+              for {
+                decisionIndices <- State.get[DecisionIndices]
+                FactoryInputOf(input) :: remainingDecisionIndices = decisionIndices
+                _ <- State.set(remainingDecisionIndices)
+              } yield factory(input)
+
             // NOTE: pattern-match only on `Some`, as we are reproducing a caze that
             // therefore must have passed filtration the first time around.
             case FiltrationResult(Some(caze)) =>
@@ -297,6 +313,15 @@ case class TrialsImplementation[+Case](
                             (AlternativeOf(decisionIndex) :: decisionIndices) -> caze
                         }
                   }))
+
+            case Factory(factory) =>
+              WriterT(
+                Stream.continually {
+                  val input = randomBehaviour.nextLong()
+
+                  List(FactoryInputOf(input)) -> factory(input)
+                }
+              )
 
             case FiltrationResult(result) => WriterT.liftF(result.toStream)
           }
