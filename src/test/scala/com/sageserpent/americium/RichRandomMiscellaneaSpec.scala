@@ -1,13 +1,14 @@
 package com.sageserpent.americium
 
 import com.sageserpent.americium.randomEnrichment._
-import org.scalatest.{Assertion, FlatSpec}
+import org.scalatest.{Assertion, FlatSpec, Matchers}
 
+import scala.collection.immutable
 import scala.collection.immutable.Set
 import scala.collection.mutable.Map
 import scala.util.Random
 
-class RichRandomMiscellaneaSpec extends FlatSpec {
+class RichRandomMiscellaneaSpec extends FlatSpec with Matchers {
 
   "a rich random" should "cover all integers up to an exclusive upper bound" in {
     val random = new Random(29)
@@ -371,5 +372,29 @@ class RichRandomMiscellaneaSpec extends FlatSpec {
       }
     }
     commonTestStructureForTestingAlternatePickingFromSequences(testHandoff)
+  }
+
+  it should "be able to cope with infinite sequences" in {
+    1 to 20 foreach { numberOfStreams =>
+      val randomBehaviour = new Random(2317667)
+
+      val limit = 1000
+
+      val streams: immutable.Seq[Stream[Int]] = 0 until numberOfStreams map (
+          start => {
+            val infiniteStream = Stream.from(start = start, step = 2)
+            if (0 == start % 2) infiniteStream
+            else
+              infiniteStream.take(
+                randomBehaviour.chooseAnyNumberFromZeroToOneLessThan(limit))
+          })
+
+      val pickedItems: Stream[Int] =
+        randomBehaviour.pickAlternatelyFrom(streams)
+
+      pickedItems
+        .take(limit)
+        .toList should have size limit
+    }
   }
 }
