@@ -19,7 +19,7 @@ trait TrialsApi {
 
   def stream[Case](factory: Long => Case): Trials[Case]
 
-  def integers: Trials[Integer] = stream(_.hashCode)
+  def integers: Trials[Int] = stream(_.hashCode)
 
   def longs: Trials[Long] = stream(identity)
 
