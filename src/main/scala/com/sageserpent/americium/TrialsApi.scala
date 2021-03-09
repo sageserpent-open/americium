@@ -1,5 +1,7 @@
 package com.sageserpent.americium
 
+import _root_.java.lang.{Double => JavaDouble}
+
 trait TrialsApi {
   def only[Case](onlyCase: Case): Trials[Case]
 
@@ -16,4 +18,15 @@ trait TrialsApi {
   def alternate[Case](alternatives: Iterable[Trials[Case]]): Trials[Case]
 
   def stream[Case](factory: Long => Case): Trials[Case]
+
+  def integers: Trials[Integer] = stream(_.hashCode)
+
+  def longs: Trials[Long] = stream(identity)
+
+  def doubles: Trials[Double] =
+    stream(JavaDouble.longBitsToDouble)
+
+  def trueOrFalse: Trials[Boolean] = choose(true, false)
+
+  def coinFlip: Trials[Boolean] = stream(0 == _ % 2)
 }

@@ -7,12 +7,11 @@ import _root_.com.sageserpent.americium.{
 import com.sageserpent.americium.TrialsImplementation.GenerationSupport
 import com.sageserpent.americium.java.Trials.WithLimit
 
-import _root_.java.lang.{Double => JavaDouble}
 import _root_.java.util.function.{Consumer, Predicate}
 import java.util.{Optional, function}
 
 object Trials {
-  def api(): TrialsApi = TrialsImplementation
+  def api(): TrialsApi = TrialsImplementation.javaApi
 
   trait WithLimit[+Case] {
 
@@ -33,27 +32,6 @@ object Trials {
       */
     def supplyTo(consumer: Consumer[_ >: Case]): Unit
   }
-
-  def integers: Trials[Integer] =
-    TrialsImplementation.stream((input: Long) => Int.box(input.hashCode()))
-
-  def longs: Trials[Long] =
-    TrialsImplementation.stream(identity[Long] _)
-
-  def doubles: Trials[Double] =
-    TrialsImplementation.stream(JavaDouble.longBitsToDouble _)
-
-  def trueOrFalse: Trials[Boolean] =
-    TrialsImplementation.choose(true, false)
-
-  /**
-    * Yields a *streaming* trials of true or false values.
-    *
-    * @return Either true or false.
-    * @seealso {@link TrialsApi# javaTrueOrFalse ( )}
-    */
-  def coinFlip: Trials[Boolean] =
-    TrialsImplementation.stream((value: Long) => 0 == value % 2)
 }
 
 trait Trials[+Case] extends TrialsFactoring[Case] with GenerationSupport[Case] {

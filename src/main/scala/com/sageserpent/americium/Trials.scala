@@ -5,11 +5,14 @@ import com.sageserpent.americium.Trials.WithLimit
 import com.sageserpent.americium.TrialsImplementation.GenerationSupport
 import com.sageserpent.americium.java.TrialsFactoring
 
-import _root_.java.lang.{Double => JavaDouble}
 import scala.language.implicitConversions
 
 object Trials {
-  def api: TrialsApi = TrialsImplementation
+  def api: TrialsApi = TrialsImplementation.scalaApi
+
+  trait WithLimit[+Case] {
+    def supplyTo(consumer: Case => Unit): Unit
+  }
 
   implicit val monadInstance: Monad[Trials] = new Monad[Trials]
   with StackSafeMonad[Trials] {
@@ -26,24 +29,6 @@ object Trials {
       override def mapFilter[A, B](fa: Trials[A])(
           f: A => Option[B]): Trials[B] = fa.mapFilter(f)
     }
-
-  trait WithLimit[+Case] {
-    def supplyTo(consumer: Case => Unit): Unit
-  }
-
-  def integers: Trials[Integer] =
-    TrialsImplementation.stream((input: Long) => Int.box(input.hashCode()))
-
-  def longs: Trials[Long] = TrialsImplementation.stream(identity[Long] _)
-
-  def doubles: Trials[Double] =
-    TrialsImplementation.stream(JavaDouble.longBitsToDouble _)
-
-  def trueOrFalse: Trials[Boolean] =
-    TrialsImplementation.choose(true, false)
-
-  def coinFlip: Trials[Boolean] =
-    TrialsImplementation.stream(0 == (_: Long) % 2)
 }
 
 trait Trials[+Case] extends TrialsFactoring[Case] with GenerationSupport[Case] {

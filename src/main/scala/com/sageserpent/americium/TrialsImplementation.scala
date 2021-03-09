@@ -20,7 +20,7 @@ import _root_.java.util.function.{Consumer, Predicate, Function => JavaFunction}
 import scala.collection.JavaConverters._
 import scala.util.Random
 
-object TrialsImplementation extends JavaTrialsApi with TrialsApi {
+object TrialsImplementation {
   sealed trait Decision;
 
   case class ChoiceOf(index: Int)        extends Decision
@@ -33,62 +33,73 @@ object TrialsImplementation extends JavaTrialsApi with TrialsApi {
 
   // Java and Scala API ...
 
-  override def only[Case](onlyCase: Case): TrialsImplementation[Case] =
-    TrialsImplementation(pure[GenerationOperation, Case](onlyCase))
+  abstract class CommonApi {
 
-  override def choose[Case](firstChoice: Case,
-                            secondChoice: Case,
-                            otherChoices: Case*): TrialsImplementation[Case] =
-    choose(firstChoice +: secondChoice +: otherChoices)
+    def only[Case](onlyCase: Case): TrialsImplementation[Case] =
+      TrialsImplementation(pure[GenerationOperation, Case](onlyCase))
+
+    def choose[Case](firstChoice: Case,
+                     secondChoice: Case,
+                     otherChoices: Case*): TrialsImplementation[Case] =
+      scalaApi.choose(firstChoice +: secondChoice +: otherChoices)
+  }
 
   // Java-only API ...
 
-  override def choose[Case](
-      choices: JavaIterable[Case]): TrialsImplementation[Case] =
-    choose(choices.asScala)
+  val javaApi = new CommonApi with JavaTrialsApi {
 
-  override def choose[Case](
-      choices: Array[Case with AnyRef]): TrialsImplementation[Case] =
-    choose(choices.toSeq)
+    override def choose[Case](
+        choices: JavaIterable[Case]): TrialsImplementation[Case] =
+      scalaApi.choose(choices.asScala)
 
-  override def alternate[Case](
-      firstAlternative: JavaTrials[_ <: Case],
-      secondAlternative: JavaTrials[_ <: Case],
-      otherAlternatives: JavaTrials[_ <: Case]*): TrialsImplementation[Case] =
-    alternate(
-      (firstAlternative +: secondAlternative +: Seq(otherAlternatives: _*))
-        .map(_.scalaTrials))
+    override def choose[Case](
+        choices: Array[Case with AnyRef]): TrialsImplementation[Case] =
+      scalaApi.choose(choices.toSeq)
 
-  override def alternate[Case](alternatives: JavaIterable[JavaTrials[Case]])
-    : TrialsImplementation[Case] =
-    alternate(alternatives.asScala.map(_.scalaTrials))
+    override def alternate[Case](
+        firstAlternative: JavaTrials[_ <: Case],
+        secondAlternative: JavaTrials[_ <: Case],
+        otherAlternatives: JavaTrials[_ <: Case]*): TrialsImplementation[Case] =
+      scalaApi.alternate(
+        (firstAlternative +: secondAlternative +: Seq(otherAlternatives: _*))
+          .map(_.scalaTrials))
 
-  override def alternate[Case](
-      alternatives: Array[JavaTrials[Case]]): TrialsImplementation[Case] =
-    alternate(alternatives.toSeq.map(_.scalaTrials))
+    override def alternate[Case](alternatives: JavaIterable[JavaTrials[Case]])
+      : TrialsImplementation[Case] =
+      scalaApi.alternate(alternatives.asScala.map(_.scalaTrials))
 
-  override def stream[Case](
-      factory: JavaFunction[JavaLong, Case]): TrialsImplementation[Case] =
-    stream(Long.box _ andThen factory.apply)
+    override def alternate[Case](
+        alternatives: Array[JavaTrials[Case]]): TrialsImplementation[Case] =
+      scalaApi.alternate(alternatives.toSeq.map(_.scalaTrials))
+
+    override def stream[Case](
+        factory: JavaFunction[JavaLong, Case]): TrialsImplementation[Case] =
+      scalaApi.stream(Long.box _ andThen factory.apply)
+  }
 
   // Scala-only API ...
 
-  override def choose[Case](
-      choices: Iterable[Case]): TrialsImplementation[Case] =
-    new TrialsImplementation(Choice(choices))
+  val scalaApi = new CommonApi with TrialsApi {
 
-  override def alternate[Case](firstAlternative: Trials[Case],
-                               secondAlternative: Trials[Case],
-                               otherAlternatives: Trials[Case]*): Trials[Case] =
-    alternate(
-      firstAlternative +: secondAlternative +: Seq(otherAlternatives: _*))
+    override def choose[Case](
+        choices: Iterable[Case]): TrialsImplementation[Case] =
+      new TrialsImplementation(Choice(choices))
 
-  override def alternate[Case](
-      alternatives: Iterable[Trials[Case]]): TrialsImplementation[Case] =
-    new TrialsImplementation(Alternation(alternatives))
+    override def alternate[Case](
+        firstAlternative: Trials[Case],
+        secondAlternative: Trials[Case],
+        otherAlternatives: Trials[Case]*): TrialsImplementation[Case] =
+      alternate(
+        firstAlternative +: secondAlternative +: Seq(otherAlternatives: _*))
 
-  override def stream[Case](factory: Long => Case): TrialsImplementation[Case] =
-    new TrialsImplementation(Factory(factory))
+    override def alternate[Case](
+        alternatives: Iterable[Trials[Case]]): TrialsImplementation[Case] =
+      new TrialsImplementation(Alternation(alternatives))
+
+    override def stream[Case](
+        factory: Long => Case): TrialsImplementation[Case] =
+      new TrialsImplementation(Factory(factory))
+  }
 
   sealed trait GenerationOperation[Case]
 
