@@ -8,7 +8,11 @@ import com.sageserpent.americium.java.TrialsFactoring
 import scala.language.implicitConversions
 
 object Trials {
-  def api: TrialsApi = TrialsImplementation
+  def api: TrialsApi = TrialsImplementation.scalaApi
+
+  trait WithLimit[+Case] {
+    def supplyTo(consumer: Case => Unit): Unit
+  }
 
   implicit val monadInstance: Monad[Trials] = new Monad[Trials]
   with StackSafeMonad[Trials] {
@@ -25,10 +29,6 @@ object Trials {
       override def mapFilter[A, B](fa: Trials[A])(
           f: A => Option[B]): Trials[B] = fa.mapFilter(f)
     }
-
-  trait WithLimit[+Case] {
-    def supplyTo(consumer: Case => Unit): Unit
-  }
 }
 
 trait Trials[+Case] extends TrialsFactoring[Case] with GenerationSupport[Case] {

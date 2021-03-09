@@ -22,8 +22,8 @@ class TrialsSpec
   autoVerify = false
   type TypeRequirementsToProtectCodeInStringsFromUnusedImportOptimisation =
     (JavaTrials[_], JavaFunction[_, _], Predicate[_])
-  val api: TrialsApi         = TrialsImplementation
-  val javaApi: JavaTrialsApi = TrialsImplementation
+  val api: TrialsApi         = Trials.api
+  val javaApi: JavaTrialsApi = JavaTrials.api
 
   val limit: Int = 500
 
@@ -63,23 +63,23 @@ class TrialsSpec
       .withLimit(limit)
       .supplyTo(println)
 
-    api.scalaIntegers
+    api.integers
       .withLimit(limit)
       .supplyTo(println)
 
-    api.scalaLongs
+    api.longs
       .withLimit(limit)
       .supplyTo(println)
 
-    api.scalaDoubles
+    api.doubles
       .withLimit(limit)
       .supplyTo(println)
 
-    api.scalaCoinFlip
+    api.coinFlip
       .withLimit(limit)
       .supplyTo(println)
 
-    api.scalaTrueOrFalse
+    api.trueOrFalse
       .withLimit(limit)
       .supplyTo(println)
   }
@@ -116,23 +116,23 @@ class TrialsSpec
       .withLimit(limit)
       .supplyTo(println)
 
-    javaApi.javaIntegers
+    javaApi.integers
       .withLimit(limit)
       .supplyTo(println)
 
-    javaApi.javaLongs
+    javaApi.longs
       .withLimit(limit)
       .supplyTo(println)
 
-    javaApi.javaDoubles
+    javaApi.doubles
       .withLimit(limit)
       .supplyTo(println)
 
-    javaApi.javaCoinFlip
+    javaApi.coinFlip
       .withLimit(limit)
       .supplyTo(println)
 
-    javaApi.javaTrueOrFalse
+    javaApi.trueOrFalse
       .withLimit(limit)
       .supplyTo(println)
   }

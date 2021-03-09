@@ -11,7 +11,7 @@ import _root_.java.util.function.{Consumer, Predicate}
 import java.util.{Optional, function}
 
 object Trials {
-  def api(): TrialsApi = TrialsImplementation
+  def api(): TrialsApi = TrialsImplementation.javaApi
 
   trait WithLimit[+Case] {
 

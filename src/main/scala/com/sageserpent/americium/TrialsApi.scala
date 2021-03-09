@@ -19,14 +19,14 @@ trait TrialsApi {
 
   def stream[Case](factory: Long => Case): Trials[Case]
 
-  def scalaIntegers: Trials[Integer] = stream(_.hashCode)
+  def integers: Trials[Integer] = stream(_.hashCode)
 
-  def scalaLongs: Trials[Long] = stream(identity)
+  def longs: Trials[Long] = stream(identity)
 
-  def scalaDoubles: Trials[Double] =
+  def doubles: Trials[Double] =
     stream(JavaDouble.longBitsToDouble)
 
-  def scalaTrueOrFalse: Trials[Boolean] = choose(true, false)
+  def trueOrFalse: Trials[Boolean] = choose(true, false)
 
-  def scalaCoinFlip: Trials[Boolean] = stream(0 == _ % 2)
+  def coinFlip: Trials[Boolean] = stream(0 == _ % 2)
 }
