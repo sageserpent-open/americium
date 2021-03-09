@@ -82,6 +82,18 @@ class TrialsSpec
     api.trueOrFalse
       .withLimit(limit)
       .supplyTo(println)
+
+    {
+      import trialsByMagnolia.gen
+
+      implicitly[trialsByMagnolia.Factory[Option[Int]]].trials
+        .withLimit(limit)
+        .supplyTo(println)
+
+      implicitly[trialsByMagnolia.Factory[Either[(Boolean, Boolean), Double]]].trials
+        .withLimit(limit)
+        .supplyTo(println)
+    }
   }
 
   "test driving the Java API" should "not produce smoke" in {
