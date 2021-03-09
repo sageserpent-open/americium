@@ -23,7 +23,7 @@ object Trials {
       * from the simplified case (or the original exceptional case if it could not be simplified) is wrapped
       * in an instance of {@link TrialException} which also contains the case that provoked the exception.
       *
-      * @param consumer An operation that consumes a 'Case', and may throw an exception.
+      * @param consumer An operation that consumes a {@code Case}, and may throw an exception.
       * @note The limit applies to the count of the number of supplied
       *       cases, regardless of whether some of these cases are
       *       duplicated or not. There is no guarantee that all of
@@ -67,12 +67,12 @@ trait Trials[+Case] extends TrialsFactoring[Case] with GenerationSupport[Case] {
     * the expectation is for this to *eventually* not throw an exception after
     * code changes are made in the system under test.
     *
-    * @param recipe   This encodes a specific case and will only be understood by the
-    *                 same *value* of trials instance that was used to obtain it.
-    * @param consumer An operation that consumes a 'Case', and may throw an exception.
+    * @param recipe   This encodes a specific {@code Case} and will only be understood by the
+    *                 same *value* of {@link Trials} that was used to obtain it.
+    * @param consumer An operation that consumes a {@code Case}, and may throw an exception.
     * @throws RuntimeException if the recipe is not one corresponding to the receiver,
     *                          either due to it being created by a different flavour
-    *                          of trials instance.
+    *                          of {@link Trials} instance.
     */
   def supplyTo(recipe: String, consumer: Consumer[_ >: Case]): Unit
 }
