@@ -63,7 +63,7 @@ class TrialsLaws extends FlatSpec with Checkers {
           .all
           .properties)
           .map { case (label, property) => label |: property }: _*),
-      MinSuccessful(200)
+      MinSuccessful(1000)
     )
 
   they should "have consistent semantics for `filter` and `mapFilter`" in
@@ -73,6 +73,6 @@ class TrialsLaws extends FlatSpec with Checkers {
           .mapFilter(caze =>
             if (1 == caze % 2) Some(caze.toDouble / 2) else None)
       },
-      MinSuccessful(200)
+      MinSuccessful(1000)
     )
 }
