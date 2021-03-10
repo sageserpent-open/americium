@@ -18,8 +18,6 @@ object trialsByMagnolia {
   implicit val doubleFactory: Factory[Double]   = lift(Trials.api.doubles)
   implicit val longFactory: Factory[Long]       = lift(Trials.api.longs)
   implicit val booleanFactory: Factory[Boolean] = lift(Trials.api.trueOrFalse)
-  //implicit val characterFactory: Factory[Char]  = lift(???)
-  //implicit val stringFactory: Factory[String] = lift(???)
 
   type Typeclass[Case] = Factory[Case]
 
