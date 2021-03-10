@@ -82,16 +82,6 @@ class TrialsSpec
     api.trueOrFalse
       .withLimit(limit)
       .supplyTo(println)
-
-    {
-      implicitly[Trials.Factory[Option[Int]]].trials
-        .withLimit(limit)
-        .supplyTo(println)
-
-      implicitly[Trials.Factory[Either[(Boolean, Boolean), Double]]].trials
-        .withLimit(limit)
-        .supplyTo(println)
-    }
   }
 
   "test driving the Java API" should "not produce smoke" in {
@@ -470,6 +460,22 @@ class TrialsSpec
       exceptionRecreatedViaRecipe.provokingCase shouldBe exception.provokingCase
       exceptionRecreatedViaRecipe.recipe shouldBe exception.recipe
     }
+  }
+
+  "test driving automatic implicit generation of a trials" should "not produce smoke" in {
+    implicitly[Trials.Factory[Option[Int]]].trials
+      .withLimit(limit)
+      .supplyTo(println)
+
+    implicitly[Trials.Factory[Either[(Boolean, Boolean), Double]]].trials
+      .withLimit(limit)
+      .supplyTo(println)
+  }
+
+  "test driving automatic implicit generation of a trials for a recursive data structure" should "not produce smoke" in {
+    implicitly[Trials.Factory[List[Boolean]]].trials
+      .withLimit(limit)
+      .supplyTo(println)
   }
 
   "mapping using a Java function" should "compile" in {
