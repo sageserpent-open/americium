@@ -200,6 +200,8 @@ class TrialsSpec
       }
     }
 
+  case class ExceptionWithCasePayload[Case](caze: Case) extends RuntimeException
+
   "a choice that includes exceptional cases" should "result in one of the corresponding exceptions" in {
     type ChoicesAndCriterion[X] = (Seq[X], X => Boolean)
 
@@ -337,7 +339,8 @@ class TrialsSpec
         api.stream(_ * 1.46),
         api.alternate(api.stream(_ * 1.46),
                       api.choose(0 until 10 map (_.toString)),
-                      api.choose(-10 until 0))
+                      api.choose(-10 until 0)),
+        implicitly[Trials.Factory[Option[Int]]].trials
       )) { sut =>
       withExpectations {
         val mockConsumer = mockFunction[Any, Unit]
@@ -357,8 +360,9 @@ class TrialsSpec
         api.only(1)              -> 1,
         api.choose(1, false, 99) -> 3,
         api.alternate(api.choose(0 until 10 map (_.toString)),
-                      api.choose(-10 until 0)) -> 4,
-        api.stream(identity)                   -> 200
+                      api.choose(-10 until 0))               -> 4,
+        api.stream(identity)                                 -> 200,
+        implicitly[Trials.Factory[Either[Long, Int]]].trials -> 500
       )
     ) { (sut, limit) =>
       withExpectations {
@@ -370,7 +374,7 @@ class TrialsSpec
       }
     }
 
-  case class ExceptionWithCasePayload[Case](caze: Case) extends RuntimeException
+  case class JackInABox[Caze](caze: Caze)
 
   they should "yield repeatable exceptions" in
     forAll(
@@ -389,6 +393,10 @@ class TrialsSpec
         api.alternate(api.only(true),
                       api.choose(-10 until 0),
                       api.stream(JackInABox.apply)),
+        implicitly[Trials.Factory[Option[Int]]].trials.map {
+          case None        => JackInABox(())
+          case Some(value) => value
+        }
       )) { sut =>
       withExpectations {
         val surprisedConsumer: Any => Unit = {
@@ -407,8 +415,6 @@ class TrialsSpec
         exceptionFromSecondAttempt.provokingCase shouldBe exception.provokingCase
       }
     }
-
-  case class JackInABox[Caze](caze: Caze)
 
   "an exceptional case" should "be reproduced via its recipe" in forAll(
     Table(
@@ -441,7 +447,11 @@ class TrialsSpec
           case value => value
         }),
         api.choose(-10 until 0)
-      )
+      ),
+      implicitly[Trials.Factory[Option[Int]]].trials.map {
+        case None        => JackInABox(())
+        case Some(value) => value
+      }
     )) { sut =>
     withExpectations {
       val surprisedConsumer: Any => Unit = {
