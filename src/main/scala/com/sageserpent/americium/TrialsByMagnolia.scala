@@ -5,7 +5,7 @@ import mercator.Monadic
 
 import scala.language.experimental.macros
 
-object trialsByMagnolia {
+trait TrialsByMagnolia {
   trait Factory[Case] {
     def trials: Trials[Case]
   }
@@ -35,7 +35,7 @@ object trialsByMagnolia {
   }
 
   def combine[Case](caseClass: CaseClass[Typeclass, Case]): Typeclass[Case] =
-    lift(caseClass.constructMonadic(parameter => parameter.typeclass.trials))
+    lift(caseClass.constructMonadic(_.typeclass.trials))
 
   def dispatch[Case](
       sealedTrait: SealedTrait[Typeclass, Case]): Typeclass[Case] = {

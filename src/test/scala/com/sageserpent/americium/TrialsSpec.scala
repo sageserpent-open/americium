@@ -84,13 +84,11 @@ class TrialsSpec
       .supplyTo(println)
 
     {
-      import trialsByMagnolia.gen
-
-      implicitly[trialsByMagnolia.Factory[Option[Int]]].trials
+      implicitly[Trials.Factory[Option[Int]]].trials
         .withLimit(limit)
         .supplyTo(println)
 
-      implicitly[trialsByMagnolia.Factory[Either[(Boolean, Boolean), Double]]].trials
+      implicitly[Trials.Factory[Either[(Boolean, Boolean), Double]]].trials
         .withLimit(limit)
         .supplyTo(println)
     }

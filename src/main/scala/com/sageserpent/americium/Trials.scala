@@ -7,7 +7,7 @@ import com.sageserpent.americium.java.TrialsFactoring
 
 import scala.language.implicitConversions
 
-object Trials {
+object Trials extends TrialsByMagnolia {
   def api: TrialsApi = TrialsImplementation.scalaApi
 
   trait WithLimit[+Case] {
