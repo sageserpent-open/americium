@@ -462,6 +462,18 @@ class TrialsSpec
     }
   }
 
+  "test driving a trials for a recursive data structure" should "not produce smoke" in {
+    def listTrials: Trials[List[Int]] =
+      api.alternate(for {
+        head <- api.integers
+        tail <- listTrials
+      } yield head :: tail, api.only(Nil))
+
+    listTrials
+      .withLimit(limit)
+      .supplyTo(println)
+  }
+
   "test driving automatic implicit generation of a trials" should "not produce smoke" in {
     implicitly[Trials.Factory[Option[Int]]].trials
       .withLimit(limit)
