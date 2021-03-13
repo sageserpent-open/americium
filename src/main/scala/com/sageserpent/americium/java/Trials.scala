@@ -4,7 +4,6 @@ import _root_.com.sageserpent.americium.{
   TrialsImplementation,
   Trials => ScalaTrials
 }
-import com.sageserpent.americium.TrialsImplementation.GenerationSupport
 import com.sageserpent.americium.java.Trials.WithLimit
 
 import _root_.java.util.function.{Consumer, Predicate}
@@ -34,7 +33,7 @@ object Trials {
   }
 }
 
-trait Trials[+Case] extends TrialsFactoring[Case] with GenerationSupport[Case] {
+trait Trials[+Case] extends TrialsFactoring[Case] {
   private[americium] val scalaTrials: ScalaTrials[Case]
 
   def map[TransformedCase](
