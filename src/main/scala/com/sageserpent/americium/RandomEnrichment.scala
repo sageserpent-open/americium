@@ -421,10 +421,9 @@ trait RandomEnrichment {
                 sourceIndex =>
                   nonEmptyStreams(permutationDestinationIndices(sourceIndex)))
 
-            // NOTE: use `append` rather than `++` to get laziness on the appended
-            // stream expression, which has a recursive call embedded in it. This
-            // prevents stack overflow by unwinding the recursion as the final stream
-            // is traversed.
+            // NOTE: use `lazyAppendedAll` rather than `++` to get laziness on the appended
+            // stream expression, which has a recursive call embedded in it. This prevents
+            // stack overflow by unwinding the recursion as the final stream is traversed.
             pickedItems
               .to(LazyList)
               .lazyAppendedAll(
