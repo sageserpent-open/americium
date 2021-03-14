@@ -1,5 +1,6 @@
 package com.sageserpent.americium
 
+import com.sageserpent.americium.TrialsSpec.{BinaryTree, Branch, Leaf}
 import com.sageserpent.americium.java.{
   Trials => JavaTrials,
   TrialsApi => JavaTrialsApi
@@ -14,6 +15,15 @@ import _root_.java.util.UUID
 import _root_.java.util.function.{Predicate, Function => JavaFunction}
 import scala.collection.JavaConverters._
 import scala.util.Try
+
+object TrialsSpec {
+  sealed trait BinaryTree
+
+  final case class Leaf(value: Int) extends BinaryTree
+
+  final case class Branch(leftSubtree: BinaryTree, rightSubtree: BinaryTree)
+      extends BinaryTree
+}
 
 class TrialsSpec
     extends AnyFlatSpec
@@ -473,6 +483,16 @@ class TrialsSpec
     listTrials
       .withLimit(limit)
       .supplyTo(println)
+
+    def binaryTreeTrials: Trials[BinaryTree] =
+      api.alternate(for {
+        leftSubtree  <- binaryTreeTrials
+        rightSubtree <- binaryTreeTrials
+      } yield Branch(leftSubtree, rightSubtree), api.integers.map(Leaf.apply))
+
+    binaryTreeTrials
+      .withLimit(limit)
+      .supplyTo(println)
   }
 
   "test driving automatic implicit generation of a trials" should "not produce smoke" in {
@@ -487,6 +507,10 @@ class TrialsSpec
 
   "test driving automatic implicit generation of a trials for a recursive data structure" should "not produce smoke" in {
     implicitly[Trials.Factory[List[Boolean]]].trials
+      .withLimit(limit)
+      .supplyTo(println)
+
+    implicitly[Trials.Factory[BinaryTree]].trials
       .withLimit(limit)
       .supplyTo(println)
   }
