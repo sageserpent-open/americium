@@ -2,13 +2,14 @@ package com.sageserpent.americium
 
 import org.scalacheck.ScalacheckShapeless.derivedArbitrary
 import org.scalacheck.{Arbitrary, Gen, ShrinkLowPriority}
-import org.scalatest.prop.GeneratorDrivenPropertyChecks
-import org.scalatest.{FlatSpec, Matchers}
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
+import org.scalatestplus.scalacheck.ScalaCheckDrivenPropertyChecks
 
 class UnboundedSpec
-    extends FlatSpec
+    extends AnyFlatSpec
     with Matchers
-    with GeneratorDrivenPropertyChecks
+    with ScalaCheckDrivenPropertyChecks
     with ShrinkLowPriority {
   private val integerGenerator = Arbitrary.arbInt.arbitrary
 
@@ -70,7 +71,7 @@ class UnboundedSpec
            unboundedGenerator,
            unboundedGenerator,
            minSuccessful(1000),
-           maxDiscarded(15000)) { (first, common, last) =>
+           maxDiscardedFactor(15)) { (first, common, last) =>
       val firstWithCommon = first.compare(common)
       val commonWithLast  = common.compare(last)
 
@@ -88,7 +89,7 @@ class UnboundedSpec
            unboundedGenerator,
            unboundedGenerator,
            minSuccessful(1000),
-           maxDiscarded(15000)) { (first, common, last) =>
+           maxDiscardedFactor(15)) { (first, common, last) =>
       val firstWithCommon = first.compare(common)
       val commonWithLast  = common.compare(last)
 

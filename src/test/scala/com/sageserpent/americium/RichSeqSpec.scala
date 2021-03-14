@@ -4,16 +4,17 @@ import com.sageserpent.americium.seqEnrichment._
 import org.scalacheck.{Arbitrary, Gen, ShrinkLowPriority}
 import org.scalatest.LoneElement._
 import org.scalatest.enablers.Collecting._
-import org.scalatest.prop.GeneratorDrivenPropertyChecks
-import org.scalatest.{FlatSpec, Matchers}
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
+import org.scalatestplus.scalacheck.ScalaCheckDrivenPropertyChecks
 
 import scala.collection.immutable.SortedSet
 
 class RichSeqSpec
-    extends FlatSpec
+    extends AnyFlatSpec
     with Matchers
-    with GeneratorDrivenPropertyChecks
-    with ShrinkLowPriority {
+    with ShrinkLowPriority
+    with ScalaCheckDrivenPropertyChecks {
   private val groupEverythingTogether: (Int, Int) => Boolean = {
     case (_, _) => true
   }
@@ -137,7 +138,7 @@ class RichSeqSpec
             multipliers map (sequenceMarker + numberOfSequences * _)
         }
         val actualItems = inputSequences.zipN.flatten
-        for ((inputSequence, sequenceMarker) <- inputSequences zipWithIndex)
+        for ((inputSequence, sequenceMarker) <- inputSequences.zipWithIndex)
           actualItems filter (sequenceMarker == Math.floorMod(
             _,
             numberOfSequences)) should contain inOrderElementsOf (inputSequence)

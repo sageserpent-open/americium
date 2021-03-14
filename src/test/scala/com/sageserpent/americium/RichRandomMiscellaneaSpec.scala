@@ -1,14 +1,17 @@
 package com.sageserpent.americium
 
 import com.sageserpent.americium.randomEnrichment._
-import org.scalatest.{Assertion, FlatSpec, Matchers}
+import org.scalatest.Assertion
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
 import scala.collection.immutable
 import scala.collection.immutable.Set
 import scala.collection.mutable.Map
+import scala.language.postfixOps
 import scala.util.Random
 
-class RichRandomMiscellaneaSpec extends FlatSpec with Matchers {
+class RichRandomMiscellaneaSpec extends AnyFlatSpec with Matchers {
 
   "a rich random" should "cover all integers up to an exclusive upper bound" in {
     val random = new Random(29)

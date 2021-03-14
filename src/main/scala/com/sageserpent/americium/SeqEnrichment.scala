@@ -1,13 +1,14 @@
 package com.sageserpent.americium
 
-import scala.collection.generic.CanBuildFrom
+import scala.collection.BuildFrom
 import scala.collection.immutable.List
+import scala.language.postfixOps
 
 trait SeqEnrichment {
   implicit class RichSeq[Container[Item] <: Seq[Item], Item](
       items: Container[Item]) {
     def groupWhile(predicate: (Item, Item) => Boolean)(
-        implicit cbf: CanBuildFrom[Container[Item], Item, Container[Item]])
+        implicit bf: BuildFrom[Container[Item], Item, Container[Item]])
       : Seq[Container[Item]] = {
       if (items.isEmpty)
         Seq.empty[Container[Item]]
@@ -23,9 +24,9 @@ trait SeqEnrichment {
               case _ => List(item) :: groups
             }
           })
-        reversedGroupsInReverse map (_.reverse) map { items =>
-          val builder = cbf()
-          items.foreach(builder += _)
+        reversedGroupsInReverse map (_.reverse) map { group =>
+          val builder = bf.newBuilder(items)
+          group.foreach(builder += _)
           builder.result
         } reverse
       }
@@ -38,20 +39,22 @@ trait SeqEnrichment {
       innerSequences: Container[InnerContainer[Subelement]]) {
 
     def zipN(
-        implicit cbf: CanBuildFrom[InnerContainer[Subelement],
-                                   Subelement,
-                                   InnerContainer[Subelement]])
+        implicit bf: BuildFrom[InnerContainer[Subelement],
+                               Subelement,
+                               InnerContainer[Subelement]])
       : Stream[InnerContainer[Subelement]] = {
       def linkAndRemainingInnerSequencesFrom(
-          innerSequences: Seq[Traversable[Subelement]])
+          innerSequences: Seq[InnerContainer[Subelement]])
         : Stream[InnerContainer[Subelement]] = {
-        val nonEmptyInnerSequences = innerSequences filter (_.nonEmpty)
+        val nonEmptyInnerSequences
+          : Seq[InnerContainer[Subelement]] = innerSequences filter (_.nonEmpty)
         if (nonEmptyInnerSequences.nonEmpty) {
           val (link, remainingInnerSequences) =
             (nonEmptyInnerSequences map (innerSequence =>
-              innerSequence.head -> innerSequence.tail)).unzip
+              innerSequence.head -> innerSequence.tail
+                .asInstanceOf[InnerContainer[Subelement]])).unzip
           val convertedLink = {
-            val builder = cbf()
+            val builder = bf.newBuilder(innerSequences.head)
             link.foreach(builder += _)
             builder.result()
           }
@@ -60,7 +63,7 @@ trait SeqEnrichment {
         } else Stream.empty
       }
       linkAndRemainingInnerSequencesFrom(
-        innerSequences.asInstanceOf[Seq[Traversable[Subelement]]])
+        innerSequences.asInstanceOf[Seq[InnerContainer[Subelement]]])
     }
   }
 }

@@ -1,6 +1,7 @@
 package com.sageserpent.americium
 
 import scala.collection.JavaConverters._
+import scala.language.postfixOps
 import scala.util.Random
 
 trait RandomEnrichment {

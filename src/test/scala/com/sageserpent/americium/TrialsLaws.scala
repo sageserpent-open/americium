@@ -4,12 +4,12 @@ import cats.Eq
 import cats.kernel.laws.discipline._
 import cats.laws.{IsEqArrow, discipline}
 import org.scalacheck.{Arbitrary, Gen, Prop}
-import org.scalatest.FlatSpec
-import org.scalatest.prop.Checkers
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatestplus.scalacheck.Checkers
 
 import scala.collection.mutable
 
-class TrialsLaws extends FlatSpec with Checkers {
+class TrialsLaws extends AnyFlatSpec with Checkers {
   val api = Trials.api
 
   implicit def equality[X: Eq]: Eq[Trials[X]] =
@@ -52,17 +52,15 @@ class TrialsLaws extends FlatSpec with Checkers {
 
   they should "be a monad" in
     check(
-      Prop.all(
-        (discipline
-          .MonadTests[Trials]
-          .monad[Int, Int, String]
-          .all
-          .properties ++ discipline
-          .FunctorFilterTests[Trials]
-          .functorFilter[Int, Int, String]
-          .all
-          .properties)
-          .map { case (label, property) => label |: property }: _*),
+      Prop.all((discipline
+        .MonadTests[Trials]
+        .monad[Int, Int, String]
+        .all
+        .properties ++ discipline
+        .FunctorFilterTests[Trials]
+        .functorFilter[Int, Int, String]
+        .all
+        .properties).map { case (label, property) => label |: property }.toSeq: _*),
       MinSuccessful(1000)
     )
 

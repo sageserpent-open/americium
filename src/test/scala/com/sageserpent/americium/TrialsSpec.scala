@@ -6,8 +6,9 @@ import com.sageserpent.americium.java.{
 }
 import org.scalamock.function.StubFunction1
 import org.scalamock.scalatest.MockFactory
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 import org.scalatest.prop.TableDrivenPropertyChecks
-import org.scalatest.{FlatSpec, Matchers}
 
 import _root_.java.util.UUID
 import _root_.java.util.function.{Predicate, Function => JavaFunction}
@@ -15,7 +16,7 @@ import scala.collection.JavaConverters._
 import scala.util.Try
 
 class TrialsSpec
-    extends FlatSpec
+    extends AnyFlatSpec
     with Matchers
     with MockFactory
     with TableDrivenPropertyChecks {

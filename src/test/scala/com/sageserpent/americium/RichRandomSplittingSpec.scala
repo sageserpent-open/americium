@@ -2,16 +2,19 @@ package com.sageserpent.americium
 
 import com.sageserpent.americium.randomEnrichment._
 import org.scalacheck.{Arbitrary, Gen, ShrinkLowPriority}
-import org.scalatest.prop.GeneratorDrivenPropertyChecks
-import org.scalatest.{FlatSpec, Inspectors, Matchers}
+import org.scalatest.Inspectors
+import org.scalatest.enablers.Aggregating._
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
+import org.scalatestplus.scalacheck.ScalaCheckDrivenPropertyChecks
 
 import scala.util.Random
 
 class RichRandomSplittingSpec
-    extends FlatSpec
+    extends AnyFlatSpec
     with Matchers
     with Inspectors
-    with GeneratorDrivenPropertyChecks
+    with ScalaCheckDrivenPropertyChecks
     with ShrinkLowPriority {
   val seedGenerator = Arbitrary.arbitrary[Long]
 
@@ -46,11 +49,13 @@ class RichRandomSplittingSpec
         val random = new Random(seed)
         for {
           _ <- 1 to numberOfRepeats
-          expectedItemsAndTheirFrequencies = items groupBy identity mapValues (_.length)
-          pieces                           = random.splitIntoNonEmptyPieces(items)
-          actualItemsAndTheirFrequences    = pieces.flatten groupBy identity mapValues (_.length)
+          expectedItemsAndTheirFrequencies = (items groupBy identity).view
+            .mapValues(_.length)
+          pieces = random.splitIntoNonEmptyPieces(items)
+          actualItemsAndTheirFrequences = (pieces.flatten groupBy identity).view
+            .mapValues(_.length)
         } {
-          actualItemsAndTheirFrequences should contain theSameElementsAs expectedItemsAndTheirFrequencies
+          actualItemsAndTheirFrequences.toSeq should contain theSameElementsAs expectedItemsAndTheirFrequencies.toSeq
         }
     }
   }
