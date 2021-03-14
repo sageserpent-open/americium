@@ -383,16 +383,16 @@ class RichRandomMiscellaneaSpec extends AnyFlatSpec with Matchers {
 
       val limit = 1000
 
-      val streams: immutable.Seq[Stream[Int]] = 0 until numberOfStreams map (
+      val streams: immutable.Seq[LazyList[Int]] = 0 until numberOfStreams map (
           start => {
-            val infiniteStream = Stream.from(start = start, step = 2)
+            val infiniteStream = LazyList.from(start = start, step = 2)
             if (0 == start % 2) infiniteStream
             else
               infiniteStream.take(
                 randomBehaviour.chooseAnyNumberFromZeroToOneLessThan(limit))
           })
 
-      val pickedItems: Stream[Int] =
+      val pickedItems: LazyList[Int] =
         randomBehaviour.pickAlternatelyFrom(streams)
 
       pickedItems

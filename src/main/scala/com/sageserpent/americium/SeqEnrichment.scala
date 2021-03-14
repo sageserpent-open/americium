@@ -42,10 +42,10 @@ trait SeqEnrichment {
         implicit bf: BuildFrom[InnerContainer[Subelement],
                                Subelement,
                                InnerContainer[Subelement]])
-      : Stream[InnerContainer[Subelement]] = {
+      : LazyList[InnerContainer[Subelement]] = {
       def linkAndRemainingInnerSequencesFrom(
           innerSequences: Seq[InnerContainer[Subelement]])
-        : Stream[InnerContainer[Subelement]] = {
+        : LazyList[InnerContainer[Subelement]] = {
         val nonEmptyInnerSequences
           : Seq[InnerContainer[Subelement]] = innerSequences filter (_.nonEmpty)
         if (nonEmptyInnerSequences.nonEmpty) {
@@ -60,7 +60,7 @@ trait SeqEnrichment {
           }
           convertedLink #:: linkAndRemainingInnerSequencesFrom(
             remainingInnerSequences)
-        } else Stream.empty
+        } else LazyList.empty
       }
       linkAndRemainingInnerSequencesFrom(
         innerSequences.asInstanceOf[Seq[InnerContainer[Subelement]]])

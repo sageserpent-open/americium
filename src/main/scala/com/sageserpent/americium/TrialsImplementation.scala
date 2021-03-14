@@ -284,10 +284,10 @@ case class TrialsImplementation[+Case](
     decode[DecisionIndices](recipe).right.get // TODO: what could possibly go wrong?
   }
 
-  private def cases: Stream[(DecisionIndices, Case)] = {
+  private def cases: LazyList[(DecisionIndices, Case)] = {
     val randomBehaviour = new Random(734874)
 
-    type DecisionsWriter[Case] = WriterT[Stream, DecisionIndices, Case]
+    type DecisionsWriter[Case] = WriterT[LazyList, DecisionIndices, Case]
 
     // NASTY HACK: what follows is a hacked alternative to using the reader monad whereby the injected
     // context is *mutable*, but at least it's buried in the interpreter for `GenerationOperation`, expressed
@@ -298,7 +298,7 @@ case class TrialsImplementation[+Case](
     def interpreter: GenerationOperation ~> DecisionsWriter =
       new (GenerationOperation ~> DecisionsWriter) {
         override def apply[Case](generationOperation: GenerationOperation[Case])
-          : WriterT[Stream, DecisionIndices, Case] = {
+          : WriterT[LazyList, DecisionIndices, Case] = {
           generationOperation match {
             case Choice(choices) =>
               WriterT(
@@ -308,7 +308,7 @@ case class TrialsImplementation[+Case](
                     case (caze, decisionIndex) =>
                       List(ChoiceOf(decisionIndex)) -> caze
                   }
-                  .toStream
+                  .to(LazyList)
               )
 
             case Alternation(alternatives) =>
@@ -327,14 +327,14 @@ case class TrialsImplementation[+Case](
 
             case Factory(factory) =>
               WriterT(
-                Stream.continually {
+                LazyList.continually {
                   val input = randomBehaviour.nextLong()
 
                   List(FactoryInputOf(input)) -> factory(input)
                 }
               )
 
-            case FiltrationResult(result) => WriterT.liftF(result.toStream)
+            case FiltrationResult(result) => WriterT.liftF(result.to(LazyList))
           }
         }
       }
