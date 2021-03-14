@@ -317,8 +317,10 @@ case class TrialsImplementation[+Case](
                   .map {
                     case (value, decisionIndex) =>
                       value.generation
+                      // Ahem. This is actually stack-safe, even when defining a recursive trials,
+                      // but I feel uneasy about it. Could this be done without recursively interpreting?
                         .foldMap(interpreter)
-                        .run // Ahem. Could this be done without recursively interpreting?
+                        .run
                         .map {
                           case (decisionIndices, caze) =>
                             (AlternativeOf(decisionIndex) :: decisionIndices) -> caze
