@@ -268,8 +268,8 @@ case class TrialsImplementation[+Case](
                 _ <- State.set(remainingDecisionIndices)
               } yield factory(input)
 
-            // NOTE: pattern-match only on `Some`, as we are reproducing a caze that
-            // therefore must have passed filtration the first time around.
+            // NOTE: pattern-match only on `Some`, as we are reproducing a case that by
+            // dint of being reproduced, must have passed filtration the first time around.
             case FiltrationResult(Some(caze)) =>
               caze.pure[DecisionIndicesContext]
           }
