@@ -397,46 +397,28 @@ trait RandomEnrichment {
     }
 
     def pickAlternatelyFrom[X](
-        sequences: Traversable[Traversable[X]]): LazyList[X] = {
-      val onlyNonEmptyFrom = (_: IndexedSeq[LazyList[X]]) filter (_.nonEmpty)
-
-      def pickItemsFromNonEmptyStreams(
-          nonEmptyStreams: IndexedSeq[LazyList[X]]): LazyList[X] = {
-        val numberOfNonEmptyStreams = nonEmptyStreams.length
-
-        numberOfNonEmptyStreams match {
-          case 0 => LazyList.empty
-          case _ =>
-            val sliceLength = chooseAnyNumberFromOneTo(numberOfNonEmptyStreams)
-            val permutationDestinationIndices =
-              random.shuffle(Seq.range(0, numberOfNonEmptyStreams)) toArray
-            val (pickedItems, streamsPickedFrom) =
-              0 until sliceLength map (sourceIndex =>
-                nonEmptyStreams(permutationDestinationIndices(sourceIndex)) match {
-                  case pickedItem #:: tailFromPickedStream =>
-                    pickedItem -> tailFromPickedStream
-                }) unzip
-
-            val unchangedStreams = sliceLength until numberOfNonEmptyStreams map (
-                sourceIndex =>
-                  nonEmptyStreams(permutationDestinationIndices(sourceIndex)))
-
-            // NOTE: use `lazyAppendedAll` rather than `++` to get laziness on the appended
-            // stream expression, which has a recursive call embedded in it. This prevents
-            // stack overflow by unwinding the recursion as the final stream is traversed.
-            pickedItems
-              .to(LazyList)
-              .lazyAppendedAll(
-                pickItemsFromNonEmptyStreams(
-                  onlyNonEmptyFrom(streamsPickedFrom) ++ unchangedStreams))
+        sequences: Iterable[Iterable[X]]): LazyList[X] = {
+      def pickItemsFromAStream(streams: Seq[LazyList[X]]): LazyList[X] =
+        if (streams.isEmpty) LazyList.empty
+        else {
+          val Seq(candidateStreamToPickFrom, remainingStreams @ _*) =
+            random.shuffle(streams)
+          candidateStreamToPickFrom match {
+            case LazyList() =>
+              LazyList.empty.lazyAppendedAll(
+                pickItemsFromAStream(remainingStreams))
+            case pickedItem #:: tailFromPickedStream =>
+              pickedItem #:: pickItemsFromAStream(
+                tailFromPickedStream +: remainingStreams)
+          }
         }
-      }
-      pickItemsFromNonEmptyStreams(
-        onlyNonEmptyFrom(sequences map (_.to(LazyList)) toIndexedSeq))
+
+      LazyList.empty.lazyAppendedAll(
+        pickItemsFromAStream(sequences map (_.to(LazyList)) toSeq))
     }
 
     def splitIntoNonEmptyPieces[
-        Container[Element] <: Traversable[Element] forSome { type Element },
+        Container[Element] <: Iterable[Element] forSome { type Element },
         X](items: Container[X]): LazyList[Container[X]] = {
       val numberOfItems         = items.size
       val numberOfSplitsDesired = chooseAnyNumberFromOneTo(numberOfItems)
