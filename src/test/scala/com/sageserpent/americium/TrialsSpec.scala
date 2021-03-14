@@ -486,7 +486,7 @@ class TrialsSpec
 
     def binaryTreeTrials: Trials[BinaryTree] =
       api.alternate(for {
-        leftSubtree  <- binaryTreeTrials
+        leftSubtree  <- api.delay(binaryTreeTrials)
         rightSubtree <- binaryTreeTrials
       } yield Branch(leftSubtree, rightSubtree), api.integers.map(Leaf.apply))
 

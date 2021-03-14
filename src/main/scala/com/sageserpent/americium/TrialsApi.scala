@@ -3,6 +3,8 @@ package com.sageserpent.americium
 import _root_.java.lang.{Double => JavaDouble}
 
 trait TrialsApi {
+  def delay[Case](delayed: => Trials[Case]): Trials[Case]
+
   def only[Case](onlyCase: Case): Trials[Case]
 
   def choose[Case](firstChoice: Case,
