@@ -400,4 +400,28 @@ class RichRandomMiscellaneaSpec extends AnyFlatSpec with Matchers {
         .toList should have size limit
     }
   }
+
+  it should "be able to cope with recursive sequences" in {
+    2 to 20 foreach { numberOfStreams =>
+      val randomBehaviour = new Random(2317667)
+
+      val limit = 1000
+
+      def pickedItems: LazyList[Int] =
+        LazyList.empty.lazyAppendedAll(
+          randomBehaviour.pickAlternatelyFrom(
+            0 until numberOfStreams map (start => {
+              if (0 == start % 2)
+                LazyList
+                  .from(start = start, step = 2)
+                  .take(randomBehaviour.chooseAnyNumberFromOneTo(limit))
+              else
+                pickedItems
+            })))
+
+      pickedItems
+        .take(limit)
+        .toList should have size limit
+    }
+  }
 }
