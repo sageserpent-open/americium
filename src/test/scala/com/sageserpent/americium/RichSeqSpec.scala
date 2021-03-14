@@ -96,12 +96,12 @@ class RichSeqSpec
     }
 
   "zipN" should "respect the exact inner sequence types that it works on" in {
-    "val stream: Stream[List[Int]] = Seq(List(1 , 2), List(3, 4), List.empty[Int]).zipN" should compile
-    "val stream: Stream[List[Int]] = Seq(Seq(1 , 2), Seq(3, 4), Seq.empty[Int]).zipN" shouldNot typeCheck
+    "val stream: LazyList[List[Int]] = Seq(List(1 , 2), List(3, 4), List.empty[Int]).zipN" should compile
+    "val stream: LazyList[List[Int]] = Seq(Seq(1 , 2), Seq(3, 4), Seq.empty[Int]).zipN" shouldNot typeCheck
   }
 
   it should "result in an empty stream for an empty input sequence" in {
-    val links: Stream[List[Int]] = Seq.empty[List[Int]].zipN
+    val links: LazyList[List[Int]] = Seq.empty[List[Int]].zipN
     links should be(empty)
   }
 

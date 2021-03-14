@@ -22,7 +22,7 @@ trait RandomEnrichment {
     }
 
     def buildRandomSequenceOfDistinctIntegersFromZeroToOneLessThan(
-        exclusiveLimit: Int): Stream[Int] = {
+        exclusiveLimit: Int): LazyList[Int] = {
       require(0 <= exclusiveLimit)
 
       abstract class BinaryTreeNode {
@@ -276,9 +276,9 @@ trait RandomEnrichment {
       var previouslyChosenItemsAsBinaryTree: BinaryTreeNode = EmptySubtree
 
       def chooseAndRecordUniqueItems(
-          exclusiveLimitOnVacantSlotIndex: Int): Stream[Int] = {
+          exclusiveLimitOnVacantSlotIndex: Int): LazyList[Int] = {
         if (0 == exclusiveLimitOnVacantSlotIndex) {
-          Stream.empty
+          LazyList.empty
         } else {
           val (chosenItemsAsBinaryTree, chosenItem) =
             previouslyChosenItemsAsBinaryTree.addNewItemInTheVacantSlotAtIndex(
@@ -307,9 +307,9 @@ trait RandomEnrichment {
         else new _root_.java.util.TreeMap[Int, X] asScala
 
       def chooseAndRecordUniqueCandidates(
-          numberOfCandidatesAlreadyChosen: Int): Stream[X] = {
+          numberOfCandidatesAlreadyChosen: Int): LazyList[X] = {
         if (numberOfCandidates == numberOfCandidatesAlreadyChosen) {
-          Stream.empty
+          LazyList.empty
         } else {
           val chosenCandidateIndex = numberOfCandidatesAlreadyChosen + this
             .chooseAnyNumberFromZeroToOneLessThan(
@@ -397,15 +397,15 @@ trait RandomEnrichment {
     }
 
     def pickAlternatelyFrom[X](
-        sequences: Traversable[Traversable[X]]): Stream[X] = {
-      val onlyNonEmptyFrom = (_: IndexedSeq[Stream[X]]) filter (_.nonEmpty)
+        sequences: Traversable[Traversable[X]]): LazyList[X] = {
+      val onlyNonEmptyFrom = (_: IndexedSeq[LazyList[X]]) filter (_.nonEmpty)
 
       def pickItemsFromNonEmptyStreams(
-          nonEmptyStreams: IndexedSeq[Stream[X]]): Stream[X] = {
+          nonEmptyStreams: IndexedSeq[LazyList[X]]): LazyList[X] = {
         val numberOfNonEmptyStreams = nonEmptyStreams.length
 
         numberOfNonEmptyStreams match {
-          case 0 => Stream.empty
+          case 0 => LazyList.empty
           case _ =>
             val sliceLength = chooseAnyNumberFromOneTo(numberOfNonEmptyStreams)
             val permutationDestinationIndices =
@@ -425,30 +425,32 @@ trait RandomEnrichment {
             // stream expression, which has a recursive call embedded in it. This
             // prevents stack overflow by unwinding the recursion as the final stream
             // is traversed.
-            pickedItems.toStream.append(
-              pickItemsFromNonEmptyStreams(
-                onlyNonEmptyFrom(streamsPickedFrom) ++ unchangedStreams))
+            pickedItems
+              .to(LazyList)
+              .lazyAppendedAll(
+                pickItemsFromNonEmptyStreams(
+                  onlyNonEmptyFrom(streamsPickedFrom) ++ unchangedStreams))
         }
       }
       pickItemsFromNonEmptyStreams(
-        onlyNonEmptyFrom(sequences map (_.toStream) toIndexedSeq))
+        onlyNonEmptyFrom(sequences map (_.to(LazyList)) toIndexedSeq))
     }
 
     def splitIntoNonEmptyPieces[
         Container[Element] <: Traversable[Element] forSome { type Element },
-        X](items: Container[X]): Stream[Container[X]] = {
+        X](items: Container[X]): LazyList[Container[X]] = {
       val numberOfItems         = items.size
       val numberOfSplitsDesired = chooseAnyNumberFromOneTo(numberOfItems)
       val indicesToSplitAt =
         buildRandomSequenceOfDistinctIntegersFromZeroToOneLessThan(
           numberOfItems) map (1 + _) take numberOfSplitsDesired sorted
-      def splits(indicesToSplitAt: Stream[Int],
+      def splits(indicesToSplitAt: LazyList[Int],
                  items: Container[X],
-                 indexOfPreviousSplit: Int): Stream[Container[X]] =
+                 indexOfPreviousSplit: Int): LazyList[Container[X]] =
         indicesToSplitAt match {
-          case Stream.Empty =>
-            if (items.isEmpty) Stream.empty
-            else Stream(items)
+          case LazyList() =>
+            if (items.isEmpty) LazyList.empty
+            else LazyList(items)
           case indexToSplitAt #:: remainingIndicesToSplitAt =>
             val (splitPiece, remainingItems) = items splitAt (indexToSplitAt - indexOfPreviousSplit)
             splitPiece.asInstanceOf[Container[X]] #:: splits(
