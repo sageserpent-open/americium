@@ -81,7 +81,7 @@ object TrialsImplementation {
 
   val scalaApi = new CommonApi with TrialsApi {
     override def delay[Case](delayed: => Trials[Case]): Trials[Case] =
-      new TrialsImplementation[Case](Delay(() => delayed))
+      TrialsImplementation[Case](Free.defer(delayed.generation))
 
     override def choose[Case](
         choices: Iterable[Case]): TrialsImplementation[Case] =
@@ -108,9 +108,6 @@ object TrialsImplementation {
   private[americium] trait GenerationSupport[+Case] {
     val generation: Generation[_ <: Case]
   }
-
-  case class Delay[Case](delayed: () => Trials[Case])
-      extends GenerationOperation[Case]
 
   case class Choice[Case](choices: Iterable[Case])
       extends GenerationOperation[Case]
@@ -246,11 +243,6 @@ case class TrialsImplementation[+Case](
         override def apply[Case](generationOperation: GenerationOperation[Case])
           : DecisionIndicesContext[Case] = {
           generationOperation match {
-            case Delay(delayed) =>
-              delayed().generation
-                .foldMap(interpreter)
-                .asInstanceOf[DecisionIndicesContext[Case]]
-
             case Choice(choices) =>
               for {
                 decisionIndices <- State.get[DecisionIndices]
@@ -310,9 +302,6 @@ case class TrialsImplementation[+Case](
         override def apply[Case](generationOperation: GenerationOperation[Case])
           : WriterT[LazyList, DecisionIndices, Case] = {
           generationOperation match {
-            case Delay(delayed) =>
-              WriterT(delayed().generation.foldMap(interpreter).run)
-
             case Choice(choices) =>
               WriterT(
                 randomBehaviour
