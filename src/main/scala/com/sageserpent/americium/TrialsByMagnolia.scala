@@ -39,9 +39,10 @@ trait TrialsByMagnolia {
 
   def dispatch[Case](
       sealedTrait: SealedTrait[Typeclass, Case]): Typeclass[Case] = {
+    val Seq(leadingSubtype, remainingSubtypes @ _*) = sealedTrait.subtypes
     val subtypeGenerators: Seq[Trials[Case]] =
-      sealedTrait.subtypes.map(subtype =>
-        Trials.api.delay(subtype.typeclass.trials))
+      Trials.api.delay(leadingSubtype.typeclass.trials) +: remainingSubtypes
+        .map(subtype => subtype.typeclass.trials)
     lift(Trials.api.alternate(subtypeGenerators))
   }
 
