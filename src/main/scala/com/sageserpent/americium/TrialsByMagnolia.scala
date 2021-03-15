@@ -35,14 +35,13 @@ trait TrialsByMagnolia {
   }
 
   def combine[Case](caseClass: CaseClass[Typeclass, Case]): Typeclass[Case] =
-    lift(caseClass.constructMonadic(_.typeclass.trials))
+    lift(caseClass.constructMonadic(parameter =>
+      Trials.api.delay(parameter.typeclass.trials)))
 
   def dispatch[Case](
       sealedTrait: SealedTrait[Typeclass, Case]): Typeclass[Case] = {
-    val Seq(leadingSubtype, remainingSubtypes @ _*) = sealedTrait.subtypes
     val subtypeGenerators: Seq[Trials[Case]] =
-      Trials.api.delay(leadingSubtype.typeclass.trials) +: remainingSubtypes
-        .map(subtype => subtype.typeclass.trials)
+      sealedTrait.subtypes.map(_.typeclass.trials)
     lift(Trials.api.alternate(subtypeGenerators))
   }
 
