@@ -18,6 +18,7 @@ import _root_.java.lang.{Iterable => JavaIterable, Long => JavaLong}
 import _root_.java.util.Optional
 import _root_.java.util.function.{Consumer, Predicate, Function => JavaFunction}
 import scala.collection.JavaConverters._
+import scala.collection.mutable
 import scala.util.Random
 
 object TrialsImplementation {
@@ -85,7 +86,7 @@ object TrialsImplementation {
 
     override def choose[Case](
         choices: Iterable[Case]): TrialsImplementation[Case] =
-      new TrialsImplementation(Choice(choices))
+      new TrialsImplementation(Choice(choices.toVector))
 
     override def alternate[Case](
         firstAlternative: Trials[Case],
@@ -96,7 +97,7 @@ object TrialsImplementation {
 
     override def alternate[Case](
         alternatives: Iterable[Trials[Case]]): TrialsImplementation[Case] =
-      new TrialsImplementation(Alternation(alternatives))
+      new TrialsImplementation(Alternation(alternatives.toVector))
 
     override def stream[Case](
         factory: Long => Case): TrialsImplementation[Case] =
@@ -109,10 +110,10 @@ object TrialsImplementation {
     val generation: Generation[_ <: Case]
   }
 
-  case class Choice[Case](choices: Iterable[Case])
+  case class Choice[Case](choices: Vector[Case])
       extends GenerationOperation[Case]
 
-  case class Alternation[Case](alternatives: Iterable[Trials[Case]])
+  case class Alternation[Case](alternatives: Vector[Trials[Case]])
       extends GenerationOperation[Case]
 
   case class Factory[Case](factory: Long => Case)
@@ -154,7 +155,7 @@ case class TrialsImplementation[+Case](
 
       // Scala-only API ...
       override def supplyTo(consumer: Case => Unit): Unit =
-        cases.take(limit).foreach {
+        cases(limit).foreach {
           case (decisionIndices, testCase) =>
             try {
               consumer(testCase)
@@ -286,10 +287,10 @@ case class TrialsImplementation[+Case](
     decode[DecisionIndices](recipe).right.get // TODO: what could possibly go wrong?
   }
 
-  private def cases: LazyList[(DecisionIndices, Case)] = {
+  private def cases(limit: Int): Iterator[(DecisionIndices, Case)] = {
     val randomBehaviour = new Random(734874)
 
-    type DecisionsWriter[Case] = WriterT[LazyList, DecisionIndices, Case]
+    type DecisionsWriter[Case] = WriterT[Option, DecisionIndices, Case]
 
     // NASTY HACK: what follows is a hacked alternative to using the reader monad whereby the injected
     // context is *mutable*, but at least it's buried in the interpreter for `GenerationOperation`, expressed
@@ -303,46 +304,71 @@ case class TrialsImplementation[+Case](
           : DecisionsWriter[Case] = {
           generationOperation match {
             case Choice(choices) =>
-              WriterT(
-                randomBehaviour
-                  .shuffle(choices.zipWithIndex)
-                  .map {
-                    case (caze, decisionIndex) =>
-                      List(ChoiceOf(decisionIndex)) -> caze
-                  }
-                  .to(LazyList)
-              )
+              WriterT {
+                val numberOfChoices = choices.size
+                if (0 < numberOfChoices) {
+                  val choiceIndex =
+                    randomBehaviour.chooseAnyNumberFromZeroToOneLessThan(
+                      numberOfChoices)
+                  val caze = choices(choiceIndex)
+
+                  Some(List(ChoiceOf(choiceIndex)) -> caze)
+                } else None
+              }
 
             case Alternation(alternatives) =>
-              WriterT(randomBehaviour
-                .pickAlternatelyFrom(alternatives.zipWithIndex
-                  .map {
-                    case (value, decisionIndex) =>
-                      value.generation
-                      // Ahem. This is actually stack-safe, even when defining a recursive trials,
-                      // but I feel uneasy about it. Could this be done without recursively interpreting?
-                        .foldMap(interpreter)
-                        .run
-                        .map {
-                          case (decisionIndices, caze) =>
-                            (AlternativeOf(decisionIndex) :: decisionIndices) -> caze
-                        }
-                  }))
+              WriterT {
+                val numberOfAlternatives = alternatives.size
+                if (0 < numberOfAlternatives) {
+                  val alternateIndex =
+                    randomBehaviour.chooseAnyNumberFromZeroToOneLessThan(
+                      numberOfAlternatives)
+                  val alternative = alternatives(alternateIndex)
+
+                  alternative.generation
+                    .foldMap(interpreter) // Ahem. Could this be done without recursively interpreting?
+                    .run
+                    .map {
+                      case (decisionIndices, caze) =>
+                        (AlternativeOf(alternateIndex) :: decisionIndices) -> caze
+                    }
+                } else None
+              }
 
             case Factory(factory) =>
-              WriterT(
-                LazyList.continually {
-                  val input = randomBehaviour.nextLong()
+              WriterT {
+                val input = randomBehaviour.nextLong()
 
-                  List(FactoryInputOf(input)) -> factory(input)
-                }
-              )
+                Some(List(FactoryInputOf(input)) -> factory(input))
+              }
 
-            case FiltrationResult(result) => WriterT.liftF(result.to(LazyList))
+            case FiltrationResult(result) => WriterT.liftF(result)
           }
         }
       }
 
-    generation.foldMap(interpreter).run
+    val potentialDuplicates = mutable.Set.empty[DecisionIndices]
+
+    val starvationLeeway: Int = 10 * limit
+
+    new Iterator[Option[(DecisionIndices, Case)]] {
+      var starvationCountdown: Int = starvationLeeway
+
+      override def hasNext: Boolean = 0 < starvationCountdown
+
+      override def next(): Option[(DecisionIndices, Case)] = {
+        val potentialCaze = generation.foldMap(interpreter).run
+        potentialCaze match {
+          case result @ Some((decisionIndices, _))
+              if potentialDuplicates.add(decisionIndices) =>
+            starvationCountdown = starvationLeeway
+            result
+          case _ => {
+            starvationCountdown -= 1
+            None
+          }
+        }
+      }
+    }.collect { case Some(caze) => caze }.take(limit)
   }
 }
