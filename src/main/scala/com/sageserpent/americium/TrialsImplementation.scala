@@ -300,7 +300,7 @@ case class TrialsImplementation[+Case](
     def interpreter: GenerationOperation ~> DecisionsWriter =
       new (GenerationOperation ~> DecisionsWriter) {
         override def apply[Case](generationOperation: GenerationOperation[Case])
-          : WriterT[LazyList, DecisionIndices, Case] = {
+          : DecisionsWriter[Case] = {
           generationOperation match {
             case Choice(choices) =>
               WriterT(
