@@ -18,6 +18,7 @@ import _root_.java.lang.{Iterable => JavaIterable, Long => JavaLong}
 import _root_.java.util.Optional
 import _root_.java.util.function.{Consumer, Predicate, Function => JavaFunction}
 import scala.collection.JavaConverters._
+import scala.collection.mutable
 import scala.util.Random
 
 object TrialsImplementation {
@@ -286,7 +287,7 @@ case class TrialsImplementation[+Case](
     decode[DecisionIndices](recipe).right.get // TODO: what could possibly go wrong?
   }
 
-  private def cases: LazyList[(DecisionIndices, Case)] = {
+  private def cases: Iterator[(DecisionIndices, Case)] = {
     val randomBehaviour = new Random(734874)
 
     type DecisionsWriter[Case] = WriterT[LazyList, DecisionIndices, Case]
@@ -343,6 +344,39 @@ case class TrialsImplementation[+Case](
         }
       }
 
-    generation.foldMap(interpreter).run
+    var sampleSize: Int = 1
+
+    new Iterator[(DecisionIndices, Case)] {
+      val sampleQueue: mutable.Queue[(DecisionIndices, Case)] =
+        mutable.Queue.empty
+      val potentialDuplicates = mutable.Set.empty[DecisionIndices]
+
+      private def resample(): Unit = {
+        require(sampleQueue.isEmpty)
+
+        generation.foldMap(interpreter).run.take(sampleSize).foreach {
+          case item @ (decisionIndices, _) =>
+            if (potentialDuplicates.add(decisionIndices)) {
+              sampleQueue.enqueue(item)
+            }
+        }
+
+        sampleSize *= 2
+      }
+
+      resample()
+
+      override def hasNext: Boolean = sampleQueue.nonEmpty
+
+      override def next(): (DecisionIndices, Case) = {
+        val result = sampleQueue.dequeue()
+
+        if (sampleQueue.isEmpty) {
+          resample()
+        }
+
+        result
+      }
+    }
   }
 }
