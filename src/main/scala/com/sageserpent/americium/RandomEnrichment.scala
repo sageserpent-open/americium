@@ -506,31 +506,35 @@ trait RandomEnrichment {
     ] forSome { type Element }, X](
         items: Container[X]
     ): LazyList[Container[X]] = {
-      val numberOfItems         = items.size
-      val numberOfSplitsDesired = chooseAnyNumberFromOneTo(numberOfItems)
-      val indicesToSplitAt =
-        buildRandomSequenceOfDistinctIntegersFromZeroToOneLessThan(
-          numberOfItems
-        ) map (1 + _) take numberOfSplitsDesired sorted
-      def splits(
-          indicesToSplitAt: LazyList[Int],
-          items: Container[X],
-          indexOfPreviousSplit: Int
-      ): LazyList[Container[X]] =
-        indicesToSplitAt match {
-          case LazyList() =>
-            if (items.isEmpty) LazyList.empty
-            else LazyList(items)
-          case indexToSplitAt #:: remainingIndicesToSplitAt =>
-            val (splitPiece, remainingItems) =
-              items splitAt (indexToSplitAt - indexOfPreviousSplit)
-            splitPiece.asInstanceOf[Container[X]] #:: splits(
-              remainingIndicesToSplitAt,
-              remainingItems.asInstanceOf[Container[X]],
-              indexToSplitAt
-            )
-        }
-      splits(indicesToSplitAt, items, 0)
+      val numberOfItems = items.size
+      if (0 < numberOfItems) {
+        val numberOfSplitsDesired = chooseAnyNumberFromOneTo(numberOfItems)
+        val indicesToSplitAt =
+          buildRandomSequenceOfDistinctIntegersFromZeroToOneLessThan(
+            numberOfItems
+          ) map (1 + _) take numberOfSplitsDesired sorted
+
+        def splits(
+            indicesToSplitAt: LazyList[Int],
+            items: Container[X],
+            indexOfPreviousSplit: Int
+        ): LazyList[Container[X]] =
+          indicesToSplitAt match {
+            case LazyList() =>
+              if (items.isEmpty) LazyList.empty
+              else LazyList(items)
+            case indexToSplitAt #:: remainingIndicesToSplitAt =>
+              val (splitPiece, remainingItems) =
+                items splitAt (indexToSplitAt - indexOfPreviousSplit)
+              splitPiece.asInstanceOf[Container[X]] #:: splits(
+                remainingIndicesToSplitAt,
+                remainingItems.asInstanceOf[Container[X]],
+                indexToSplitAt
+              )
+          }
+
+        splits(indicesToSplitAt, items, 0)
+      } else LazyList.empty
     }
   }
 }
