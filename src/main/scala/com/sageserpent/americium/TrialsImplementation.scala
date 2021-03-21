@@ -336,7 +336,7 @@ case class TrialsImplementation[+Case](
     // interpreter too. If it's any consolation, it means that flat-mapping is stack-safe - although I'm not
     // entirely sure about alternation. Read 'em and weep!
 
-    val depthLimit: Int = 5
+    val depthLimit: Int = 100
 
     def interpreter(depth: Int): GenerationOperation ~> DecisionsWriter =
       new (GenerationOperation ~> DecisionsWriter) {
