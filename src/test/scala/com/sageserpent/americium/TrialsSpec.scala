@@ -506,7 +506,7 @@ class TrialsSpec
     def listTrials: Trials[List[Int]] =
       api.alternate(
         for {
-          head <- api.choose(1 to 2)
+          head <- api.integers
           tail <- listTrials
         } yield head :: tail,
         api.only(Nil)
