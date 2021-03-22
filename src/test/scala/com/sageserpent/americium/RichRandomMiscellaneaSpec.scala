@@ -26,7 +26,8 @@ class RichRandomMiscellaneaSpec extends AnyFlatSpec with Matchers {
 
       val chosenItemsViaAnotherWay =
         random.buildRandomSequenceOfDistinctIntegersFromZeroToOneLessThan(
-          upperBound)
+          upperBound
+        )
       assert(chosenItemsViaAnotherWay.toSet == expectedRange.toSet)
     }
   }
@@ -34,14 +35,16 @@ class RichRandomMiscellaneaSpec extends AnyFlatSpec with Matchers {
   private def sampleDistributions(
       upperBound: Int,
       sampleSize: Int,
-      buildRandomSequenceOfDistinctIntegersOfSize: Int => Seq[Int]) {
+      buildRandomSequenceOfDistinctIntegersOfSize: Int => Seq[Int]
+  ) {
 
-    val numberOfTrials = BargainBasement.numberOfCombinations(upperBound,
-                                                              sampleSize) * 1000
+    val numberOfTrials =
+      BargainBasement.numberOfCombinations(upperBound, sampleSize) * 1000
 
     println(
       "Number of trials: %d, upperBound: %d, sampleSize: %d"
-        .format(numberOfTrials, upperBound, sampleSize))
+        .format(numberOfTrials, upperBound, sampleSize)
+    )
 
     val sampleToCountMap = Map.empty[Set[Int], Int].withDefaultValue(0)
 
@@ -51,7 +54,9 @@ class RichRandomMiscellaneaSpec extends AnyFlatSpec with Matchers {
     for {
       _ <- 1 to numberOfTrials
     } {
-      val sample = buildRandomSequenceOfDistinctIntegersOfSize(sampleSize).toList
+      val sample = buildRandomSequenceOfDistinctIntegersOfSize(
+        sampleSize
+      ).toList
 
       val sampleAsSet = sample.toSet
 
@@ -59,7 +64,8 @@ class RichRandomMiscellaneaSpec extends AnyFlatSpec with Matchers {
 
       for { (item, position) <- sample.zipWithIndex } {
         val (count, sumOfPositions) = itemToCountAndSumOfPositionsMap(item)
-        itemToCountAndSumOfPositionsMap(item) = 1 + count -> (position + sumOfPositions)
+        itemToCountAndSumOfPositionsMap(item) =
+          1 + count -> (position + sumOfPositions)
       }
     }
 
@@ -95,51 +101,73 @@ class RichRandomMiscellaneaSpec extends AnyFlatSpec with Matchers {
     for (upperBound <- (1 to 15) ++ (98 to 105) ++ (598 to 610)) {
       val concreteRangeOfIntegers = 0 until upperBound
 
-      sampleDistributions(upperBound, 1, { _ =>
-        List(random.chooseOneOf(concreteRangeOfIntegers))
-      })
+      sampleDistributions(
+        upperBound,
+        1,
+        { _ =>
+          List(random.chooseOneOf(concreteRangeOfIntegers))
+        }
+      )
 
-      val numberOfStepsFromOffTheEndsToGetToLimitsOnTestSampleSizes = (210 / upperBound) min upperBound max 1
+      val numberOfStepsFromOffTheEndsToGetToLimitsOnTestSampleSizes =
+        (210 / upperBound) min upperBound max 1
 
       val lowerSampleSize = 1 + random.nextInt(
-        numberOfStepsFromOffTheEndsToGetToLimitsOnTestSampleSizes)
+        numberOfStepsFromOffTheEndsToGetToLimitsOnTestSampleSizes
+      )
 
       val upperSampleSize = upperBound - random.nextInt(
-        numberOfStepsFromOffTheEndsToGetToLimitsOnTestSampleSizes)
+        numberOfStepsFromOffTheEndsToGetToLimitsOnTestSampleSizes
+      )
 
       val sampleSizes = Set(1, lowerSampleSize, upperSampleSize, upperBound)
 
       for (sampleSize <- sampleSizes) {
 
-        sampleDistributions(upperBound, sampleSize, {
-          random.chooseSeveralOf(concreteRangeOfIntegers, _)
-        })
+        sampleDistributions(
+          upperBound,
+          sampleSize, {
+            random.chooseSeveralOf(concreteRangeOfIntegers, _)
+          }
+        )
 
-        sampleDistributions(upperBound, sampleSize, {
-          random
-            .buildRandomSequenceOfDistinctIntegersFromZeroToOneLessThan(
-              upperBound)
-            .take(_)
-        })
+        sampleDistributions(
+          upperBound,
+          sampleSize, {
+            random
+              .buildRandomSequenceOfDistinctIntegersFromZeroToOneLessThan(
+                upperBound
+              )
+              .take(_)
+          }
+        )
       }
     }
   }
 
-  def anotherWayOfChoosingSeveralOf(random: Random,
-                                    candidates: Traversable[Int],
-                                    numberToChoose: Int) = {
+  def anotherWayOfChoosingSeveralOf(
+      random: Random,
+      candidates: Traversable[Int],
+      numberToChoose: Int
+  ) = {
     val candidatesWithRandomAccess = candidates.toArray
 
-    for (index <- random
-           .buildRandomSequenceOfDistinctIntegersFromZeroToOneLessThan(
-             candidatesWithRandomAccess.size) take numberToChoose)
+    for (
+      index <- random
+        .buildRandomSequenceOfDistinctIntegersFromZeroToOneLessThan(
+          candidatesWithRandomAccess.size
+        ) take numberToChoose
+    )
       yield candidatesWithRandomAccess(index)
   }
 
   def commonTestStructureForTestingOfChoosingSeveralItems(
-      testOnSuperSetAndItemsChosenFromIt: (scala.collection.immutable.Set[Int],
-                                           Seq[Int],
-                                           Int) => Unit) {
+      testOnSuperSetAndItemsChosenFromIt: (
+          scala.collection.immutable.Set[Int],
+          Seq[Int],
+          Int
+      ) => Unit
+  ) {
     val random = new Random(1)
 
     for (numberOfConsecutiveItems <- 1 to 105) {
@@ -158,39 +186,45 @@ class RichRandomMiscellaneaSpec extends AnyFlatSpec with Matchers {
         for (subsetSize <- 1 to numberOfConsecutiveItems)
           for (_ <- 1 to 10) {
             val chosenItems = random.chooseSeveralOf(superSet, subsetSize)
-            testOnSuperSetAndItemsChosenFromIt(superSet,
-                                               chosenItems,
-                                               subsetSize)
+            testOnSuperSetAndItemsChosenFromIt(
+              superSet,
+              chosenItems,
+              subsetSize
+            )
 
             val anotherBunchOfChosenItems =
               anotherWayOfChoosingSeveralOf(random, superSet, subsetSize)
-            testOnSuperSetAndItemsChosenFromIt(superSet,
-                                               anotherBunchOfChosenItems,
-                                               subsetSize)
+            testOnSuperSetAndItemsChosenFromIt(
+              superSet,
+              anotherBunchOfChosenItems,
+              subsetSize
+            )
           }
       }
   }
 
   it should "only yield items from the sequence chosen from" in {
-    commonTestStructureForTestingOfChoosingSeveralItems((superSet,
-                                                         chosenItems,
-                                                         _) =>
-      assert(chosenItems.toSet.subsetOf(superSet)))
+    commonTestStructureForTestingOfChoosingSeveralItems(
+      (superSet, chosenItems, _) => assert(chosenItems.toSet.subsetOf(superSet))
+    )
   }
 
   it should "yield the requested number of items if there are at least that many in the sequence chosen from" in {
     commonTestStructureForTestingOfChoosingSeveralItems(
-      (_, chosenItems, subsetSize) => assert(chosenItems.length == subsetSize))
+      (_, chosenItems, subsetSize) => assert(chosenItems.length == subsetSize)
+    )
   }
 
   it should "not duplicate items chosen from a sequence" in {
     commonTestStructureForTestingOfChoosingSeveralItems((_, chosenItems, _) =>
-      assert(chosenItems.toSet.size == chosenItems.length))
+      assert(chosenItems.toSet.size == chosenItems.length)
+    )
   }
 
   it should "eventually cover all permutations when repeatedly choosing from a sequence" in {
-    val empiricallyDeterminedMultiplicationFactorToEnsureCoverage = 79200.toDouble / BargainBasement
-      .factorial(7)
+    val empiricallyDeterminedMultiplicationFactorToEnsureCoverage =
+      79200.toDouble / BargainBasement
+        .factorial(7)
 
     val random = new Random(1)
 
@@ -205,10 +239,13 @@ class RichRandomMiscellaneaSpec extends AnyFlatSpec with Matchers {
           BargainBasement.numberOfPermutations(numberOfConsecutiveItems, 1)
 
         val oversampledOutputs =
-          for (_ <- 1 to scala.math
-                 .ceil(
-                   empiricallyDeterminedMultiplicationFactorToEnsureCoverage * expectedNumberOfPermutations)
-                 .toInt) yield {
+          for (
+            _ <- 1 to scala.math
+              .ceil(
+                empiricallyDeterminedMultiplicationFactorToEnsureCoverage * expectedNumberOfPermutations
+              )
+              .toInt
+          ) yield {
             random.chooseOneOf(superSet.toSeq)
           }
         assert(oversampledOutputs.toSet.size == expectedNumberOfPermutations)
@@ -223,30 +260,42 @@ class RichRandomMiscellaneaSpec extends AnyFlatSpec with Matchers {
             .numberOfPermutations(numberOfConsecutiveItems, subsetSize)
 
           val oversampledOutputs =
-            for (_ <- 1 to scala.math
-                   .ceil(
-                     empiricallyDeterminedMultiplicationFactorToEnsureCoverage * expectedNumberOfPermutations)
-                   .toInt) yield {
+            for (
+              _ <- 1 to scala.math
+                .ceil(
+                  empiricallyDeterminedMultiplicationFactorToEnsureCoverage * expectedNumberOfPermutations
+                )
+                .toInt
+            ) yield {
               random.chooseSeveralOf(superSet.toSeq, subsetSize) toList
             }
           assert(oversampledOutputs.toSet.size == expectedNumberOfPermutations)
 
           val oversampledOutputsViaAnotherWay =
-            for (_ <- 1 to scala.math
-                   .ceil(
-                     empiricallyDeterminedMultiplicationFactorToEnsureCoverage * expectedNumberOfPermutations)
-                   .toInt) yield {
-              anotherWayOfChoosingSeveralOf(random, superSet.toSeq, subsetSize) toList
+            for (
+              _ <- 1 to scala.math
+                .ceil(
+                  empiricallyDeterminedMultiplicationFactorToEnsureCoverage * expectedNumberOfPermutations
+                )
+                .toInt
+            ) yield {
+              anotherWayOfChoosingSeveralOf(
+                random,
+                superSet.toSeq,
+                subsetSize
+              ) toList
             }
           assert(
-            oversampledOutputsViaAnotherWay.toSet.size == expectedNumberOfPermutations)
+            oversampledOutputsViaAnotherWay.toSet.size == expectedNumberOfPermutations
+          )
         }
       }
     }
   }
 
   def commonTestStructureForTestingAlternatePickingFromSequences(
-      testOnSequences: Seq[Seq[Int]] => Unit): Unit = {
+      testOnSequences: Seq[Seq[Int]] => Unit
+  ): Unit = {
     val randomBehaviour =
       new Random(232)
     for (numberOfSequences <- 0 until 50) {
@@ -255,15 +304,15 @@ class RichRandomMiscellaneaSpec extends AnyFlatSpec with Matchers {
       val sequenceSizes =
         List.tabulate(numberOfSequences) { _ =>
           randomBehaviour.chooseAnyNumberFromZeroToOneLessThan(
-            maximumPossibleNumberOfItemsInASequence)
+            maximumPossibleNumberOfItemsInASequence
+          )
         }
 
       val sequences =
-        (sequenceSizes zipWithIndex) map {
-          case (sequenceSize, sequenceIndex) =>
-            Seq.tabulate(sequenceSize) { itemIndex: Int =>
-              sequenceIndex + numberOfSequences * itemIndex
-            }
+        (sequenceSizes zipWithIndex) map { case (sequenceSize, sequenceIndex) =>
+          Seq.tabulate(sequenceSize) { itemIndex: Int =>
+            sequenceIndex + numberOfSequences * itemIndex
+          }
         }
       testOnSequences(sequences)
     }
@@ -296,23 +345,25 @@ class RichRandomMiscellaneaSpec extends AnyFlatSpec with Matchers {
         val sequenceIndexToDisentangledPickedSubsequenceMap =
           alternatelyPickedSequence.foldLeft(
             scala.collection.immutable.TreeMap
-              .empty[Int, List[Int]]) {
-            (sequenceIndexToDisentangledPickedSubsequenceMap, item) =>
-              val sequenceIndex =
-                item % numberOfSequences
-              val disentangledSubsequence =
-                sequenceIndexToDisentangledPickedSubsequenceMap.get(
-                  sequenceIndex) match {
-                  case Some(disentangledSubsequence) =>
-                    item :: disentangledSubsequence
-                  case None =>
-                    List(item)
-                }
-              sequenceIndexToDisentangledPickedSubsequenceMap + (sequenceIndex -> disentangledSubsequence)
+              .empty[Int, List[Int]]
+          ) { (sequenceIndexToDisentangledPickedSubsequenceMap, item) =>
+            val sequenceIndex =
+              item % numberOfSequences
+            val disentangledSubsequence =
+              sequenceIndexToDisentangledPickedSubsequenceMap.get(
+                sequenceIndex
+              ) match {
+                case Some(disentangledSubsequence) =>
+                  item :: disentangledSubsequence
+                case None =>
+                  List(item)
+              }
+            sequenceIndexToDisentangledPickedSubsequenceMap + (sequenceIndex -> disentangledSubsequence)
           }
 
         sequenceIndexToDisentangledPickedSubsequenceMap.toList.map(
-          ((_: (Int, List[Int]))._2) andThen (_.reverse))
+          ((_: (Int, List[Int]))._2) andThen (_.reverse)
+        )
       }
       val isNotEmpty = (_: Seq[_]).nonEmpty
       assert {
@@ -323,9 +374,8 @@ class RichRandomMiscellaneaSpec extends AnyFlatSpec with Matchers {
         (expectedSequences.length == disentangledPickedSubsequences.length
         && expectedSequences
           .zip(disentangledPickedSubsequences)
-          .forall {
-            case (sequence, disentangledPickedSubsequence) =>
-              sequence == disentangledPickedSubsequence
+          .forall { case (sequence, disentangledPickedSubsequence) =>
+            sequence == disentangledPickedSubsequence
           })
       }
     }
@@ -341,35 +391,42 @@ class RichRandomMiscellaneaSpec extends AnyFlatSpec with Matchers {
       val (sequenceIndexToPositionSumAndCount, pickedSequenceLength) =
         alternatelyPickedSequence.foldLeft(
           scala.collection.immutable.Map.empty[Int, (Double, Int)],
-          0) {
-          case ((sequenceIndexToPositionSumAndCount, itemPosition), item) =>
-            val sequenceIndex = item % numberOfSequences
+          0
+        ) { case ((sequenceIndexToPositionSumAndCount, itemPosition), item) =>
+          val sequenceIndex = item % numberOfSequences
 
-            (sequenceIndexToPositionSumAndCount.get(sequenceIndex) match {
+          (sequenceIndexToPositionSumAndCount.get(sequenceIndex) match {
 
-              case Some((positionSum, numberOfPositions)) =>
-                sequenceIndexToPositionSumAndCount +
-                  (sequenceIndex ->
-                    (itemPosition + positionSum, 1 + numberOfPositions))
+            case Some((positionSum, numberOfPositions)) =>
+              sequenceIndexToPositionSumAndCount +
+                (sequenceIndex ->
+                  (itemPosition + positionSum, 1 + numberOfPositions))
 
-              case None =>
-                sequenceIndexToPositionSumAndCount +
-                  (sequenceIndex -> (itemPosition.toDouble, 1))
-            }) -> (1 + itemPosition)
+            case None =>
+              sequenceIndexToPositionSumAndCount +
+                (sequenceIndex -> (itemPosition.toDouble, 1))
+          }) -> (1 + itemPosition)
         }
 
       val minumumRequiredNumberOfPositions = 50
       val toleranceEpsilon                 = 6e-1
-      for ((item, (positionSum, numberOfPositions)) <- sequenceIndexToPositionSumAndCount) {
+      for (
+        (item, (positionSum, numberOfPositions)) <-
+          sequenceIndexToPositionSumAndCount
+      ) {
         if (minumumRequiredNumberOfPositions <= numberOfPositions) {
           val meanPosition =
             positionSum.toDouble / numberOfPositions
-          printf("Item: %d, mean position: %f, picked sequence length: %d\n",
-                 item,
-                 meanPosition,
-                 pickedSequenceLength)
+          printf(
+            "Item: %d, mean position: %f, picked sequence length: %d\n",
+            item,
+            meanPosition,
+            pickedSequenceLength
+          )
           val shouldBeTrue =
-            Math.abs(2.0 * meanPosition - pickedSequenceLength) < pickedSequenceLength * toleranceEpsilon
+            Math.abs(
+              2.0 * meanPosition - pickedSequenceLength
+            ) < pickedSequenceLength * toleranceEpsilon
           assert(shouldBeTrue)
         }
       }
@@ -381,16 +438,17 @@ class RichRandomMiscellaneaSpec extends AnyFlatSpec with Matchers {
     1 to 20 foreach { numberOfStreams =>
       val randomBehaviour = new Random(2317667)
 
-      val limit = 1000
+      val limit = 10000
 
-      val streams: immutable.Seq[LazyList[Int]] = 0 until numberOfStreams map (
-          start => {
-            val infiniteStream = LazyList.from(start = start, step = 2)
-            if (0 == start % 2) infiniteStream
-            else
-              infiniteStream.take(
-                randomBehaviour.chooseAnyNumberFromZeroToOneLessThan(limit))
-          })
+      val streams: immutable.Seq[LazyList[Int]] =
+        0 until numberOfStreams map (start => {
+          val infiniteStream = LazyList.from(start = start, step = 2)
+          if (0 == start % 2) infiniteStream
+          else
+            infiniteStream.take(
+              randomBehaviour.chooseAnyNumberFromZeroToOneLessThan(limit)
+            )
+        })
 
       val pickedItems: LazyList[Int] =
         randomBehaviour.pickAlternatelyFrom(streams)
@@ -405,7 +463,7 @@ class RichRandomMiscellaneaSpec extends AnyFlatSpec with Matchers {
     2 to 20 foreach { numberOfStreams =>
       val randomBehaviour = new Random(2317667)
 
-      val limit = 1000
+      val limit = 10000
 
       def pickedItems: LazyList[Int] =
         LazyList.empty.lazyAppendedAll(
@@ -417,7 +475,9 @@ class RichRandomMiscellaneaSpec extends AnyFlatSpec with Matchers {
                   .take(randomBehaviour.chooseAnyNumberFromOneTo(limit))
               else
                 pickedItems
-            })))
+            })
+          )
+        )
 
       pickedItems
         .take(limit)

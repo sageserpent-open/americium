@@ -1,5 +1,6 @@
 package com.sageserpent.americium
 
+import scala.annotation.tailrec
 import scala.collection.JavaConverters._
 import scala.language.postfixOps
 import scala.util.Random
@@ -476,30 +477,28 @@ trait RandomEnrichment {
       chooseASingleExemplar(exemplars)
     }
 
-    def pickAlternatelyFrom[X](
-        sequences: Iterable[Iterable[X]]
-    ): LazyList[X] = {
-      def pickItemsFromAStream(streams: Seq[LazyList[X]]): LazyList[X] =
-        if (streams.isEmpty) LazyList.empty
-        else {
-          val Seq(candidateStreamToPickFrom, remainingStreams @ _*) =
-            random.shuffle(streams)
-          candidateStreamToPickFrom match {
-            case LazyList() =>
-              LazyList.empty.lazyAppendedAll(
-                pickItemsFromAStream(remainingStreams)
-              )
-            case pickedItem #:: tailFromPickedStream =>
-              pickedItem #:: pickItemsFromAStream(
-                tailFromPickedStream +: remainingStreams
-              )
+    def pickAlternatelyFrom[X](sequences: Iterable[Iterable[X]]): LazyList[X] =
+      LazyList.unfold(sequences map (_.to(LazyList)) toList) { streams =>
+        @tailrec
+        def pickAnItem(
+            streams: List[LazyList[X]]
+        ): Option[(X, List[LazyList[X]])] = {
+          if (streams.isEmpty)
+            None
+          else {
+            val candidateStreamToPickFrom :: remainingStreams =
+              random.shuffle(streams)
+            candidateStreamToPickFrom match {
+              case LazyList() =>
+                pickAnItem(remainingStreams)
+              case pickedItem #:: tailFromPickedStream =>
+                Some(pickedItem -> (tailFromPickedStream :: remainingStreams))
+            }
           }
         }
 
-      LazyList.empty.lazyAppendedAll(
-        pickItemsFromAStream(sequences map (_.to(LazyList)) toSeq)
-      )
-    }
+        pickAnItem(streams)
+      }
 
     def splitIntoNonEmptyPieces[Container[Element] <: Iterable[
       Element
