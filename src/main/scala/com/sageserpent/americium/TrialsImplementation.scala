@@ -1,10 +1,10 @@
 package com.sageserpent.americium
 
-import cats.data.{OptionT, State, WriterT}
+import cats.data.{OptionT, State, StateT}
 import cats.free.Free
 import cats.free.Free.{liftF, pure}
 import cats.syntax.applicative._
-import cats.{Eval, Monoid, ~>}
+import cats.{Eval, ~>}
 import com.sageserpent.americium.java.{
   Trials => JavaTrials,
   TrialsApi => JavaTrialsApi
@@ -170,7 +170,7 @@ case class TrialsImplementation[+Case](
 
       // Scala-only API ...
       override def supplyTo(consumer: Case => Unit): Unit =
-        cases(limit).foreach { case (decisionIndices, testCase) =>
+        cases(limit).foreach { case (decisionStages, testCase) =>
           try {
             consumer(testCase)
           } catch {
@@ -178,7 +178,7 @@ case class TrialsImplementation[+Case](
               throw new TrialException(exception) {
                 override def provokingCase: Case = testCase
 
-                override def recipe: String = decisionIndices.asJson.spaces4
+                override def recipe: String = decisionStages.asJson.spaces4
               }
           }
         }
@@ -237,8 +237,8 @@ case class TrialsImplementation[+Case](
   }
 
   override def supplyTo(recipe: String, consumer: Case => Unit): Unit = {
-    val decisionIndices = parseDecisionIndices(recipe)
-    val reproducedCase  = reproduce(decisionIndices)
+    val decisionStages = parseDecisionIndices(recipe)
+    val reproducedCase = reproduce(decisionStages)
 
     try {
       consumer(reproducedCase)
@@ -247,12 +247,12 @@ case class TrialsImplementation[+Case](
         throw new TrialException(exception) {
           override def provokingCase: Case = reproducedCase
 
-          override def recipe: String = decisionIndices.asJson.spaces4
+          override def recipe: String = decisionStages.asJson.spaces4
         }
     }
   }
 
-  private def reproduce(decisionIndices: DecisionStages): Case = {
+  private def reproduce(decisionStages: DecisionStages): Case = {
 
     type DecisionIndicesContext[Caze] = State[DecisionStages, Caze]
 
@@ -266,17 +266,17 @@ case class TrialsImplementation[+Case](
           generationOperation match {
             case Choice(choices) =>
               for {
-                decisionIndices <- State.get[DecisionStages]
+                decisionStages <- State.get[DecisionStages]
                 ChoiceOf(decisionIndex) :: remainingDecisionIndices =
-                  decisionIndices
+                  decisionStages
                 _ <- State.set(remainingDecisionIndices)
               } yield choices.drop(decisionIndex).head
 
             case Alternation(alternatives) =>
               for {
-                decisionIndices <- State.get[DecisionStages]
+                decisionStages <- State.get[DecisionStages]
                 AlternativeOf(decisionIndex) :: remainingDecisionIndices =
-                  decisionIndices
+                  decisionStages
                 _ <- State.set(remainingDecisionIndices)
                 result <- {
                   val chosenAlternative = alternatives.drop(decisionIndex).head
@@ -288,9 +288,9 @@ case class TrialsImplementation[+Case](
 
             case Factory(factory) =>
               for {
-                decisionIndices <- State.get[DecisionStages]
+                decisionStages <- State.get[DecisionStages]
                 FactoryInputOf(input) :: remainingDecisionIndices =
-                  decisionIndices
+                  decisionStages
                 _ <- State.set(remainingDecisionIndices)
               } yield factory(input)
 
@@ -304,7 +304,7 @@ case class TrialsImplementation[+Case](
 
     generation
       .foldMap(interpreter)
-      .runA(decisionIndices)
+      .runA(decisionStages)
       .value
   }
 
@@ -319,16 +319,22 @@ case class TrialsImplementation[+Case](
 
     type DeferredOption[Case] = OptionT[Eval, Case]
 
-    implicit val intMonoidForMultiplicity: Monoid[Int] = new Monoid[Int] {
-      override def empty: Int = 1
+    case class State(decisionStages: DecisionStages, multiplicity: Int) {
+      def update(decision: Decision, multiplicity: Int): State = copy(
+        decisionStages =
+          decisionStages :+ decision, // TODO - this is inefficient....
+        multiplicity = this.multiplicity * multiplicity
+      )
+    }
 
-      override def combine(x: Int, y: Int): Int = x * y
+    object State {
+      val initial = new State(List.empty, 1)
     }
 
     type DecisionIndicesAndMultiplicity = (DecisionStages, Int)
 
-    type DecisionsWriter[Case] =
-      WriterT[DeferredOption, DecisionIndicesAndMultiplicity, Case]
+    type StateUpdating[Case] =
+      StateT[DeferredOption, State, Case]
 
     // NASTY HACK: what follows is a hacked alternative to using the reader monad whereby the injected
     // context is *mutable*, but at least it's buried in the interpreter for `GenerationOperation`, expressed
@@ -338,14 +344,14 @@ case class TrialsImplementation[+Case](
 
     val depthLimit: Int = 100
 
-    def interpreter(depth: Int): GenerationOperation ~> DecisionsWriter =
-      new (GenerationOperation ~> DecisionsWriter) {
+    def interpreter(depth: Int): GenerationOperation ~> StateUpdating =
+      new (GenerationOperation ~> StateUpdating) {
         override def apply[Case](
             generationOperation: GenerationOperation[Case]
-        ): DecisionsWriter[Case] = if (depthLimit > depth)
+        ): StateUpdating[Case] = if (depthLimit > depth)
           generationOperation match {
             case Choice(choices) =>
-              WriterT {
+              StateT { state =>
                 val numberOfChoices = choices.size
                 if (0 < numberOfChoices) {
                   val choiceIndex =
@@ -356,14 +362,17 @@ case class TrialsImplementation[+Case](
 
                   OptionT.liftF(
                     Eval.now(
-                      (List(ChoiceOf(choiceIndex)), numberOfChoices) -> caze
+                      state.update(
+                        ChoiceOf(choiceIndex),
+                        numberOfChoices
+                      ) -> caze
                     )
                   )
                 } else OptionT.none
               }
 
             case Alternation(alternatives) =>
-              WriterT {
+              StateT { state =>
                 val numberOfAlternatives = alternatives.size
                 if (0 < numberOfAlternatives) {
                   val alternateIndex =
@@ -372,6 +381,7 @@ case class TrialsImplementation[+Case](
                     )
                   val alternative = alternatives(alternateIndex)
 
+                  // TODO - can the result of the recursive interpretation be used directly?
                   OptionT(
                     Eval
                       .always(
@@ -380,30 +390,33 @@ case class TrialsImplementation[+Case](
                             interpreter(1 + depth)
                           )
                       ) // Ahem. Could this be done without recursively interpreting?
-                      .flatMap(_.run.map {
-                        case ((decisionIndices, multiplicity), caze) =>
-                          (
-                            AlternativeOf(alternateIndex) :: decisionIndices,
-                            numberOfAlternatives * multiplicity
-                          ) -> caze
-                      }.value)
+                      .flatMap(
+                        _.run(
+                          state.update(
+                            AlternativeOf(alternateIndex),
+                            numberOfAlternatives
+                          )
+                        ).value
+                      )
                   )
                 } else OptionT.none
               }
 
             case Factory(factory) =>
-              WriterT {
+              StateT { state =>
                 val input = randomBehaviour.nextLong()
 
                 OptionT.liftF(
-                  Eval.now((List(FactoryInputOf(input)), 1) -> factory(input))
+                  Eval.now(
+                    state.update(FactoryInputOf(input), 1) -> factory(input)
+                  )
                 )
               }
 
             case FiltrationResult(result) =>
-              WriterT.liftF(OptionT.fromOption(result))
+              StateT.liftF(OptionT.fromOption(result))
           }
-        else WriterT(OptionT.none)
+        else StateT.liftF(OptionT.none)
       }
 
     new Iterator[Option[(DecisionStages, Case)]] {
@@ -417,15 +430,15 @@ case class TrialsImplementation[+Case](
       override def next(): Option[(DecisionStages, Case)] =
         generation
           .foldMap(interpreter(depth = 0))
-          .run
+          .run(State.initial)
           .value
           .value match {
-          case Some(((decisionIndices, multiplicity), caze))
-              if potentialDuplicates.add(decisionIndices) =>
+          case Some((State(decisionStages, multiplicity), caze))
+              if potentialDuplicates.add(decisionStages) =>
             numberOfUniqueCasesProduced += 1
             starvationCountdown =
               (multiplicity * (limit - numberOfUniqueCasesProduced) / limit) max (limit - numberOfUniqueCasesProduced)
-            Some(decisionIndices -> caze)
+            Some(decisionStages -> caze)
           case _ => {
             starvationCountdown -= 1
             None
