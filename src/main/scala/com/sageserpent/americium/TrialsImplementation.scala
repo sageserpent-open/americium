@@ -28,7 +28,7 @@ object TrialsImplementation {
   case class AlternativeOf(index: Int)   extends Decision
   case class FactoryInputOf(input: Long) extends Decision
 
-  type DecisionIndices = List[Decision]
+  type DecisionStages = List[Decision]
 
   type Generation[Case] = Free[GenerationOperation, Case]
 
@@ -252,9 +252,9 @@ case class TrialsImplementation[+Case](
     }
   }
 
-  private def reproduce(decisionIndices: DecisionIndices): Case = {
+  private def reproduce(decisionIndices: DecisionStages): Case = {
 
-    type DecisionIndicesContext[Caze] = State[DecisionIndices, Caze]
+    type DecisionIndicesContext[Caze] = State[DecisionStages, Caze]
 
     // NOTE: unlike the companion interpreter in `cases`,
     // this one has a relatively sane implementation.
@@ -266,7 +266,7 @@ case class TrialsImplementation[+Case](
           generationOperation match {
             case Choice(choices) =>
               for {
-                decisionIndices <- State.get[DecisionIndices]
+                decisionIndices <- State.get[DecisionStages]
                 ChoiceOf(decisionIndex) :: remainingDecisionIndices =
                   decisionIndices
                 _ <- State.set(remainingDecisionIndices)
@@ -274,7 +274,7 @@ case class TrialsImplementation[+Case](
 
             case Alternation(alternatives) =>
               for {
-                decisionIndices <- State.get[DecisionIndices]
+                decisionIndices <- State.get[DecisionStages]
                 AlternativeOf(decisionIndex) :: remainingDecisionIndices =
                   decisionIndices
                 _ <- State.set(remainingDecisionIndices)
@@ -288,7 +288,7 @@ case class TrialsImplementation[+Case](
 
             case Factory(factory) =>
               for {
-                decisionIndices <- State.get[DecisionIndices]
+                decisionIndices <- State.get[DecisionStages]
                 FactoryInputOf(input) :: remainingDecisionIndices =
                   decisionIndices
                 _ <- State.set(remainingDecisionIndices)
@@ -308,13 +308,13 @@ case class TrialsImplementation[+Case](
       .value
   }
 
-  private def parseDecisionIndices(recipe: String): DecisionIndices = {
-    decode[DecisionIndices](
+  private def parseDecisionIndices(recipe: String): DecisionStages = {
+    decode[DecisionStages](
       recipe
     ).right.get // TODO: what could possibly go wrong?
   }
 
-  private def cases(limit: Int): Iterator[(DecisionIndices, Case)] = {
+  private def cases(limit: Int): Iterator[(DecisionStages, Case)] = {
     val randomBehaviour = new Random(734874)
 
     type DeferredOption[Case] = OptionT[Eval, Case]
@@ -325,7 +325,7 @@ case class TrialsImplementation[+Case](
       override def combine(x: Int, y: Int): Int = x * y
     }
 
-    type DecisionIndicesAndMultiplicity = (DecisionIndices, Int)
+    type DecisionIndicesAndMultiplicity = (DecisionStages, Int)
 
     type DecisionsWriter[Case] =
       WriterT[DeferredOption, DecisionIndicesAndMultiplicity, Case]
@@ -406,15 +406,15 @@ case class TrialsImplementation[+Case](
         else WriterT(OptionT.none)
       }
 
-    new Iterator[Option[(DecisionIndices, Case)]] {
+    new Iterator[Option[(DecisionStages, Case)]] {
       var starvationCountdown: Int         = limit
       var numberOfUniqueCasesProduced: Int = 0
-      val potentialDuplicates              = mutable.Set.empty[DecisionIndices]
+      val potentialDuplicates              = mutable.Set.empty[DecisionStages]
 
       override def hasNext: Boolean =
         numberOfUniqueCasesProduced < limit && 0 < starvationCountdown
 
-      override def next(): Option[(DecisionIndices, Case)] =
+      override def next(): Option[(DecisionStages, Case)] =
         generation
           .foldMap(interpreter(depth = 0))
           .run
