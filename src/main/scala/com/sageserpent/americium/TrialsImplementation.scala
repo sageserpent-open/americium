@@ -372,35 +372,30 @@ case class TrialsImplementation[+Case](
               }
 
             case Alternation(alternatives) =>
-              StateT { state =>
-                val numberOfAlternatives = alternatives.size
-                if (0 < numberOfAlternatives) {
-                  val alternateIndex =
-                    randomBehaviour.chooseAnyNumberFromZeroToOneLessThan(
+              val numberOfAlternatives = alternatives.size
+              if (0 < numberOfAlternatives) {
+                val alternateIndex =
+                  randomBehaviour.chooseAnyNumberFromZeroToOneLessThan(
+                    numberOfAlternatives
+                  )
+                val alternative = alternatives(alternateIndex)
+
+                // TODO - be consistent in style with the previous interpreter...
+                StateT
+                  .modify[DeferredOption, State](
+                    (_: State).update(
+                      AlternativeOf(alternateIndex),
                       numberOfAlternatives
                     )
-                  val alternative = alternatives(alternateIndex)
-
-                  // TODO - can the result of the recursive interpretation be used directly?
-                  OptionT(
-                    Eval
-                      .always(
-                        alternative.generation
-                          .foldMap(
-                            interpreter(1 + depth)
-                          )
-                      ) // Ahem. Could this be done without recursively interpreting?
-                      .flatMap(
-                        _.run(
-                          state.update(
-                            AlternativeOf(alternateIndex),
-                            numberOfAlternatives
-                          )
-                        ).value
-                      )
                   )
-                } else OptionT.none
-              }
+                  .flatMap(_ =>
+                    alternative.generation
+                      .foldMap(
+                        interpreter(1 + depth)
+                      )
+                      .asInstanceOf[StateUpdating[Case]]
+                  )
+              } else StateT.liftF(OptionT.none)
 
             case Factory(factory) =>
               StateT { state =>
