@@ -1,5 +1,6 @@
 package com.sageserpent.americium
 
+import cats.collections.Dequeue
 import cats.data.{OptionT, State, StateT}
 import cats.free.Free
 import cats.free.Free.{liftF, pure}
@@ -13,6 +14,7 @@ import com.sageserpent.americium.randomEnrichment.RichRandom
 import io.circe.generic.auto._
 import io.circe.parser._
 import io.circe.syntax._
+import io.circe.{Decoder, Encoder}
 
 import _root_.java.lang.{Iterable => JavaIterable, Long => JavaLong}
 import _root_.java.util.Optional
@@ -28,7 +30,14 @@ object TrialsImplementation {
   case class AlternativeOf(index: Int)   extends Decision
   case class FactoryInputOf(input: Long) extends Decision
 
-  type DecisionStages = List[Decision]
+  type DecisionStages = Dequeue[Decision]
+
+  implicit val decisionStagesEncoder: Encoder[DecisionStages] =
+    implicitly[Encoder[List[Decision]]].contramap(_.toList)
+  implicit val decisionStagesDecoder: Decoder[DecisionStages] =
+    implicitly[Decoder[List[Decision]]].emap(list =>
+      Right(Dequeue.apply(list: _*))
+    )
 
   type Generation[Case] = Free[GenerationOperation, Case]
 
@@ -267,16 +276,16 @@ case class TrialsImplementation[+Case](
             case Choice(choices) =>
               for {
                 decisionStages <- State.get[DecisionStages]
-                ChoiceOf(decisionIndex) :: remainingDecisionStages =
-                  decisionStages
+                Some((ChoiceOf(decisionIndex), remainingDecisionStages)) =
+                  decisionStages.uncons
                 _ <- State.set(remainingDecisionStages)
               } yield choices.drop(decisionIndex).head
 
             case Alternation(alternatives) =>
               for {
                 decisionStages <- State.get[DecisionStages]
-                AlternativeOf(decisionIndex) :: remainingDecisionStages =
-                  decisionStages
+                Some((AlternativeOf(decisionIndex), remainingDecisionStages)) =
+                  decisionStages.uncons
                 _ <- State.set(remainingDecisionStages)
                 result <- {
                   val chosenAlternative = alternatives.drop(decisionIndex).head
@@ -289,8 +298,8 @@ case class TrialsImplementation[+Case](
             case Factory(factory) =>
               for {
                 decisionStages <- State.get[DecisionStages]
-                FactoryInputOf(input) :: remainingDecisionStages =
-                  decisionStages
+                Some((FactoryInputOf(input), remainingDecisionStages)) =
+                  decisionStages.uncons
                 _ <- State.set(remainingDecisionStages)
               } yield factory(input)
 
@@ -324,26 +333,23 @@ case class TrialsImplementation[+Case](
         multiplicity: Option[Int]
     ) {
       def update(decision: ChoiceOf, multiplicity: Int): State = copy(
-        decisionStages =
-          decisionStages :+ decision, // TODO - this is inefficient....
+        decisionStages = decisionStages :+ decision,
         multiplicity = this.multiplicity.map(_ * multiplicity)
       )
 
       def update(decision: AlternativeOf, multiplicity: Int): State = copy(
-        decisionStages =
-          decisionStages :+ decision, // TODO - this is inefficient....
+        decisionStages = decisionStages :+ decision,
         multiplicity = this.multiplicity.map(_ * multiplicity)
       )
 
       def update(decision: FactoryInputOf): State = copy(
-        decisionStages =
-          decisionStages :+ decision, // TODO - this is inefficient....
+        decisionStages = decisionStages :+ decision,
         multiplicity = None
       )
     }
 
     object State {
-      val initial = new State(List.empty, Some(1))
+      val initial = new State(Dequeue.empty, Some(1))
     }
 
     type DecisionIndicesAndMultiplicity = (DecisionStages, Int)
