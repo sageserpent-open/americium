@@ -267,17 +267,17 @@ case class TrialsImplementation[+Case](
             case Choice(choices) =>
               for {
                 decisionStages <- State.get[DecisionStages]
-                ChoiceOf(decisionIndex) :: remainingDecisionIndices =
+                ChoiceOf(decisionIndex) :: remainingDecisionStages =
                   decisionStages
-                _ <- State.set(remainingDecisionIndices)
+                _ <- State.set(remainingDecisionStages)
               } yield choices.drop(decisionIndex).head
 
             case Alternation(alternatives) =>
               for {
                 decisionStages <- State.get[DecisionStages]
-                AlternativeOf(decisionIndex) :: remainingDecisionIndices =
+                AlternativeOf(decisionIndex) :: remainingDecisionStages =
                   decisionStages
-                _ <- State.set(remainingDecisionIndices)
+                _ <- State.set(remainingDecisionStages)
                 result <- {
                   val chosenAlternative = alternatives.drop(decisionIndex).head
                   chosenAlternative.generation.foldMap(
@@ -289,9 +289,9 @@ case class TrialsImplementation[+Case](
             case Factory(factory) =>
               for {
                 decisionStages <- State.get[DecisionStages]
-                FactoryInputOf(input) :: remainingDecisionIndices =
+                FactoryInputOf(input) :: remainingDecisionStages =
                   decisionStages
-                _ <- State.set(remainingDecisionIndices)
+                _ <- State.set(remainingDecisionStages)
               } yield factory(input)
 
             // NOTE: pattern-match only on `Some`, as we are reproducing a case that by
@@ -351,25 +351,22 @@ case class TrialsImplementation[+Case](
         ): StateUpdating[Case] = if (depthLimit > depth)
           generationOperation match {
             case Choice(choices) =>
-              StateT { state =>
-                val numberOfChoices = choices.size
-                if (0 < numberOfChoices) {
-                  val choiceIndex =
+              val numberOfChoices = choices.size
+              if (0 < numberOfChoices)
+                for {
+                  state <- StateT.get[DeferredOption, State]
+                  choiceIndex =
                     randomBehaviour.chooseAnyNumberFromZeroToOneLessThan(
                       numberOfChoices
                     )
-                  val caze = choices(choiceIndex)
-
-                  OptionT.liftF(
-                    Eval.now(
-                      state.update(
-                        ChoiceOf(choiceIndex),
-                        numberOfChoices
-                      ) -> caze
+                  _ <- StateT.set[DeferredOption, State](
+                    state.update(
+                      ChoiceOf(choiceIndex),
+                      numberOfChoices
                     )
                   )
-                } else OptionT.none
-              }
+                } yield choices(choiceIndex)
+              else StateT.liftF(OptionT.none)
 
             case Alternation(alternatives) =>
               val numberOfAlternatives = alternatives.size
@@ -380,21 +377,21 @@ case class TrialsImplementation[+Case](
                   )
                 val alternative = alternatives(alternateIndex)
 
-                // TODO - be consistent in style with the previous interpreter...
-                StateT
-                  .modify[DeferredOption, State](
-                    (_: State).update(
+                for {
+                  _ <- StateT.modify[DeferredOption, State](
+                    _.update(
                       AlternativeOf(alternateIndex),
                       numberOfAlternatives
                     )
                   )
-                  .flatMap(_ =>
+                  result <-
                     alternative.generation
                       .foldMap(
-                        interpreter(1 + depth)
+                        interpreter(
+                          1 + depth
+                        ) // Ahem. Could this be done without recursively interpreting?
                       )
-                      .asInstanceOf[StateUpdating[Case]]
-                  )
+                } yield result
               } else StateT.liftF(OptionT.none)
 
             case Factory(factory) =>
