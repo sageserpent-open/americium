@@ -5,10 +5,27 @@ import org.junit.jupiter.api.Test;
 import java.math.BigDecimal;
 
 public class TrialsApiTests {
+    private final static TrialsApi api = Trials.api();
+
+    Trials<String> chainedIntegers() {
+        return api.alternate(
+                api.integers()
+                        .flatMap(value -> chainedIntegers()
+                                .map(chain -> String.join(",", value.toString(), chain))),
+                api.only(""));
+    }
+
+    Trials<String> chainedBooleansAndIntegersInATree() {
+        return api.alternate(
+                api.delay(() -> chainedBooleansAndIntegersInATree())
+                        .flatMap(left -> api.coinFlip()
+                                .flatMap(side -> chainedBooleansAndIntegersInATree()
+                                        .map(right -> "(" + String.join(",", left, side.toString(), right) + ")"))),
+                api.integers().map(value -> value.toString()));
+    }
+
     @Test
     void testDrivePureJavaApi() {
-        final TrialsApi api = Trials.api();
-
         final Trials<Integer> integerTrials = api.only(1);
         final Trials<Double> doubleTrials =
                 api.choose(new Double[]{1.2, 5.6, 0.1 + 0.1 + 0.1})
@@ -31,5 +48,9 @@ public class TrialsApiTests {
         alternateTrailsFromArray.withLimit(limit).supplyTo(number -> {
             System.out.println(number.doubleValue());
         });
+
+        chainedIntegers().withLimit(limit).supplyTo(System.out::println);
+
+        chainedBooleansAndIntegersInATree().withLimit(limit).supplyTo(System.out::println);
     }
 }

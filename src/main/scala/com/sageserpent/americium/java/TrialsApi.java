@@ -1,8 +1,11 @@
 package com.sageserpent.americium.java;
 
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 public interface TrialsApi {
+    <Case> Trials<Case> delay(Supplier<Trials<Case>> delayed);
+
     <Case> Trials<Case> only(Case onlyCase);
 
     /**

@@ -18,7 +18,12 @@ import io.circe.{Decoder, Encoder}
 
 import _root_.java.lang.{Iterable => JavaIterable, Long => JavaLong}
 import _root_.java.util.Optional
-import _root_.java.util.function.{Consumer, Predicate, Function => JavaFunction}
+import _root_.java.util.function.{
+  Consumer,
+  Predicate,
+  Supplier,
+  Function => JavaFunction
+}
 import scala.collection.mutable
 import scala.jdk.CollectionConverters._
 import scala.util.Random
@@ -59,6 +64,9 @@ object TrialsImplementation {
   // Java-only API ...
 
   val javaApi = new CommonApi with JavaTrialsApi {
+    override def delay[Case](
+        delayed: Supplier[JavaTrials[Case]]
+    ): JavaTrials[Case] = scalaApi.delay(delayed.get().scalaTrials)
 
     override def choose[Case](
         choices: JavaIterable[Case]
@@ -99,7 +107,9 @@ object TrialsImplementation {
   // Scala-only API ...
 
   val scalaApi = new CommonApi with TrialsApi {
-    override def delay[Case](delayed: => Trials[Case]): Trials[Case] =
+    override def delay[Case](
+        delayed: => Trials[Case]
+    ): TrialsImplementation[Case] =
       TrialsImplementation(Free.defer(delayed.generation))
 
     override def choose[Case](

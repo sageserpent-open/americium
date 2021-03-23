@@ -13,7 +13,7 @@ import org.scalatest.prop.TableDrivenPropertyChecks
 
 import _root_.java.util.UUID
 import _root_.java.util.function.{Predicate, Function => JavaFunction}
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 import scala.util.Try
 
 object TrialsSpec {
