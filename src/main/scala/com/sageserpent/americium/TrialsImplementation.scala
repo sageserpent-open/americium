@@ -19,8 +19,8 @@ import io.circe.{Decoder, Encoder}
 import _root_.java.lang.{Iterable => JavaIterable, Long => JavaLong}
 import _root_.java.util.Optional
 import _root_.java.util.function.{Consumer, Predicate, Function => JavaFunction}
-import scala.collection.JavaConverters._
 import scala.collection.mutable
+import scala.jdk.CollectionConverters._
 import scala.util.Random
 
 object TrialsImplementation {
@@ -320,7 +320,7 @@ case class TrialsImplementation[+Case](
   private def parseDecisionIndices(recipe: String): DecisionStages = {
     decode[DecisionStages](
       recipe
-    ).right.get // TODO: what could possibly go wrong?
+    ).toTry.get // Just throw the exception, the callers are written in Java style.
   }
 
   private def cases(limit: Int): Iterator[(DecisionStages, Case)] = {
@@ -491,10 +491,9 @@ case class TrialsImplementation[+Case](
             starvationCountdown =
               multiplicity.fold(remainingGap)(_ min remainingGap)
             Some(decisionStages -> caze)
-          case _ => {
+          case _ =>
             starvationCountdown -= 1
             None
-          }
         }
 
     }.collect { case Some(caze) => caze }
