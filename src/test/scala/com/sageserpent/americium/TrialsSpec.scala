@@ -36,7 +36,7 @@ class TrialsSpec
   val api: TrialsApi         = Trials.api
   val javaApi: JavaTrialsApi = JavaTrials.api
 
-  val limit: Int = 500
+  val limit: Int = 2000
 
   "test driving the Scala API" should "not produce smoke" in {
     val trials = api.choose(2, -4, 3)
@@ -98,8 +98,8 @@ class TrialsSpec
   "test driving the Java API" should "not produce smoke" in {
     val javaTrials = javaApi.choose(2, -4, 3)
 
-    val flatMappedJavaTrials = javaTrials flatMap (integer =>
-      javaApi.only(1.1 * integer))
+    val flatMappedJavaTrials =
+      javaTrials flatMap (integer => javaApi.only(1.1 * integer))
 
     flatMappedJavaTrials.withLimit(limit).supplyTo(println)
 
@@ -183,12 +183,15 @@ class TrialsSpec
 
   "a choice" should "yield all and only the cases given to it" in
     forAll(
-      Table("possibleChoices",
-            Seq.empty,
-            1 to 10,
-            -5 to 5 map (_.toString),
-            Seq(true),
-            Seq(4.3))) { possibleChoices =>
+      Table(
+        "possibleChoices",
+        Seq.empty,
+        1 to 10,
+        -5 to 5 map (_.toString),
+        Seq(true),
+        Seq(4.3)
+      )
+    ) { possibleChoices =>
       withExpectations {
         val sut: Trials[Any] = api.choose(possibleChoices)
 
@@ -197,7 +200,8 @@ class TrialsSpec
         sut.withLimit(limit).supplyTo(mockConsumer)
 
         possibleChoices.foreach(possibleChoice =>
-          mockConsumer.verify(possibleChoice))
+          mockConsumer.verify(possibleChoice)
+        )
       }
     }
 
@@ -207,7 +211,8 @@ class TrialsSpec
     type ChoicesAndCriterion[X] = (Seq[X], X => Boolean)
 
     def testBodyInWildcardCapture[X](
-        choicesAndCriterion: ChoicesAndCriterion[X]) =
+        choicesAndCriterion: ChoicesAndCriterion[X]
+    ) =
       withExpectations {
         choicesAndCriterion match {
           case (possibleChoices, exceptionCriterion) =>
@@ -231,7 +236,8 @@ class TrialsSpec
                 exception.provokingCase should be(exceptionWithCasePayload.caze)
 
                 exactly(1, possibleChoices) should be(
-                  exceptionWithCasePayload.caze)
+                  exceptionWithCasePayload.caze
+                )
             }
         }
       }
@@ -243,7 +249,8 @@ class TrialsSpec
         (-5 to 5 map (_.toString), (_: String).contains("5")),
         (Seq(false, true), identity[Boolean] _),
         (Seq(4.3), (_: Double) => true)
-      )) { choicesAndCriterion =>
+      )
+    ) { choicesAndCriterion =>
       testBodyInWildcardCapture(choicesAndCriterion)
     }
   }
@@ -259,7 +266,8 @@ class TrialsSpec
         Seq(1, "3", 99),
         Seq(1 to 10, Seq(12), -3 to -1),
         Seq(Seq(0), 1 to 10, 13, -3 to -1)
-      )) { alternatives =>
+      )
+    ) { alternatives =>
       withExpectations {
         val sut: Trials[Any] =
           api.alternate(alternatives map {
@@ -293,7 +301,8 @@ class TrialsSpec
         Seq(Seq(0), 1 to 10, 13, -3 to -1),
         Seq((_: Long).toString),
         Seq(Seq(0), 1 to 10, 13, identity[Long] _, -3 to -1)
-      )) { alternatives =>
+      )
+    ) { alternatives =>
       withExpectations {
         val alternativeIds = Vector.fill(alternatives.size) {
           UUID.randomUUID()
@@ -321,7 +330,8 @@ class TrialsSpec
         mockConsumer
           .expects(where { identifiedCase: (Any, UUID) =>
             alternativeIds.contains(identifiedCase._2) && predicateOnHash(
-              identifiedCase)
+              identifiedCase
+            )
           })
           .anyNumberOfTimes()
 
@@ -335,14 +345,19 @@ class TrialsSpec
         "trails",
         api.only(1),
         api.choose(1, false, 99),
-        api.alternate(api.choose(0 until 10 map (_.toString)),
-                      api.choose(-10 until 0)),
+        api.alternate(
+          api.choose(0 until 10 map (_.toString)),
+          api.choose(-10 until 0)
+        ),
         api.stream(_ * 1.46),
-        api.alternate(api.stream(_ * 1.46),
-                      api.choose(0 until 10 map (_.toString)),
-                      api.choose(-10 until 0)),
+        api.alternate(
+          api.stream(_ * 1.46),
+          api.choose(0 until 10 map (_.toString)),
+          api.choose(-10 until 0)
+        ),
         implicitly[Trials.Factory[Option[Int]]].trials
-      )) { sut =>
+      )
+    ) { sut =>
       withExpectations {
         val mockConsumer = mockFunction[Any, Unit]
 
@@ -360,8 +375,10 @@ class TrialsSpec
         "trails"                 -> "limit",
         api.only(1)              -> 1,
         api.choose(1, false, 99) -> 3,
-        api.alternate(api.choose(0 until 10 map (_.toString)),
-                      api.choose(-10 until 0))               -> 4,
+        api.alternate(
+          api.choose(0 until 10 map (_.toString)),
+          api.choose(-10 until 0)
+        )                                                    -> 4,
         api.stream(identity)                                 -> 200,
         implicitly[Trials.Factory[Either[Long, Int]]].trials -> 500
       )
@@ -386,26 +403,32 @@ class TrialsSpec
         api.alternate(
           api.only(true),
           api.choose(0 until 10 map (_.toString) map JackInABox.apply),
-          api.choose(-10 until 0)),
+          api.choose(-10 until 0)
+        ),
         api.stream({
           case value if 0 == value % 3 => JackInABox(value)
           case value => value
         }),
-        api.alternate(api.only(true),
-                      api.choose(-10 until 0),
-                      api.stream(JackInABox.apply)),
+        api.alternate(
+          api.only(true),
+          api.choose(-10 until 0),
+          api.stream(JackInABox.apply)
+        ),
         implicitly[Trials.Factory[Option[Int]]].trials.map {
           case None        => JackInABox(())
           case Some(value) => value
         }
-      )) { sut =>
+      )
+    ) { sut =>
       withExpectations {
         val surprisedConsumer: Any => Unit = {
           case JackInABox(caze) => throw ExceptionWithCasePayload(caze)
           case _                =>
         }
 
-        val exception = Try { sut.withLimit(limit).supplyTo(surprisedConsumer) }.failed.get
+        val exception = Try {
+          sut.withLimit(limit).supplyTo(surprisedConsumer)
+        }.failed.get
           .asInstanceOf[sut.TrialException]
 
         val exceptionFromSecondAttempt = Try {
@@ -425,7 +448,8 @@ class TrialsSpec
       api.alternate(
         api.only(true),
         api.choose(0 until 10 map (_.toString) map JackInABox.apply),
-        api.choose(-10 until 0)),
+        api.choose(-10 until 0)
+      ),
       api.alternate(
         api.only(true),
         api.choose(-10 until 0),
@@ -433,8 +457,10 @@ class TrialsSpec
       ),
       api.alternate(
         api.only(true),
-        api.alternate(api.choose(-99 to -50),
-                      api.choose("Red herring", false, JackInABox(-2))),
+        api.alternate(
+          api.choose(-99 to -50),
+          api.choose("Red herring", false, JackInABox(-2))
+        ),
         api.choose(-10 until 0)
       ),
       api.stream({
@@ -453,14 +479,17 @@ class TrialsSpec
         case None        => JackInABox(())
         case Some(value) => value
       }
-    )) { sut =>
+    )
+  ) { sut =>
     withExpectations {
       val surprisedConsumer: Any => Unit = {
         case JackInABox(caze) => throw ExceptionWithCasePayload(caze)
         case _                =>
       }
 
-      val exception = Try { sut.withLimit(limit).supplyTo(surprisedConsumer) }.failed.get
+      val exception = Try {
+        sut.withLimit(limit).supplyTo(surprisedConsumer)
+      }.failed.get
         .asInstanceOf[sut.TrialException]
 
       val exceptionRecreatedViaRecipe = Try {
@@ -475,20 +504,26 @@ class TrialsSpec
 
   "test driving a trials for a recursive data structure" should "not produce smoke" in {
     def listTrials: Trials[List[Int]] =
-      api.alternate(for {
-        head <- api.integers
-        tail <- listTrials
-      } yield head :: tail, api.only(Nil))
+      api.alternate(
+        for {
+          head <- api.integers
+          tail <- listTrials
+        } yield head :: tail,
+        api.only(Nil)
+      )
 
     listTrials
       .withLimit(limit)
       .supplyTo(println)
 
     def binaryTreeTrials: Trials[BinaryTree] =
-      api.alternate(for {
-        leftSubtree  <- api.delay(binaryTreeTrials)
-        rightSubtree <- binaryTreeTrials
-      } yield Branch(leftSubtree, rightSubtree), api.integers.map(Leaf.apply))
+      api.alternate(
+        for {
+          leftSubtree  <- api.delay(binaryTreeTrials)
+          rightSubtree <- binaryTreeTrials
+        } yield Branch(leftSubtree, rightSubtree),
+        api.integers.map(Leaf.apply)
+      )
 
     binaryTreeTrials
       .withLimit(limit)
@@ -525,12 +560,14 @@ class TrialsSpec
 
   "flatmapping using a Java function" should "compile" in {
     assertCompiles(
-      "javaApi.only(1).flatMap(value => javaApi.choose(value, 1.0 + value))")
+      "javaApi.only(1).flatMap(value => javaApi.choose(value, 1.0 + value))"
+    )
   }
 
   "flatmapping using a Scala function" should "compile" in {
     assertCompiles(
-      "api.only(1).flatMap(value => api.choose(value, 1.0 + value))")
+      "api.only(1).flatMap(value => api.choose(value, 1.0 + value))"
+    )
   }
 
   "filtering using a Java predicate" should "compile" in {

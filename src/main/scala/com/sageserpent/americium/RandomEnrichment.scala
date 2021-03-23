@@ -1,5 +1,6 @@
 package com.sageserpent.americium
 
+import scala.annotation.tailrec
 import scala.collection.JavaConverters._
 import scala.language.postfixOps
 import scala.util.Random
@@ -9,10 +10,11 @@ trait RandomEnrichment {
     // TODO - throw all this rubbish out and use reservoir sampling!
 
     def chooseAnyNumberFromZeroToOneLessThan[X: Numeric](
-        exclusiveLimit: X): X = {
+        exclusiveLimit: X
+    ): X = {
       val typeClass = implicitly[Numeric[X]]
       import typeClass._
-      fromInt((random.nextDouble() * exclusiveLimit.toLong).toInt)
+      fromInt(random.nextInt(exclusiveLimit.toInt))
     }
 
     def chooseAnyNumberFromOneTo[X: Numeric](inclusiveLimit: X) = {
@@ -22,7 +24,8 @@ trait RandomEnrichment {
     }
 
     def buildRandomSequenceOfDistinctIntegersFromZeroToOneLessThan(
-        exclusiveLimit: Int): LazyList[Int] = {
+        exclusiveLimit: Int
+    ): LazyList[Int] = {
       require(0 <= exclusiveLimit)
 
       abstract class BinaryTreeNode {
@@ -36,7 +39,8 @@ trait RandomEnrichment {
 
         def numberOfVacantSlotsInSubtreeWithinRange(
             inclusiveLowerBound: Int,
-            exclusiveUpperBound: Int): Int = {
+            exclusiveUpperBound: Int
+        ): Int = {
           require(inclusiveLowerBound >= 0)
           require(inclusiveLowerBound <= exclusiveUpperBound)
           require(exclusiveUpperBound <= exclusiveLimit)
@@ -47,12 +51,14 @@ trait RandomEnrichment {
                 thisAsInteriorNode.inclusiveLowerBoundForAllItemsInSubtree match {
                   case Some(inclusiveLowerBoundForAllItemsInSubtree) =>
                     inclusiveLowerBound <= inclusiveLowerBoundForAllItemsInSubtree
-                })
+                }
+              )
               require(
                 thisAsInteriorNode.exclusiveUpperBoundForAllItemsInSubtree match {
                   case Some(exclusiveUpperBoundForAllItemsInSubtree) =>
                     exclusiveUpperBoundForAllItemsInSubtree <= exclusiveUpperBound
-                })
+                }
+              )
 
             case EmptySubtree =>
               assume(inclusiveLowerBoundForAllItemsInSubtree.isEmpty)
@@ -65,62 +71,79 @@ trait RandomEnrichment {
         def addNewItemInTheVacantSlotAtIndex(
             indexOfVacantSlotAsOrderedByMissingItem: Int,
             inclusiveLowerBound: Int,
-            exclusiveUpperBound: Int): (BinaryTreeNode, Int)
+            exclusiveUpperBound: Int
+        ): (BinaryTreeNode, Int)
 
         def addNewItemInTheVacantSlotAtIndex(
-            indexOfVacantSlotAsOrderedByMissingItem: Int)
-          : (BinaryTreeNode, Int) =
+            indexOfVacantSlotAsOrderedByMissingItem: Int
+        ): (BinaryTreeNode, Int) =
           addNewItemInTheVacantSlotAtIndex(
             indexOfVacantSlotAsOrderedByMissingItem,
             0,
-            exclusiveLimit)
+            exclusiveLimit
+          )
       }
 
-      case class InteriorNode(lowerBoundForItemRange: Int,
-                              upperBoundForItemRange: Int,
-                              lesserSubtree: BinaryTreeNode,
-                              greaterSubtree: BinaryTreeNode)
-          extends BinaryTreeNode {
+      case class InteriorNode(
+          lowerBoundForItemRange: Int,
+          upperBoundForItemRange: Int,
+          lesserSubtree: BinaryTreeNode,
+          greaterSubtree: BinaryTreeNode
+      ) extends BinaryTreeNode {
         require(lowerBoundForItemRange <= upperBoundForItemRange)
 
         lesserSubtree match {
           case InteriorNode(_, upperBoundForItemRangeFromLesserSubtree, _, _) =>
             require(
-              upperBoundForItemRangeFromLesserSubtree + 1 < lowerBoundForItemRange)
+              upperBoundForItemRangeFromLesserSubtree + 1 < lowerBoundForItemRange
+            )
           case _ => ()
         }
 
         greaterSubtree match {
-          case InteriorNode(lowerBoundForItemRangeFromGreaterSubtree,
-                            _,
-                            _,
-                            _) =>
+          case InteriorNode(
+                lowerBoundForItemRangeFromGreaterSubtree,
+                _,
+                _,
+                _
+              ) =>
             require(
-              upperBoundForItemRange + 1 < lowerBoundForItemRangeFromGreaterSubtree)
+              upperBoundForItemRange + 1 < lowerBoundForItemRangeFromGreaterSubtree
+            )
           case _ => ()
         }
 
         def this(singleItem: Int) =
           this(singleItem, singleItem, EmptySubtree, EmptySubtree)
 
-        val numberOfItemsInRange = 1 + upperBoundForItemRange - lowerBoundForItemRange
+        val numberOfItemsInRange =
+          1 + upperBoundForItemRange - lowerBoundForItemRange
 
-        val inclusiveLowerBoundForAllItemsInSubtree = lesserSubtree.inclusiveLowerBoundForAllItemsInSubtree orElse Some(
-          lowerBoundForItemRange)
+        val inclusiveLowerBoundForAllItemsInSubtree =
+          lesserSubtree.inclusiveLowerBoundForAllItemsInSubtree orElse Some(
+            lowerBoundForItemRange
+          )
 
-        val exclusiveUpperBoundForAllItemsInSubtree = greaterSubtree.exclusiveUpperBoundForAllItemsInSubtree orElse Some(
-          upperBoundForItemRange)
+        val exclusiveUpperBoundForAllItemsInSubtree =
+          greaterSubtree.exclusiveUpperBoundForAllItemsInSubtree orElse Some(
+            upperBoundForItemRange
+          )
 
-        val numberOfInteriorNodesInSubtree = 1 + lesserSubtree.numberOfInteriorNodesInSubtree + greaterSubtree.numberOfInteriorNodesInSubtree
+        val numberOfInteriorNodesInSubtree =
+          1 + lesserSubtree.numberOfInteriorNodesInSubtree + greaterSubtree.numberOfInteriorNodesInSubtree
 
-        val numberOfItemsInSubtree = numberOfItemsInRange + lesserSubtree.numberOfItemsInSubtree + greaterSubtree.numberOfItemsInSubtree
+        val numberOfItemsInSubtree =
+          numberOfItemsInRange + lesserSubtree.numberOfItemsInSubtree + greaterSubtree.numberOfItemsInSubtree
 
         def addNewItemInTheVacantSlotAtIndex(
             indexOfVacantSlotAsOrderedByMissingItem: Int,
             inclusiveLowerBound: Int,
-            exclusiveUpperBound: Int) = {
+            exclusiveUpperBound: Int
+        ) = {
           require(indexOfVacantSlotAsOrderedByMissingItem >= 0)
-          require(indexOfVacantSlotAsOrderedByMissingItem < exclusiveLimit) // This is a very loose upper bound, because 'indexOfVacantSlotAsOrderedByMissingItem' is progressively
+          require(
+            indexOfVacantSlotAsOrderedByMissingItem < exclusiveLimit
+          ) // This is a very loose upper bound, because 'indexOfVacantSlotAsOrderedByMissingItem' is progressively
           // decremented for each move to a greater subtree. It does hold however, so is left in as a last line of
           // defence sanity check.
 
@@ -134,45 +157,57 @@ trait RandomEnrichment {
           val effectiveIndexAssociatedWithThisInteriorNode =
             lesserSubtree.numberOfVacantSlotsInSubtreeWithinRange(
               inclusiveLowerBound,
-              lowerBoundForItemRange)
+              lowerBoundForItemRange
+            )
 
           def recurseOnLesserSubtree() = {
             val (lesserSubtreeResult, modifiedItemResult) =
               lesserSubtree.addNewItemInTheVacantSlotAtIndex(
                 indexOfVacantSlotAsOrderedByMissingItem,
                 inclusiveLowerBound,
-                lowerBoundForItemRange)
+                lowerBoundForItemRange
+              )
 
             (lesserSubtreeResult match {
-              case InteriorNode(lowerBoundForItemRangeFromLesserSubtree,
-                                upperBoundForItemRangeFromLesserSubtree,
-                                lesserSubtreeFromLesserSubtree,
-                                EmptySubtree)
+              case InteriorNode(
+                    lowerBoundForItemRangeFromLesserSubtree,
+                    upperBoundForItemRangeFromLesserSubtree,
+                    lesserSubtreeFromLesserSubtree,
+                    EmptySubtree
+                  )
                   if 1 + upperBoundForItemRangeFromLesserSubtree == lowerBoundForItemRange =>
-                InteriorNode(lowerBoundForItemRangeFromLesserSubtree,
-                             upperBoundForItemRange,
-                             lesserSubtreeFromLesserSubtree,
-                             greaterSubtree)
+                InteriorNode(
+                  lowerBoundForItemRangeFromLesserSubtree,
+                  upperBoundForItemRange,
+                  lesserSubtreeFromLesserSubtree,
+                  greaterSubtree
+                )
 
-              case InteriorNode(lowerBoundForItemRangeFromLesserSubtree,
-                                upperBoundForItemRangeFromLesserSubtree,
-                                lesserSubtreeFromLesserSubtree,
-                                greaterSubtreeFromLesserSubtree) =>
+              case InteriorNode(
+                    lowerBoundForItemRangeFromLesserSubtree,
+                    upperBoundForItemRangeFromLesserSubtree,
+                    lesserSubtreeFromLesserSubtree,
+                    greaterSubtreeFromLesserSubtree
+                  ) =>
                 InteriorNode(
                   lowerBoundForItemRangeFromLesserSubtree,
                   upperBoundForItemRangeFromLesserSubtree,
                   lesserSubtreeFromLesserSubtree,
-                  InteriorNode(lowerBoundForItemRange,
-                               upperBoundForItemRange,
-                               greaterSubtreeFromLesserSubtree,
-                               greaterSubtree)
+                  InteriorNode(
+                    lowerBoundForItemRange,
+                    upperBoundForItemRange,
+                    greaterSubtreeFromLesserSubtree,
+                    greaterSubtree
+                  )
                 )
 
               case _ =>
-                InteriorNode(lowerBoundForItemRange,
-                             upperBoundForItemRange,
-                             lesserSubtreeResult,
-                             greaterSubtree)
+                InteriorNode(
+                  lowerBoundForItemRange,
+                  upperBoundForItemRange,
+                  lesserSubtreeResult,
+                  greaterSubtree
+                )
             }) -> modifiedItemResult
           }
 
@@ -181,38 +216,49 @@ trait RandomEnrichment {
               greaterSubtree.addNewItemInTheVacantSlotAtIndex(
                 indexOfVacantSlotAsOrderedByMissingItem - effectiveIndexAssociatedWithThisInteriorNode,
                 1 + upperBoundForItemRange,
-                exclusiveUpperBound)
+                exclusiveUpperBound
+              )
 
             (greaterSubtreeResult match {
-              case InteriorNode(lowerBoundForItemRangeFromGreaterSubtree,
-                                upperBoundForItemRangeFromGreaterSubtree,
-                                EmptySubtree,
-                                greaterSubtreeFromGreaterSubtree)
+              case InteriorNode(
+                    lowerBoundForItemRangeFromGreaterSubtree,
+                    upperBoundForItemRangeFromGreaterSubtree,
+                    EmptySubtree,
+                    greaterSubtreeFromGreaterSubtree
+                  )
                   if 1 + upperBoundForItemRange == lowerBoundForItemRangeFromGreaterSubtree =>
-                InteriorNode(lowerBoundForItemRange,
-                             upperBoundForItemRangeFromGreaterSubtree,
-                             lesserSubtree,
-                             greaterSubtreeFromGreaterSubtree)
+                InteriorNode(
+                  lowerBoundForItemRange,
+                  upperBoundForItemRangeFromGreaterSubtree,
+                  lesserSubtree,
+                  greaterSubtreeFromGreaterSubtree
+                )
 
-              case InteriorNode(lowerBoundForItemRangeFromGreaterSubtree,
-                                upperBoundForItemRangeFromGreaterSubtree,
-                                lesserSubtreeFromGreaterSubtree,
-                                greaterSubtreeFromGreaterSubtree) =>
+              case InteriorNode(
+                    lowerBoundForItemRangeFromGreaterSubtree,
+                    upperBoundForItemRangeFromGreaterSubtree,
+                    lesserSubtreeFromGreaterSubtree,
+                    greaterSubtreeFromGreaterSubtree
+                  ) =>
                 InteriorNode(
                   lowerBoundForItemRangeFromGreaterSubtree,
                   upperBoundForItemRangeFromGreaterSubtree,
-                  InteriorNode(lowerBoundForItemRange,
-                               upperBoundForItemRange,
-                               lesserSubtree,
-                               lesserSubtreeFromGreaterSubtree),
+                  InteriorNode(
+                    lowerBoundForItemRange,
+                    upperBoundForItemRange,
+                    lesserSubtree,
+                    lesserSubtreeFromGreaterSubtree
+                  ),
                   greaterSubtreeFromGreaterSubtree
                 )
 
               case _ =>
-                InteriorNode(lowerBoundForItemRange,
-                             upperBoundForItemRange,
-                             lesserSubtree,
-                             greaterSubtreeResult)
+                InteriorNode(
+                  lowerBoundForItemRange,
+                  upperBoundForItemRange,
+                  lesserSubtree,
+                  greaterSubtreeResult
+                )
             }) -> modifiedItemResult
           }
 
@@ -222,19 +268,28 @@ trait RandomEnrichment {
           def greaterSubtreeCanBeConsidered(exclusiveUpperBound: Int): Boolean =
             1 + upperBoundForItemRange < exclusiveUpperBound
 
-          (lesserSubtreeCanBeConsidered(inclusiveLowerBound),
-           greaterSubtreeCanBeConsidered(exclusiveUpperBound)) match {
+          (
+            lesserSubtreeCanBeConsidered(inclusiveLowerBound),
+            greaterSubtreeCanBeConsidered(exclusiveUpperBound)
+          ) match {
             case (true, false) =>
-              assume(exclusiveUpperBound == exclusiveLimit) // NOTE: in theory this case can occur for other values of 'exclusiveUpperBound', but range-fusion prevents this happening in practice.
+              assume(
+                exclusiveUpperBound == exclusiveLimit
+              ) // NOTE: in theory this case can occur for other values of 'exclusiveUpperBound', but range-fusion prevents this happening in practice.
               recurseOnLesserSubtree()
 
             case (false, true) =>
-              assume(0 == inclusiveLowerBound) // NOTE: in theory this case can occur for other values of 'inclusiveLowerBound', but range-fusion prevents this happening in practice.
+              assume(
+                0 == inclusiveLowerBound
+              ) // NOTE: in theory this case can occur for other values of 'inclusiveLowerBound', but range-fusion prevents this happening in practice.
               recurseOnGreaterSubtree()
 
             case (true, true) =>
-              if (0 > indexOfVacantSlotAsOrderedByMissingItem.compare(
-                    effectiveIndexAssociatedWithThisInteriorNode)) {
+              if (
+                0 > indexOfVacantSlotAsOrderedByMissingItem.compare(
+                  effectiveIndexAssociatedWithThisInteriorNode
+                )
+              ) {
                 recurseOnLesserSubtree()
               } else {
                 recurseOnGreaterSubtree()
@@ -255,9 +310,12 @@ trait RandomEnrichment {
         def addNewItemInTheVacantSlotAtIndex(
             indexOfVacantSlotAsOrderedByMissingItem: Int,
             inclusiveLowerBound: Int,
-            exclusiveUpperBound: Int) = {
+            exclusiveUpperBound: Int
+        ) = {
           require(indexOfVacantSlotAsOrderedByMissingItem >= 0)
-          require(indexOfVacantSlotAsOrderedByMissingItem < exclusiveLimit) // This is a very loose upper bound, because 'indexOfVacantSlotAsOrderedByMissingItem' is progressively
+          require(
+            indexOfVacantSlotAsOrderedByMissingItem < exclusiveLimit
+          ) // This is a very loose upper bound, because 'indexOfVacantSlotAsOrderedByMissingItem' is progressively
           // decremented for each move to a greater subtree. It does hold however, so is left in as a last line of
           // defence sanity check.
 
@@ -265,7 +323,8 @@ trait RandomEnrichment {
           require(inclusiveLowerBound < exclusiveUpperBound)
           require(exclusiveUpperBound <= exclusiveLimit)
 
-          val generatedItem = inclusiveLowerBound + indexOfVacantSlotAsOrderedByMissingItem
+          val generatedItem =
+            inclusiveLowerBound + indexOfVacantSlotAsOrderedByMissingItem
 
           assume(generatedItem < exclusiveUpperBound)
 
@@ -276,19 +335,23 @@ trait RandomEnrichment {
       var previouslyChosenItemsAsBinaryTree: BinaryTreeNode = EmptySubtree
 
       def chooseAndRecordUniqueItems(
-          exclusiveLimitOnVacantSlotIndex: Int): LazyList[Int] = {
+          exclusiveLimitOnVacantSlotIndex: Int
+      ): LazyList[Int] = {
         if (0 == exclusiveLimitOnVacantSlotIndex) {
           LazyList.empty
         } else {
           val (chosenItemsAsBinaryTree, chosenItem) =
             previouslyChosenItemsAsBinaryTree.addNewItemInTheVacantSlotAtIndex(
               chooseAnyNumberFromZeroToOneLessThan(
-                exclusiveLimitOnVacantSlotIndex))
+                exclusiveLimitOnVacantSlotIndex
+              )
+            )
 
           previouslyChosenItemsAsBinaryTree = chosenItemsAsBinaryTree
 
           chosenItem #:: chooseAndRecordUniqueItems(
-            exclusiveLimitOnVacantSlotIndex - 1)
+            exclusiveLimitOnVacantSlotIndex - 1
+          )
         }
       }
 
@@ -296,7 +359,8 @@ trait RandomEnrichment {
     }
 
     def buildRandomSequenceOfDistinctCandidatesChosenFrom[X](
-        candidates: Traversable[X]): Seq[X] = {
+        candidates: Traversable[X]
+    ): Seq[X] = {
       val candidatesWithRandomAccess = candidates.toIndexedSeq
 
       val numberOfCandidates = candidatesWithRandomAccess.length
@@ -307,39 +371,47 @@ trait RandomEnrichment {
         else new _root_.java.util.TreeMap[Int, X] asScala
 
       def chooseAndRecordUniqueCandidates(
-          numberOfCandidatesAlreadyChosen: Int): LazyList[X] = {
+          numberOfCandidatesAlreadyChosen: Int
+      ): LazyList[X] = {
         if (numberOfCandidates == numberOfCandidatesAlreadyChosen) {
           LazyList.empty
         } else {
           val chosenCandidateIndex = numberOfCandidatesAlreadyChosen + this
             .chooseAnyNumberFromZeroToOneLessThan(
-              numberOfCandidates - numberOfCandidatesAlreadyChosen)
+              numberOfCandidates - numberOfCandidatesAlreadyChosen
+            )
 
-          val candidatesWithSwapsApplied = swappedCandidates orElse candidatesWithRandomAccess
+          val candidatesWithSwapsApplied =
+            swappedCandidates orElse candidatesWithRandomAccess
 
           val chosenCandidate = candidatesWithSwapsApplied(chosenCandidateIndex)
 
           if (numberOfCandidatesAlreadyChosen < chosenCandidateIndex) {
             swappedCandidates += chosenCandidateIndex -> candidatesWithSwapsApplied(
-              numberOfCandidatesAlreadyChosen)
+              numberOfCandidatesAlreadyChosen
+            )
           }
 
           swappedCandidates -= numberOfCandidatesAlreadyChosen // Optimise memory usage - this index will never be revisited.
 
           chosenCandidate #:: chooseAndRecordUniqueCandidates(
-            1 + numberOfCandidatesAlreadyChosen)
+            1 + numberOfCandidatesAlreadyChosen
+          )
         }
       }
 
       chooseAndRecordUniqueCandidates(0)
     }
 
-    def chooseSeveralOf[X](candidates: Traversable[X],
-                           numberToChoose: Int): Seq[X] = {
+    def chooseSeveralOf[X](
+        candidates: Traversable[X],
+        numberToChoose: Int
+    ): Seq[X] = {
       require(numberToChoose <= candidates.size)
 
       buildRandomSequenceOfDistinctCandidatesChosenFrom(candidates).take(
-        numberToChoose)
+        numberToChoose
+      )
     }
 
     def chooseOneOf[X](candidates: Traversable[X]) = {
@@ -356,8 +428,8 @@ trait RandomEnrichment {
           candidates: Traversable[X],
           blockSize: Int,
           cumulativeNumberOfCandidatesPreviouslySeen: Int,
-          exemplarTuples: List[(() => X, Int, Int)])
-        : List[(() => X, Int, Int)] = {
+          exemplarTuples: List[(() => X, Int, Int)]
+      ): List[(() => X, Int, Int)] = {
         val (candidateBlock, remainingCandidates) = candidates splitAt blockSize
 
         if (candidateBlock isEmpty)
@@ -365,15 +437,19 @@ trait RandomEnrichment {
         else {
           val candidateBlockSize = candidateBlock size
           val exemplar = () =>
-            buildRandomSequenceOfDistinctCandidatesChosenFrom(candidateBlock).head
+            buildRandomSequenceOfDistinctCandidatesChosenFrom(
+              candidateBlock
+            ).head
 
           chooseExemplarsFromCandidateBlocks(
             remainingCandidates,
             blockSize * 7 / 6,
             candidateBlockSize + cumulativeNumberOfCandidatesPreviouslySeen,
-            (exemplar,
-             candidateBlockSize,
-             cumulativeNumberOfCandidatesPreviouslySeen) :: exemplarTuples
+            (
+              exemplar,
+              candidateBlockSize,
+              cumulativeNumberOfCandidatesPreviouslySeen
+            ) :: exemplarTuples
           )
         }
       }
@@ -385,8 +461,13 @@ trait RandomEnrichment {
       def chooseASingleExemplar(exemplars: List[(() => X, Int, Int)]): X =
         exemplars match {
           case List((exemplar, _, _)) => exemplar()
-          case (exemplar, blockSize, cumulativeNumberOfCandidatesPreviouslySeen) :: remainingExemplars =>
-            val numberOfCandidates = blockSize + cumulativeNumberOfCandidatesPreviouslySeen
+          case (
+                exemplar,
+                blockSize,
+                cumulativeNumberOfCandidatesPreviouslySeen
+              ) :: remainingExemplars =>
+            val numberOfCandidates =
+              blockSize + cumulativeNumberOfCandidatesPreviouslySeen
             if (chooseAnyNumberFromOneTo(numberOfCandidates) <= blockSize)
               exemplar()
             else
@@ -396,50 +477,63 @@ trait RandomEnrichment {
       chooseASingleExemplar(exemplars)
     }
 
-    def pickAlternatelyFrom[X](
-        sequences: Iterable[Iterable[X]]): LazyList[X] = {
-      def pickItemsFromAStream(streams: Seq[LazyList[X]]): LazyList[X] =
-        if (streams.isEmpty) LazyList.empty
-        else {
-          val Seq(candidateStreamToPickFrom, remainingStreams @ _*) =
-            random.shuffle(streams)
-          candidateStreamToPickFrom match {
-            case LazyList() =>
-              LazyList.empty.lazyAppendedAll(
-                pickItemsFromAStream(remainingStreams))
-            case pickedItem #:: tailFromPickedStream =>
-              pickedItem #:: pickItemsFromAStream(
-                tailFromPickedStream +: remainingStreams)
+    def pickAlternatelyFrom[X](sequences: Iterable[Iterable[X]]): LazyList[X] =
+      LazyList.unfold(sequences map (_.to(LazyList)) toList) { streams =>
+        @tailrec
+        def pickAnItem(
+            streams: List[LazyList[X]]
+        ): Option[(X, List[LazyList[X]])] = {
+          if (streams.isEmpty)
+            None
+          else {
+            val candidateStreamToPickFrom :: remainingStreams =
+              random.shuffle(streams)
+            candidateStreamToPickFrom match {
+              case LazyList() =>
+                pickAnItem(remainingStreams)
+              case pickedItem #:: tailFromPickedStream =>
+                Some(pickedItem -> (tailFromPickedStream :: remainingStreams))
+            }
           }
         }
 
-      LazyList.empty.lazyAppendedAll(
-        pickItemsFromAStream(sequences map (_.to(LazyList)) toSeq))
-    }
+        pickAnItem(streams)
+      }
 
-    def splitIntoNonEmptyPieces[
-        Container[Element] <: Iterable[Element] forSome { type Element },
-        X](items: Container[X]): LazyList[Container[X]] = {
-      val numberOfItems         = items.size
-      val numberOfSplitsDesired = chooseAnyNumberFromOneTo(numberOfItems)
-      val indicesToSplitAt =
-        buildRandomSequenceOfDistinctIntegersFromZeroToOneLessThan(
-          numberOfItems) map (1 + _) take numberOfSplitsDesired sorted
-      def splits(indicesToSplitAt: LazyList[Int],
-                 items: Container[X],
-                 indexOfPreviousSplit: Int): LazyList[Container[X]] =
-        indicesToSplitAt match {
-          case LazyList() =>
-            if (items.isEmpty) LazyList.empty
-            else LazyList(items)
-          case indexToSplitAt #:: remainingIndicesToSplitAt =>
-            val (splitPiece, remainingItems) = items splitAt (indexToSplitAt - indexOfPreviousSplit)
-            splitPiece.asInstanceOf[Container[X]] #:: splits(
-              remainingIndicesToSplitAt,
-              remainingItems.asInstanceOf[Container[X]],
-              indexToSplitAt)
-        }
-      splits(indicesToSplitAt, items, 0)
+    def splitIntoNonEmptyPieces[Container[Element] <: Iterable[
+      Element
+    ] forSome { type Element }, X](
+        items: Container[X]
+    ): LazyList[Container[X]] = {
+      val numberOfItems = items.size
+      if (0 < numberOfItems) {
+        val numberOfSplitsDesired = chooseAnyNumberFromOneTo(numberOfItems)
+        val indicesToSplitAt =
+          buildRandomSequenceOfDistinctIntegersFromZeroToOneLessThan(
+            numberOfItems
+          ) map (1 + _) take numberOfSplitsDesired sorted
+
+        def splits(
+            indicesToSplitAt: LazyList[Int],
+            items: Container[X],
+            indexOfPreviousSplit: Int
+        ): LazyList[Container[X]] =
+          indicesToSplitAt match {
+            case LazyList() =>
+              if (items.isEmpty) LazyList.empty
+              else LazyList(items)
+            case indexToSplitAt #:: remainingIndicesToSplitAt =>
+              val (splitPiece, remainingItems) =
+                items splitAt (indexToSplitAt - indexOfPreviousSplit)
+              splitPiece.asInstanceOf[Container[X]] #:: splits(
+                remainingIndicesToSplitAt,
+                remainingItems.asInstanceOf[Container[X]],
+                indexToSplitAt
+              )
+          }
+
+        splits(indicesToSplitAt, items, 0)
+      } else LazyList.empty
     }
   }
 }
