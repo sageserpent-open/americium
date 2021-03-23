@@ -22,7 +22,7 @@ import scala.collection.mutable
 import scala.util.Random
 
 object TrialsImplementation {
-  sealed trait Decision;
+  sealed trait Decision
 
   case class ChoiceOf(index: Int)        extends Decision
   case class AlternativeOf(index: Int)   extends Decision
@@ -344,6 +344,15 @@ case class TrialsImplementation[+Case](
 
     val depthLimit: Int = 100
 
+    sealed trait Possibilities
+
+    case class Choices(possibleIndices: LazyList[Int]) extends Possibilities
+
+    case class Alternates(possibleIndices: LazyList[Int]) extends Possibilities
+
+    val possibilitiesThatFollowSomeChoiceOfDecisionStages =
+      mutable.Map.empty[DecisionStages, Possibilities]
+
     def interpreter(depth: Int): GenerationOperation ~> StateUpdating =
       new (GenerationOperation ~> StateUpdating) {
         override def apply[Case](
@@ -355,17 +364,31 @@ case class TrialsImplementation[+Case](
               if (0 < numberOfChoices)
                 for {
                   state <- StateT.get[DeferredOption, State]
-                  choiceIndex =
-                    randomBehaviour.chooseAnyNumberFromZeroToOneLessThan(
-                      numberOfChoices
-                    )
+                  index #:: remainingPossibleIndices =
+                    possibilitiesThatFollowSomeChoiceOfDecisionStages.get(
+                      state.decisionStages
+                    ) match {
+                      case Some(Choices(possibleIndices))
+                          if possibleIndices.nonEmpty =>
+                        possibleIndices
+                      case _ =>
+                        randomBehaviour
+                          .buildRandomSequenceOfDistinctIntegersFromZeroToOneLessThan(
+                            numberOfChoices
+                          )
+                    }
                   _ <- StateT.set[DeferredOption, State](
                     state.update(
-                      ChoiceOf(choiceIndex),
+                      ChoiceOf(index),
                       numberOfChoices
                     )
                   )
-                } yield choices(choiceIndex)
+                } yield {
+                  possibilitiesThatFollowSomeChoiceOfDecisionStages(
+                    state.decisionStages
+                  ) = Choices(remainingPossibleIndices)
+                  choices(index)
+                }
               else StateT.liftF(OptionT.none)
 
             case Alternation(alternatives) =>
