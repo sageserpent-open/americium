@@ -394,27 +394,40 @@ case class TrialsImplementation[+Case](
             case Alternation(alternatives) =>
               val numberOfAlternatives = alternatives.size
               if (0 < numberOfAlternatives) {
-                val alternateIndex =
-                  randomBehaviour.chooseAnyNumberFromZeroToOneLessThan(
-                    numberOfAlternatives
-                  )
-                val alternative = alternatives(alternateIndex)
-
                 for {
-                  _ <- StateT.modify[DeferredOption, State](
-                    _.update(
-                      AlternativeOf(alternateIndex),
+                  state <- StateT.get[DeferredOption, State]
+                  index #:: remainingPossibleIndices =
+                    possibilitiesThatFollowSomeChoiceOfDecisionStages.get(
+                      state.decisionStages
+                    ) match {
+                      case Some(Alternates(possibleIndices))
+                          if possibleIndices.nonEmpty =>
+                        possibleIndices
+                      case _ =>
+                        randomBehaviour
+                          .buildRandomSequenceOfDistinctIntegersFromZeroToOneLessThan(
+                            numberOfAlternatives
+                          )
+                    }
+                  _ <- StateT.set[DeferredOption, State](
+                    state.update(
+                      AlternativeOf(index),
                       numberOfAlternatives
                     )
                   )
                   result <-
-                    alternative.generation
+                    alternatives(index).generation
                       .foldMap(
                         interpreter(
                           1 + depth
                         ) // Ahem. Could this be done without recursively interpreting?
                       )
-                } yield result
+                } yield {
+                  possibilitiesThatFollowSomeChoiceOfDecisionStages(
+                    state.decisionStages
+                  ) = Alternates(remainingPossibleIndices)
+                  result
+                }
               } else StateT.liftF(OptionT.none)
 
             case Factory(factory) =>
@@ -452,7 +465,7 @@ case class TrialsImplementation[+Case](
               if potentialDuplicates.add(decisionStages) =>
             numberOfUniqueCasesProduced += 1
             starvationCountdown =
-              (multiplicity * (limit - numberOfUniqueCasesProduced) / limit) max (limit - numberOfUniqueCasesProduced)
+              multiplicity min (limit - numberOfUniqueCasesProduced)
             Some(decisionStages -> caze)
           case _ => {
             starvationCountdown -= 1
