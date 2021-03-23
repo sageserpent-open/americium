@@ -319,16 +319,31 @@ case class TrialsImplementation[+Case](
 
     type DeferredOption[Case] = OptionT[Eval, Case]
 
-    case class State(decisionStages: DecisionStages, multiplicity: Int) {
-      def update(decision: Decision, multiplicity: Int): State = copy(
+    case class State(
+        decisionStages: DecisionStages,
+        multiplicity: Option[Int]
+    ) {
+      def update(decision: ChoiceOf, multiplicity: Int): State = copy(
         decisionStages =
           decisionStages :+ decision, // TODO - this is inefficient....
-        multiplicity = this.multiplicity * multiplicity
+        multiplicity = this.multiplicity.map(_ * multiplicity)
+      )
+
+      def update(decision: AlternativeOf, multiplicity: Int): State = copy(
+        decisionStages =
+          decisionStages :+ decision, // TODO - this is inefficient....
+        multiplicity = this.multiplicity.map(_ * multiplicity)
+      )
+
+      def update(decision: FactoryInputOf): State = copy(
+        decisionStages =
+          decisionStages :+ decision, // TODO - this is inefficient....
+        multiplicity = None
       )
     }
 
     object State {
-      val initial = new State(List.empty, 1)
+      val initial = new State(List.empty, Some(1))
     }
 
     type DecisionIndicesAndMultiplicity = (DecisionStages, Int)
@@ -436,7 +451,7 @@ case class TrialsImplementation[+Case](
 
                 OptionT.liftF(
                   Eval.now(
-                    state.update(FactoryInputOf(input), 1) -> factory(input)
+                    state.update(FactoryInputOf(input)) -> factory(input)
                   )
                 )
               }
@@ -464,8 +479,9 @@ case class TrialsImplementation[+Case](
           case Some((State(decisionStages, multiplicity), caze))
               if potentialDuplicates.add(decisionStages) =>
             numberOfUniqueCasesProduced += 1
+            val remainingGap = limit - numberOfUniqueCasesProduced
             starvationCountdown =
-              multiplicity min (limit - numberOfUniqueCasesProduced)
+              multiplicity.fold(remainingGap)(_ min remainingGap)
             Some(decisionStages -> caze)
           case _ => {
             starvationCountdown -= 1
