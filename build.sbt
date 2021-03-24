@@ -4,6 +4,7 @@ lazy val settings = Seq(
   organization := "com.sageserpent",
   name := "americium",
   scalaVersion := "2.13.5",
+  scalacOptions += "-target:jvm-1.8",
   libraryDependencies += "com.propensive"             %% "mercator"                  % "0.3.0",
   libraryDependencies += "com.propensive"             %% "magnolia"                  % "0.17.0",
   libraryDependencies += "org.typelevel"              %% "cats-core"                 % "2.4.2",
