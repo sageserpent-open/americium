@@ -32,7 +32,6 @@ object TrialsImplementation {
   sealed trait Decision
 
   case class ChoiceOf(index: Int)        extends Decision
-  case class AlternativeOf(index: Int)   extends Decision
   case class FactoryInputOf(input: Long) extends Decision
 
   type DecisionStages = Dequeue[Decision]
@@ -129,7 +128,7 @@ object TrialsImplementation {
     override def alternate[Case](
         alternatives: Iterable[Trials[Case]]
     ): TrialsImplementation[Case] =
-      new TrialsImplementation(Alternation(alternatives.toVector))
+      choose(alternatives).flatMap(identity[Trials[Case]] _)
 
     override def stream[Case](
         factory: Long => Case
@@ -144,9 +143,6 @@ object TrialsImplementation {
   }
 
   case class Choice[Case](choices: Vector[Case])
-      extends GenerationOperation[Case]
-
-  case class Alternation[Case](alternatives: Vector[Trials[Case]])
       extends GenerationOperation[Case]
 
   case class Factory[Case](factory: Long => Case)
@@ -291,20 +287,6 @@ case class TrialsImplementation[+Case](
                 _ <- State.set(remainingDecisionStages)
               } yield choices.drop(decisionIndex).head
 
-            case Alternation(alternatives) =>
-              for {
-                decisionStages <- State.get[DecisionStages]
-                Some((AlternativeOf(decisionIndex), remainingDecisionStages)) =
-                  decisionStages.uncons
-                _ <- State.set(remainingDecisionStages)
-                result <- {
-                  val chosenAlternative = alternatives.drop(decisionIndex).head
-                  chosenAlternative.generation.foldMap(
-                    interpreter
-                  ) // Ahem. Could this be done without recursively interpreting?
-                }
-              } yield result
-
             case Factory(factory) =>
               for {
                 decisionStages <- State.get[DecisionStages]
@@ -347,11 +329,6 @@ case class TrialsImplementation[+Case](
         multiplicity = this.multiplicity.map(_ * multiplicity)
       )
 
-      def update(decision: AlternativeOf, multiplicity: Int): State = copy(
-        decisionStages = decisionStages :+ decision,
-        multiplicity = this.multiplicity.map(_ * multiplicity)
-      )
-
       def update(decision: FactoryInputOf): State = copy(
         decisionStages = decisionStages :+ decision,
         multiplicity = None
@@ -379,8 +356,6 @@ case class TrialsImplementation[+Case](
 
     case class Choices(possibleIndices: LazyList[Int]) extends Possibilities
 
-    case class Alternates(possibleIndices: LazyList[Int]) extends Possibilities
-
     val possibilitiesThatFollowSomeChoiceOfDecisionStages =
       mutable.Map.empty[DecisionStages, Possibilities]
 
@@ -389,95 +364,61 @@ case class TrialsImplementation[+Case](
         override def apply[Case](
             generationOperation: GenerationOperation[Case]
         ): StateUpdating[Case] =
-          if (depthLimit > depth)
-            generationOperation match {
-              case Choice(choices) =>
-                val numberOfChoices = choices.size
-                if (0 < numberOfChoices)
-                  for {
-                    state <- StateT.get[DeferredOption, State]
-                    index #:: remainingPossibleIndices =
-                      possibilitiesThatFollowSomeChoiceOfDecisionStages
-                        .get(
-                          state.decisionStages
-                        ) match {
-                        case Some(Choices(possibleIndices))
-                            if possibleIndices.nonEmpty =>
-                          possibleIndices
-                        case _ =>
-                          randomBehaviour
-                            .buildRandomSequenceOfDistinctIntegersFromZeroToOneLessThan(
-                              numberOfChoices
-                            )
-                      }
-                    _ <- StateT.set[DeferredOption, State](
-                      state.update(
-                        ChoiceOf(index),
-                        numberOfChoices
+          generationOperation match {
+            case Choice(choices) =>
+              val numberOfChoices = choices.size
+              if (0 < numberOfChoices)
+                for {
+                  state <- StateT.get[DeferredOption, State]
+                  _ <-
+                    if (state.decisionStages.size < depthLimit)
+                      ().pure[StateUpdating]
+                    else
+                      StateT.liftF[DeferredOption, State, Unit](
+                        OptionT.none
                       )
-                    )
-                  } yield {
-                    possibilitiesThatFollowSomeChoiceOfDecisionStages(
-                      state.decisionStages
-                    ) = Choices(remainingPossibleIndices)
-                    choices(index)
-                  }
-                else StateT.liftF(OptionT.none)
-
-              case Alternation(alternatives) =>
-                val numberOfAlternatives = alternatives.size
-                if (0 < numberOfAlternatives) {
-                  for {
-                    state <- StateT.get[DeferredOption, State]
-                    index #:: remainingPossibleIndices =
-                      possibilitiesThatFollowSomeChoiceOfDecisionStages
-                        .get(
-                          state.decisionStages
-                        ) match {
-                        case Some(Alternates(possibleIndices))
-                            if possibleIndices.nonEmpty =>
-                          possibleIndices
-                        case _ =>
-                          randomBehaviour
-                            .buildRandomSequenceOfDistinctIntegersFromZeroToOneLessThan(
-                              numberOfAlternatives
-                            )
-                      }
-                    _ <- StateT.set[DeferredOption, State](
-                      state.update(
-                        AlternativeOf(index),
-                        numberOfAlternatives
-                      )
-                    )
-                    result <- alternatives(index).generation
-                      .foldMap(
-                        interpreter(
-                          1 + depth
-                        ) // Ahem. Could this be done without recursively interpreting?
-                      )
-                  } yield {
-                    possibilitiesThatFollowSomeChoiceOfDecisionStages(
-                      state.decisionStages
-                    ) = Alternates(remainingPossibleIndices)
-                    result
-                  }
-                } else StateT.liftF(OptionT.none)
-
-              case Factory(factory) =>
-                StateT { state =>
-                  val input = randomBehaviour.nextLong()
-
-                  OptionT.liftF(
-                    Eval.now(
-                      state.update(FactoryInputOf(input)) -> factory(input)
+                  index #:: remainingPossibleIndices =
+                    possibilitiesThatFollowSomeChoiceOfDecisionStages
+                      .get(
+                        state.decisionStages
+                      ) match {
+                      case Some(Choices(possibleIndices))
+                          if possibleIndices.nonEmpty =>
+                        possibleIndices
+                      case _ =>
+                        randomBehaviour
+                          .buildRandomSequenceOfDistinctIntegersFromZeroToOneLessThan(
+                            numberOfChoices
+                          )
+                    }
+                  _ <- StateT.set[DeferredOption, State](
+                    state.update(
+                      ChoiceOf(index),
+                      numberOfChoices
                     )
                   )
+                } yield {
+                  possibilitiesThatFollowSomeChoiceOfDecisionStages(
+                    state.decisionStages
+                  ) = Choices(remainingPossibleIndices)
+                  choices(index)
                 }
+              else StateT.liftF(OptionT.none)
 
-              case FiltrationResult(result) =>
-                StateT.liftF(OptionT.fromOption(result))
-            }
-          else StateT.liftF(OptionT.none)
+            case Factory(factory) =>
+              StateT { state =>
+                val input = randomBehaviour.nextLong()
+
+                OptionT.liftF(
+                  Eval.now(
+                    state.update(FactoryInputOf(input)) -> factory(input)
+                  )
+                )
+              }
+
+            case FiltrationResult(result) =>
+              StateT.liftF(OptionT.fromOption(result))
+          }
       }
 
     new Iterator[Option[(DecisionStages, Case)]] {
