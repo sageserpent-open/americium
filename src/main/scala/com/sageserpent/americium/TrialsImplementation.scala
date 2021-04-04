@@ -350,7 +350,7 @@ case class TrialsImplementation[+Case](
     // interpreter too. If it's any consolation, it means that flat-mapping is stack-safe - although I'm not
     // entirely sure about alternation. Read 'em and weep!
 
-    val depthLimit: Int = 100
+    val maximumNumberOfDecisionStages: Int = 100
 
     sealed trait Possibilities
 
@@ -370,13 +370,7 @@ case class TrialsImplementation[+Case](
               if (0 < numberOfChoices)
                 for {
                   state <- StateT.get[DeferredOption, State]
-                  _ <-
-                    if (state.decisionStages.size < depthLimit)
-                      ().pure[StateUpdating]
-                    else
-                      StateT.liftF[DeferredOption, State, Unit](
-                        OptionT.none
-                      )
+                  _     <- liftUnitIfTheNumberOfDecisionStagesIsNotTooLarge(state)
                   index #:: remainingPossibleIndices =
                     possibilitiesThatFollowSomeChoiceOfDecisionStages
                       .get(
@@ -406,19 +400,28 @@ case class TrialsImplementation[+Case](
               else StateT.liftF(OptionT.none)
 
             case Factory(factory) =>
-              StateT { state =>
-                val input = randomBehaviour.nextLong()
-
-                OptionT.liftF(
-                  Eval.now(
-                    state.update(FactoryInputOf(input)) -> factory(input)
-                  )
+              for {
+                state <- StateT.get[DeferredOption, State]
+                input = randomBehaviour.nextLong()
+                _ <- StateT.set[DeferredOption, State](
+                  state.update(FactoryInputOf(input))
                 )
-              }
+              } yield factory(input)
 
             case FiltrationResult(result) =>
               StateT.liftF(OptionT.fromOption(result))
           }
+
+        private def liftUnitIfTheNumberOfDecisionStagesIsNotTooLarge[Case](
+            state: State
+        ): StateUpdating[Unit] = {
+          if (state.decisionStages.size < maximumNumberOfDecisionStages)
+            ().pure[StateUpdating]
+          else
+            StateT.liftF[DeferredOption, State, Unit](
+              OptionT.none
+            )
+        }
       }
 
     new Iterator[Option[(DecisionStages, Case)]] {
