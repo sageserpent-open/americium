@@ -402,6 +402,7 @@ case class TrialsImplementation[+Case](
             case Factory(factory) =>
               for {
                 state <- StateT.get[DeferredOption, State]
+                _     <- liftUnitIfTheNumberOfDecisionStagesIsNotTooLarge(state)
                 input = randomBehaviour.nextLong()
                 _ <- StateT.set[DeferredOption, State](
                   state.update(FactoryInputOf(input))
