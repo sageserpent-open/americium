@@ -502,6 +502,107 @@ class TrialsSpec
     }
   }
 
+  it should "be shrunk to a simple case" in {
+    type TrialsAndCriterion[X] = (Trials[Vector[X]], Vector[X] => Boolean)
+
+    def testBodyInWildcardCapture[X](
+        trialsAndCriterion: TrialsAndCriterion[X]
+    ) =
+      withExpectations {
+        trialsAndCriterion match {
+          case (sut, exceptionCriterion) =>
+            val complainingConsumer = { caze: Vector[X] =>
+              if (exceptionCriterion(caze))
+                throw ExceptionWithCasePayload(caze)
+            }
+
+            val exception = intercept[sut.TrialException] {
+              sut.withLimit(limit).supplyTo(complainingConsumer)
+            }
+
+            val underlyingException = exception.getCause
+
+            underlyingException shouldBe a[ExceptionWithCasePayload[_]]
+
+            underlyingException match {
+              case exceptionWithCasePayload: ExceptionWithCasePayload[
+                    Vector[X]
+                  ] =>
+                val provokingCase = exception.provokingCase
+
+                provokingCase should be(exceptionWithCasePayload.caze)
+
+                val sizeOfProvokingCase = provokingCase.size
+
+                try sut
+                  .filter(_ != provokingCase)
+                  .withLimit(limit)
+                  .supplyTo(complainingConsumer)
+                catch {
+                  case exceptionFromFilteredTrials =>
+                    exceptionFromFilteredTrials.getCause match {
+                      case exceptionWithAtLeastAsLargeCasePayload: ExceptionWithCasePayload[
+                            Vector[X]
+                          ] =>
+                        exceptionWithAtLeastAsLargeCasePayload.caze.size should be >= sizeOfProvokingCase
+                    }
+                }
+
+                0 until sizeOfProvokingCase foreach { excisionIndex =>
+                  val smallerCase =
+                    provokingCase.patch(excisionIndex, Vector.empty, 1)
+
+                  noException should be thrownBy complainingConsumer(
+                    smallerCase
+                  )
+                }
+            }
+        }
+      }
+
+    def integerVectorTrials: Trials[Vector[Int]] =
+      api.alternate(
+        api.only(Vector.empty),
+        api
+          .alternate(api.integers, api.choose(0 to 10))
+          .flatMap(head => integerVectorTrials.map(tail => head +: tail))
+      )
+
+    forAll(
+      Table[TrialsAndCriterion[_]](
+        "trials -> exceptionCriterion",
+        (
+          integerVectorTrials,
+          (integerVector: Vector[Int]) => integerVector.size > 7
+        ),
+        (
+          integerVectorTrials,
+          (integerVector: Vector[Int]) =>
+            1 < integerVector.size && integerVector.sum > 7
+        ),
+        (
+          integerVectorTrials,
+          (integerVector: Vector[Int]) =>
+            1 < integerVector.size && 0 == integerVector.sum % 7
+        ),
+        (
+          integerVectorTrials,
+          (integerVector: Vector[Int]) =>
+            2 < integerVector.size && integerVector
+              .zip(integerVector.tail)
+              .exists { case (first, second) => first > second }
+        ),
+        (
+          integerVectorTrials,
+          (integerVector: Vector[Int]) =>
+            2 < integerVector.size && integerVector.distinct == integerVector
+        )
+      )
+    ) { trialsAndCriterion =>
+      testBodyInWildcardCapture(trialsAndCriterion)
+    }
+  }
+
   "test driving a trials for a recursive data structure" should "not produce smoke" in {
     def listTrials: Trials[List[Int]] =
       api.alternate(
