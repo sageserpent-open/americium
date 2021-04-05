@@ -596,6 +596,11 @@ class TrialsSpec
           integerVectorTrials,
           (integerVector: Vector[Int]) =>
             2 < integerVector.size && integerVector.distinct == integerVector
+        ),
+        (
+          integerVectorTrials,
+          (integerVector: Vector[Int]) =>
+            2 < integerVector.size && integerVector.distinct != integerVector
         )
       )
     ) { trialsAndCriterion =>
