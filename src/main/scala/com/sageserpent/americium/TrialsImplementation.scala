@@ -184,19 +184,49 @@ case class TrialsImplementation[+Case](
         supplyTo(consumer.accept _)
 
       // Scala-only API ...
-      override def supplyTo(consumer: Case => Unit): Unit =
-        cases(limit).foreach { case (decisionStages, testCase) =>
-          try {
-            consumer(testCase)
-          } catch {
-            case exception: Throwable =>
-              throw new TrialException(exception) {
-                override def provokingCase: Case = testCase
+      override def supplyTo(consumer: Case => Unit): Unit = {
+        def shrink(
+            caze: Case,
+            decisionStages: DecisionStages,
+            throwable: Throwable
+        ): Unit = {
+          val numberOfDecisionStages = decisionStages.size
 
-                override def recipe: String = decisionStages.asJson.spaces4
-              }
+          if (0 < numberOfDecisionStages) {
+            cases(limit, Some(numberOfDecisionStages - 1)).foreach {
+              case (
+                    decisionStagesForPotentialShrunkCase,
+                    potentialShrunkCase
+                  ) =>
+                try {
+                  consumer(potentialShrunkCase)
+                } catch {
+                  case throwableFromPotentialShrunkCase: Throwable =>
+                    shrink(
+                      potentialShrunkCase,
+                      decisionStagesForPotentialShrunkCase,
+                      throwableFromPotentialShrunkCase
+                    )
+                }
+            }
+          }
+
+          throw new TrialException(throwable) {
+            override def provokingCase: Case = caze
+
+            override def recipe: String = decisionStages.asJson.spaces4
           }
         }
+
+        cases(limit, None).foreach { case (decisionStages, caze) =>
+          try {
+            consumer(caze)
+          } catch {
+            case throwable: Throwable =>
+              shrink(caze, decisionStages, throwable)
+          }
+        }
+      }
     }
 
   // Java-only API ...
@@ -315,7 +345,10 @@ case class TrialsImplementation[+Case](
     ).toTry.get // Just throw the exception, the callers are written in Java style.
   }
 
-  private def cases(limit: Int): Iterator[(DecisionStages, Case)] = {
+  private def cases(
+      limit: Int,
+      overridingMaximumNumberOfDecisionStages: Option[Int]
+  ): Iterator[(DecisionStages, Case)] = {
     val randomBehaviour = new Random(734874)
 
     type DeferredOption[Case] = OptionT[Eval, Case]
@@ -416,7 +449,10 @@ case class TrialsImplementation[+Case](
         private def liftUnitIfTheNumberOfDecisionStagesIsNotTooLarge[Case](
             state: State
         ): StateUpdating[Unit] = {
-          if (state.decisionStages.size < maximumNumberOfDecisionStages)
+          if (
+            state.decisionStages.size < overridingMaximumNumberOfDecisionStages
+              .getOrElse(maximumNumberOfDecisionStages)
+          )
             ().pure[StateUpdating]
           else
             StateT.liftF[DeferredOption, State, Unit](
