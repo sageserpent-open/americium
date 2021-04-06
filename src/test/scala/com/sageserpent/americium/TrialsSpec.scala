@@ -530,6 +530,8 @@ class TrialsSpec
                   ] =>
                 val provokingCase = exception.provokingCase
 
+                println(s"Provoking case: $provokingCase")
+
                 provokingCase should be(exceptionWithCasePayload.caze)
 
                 val sizeOfProvokingCase = provokingCase.size
