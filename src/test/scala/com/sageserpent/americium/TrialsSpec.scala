@@ -585,7 +585,8 @@ class TrialsSpec
         (
           integerVectorTrials,
           (integerVector: Vector[Int]) =>
-            1 < integerVector.size && 0 == integerVector.sum % 7
+            1 < integerVector.size && 0 == integerVector.sum % 7 && integerVector
+              .exists(0 != _)
         ),
         (
           integerVectorTrials,
