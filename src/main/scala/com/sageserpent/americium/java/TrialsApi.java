@@ -58,6 +58,10 @@ public interface TrialsApi {
      *                not expected to be a surjection, even if there are at most
      *                as many possible values of {@code Case} as there are long
      *                values, so distinct long values may result in equivalent cases.
+     *                <p>
+     *                It is expected that long values closer to zero yield 'smaller'
+     *                cases, in whatever sense is appropriate to either the actual
+     *                type of the cases or their specific use as encoded by the factory.
      * @return The trials instance
      */
     <Case> Trials<Case> stream(Function<Long, Case> factory);

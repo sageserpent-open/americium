@@ -189,13 +189,21 @@ case class TrialsImplementation[+Case](
 
         def shrink(
             caze: Case,
+            throwable: Throwable,
             decisionStages: DecisionStages,
-            throwable: Throwable
+            factoryShrinkage: Long
         ): Unit = {
           val numberOfDecisionStages = decisionStages.size
 
           if (0 < numberOfDecisionStages) {
-            cases(limit, Some(numberOfDecisionStages - 1), randomBehaviour)
+            val reducedNumberOfDecisionStages = numberOfDecisionStages - 1
+
+            cases(
+              limit,
+              Some(reducedNumberOfDecisionStages),
+              randomBehaviour,
+              factoryShrinkage
+            )
               .foreach {
                 case (
                       decisionStagesForPotentialShrunkCase,
@@ -205,10 +213,53 @@ case class TrialsImplementation[+Case](
                     consumer(potentialShrunkCase)
                   } catch {
                     case throwableFromPotentialShrunkCase: Throwable =>
-                      shrink(
+                      def shrinkFactories(
+                          caze: Case,
+                          throwable: Throwable,
+                          decisionStages: DecisionStages,
+                          factoryShrinkage: Long
+                      ): Unit = {
+                        if ((Long.MaxValue >> 1) >= factoryShrinkage) {
+                          val increasedFactoryShrinkage = factoryShrinkage * 2
+
+                          cases(
+                            limit,
+                            Some(reducedNumberOfDecisionStages),
+                            randomBehaviour,
+                            increasedFactoryShrinkage
+                          )
+                            .foreach {
+                              case (
+                                    decisionStagesForPotentialShrunkCase,
+                                    potentialShrunkCase
+                                  ) =>
+                                try {
+                                  consumer(potentialShrunkCase)
+                                } catch {
+                                  case throwableFromPotentialShrunkCase: Throwable =>
+                                    shrinkFactories(
+                                      potentialShrunkCase,
+                                      throwableFromPotentialShrunkCase,
+                                      decisionStagesForPotentialShrunkCase,
+                                      increasedFactoryShrinkage
+                                    )
+                                }
+                            }
+                        }
+
+                        shrink(
+                          caze,
+                          throwable,
+                          decisionStages,
+                          factoryShrinkage
+                        )
+                      }
+
+                      shrinkFactories(
                         potentialShrunkCase,
+                        throwableFromPotentialShrunkCase,
                         decisionStagesForPotentialShrunkCase,
-                        throwableFromPotentialShrunkCase
+                        factoryShrinkage
                       )
                   }
               }
@@ -221,13 +272,15 @@ case class TrialsImplementation[+Case](
           }
         }
 
-        cases(limit, None, randomBehaviour).foreach {
+        val factoryShrinkage = 1
+
+        cases(limit, None, randomBehaviour, factoryShrinkage).foreach {
           case (decisionStages, caze) =>
             try {
               consumer(caze)
             } catch {
               case throwable: Throwable =>
-                shrink(caze, decisionStages, throwable)
+                shrink(caze, throwable, decisionStages, factoryShrinkage)
             }
         }
       }
@@ -352,8 +405,11 @@ case class TrialsImplementation[+Case](
   private def cases(
       limit: Int,
       overridingMaximumNumberOfDecisionStages: Option[Int],
-      randomBehaviour: Random
+      randomBehaviour: Random,
+      factoryShrinkage: Long
   ): Iterator[(DecisionStages, Case)] = {
+    require(0 < factoryShrinkage)
+
     type DeferredOption[Case] = OptionT[Eval, Case]
 
     case class State(
@@ -439,7 +495,7 @@ case class TrialsImplementation[+Case](
               for {
                 state <- StateT.get[DeferredOption, State]
                 _     <- liftUnitIfTheNumberOfDecisionStagesIsNotTooLarge(state)
-                input = randomBehaviour.nextLong()
+                input = randomBehaviour.nextLong() / factoryShrinkage
                 _ <- StateT.set[DeferredOption, State](
                   state.update(FactoryInputOf(input))
                 )
