@@ -565,9 +565,17 @@ class TrialsSpec
     def integerVectorTrials: Trials[Vector[Int]] =
       api.alternate(
         api.only(Vector.empty),
-        api
-          .alternate(api.integers, api.choose(0 to 10))
-          .flatMap(head => integerVectorTrials.map(tail => head +: tail))
+        api.integers.flatMap(head =>
+          integerVectorTrials.map(tail => head +: tail)
+        )
+      )
+
+    def doubleVectorTrials: Trials[Vector[Double]] =
+      api.alternate(
+        api.only(Vector.empty),
+        api.doubles.flatMap(head =>
+          doubleVectorTrials.map(tail => head +: tail)
+        )
       )
 
     forAll(
@@ -604,6 +612,11 @@ class TrialsSpec
           integerVectorTrials,
           (integerVector: Vector[Int]) =>
             2 < integerVector.size && integerVector.distinct != integerVector
+        ),
+        (
+          doubleVectorTrials,
+          (doubleVector: Vector[Double]) =>
+            1 < doubleVector.size && doubleVector.sum > 7
         )
       )
     ) { trialsAndCriterion =>
