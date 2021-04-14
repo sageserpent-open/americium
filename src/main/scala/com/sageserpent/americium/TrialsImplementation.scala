@@ -185,6 +185,8 @@ case class TrialsImplementation[+Case](
 
       // Scala-only API ...
       override def supplyTo(consumer: Case => Unit): Unit = {
+        val randomBehaviour = new Random(734874)
+
         def shrink(
             caze: Case,
             decisionStages: DecisionStages,
@@ -193,22 +195,23 @@ case class TrialsImplementation[+Case](
           val numberOfDecisionStages = decisionStages.size
 
           if (0 < numberOfDecisionStages) {
-            cases(limit, Some(numberOfDecisionStages - 1)).foreach {
-              case (
-                    decisionStagesForPotentialShrunkCase,
-                    potentialShrunkCase
-                  ) =>
-                try {
-                  consumer(potentialShrunkCase)
-                } catch {
-                  case throwableFromPotentialShrunkCase: Throwable =>
-                    shrink(
-                      potentialShrunkCase,
+            cases(limit, Some(numberOfDecisionStages - 1), randomBehaviour)
+              .foreach {
+                case (
                       decisionStagesForPotentialShrunkCase,
-                      throwableFromPotentialShrunkCase
-                    )
-                }
-            }
+                      potentialShrunkCase
+                    ) =>
+                  try {
+                    consumer(potentialShrunkCase)
+                  } catch {
+                    case throwableFromPotentialShrunkCase: Throwable =>
+                      shrink(
+                        potentialShrunkCase,
+                        decisionStagesForPotentialShrunkCase,
+                        throwableFromPotentialShrunkCase
+                      )
+                  }
+              }
           }
 
           throw new TrialException(throwable) {
@@ -218,13 +221,14 @@ case class TrialsImplementation[+Case](
           }
         }
 
-        cases(limit, None).foreach { case (decisionStages, caze) =>
-          try {
-            consumer(caze)
-          } catch {
-            case throwable: Throwable =>
-              shrink(caze, decisionStages, throwable)
-          }
+        cases(limit, None, randomBehaviour).foreach {
+          case (decisionStages, caze) =>
+            try {
+              consumer(caze)
+            } catch {
+              case throwable: Throwable =>
+                shrink(caze, decisionStages, throwable)
+            }
         }
       }
     }
@@ -347,10 +351,9 @@ case class TrialsImplementation[+Case](
 
   private def cases(
       limit: Int,
-      overridingMaximumNumberOfDecisionStages: Option[Int]
+      overridingMaximumNumberOfDecisionStages: Option[Int],
+      randomBehaviour: Random
   ): Iterator[(DecisionStages, Case)] = {
-    val randomBehaviour = new Random(734874)
-
     type DeferredOption[Case] = OptionT[Eval, Case]
 
     case class State(
@@ -449,10 +452,10 @@ case class TrialsImplementation[+Case](
         private def liftUnitIfTheNumberOfDecisionStagesIsNotTooLarge[Case](
             state: State
         ): StateUpdating[Unit] = {
-          if (
-            state.decisionStages.size < overridingMaximumNumberOfDecisionStages
-              .getOrElse(maximumNumberOfDecisionStages)
-          )
+          val numberOfDecisionStages = state.decisionStages.size
+          val limit = overridingMaximumNumberOfDecisionStages
+            .getOrElse(maximumNumberOfDecisionStages)
+          if (numberOfDecisionStages < limit)
             ().pure[StateUpdating]
           else
             StateT.liftF[DeferredOption, State, Unit](
@@ -467,7 +470,7 @@ case class TrialsImplementation[+Case](
       val potentialDuplicates              = mutable.Set.empty[DecisionStages]
 
       override def hasNext: Boolean =
-        numberOfUniqueCasesProduced < limit && 0 < starvationCountdown
+        0 < remainingGap && 0 < starvationCountdown
 
       override def next(): Option[(DecisionStages, Case)] =
         generation
@@ -478,15 +481,15 @@ case class TrialsImplementation[+Case](
           case Some((State(decisionStages, multiplicity), caze))
               if potentialDuplicates.add(decisionStages) =>
             numberOfUniqueCasesProduced += 1
-            val remainingGap = limit - numberOfUniqueCasesProduced
             starvationCountdown =
-              multiplicity.fold(remainingGap)(_ min remainingGap)
+              Math.round(Math.sqrt(starvationCountdown * remainingGap)).toInt
             Some(decisionStages -> caze)
           case _ =>
             starvationCountdown -= 1
             None
         }
 
+      private def remainingGap = limit - numberOfUniqueCasesProduced
     }.collect { case Some(caze) => caze }
   }
 }
