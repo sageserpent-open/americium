@@ -609,11 +609,6 @@ class TrialsSpec
             2 < integerVector.size && integerVector.distinct == integerVector
         ),
         (
-          integerVectorTrials,
-          (integerVector: Vector[Int]) =>
-            2 < integerVector.size && integerVector.distinct != integerVector
-        ),
-        (
           doubleVectorTrials,
           (doubleVector: Vector[Double]) =>
             1 < doubleVector.size && doubleVector.sum > 7
