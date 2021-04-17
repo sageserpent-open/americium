@@ -599,6 +599,12 @@ class TrialsSpec
         (
           integerVectorTrials,
           (integerVector: Vector[Int]) =>
+            5 < integerVector.size && 0 == integerVector.sum % 7 && integerVector
+              .exists(0 != _)
+        ),
+        (
+          integerVectorTrials,
+          (integerVector: Vector[Int]) =>
             2 < integerVector.size && integerVector
               .zip(integerVector.tail)
               .exists { case (first, second) => first > second }

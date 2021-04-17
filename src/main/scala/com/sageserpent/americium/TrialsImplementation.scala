@@ -191,18 +191,17 @@ case class TrialsImplementation[+Case](
             caze: Case,
             throwable: Throwable,
             decisionStages: DecisionStages,
-            factoryShrinkage: Long
+            factoryShrinkage: Long,
+            limit: Int
         ): Unit = {
-          val numberOfDecisionStages = decisionStages.size
-
-          if (0 < numberOfDecisionStages) {
-            val reducedNumberOfDecisionStages = numberOfDecisionStages - 1
+          if ((Long.MaxValue >> 1) >= factoryShrinkage) {
+            val increasedFactoryShrinkage = factoryShrinkage * 2
 
             cases(
               limit,
-              Some(reducedNumberOfDecisionStages),
+              Some(decisionStages.size),
               randomBehaviour,
-              factoryShrinkage
+              increasedFactoryShrinkage
             )
               .foreach {
                 case (
@@ -213,20 +212,23 @@ case class TrialsImplementation[+Case](
                     consumer(potentialShrunkCase)
                   } catch {
                     case throwableFromPotentialShrunkCase: Throwable =>
-                      def shrinkFactories(
+                      def shrinkDecisionStages(
                           caze: Case,
                           throwable: Throwable,
                           decisionStages: DecisionStages,
                           factoryShrinkage: Long
                       ): Unit = {
-                        if ((Long.MaxValue >> 1) >= factoryShrinkage) {
-                          val increasedFactoryShrinkage = factoryShrinkage * 2
+                        val numberOfDecisionStages = decisionStages.size
+
+                        if (0 < numberOfDecisionStages) {
+                          val reducedNumberOfDecisionStages =
+                            numberOfDecisionStages - 1
 
                           cases(
                             limit,
                             Some(reducedNumberOfDecisionStages),
                             randomBehaviour,
-                            increasedFactoryShrinkage
+                            factoryShrinkage
                           )
                             .foreach {
                               case (
@@ -237,29 +239,37 @@ case class TrialsImplementation[+Case](
                                   consumer(potentialShrunkCase)
                                 } catch {
                                   case throwableFromPotentialShrunkCase: Throwable =>
-                                    shrinkFactories(
+                                    shrinkDecisionStages(
                                       potentialShrunkCase,
                                       throwableFromPotentialShrunkCase,
                                       decisionStagesForPotentialShrunkCase,
-                                      increasedFactoryShrinkage
+                                      factoryShrinkage
                                     )
                                 }
                             }
                         }
 
+                        // NOTE: there's some voodoo in choosing the exponential scaling factor - if it's too high, say 2,
+                        // then the solutions are hardly shrunk at all. If it is unity, then the solutions are shrunk a
+                        // bit but can be still involve overly 'large' values, in the sense that the factory input values
+                        // are large. This needs finessing, but will do for now...
+                        val limitWithExtraLeewayThatHasBeenObservedToFindBetterShrunkCases =
+                          (100 * limit / 99) max limit
+
                         shrink(
                           caze,
                           throwable,
                           decisionStages,
-                          factoryShrinkage
+                          factoryShrinkage,
+                          limitWithExtraLeewayThatHasBeenObservedToFindBetterShrunkCases
                         )
                       }
 
-                      shrinkFactories(
+                      shrinkDecisionStages(
                         potentialShrunkCase,
                         throwableFromPotentialShrunkCase,
                         decisionStagesForPotentialShrunkCase,
-                        factoryShrinkage
+                        increasedFactoryShrinkage
                       )
                   }
               }
@@ -280,7 +290,7 @@ case class TrialsImplementation[+Case](
               consumer(caze)
             } catch {
               case throwable: Throwable =>
-                shrink(caze, throwable, decisionStages, factoryShrinkage)
+                shrink(caze, throwable, decisionStages, factoryShrinkage, limit)
             }
         }
       }
