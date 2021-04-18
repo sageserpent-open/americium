@@ -16,7 +16,12 @@ import io.circe.parser._
 import io.circe.syntax._
 import io.circe.{Decoder, Encoder}
 
-import _root_.java.lang.{Iterable => JavaIterable, Long => JavaLong}
+import _root_.java.lang.{
+  Boolean => JavaBoolean,
+  Double => JavaDouble,
+  Iterable => JavaIterable,
+  Long => JavaLong
+}
 import _root_.java.util.Optional
 import _root_.java.util.function.{
   Consumer,
@@ -101,6 +106,21 @@ object TrialsImplementation {
         factory: JavaFunction[JavaLong, Case]
     ): TrialsImplementation[Case] =
       scalaApi.stream(Long.box _ andThen factory.apply)
+
+    override def integers: TrialsImplementation[Integer] =
+      scalaApi.integers.map(Int.box _)
+
+    override def longs: TrialsImplementation[JavaLong] =
+      scalaApi.longs.map(Long.box _)
+
+    override def doubles: TrialsImplementation[JavaDouble] =
+      scalaApi.doubles.map(Double.box _)
+
+    override def trueOrFalse: TrialsImplementation[JavaBoolean] =
+      scalaApi.trueOrFalse.map(Boolean.box _)
+
+    override def coinFlip(): JavaTrials[JavaBoolean] =
+      scalaApi.coinFlip.map(Boolean.box _)
   }
 
   // Scala-only API ...
@@ -134,6 +154,30 @@ object TrialsImplementation {
         factory: Long => Case
     ): TrialsImplementation[Case] =
       new TrialsImplementation(Factory(factory))
+
+    override def integers: TrialsImplementation[Int] = stream(_.hashCode)
+
+    override def longs: TrialsImplementation[Long] = stream(identity)
+
+    override def doubles: TrialsImplementation[Double] =
+      stream { input =>
+        val betweenZeroAndOne = new Random(input).nextDouble()
+        Math.scalb(
+          betweenZeroAndOne,
+          (input.toDouble * JavaDouble.MAX_EXPONENT / Long.MaxValue).toInt
+        )
+      }
+        .flatMap((zeroOrPositive: Double) =>
+          trueOrFalse
+            .map((negative: Boolean) =>
+              if (negative) -zeroOrPositive else zeroOrPositive
+            )
+        )
+
+    override def trueOrFalse: TrialsImplementation[Boolean] =
+      choose(true, false)
+
+    override def coinFlip: TrialsImplementation[Boolean] = stream(0 == _ % 2)
   }
 
   sealed trait GenerationOperation[Case]

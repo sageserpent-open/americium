@@ -1,6 +1,5 @@
 package com.sageserpent.americium.java;
 
-import java.util.Random;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -67,27 +66,13 @@ public interface TrialsApi {
      */
     <Case> Trials<Case> stream(Function<Long, Case> factory);
 
-    default Trials<Integer> integers() {
-        return stream(Object::hashCode);
-    }
+    Trials<Integer> integers();
 
-    default Trials<Long> longs() {
-        return stream(Function.identity());
-    }
+    Trials<Long> longs();
 
-    default Trials<Double> doubles() {
-        return stream(input -> {
-            final double betweenZeroAndOne = new Random(input).nextDouble();
-            return Math.scalb(
-                    betweenZeroAndOne,
-                    (int) ((double) input * Double.MAX_EXPONENT / Long.MAX_VALUE)
-            );
-        }).flatMap(zeroOrPositive -> trueOrFalse().map(negative -> negative ? -zeroOrPositive : zeroOrPositive));
-    }
+    Trials<Double> doubles();
 
-    default Trials<Boolean> trueOrFalse() {
-        return choose(true, false);
-    }
+    Trials<Boolean> trueOrFalse();
 
     /**
      * Yields a *streaming* trials of true or false values.
@@ -95,7 +80,5 @@ public interface TrialsApi {
      * @return Either true or false.
      * @seealso {@link TrialsApi#trueOrFalse()}
      */
-    default Trials<Boolean> coinFlip() {
-        return stream(value -> 0 == value % 2);
-    }
+    Trials<Boolean> coinFlip();
 }

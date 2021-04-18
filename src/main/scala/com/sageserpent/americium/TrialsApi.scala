@@ -1,8 +1,5 @@
 package com.sageserpent.americium
 
-import _root_.java.lang.{Double => JavaDouble}
-import scala.util.Random
-
 trait TrialsApi {
   def delay[Case](delayed: => Trials[Case]): Trials[Case]
 
@@ -26,23 +23,13 @@ trait TrialsApi {
 
   def stream[Case](factory: Long => Case): Trials[Case]
 
-  def integers: Trials[Int] = stream(_.hashCode)
+  def integers: Trials[Int]
 
-  def longs: Trials[Long] = stream(identity)
+  def longs: Trials[Long]
 
-  def doubles: Trials[Double] =
-    for {
-      zeroOrPositive <- stream { input =>
-        val betweenZeroAndOne = new Random(input).nextDouble()
-        Math.scalb(
-          betweenZeroAndOne,
-          (input.toDouble * JavaDouble.MAX_EXPONENT / Long.MaxValue).toInt
-        )
-      }
-      negative <- trueOrFalse
-    } yield if (negative) -zeroOrPositive else zeroOrPositive
+  def doubles: Trials[Double]
 
-  def trueOrFalse: Trials[Boolean] = choose(true, false)
+  def trueOrFalse: Trials[Boolean]
 
-  def coinFlip: Trials[Boolean] = stream(0 == _ % 2)
+  def coinFlip: Trials[Boolean]
 }
