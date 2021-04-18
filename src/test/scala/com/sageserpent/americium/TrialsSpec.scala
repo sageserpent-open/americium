@@ -578,17 +578,33 @@ class TrialsSpec
         )
       )
 
+    def longVectorTrials: Trials[Vector[Long]] =
+      api.alternate(
+        api.only(Vector.empty),
+        api.longs.flatMap(head => longVectorTrials.map(tail => head +: tail))
+      )
+
     forAll(
       Table[TrialsAndCriterion[_]](
         "trials -> exceptionCriterion",
         (
-          integerVectorTrials,
-          (integerVector: Vector[Int]) => integerVector.size > 7
+          doubleVectorTrials,
+          (doubleVector: Vector[Double]) =>
+            1 < doubleVector.size && doubleVector.sum > 7
         ),
         (
           integerVectorTrials,
           (integerVector: Vector[Int]) =>
             1 < integerVector.size && integerVector.sum > 7
+        ),
+        (
+          longVectorTrials,
+          (longVector: Vector[Long]) =>
+            1 < longVector.size && longVector.sum > 7
+        ),
+        (
+          integerVectorTrials,
+          (integerVector: Vector[Int]) => integerVector.size > 7
         ),
         (
           integerVectorTrials,
@@ -613,11 +629,6 @@ class TrialsSpec
           integerVectorTrials,
           (integerVector: Vector[Int]) =>
             2 < integerVector.size && integerVector.distinct == integerVector
-        ),
-        (
-          doubleVectorTrials,
-          (doubleVector: Vector[Double]) =>
-            1 < doubleVector.size && doubleVector.sum > 7
         )
       )
     ) { trialsAndCriterion =>
