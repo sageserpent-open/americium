@@ -1,5 +1,6 @@
 package com.sageserpent.americium.java;
 
+import java.util.Random;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -75,7 +76,13 @@ public interface TrialsApi {
     }
 
     default Trials<Double> doubles() {
-        return stream(Double::longBitsToDouble);
+        return stream(input -> {
+            final double betweenZeroAndOne = new Random(input).nextDouble();
+            return Math.scalb(
+                    betweenZeroAndOne,
+                    (int) ((double) input * Double.MAX_EXPONENT / Long.MAX_VALUE)
+            );
+        }).flatMap(zeroOrPositive -> trueOrFalse().map(negative -> negative ? -zeroOrPositive : zeroOrPositive));
     }
 
     default Trials<Boolean> trueOrFalse() {
