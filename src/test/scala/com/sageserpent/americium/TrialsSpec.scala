@@ -86,11 +86,7 @@ class TrialsSpec
       .withLimit(limit)
       .supplyTo(println)
 
-    api.coinFlip
-      .withLimit(limit)
-      .supplyTo(println)
-
-    api.trueOrFalse
+    api.booleans
       .withLimit(limit)
       .supplyTo(println)
   }
@@ -139,11 +135,7 @@ class TrialsSpec
       .withLimit(limit)
       .supplyTo(println)
 
-    javaApi.coinFlip
-      .withLimit(limit)
-      .supplyTo(println)
-
-    javaApi.trueOrFalse
+    javaApi.booleans
       .withLimit(limit)
       .supplyTo(println)
   }

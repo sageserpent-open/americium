@@ -18,7 +18,7 @@ public class TrialsApiTests {
     Trials<String> chainedBooleansAndIntegersInATree() {
         return api.alternate(
                 api.delay(() -> chainedBooleansAndIntegersInATree())
-                        .flatMap(left -> api.coinFlip()
+                        .flatMap(left -> api.booleans()
                                 .flatMap(side -> chainedBooleansAndIntegersInATree()
                                         .map(right -> "(" + String.join(",", left, side.toString(), right) + ")"))),
                 api.integers().map(value -> value.toString()));

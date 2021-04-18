@@ -72,13 +72,5 @@ public interface TrialsApi {
 
     Trials<Double> doubles();
 
-    Trials<Boolean> trueOrFalse();
-
-    /**
-     * Yields a *streaming* trials of true or false values.
-     *
-     * @return Either true or false.
-     * @seealso {@link TrialsApi#trueOrFalse()}
-     */
-    Trials<Boolean> coinFlip();
+    Trials<Boolean> booleans();
 }

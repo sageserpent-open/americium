@@ -6,20 +6,28 @@ import mercator.Monadic
 import scala.language.experimental.macros
 
 trait TrialsByMagnolia {
-  trait Factory[Case] {
-    def trials: Trials[Case]
-  }
 
-  def lift[Case](unlifted: Trials[Case]): Factory[Case] = new Factory[Case] {
-    override def trials: Trials[Case] = unlifted
-  }
+  type Typeclass[Case] = Factory[Case]
+
+  def combine[Case](caseClass: CaseClass[Typeclass, Case]): Typeclass[Case] =
+    lift(
+      caseClass.constructMonadic(parameter =>
+        Trials.api.delay(parameter.typeclass.trials)
+      )
+    )
 
   implicit val intFactory: Factory[Int]         = lift(Trials.api.integers)
   implicit val doubleFactory: Factory[Double]   = lift(Trials.api.doubles)
   implicit val longFactory: Factory[Long]       = lift(Trials.api.longs)
-  implicit val booleanFactory: Factory[Boolean] = lift(Trials.api.trueOrFalse)
+  implicit val booleanFactory: Factory[Boolean] = lift(Trials.api.booleans)
 
-  type Typeclass[Case] = Factory[Case]
+  def dispatch[Case](
+      sealedTrait: SealedTrait[Typeclass, Case]
+  ): Typeclass[Case] = {
+    val subtypeGenerators: Seq[Trials[Case]] =
+      sealedTrait.subtypes.map(_.typeclass.trials)
+    lift(Trials.api.alternate(subtypeGenerators))
+  }
 
   // HACK: had to write an explicit implicit implementation
   // as Mercator would need an `apply` method to implement
@@ -34,15 +42,12 @@ trait TrialsByMagnolia {
       from.map(fn)
   }
 
-  def combine[Case](caseClass: CaseClass[Typeclass, Case]): Typeclass[Case] =
-    lift(caseClass.constructMonadic(parameter =>
-      Trials.api.delay(parameter.typeclass.trials)))
+  def lift[Case](unlifted: Trials[Case]): Factory[Case] = new Factory[Case] {
+    override def trials: Trials[Case] = unlifted
+  }
 
-  def dispatch[Case](
-      sealedTrait: SealedTrait[Typeclass, Case]): Typeclass[Case] = {
-    val subtypeGenerators: Seq[Trials[Case]] =
-      sealedTrait.subtypes.map(_.typeclass.trials)
-    lift(Trials.api.alternate(subtypeGenerators))
+  trait Factory[Case] {
+    def trials: Trials[Case]
   }
 
   implicit def gen[Case]: Typeclass[Case] = macro Magnolia.gen[Case]

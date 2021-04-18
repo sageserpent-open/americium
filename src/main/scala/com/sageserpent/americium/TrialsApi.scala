@@ -29,7 +29,5 @@ trait TrialsApi {
 
   def doubles: Trials[Double]
 
-  def trueOrFalse: Trials[Boolean]
-
-  def coinFlip: Trials[Boolean]
+  def booleans: Trials[Boolean]
 }
