@@ -36,3 +36,5 @@ lazy val settings = Seq(
 lazy val americium = (project in file(".")).settings(settings: _*)
 
 resolvers += Resolver.jcenterRepo
+
+enablePlugins(GitVersioning)
