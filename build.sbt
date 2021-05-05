@@ -1,3 +1,5 @@
+import xerial.sbt.Sonatype._
+
 val jUnitVersion = "5.7.0"
 
 val javaVersion = "1.8"
@@ -11,19 +13,13 @@ lazy val settings = Seq(
   organization := "com.sageserpent",
   organizationName := "sageserpent",
   description := "Generation of test data for paramterised testing",
-  scmInfo := Some(
-    ScmInfo(
-      url("https://github.com/sageserpent-open/americium"),
-      "scm:git@github.com:sageserpent-open/americium.git"
+  sonatypeProjectHosting := Some(
+    GitHubHosting(
+      user = "sageserpent-open",
+      repository = "americium",
+      email = "gjmurphy1@icloud.com"
     )
   ),
-  developers +=
-    Developer(
-      id = "sageserpent-open",
-      name = "Gerard Murphy",
-      email = "gjmurphy1@icloud.com",
-      url = url("https://github.com/sageserpent-open")
-    ),
   name := "americium",
   scalaVersion := "2.13.5",
   scalacOptions += s"-target:jvm-${javaVersion}",
