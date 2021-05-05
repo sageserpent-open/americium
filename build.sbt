@@ -3,7 +3,27 @@ val jUnitVersion = "5.7.0"
 val javaVersion = "1.8"
 
 lazy val settings = Seq(
+  publishTo := sonatypePublishToBundle.value,
+  pomIncludeRepository := { _ => false },
+  sonatypeCredentialHost := "s01.oss.sonatype.org",
+  publishMavenStyle := true,
+  licenses += ("MIT", url("http://opensource.org/licenses/MIT")),
   organization := "com.sageserpent",
+  organizationName := "sageserpent",
+  description := "Generation of test data for paramterised testing",
+  scmInfo := Some(
+    ScmInfo(
+      url("https://github.com/sageserpent-open/americium"),
+      "scm:git@github.com:sageserpent-open/americium.git"
+    )
+  ),
+  developers +=
+    Developer(
+      id = "sageserpent-open",
+      name = "Gerard Murphy",
+      email = "gjmurphy1@icloud.com",
+      url = url("https://github.com/sageserpent-open")
+    ),
   name := "americium",
   scalaVersion := "2.13.5",
   scalacOptions += s"-target:jvm-${javaVersion}",
@@ -26,15 +46,9 @@ lazy val settings = Seq(
   libraryDependencies ++= Seq(
     "org.junit.platform" % "junit-platform-runner" % "1.7.0" % Test,
     "org.junit.jupiter"  % "junit-jupiter-engine"  % "5.7.0" % Test
-  ),
-  publishMavenStyle := true,
-  bintrayReleaseOnPublish in ThisBuild := false,
-  licenses += ("MIT", url("http://opensource.org/licenses/MIT")),
-  bintrayVcsUrl := Some("git@github.com:sageserpent-open/americium.git")
+  )
 )
 
 lazy val americium = (project in file(".")).settings(settings: _*)
 
 resolvers += Resolver.jcenterRepo
-
-enablePlugins(GitVersioning)
