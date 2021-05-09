@@ -1,6 +1,5 @@
 package com.sageserpent.americium
 
-import com.sageserpent.americium.TrialsSpec.{BinaryTree, Branch, Leaf}
 import com.sageserpent.americium.java.{
   Trials => JavaTrials,
   TrialsApi => JavaTrialsApi
@@ -17,12 +16,67 @@ import scala.jdk.CollectionConverters._
 import scala.util.Try
 
 object TrialsSpec {
-  sealed trait BinaryTree
+  sealed trait BinaryTree {
+    def flatten: Vector[Int]
+  }
 
-  final case class Leaf(value: Int) extends BinaryTree
+  final case class Leaf(value: Int) extends BinaryTree {
+    override def flatten: Vector[Int] = Vector(value)
+  }
 
-  final case class Branch(leftSubtree: BinaryTree, rightSubtree: BinaryTree)
-      extends BinaryTree
+  final case class Branch(
+      leftSubtree: BinaryTree,
+      flag: Boolean,
+      rightSubtree: BinaryTree
+  ) extends BinaryTree {
+    override def flatten: Vector[Int] =
+      leftSubtree.flatten ++ rightSubtree.flatten
+  }
+
+  val api: TrialsApi         = Trials.api
+  val javaApi: JavaTrialsApi = JavaTrials.api
+
+  val limit: Int = 2000
+
+  def integerVectorTrials: Trials[Vector[Int]] =
+    api.alternate(
+      api.only(Vector.empty),
+      api.integers.flatMap(head =>
+        integerVectorTrials.map(tail => head +: tail)
+      )
+    )
+
+  def doubleVectorTrials: Trials[Vector[Double]] =
+    api.alternate(
+      api.only(Vector.empty),
+      api.doubles.flatMap(head => doubleVectorTrials.map(tail => head +: tail))
+    )
+
+  def longVectorTrials: Trials[Vector[Long]] =
+    api.alternate(
+      api.only(Vector.empty),
+      api.longs.flatMap(head => longVectorTrials.map(tail => head +: tail))
+    )
+
+  def listTrials: Trials[List[Int]] =
+    api.alternate(
+      for {
+        head <- api.integers
+        tail <- listTrials
+      } yield head :: tail,
+      api.only(Nil)
+    )
+
+  def binaryTreeTrials: Trials[BinaryTree] =
+    api.alternate(
+      for {
+        leftSubtree  <- api.delay(binaryTreeTrials)
+        flag         <- api.booleans
+        rightSubtree <- binaryTreeTrials
+      } yield Branch(leftSubtree, flag, rightSubtree),
+      api.integers.map(Leaf.apply)
+    )
+
 }
 
 class TrialsSpec
@@ -30,13 +84,11 @@ class TrialsSpec
     with Matchers
     with MockFactory
     with TableDrivenPropertyChecks {
+  import TrialsSpec._
+
   autoVerify = false
   type TypeRequirementsToProtectCodeInStringsFromUnusedImportOptimisation =
     (JavaTrials[_], JavaFunction[_, _], Predicate[_])
-  val api: TrialsApi         = Trials.api
-  val javaApi: JavaTrialsApi = JavaTrials.api
-
-  val limit: Int = 2000
 
   "test driving the Scala API" should "not produce smoke" in {
     val trials = api.choose(2, -4, 3)
@@ -554,28 +606,6 @@ class TrialsSpec
         }
       }
 
-    def integerVectorTrials: Trials[Vector[Int]] =
-      api.alternate(
-        api.only(Vector.empty),
-        api.integers.flatMap(head =>
-          integerVectorTrials.map(tail => head +: tail)
-        )
-      )
-
-    def doubleVectorTrials: Trials[Vector[Double]] =
-      api.alternate(
-        api.only(Vector.empty),
-        api.doubles.flatMap(head =>
-          doubleVectorTrials.map(tail => head +: tail)
-        )
-      )
-
-    def longVectorTrials: Trials[Vector[Long]] =
-      api.alternate(
-        api.only(Vector.empty),
-        api.longs.flatMap(head => longVectorTrials.map(tail => head +: tail))
-      )
-
     forAll(
       Table[TrialsAndCriterion[_]](
         "trials -> exceptionCriterion",
@@ -607,6 +637,16 @@ class TrialsSpec
         (
           integerVectorTrials,
           (integerVector: Vector[Int]) =>
+            1 < integerVector.size && 0 == integerVector.sum % 7 && 0 < integerVector.sum
+        ),
+        (
+          binaryTreeTrials map (_.flatten),
+          (integerVector: Vector[Int]) =>
+            1 < integerVector.size && 0 == integerVector.sum % 19 && 19 < integerVector.sum
+        ),
+        (
+          integerVectorTrials,
+          (integerVector: Vector[Int]) =>
             5 < integerVector.size && 0 == integerVector.sum % 7 && integerVector
               .exists(0 != _)
         ),
@@ -629,27 +669,9 @@ class TrialsSpec
   }
 
   "test driving a trials for a recursive data structure" should "not produce smoke" in {
-    def listTrials: Trials[List[Int]] =
-      api.alternate(
-        for {
-          head <- api.integers
-          tail <- listTrials
-        } yield head :: tail,
-        api.only(Nil)
-      )
-
     listTrials
       .withLimit(limit)
       .supplyTo(println)
-
-    def binaryTreeTrials: Trials[BinaryTree] =
-      api.alternate(
-        for {
-          leftSubtree  <- api.delay(binaryTreeTrials)
-          rightSubtree <- binaryTreeTrials
-        } yield Branch(leftSubtree, rightSubtree),
-        api.integers.map(Leaf.apply)
-      )
 
     binaryTreeTrials
       .withLimit(limit)
