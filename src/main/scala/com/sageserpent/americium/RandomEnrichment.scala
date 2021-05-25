@@ -500,9 +500,7 @@ trait RandomEnrichment {
         pickAnItem(streams)
       }
 
-    def splitIntoNonEmptyPieces[Container[Element] <: Iterable[
-      Element
-    ] forSome { type Element }, X](
+    def splitIntoNonEmptyPieces[Container[X] <: Iterable[X], X](
         items: Container[X]
     ): LazyList[Container[X]] = {
       val numberOfItems = items.size
