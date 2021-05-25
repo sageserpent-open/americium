@@ -12,7 +12,7 @@ public class TrialsApiTests {
                 api.integers()
                         .flatMap(value -> chainedIntegers()
                                 .map(chain -> String.join(",", value.toString(), chain))),
-                api.only(""));
+                api.only("*** END ***"));
     }
 
     Trials<String> chainedBooleansAndIntegersInATree() {
@@ -22,6 +22,11 @@ public class TrialsApiTests {
                                 .flatMap(side -> chainedBooleansAndIntegersInATree()
                                         .map(right -> "(" + String.join(",", left, side.toString(), right) + ")"))),
                 api.integers().map(value -> value.toString()));
+    }
+
+    Trials<String> chainedIntegersUsingAnExplicitTerminationCase() {
+        return api.booleans().flatMap(terminate ->
+                terminate ? api.only("*** END ***") : api.integers().flatMap(value -> chainedIntegersUsingAnExplicitTerminationCase().map(simplerCase -> String.join(",", value.toString(), simplerCase))));
     }
 
     @Test
@@ -43,13 +48,21 @@ public class TrialsApiTests {
             System.out.println(number.doubleValue());
         });
 
-        final Trials<? extends Number> alternateTrailsFromArray = api.alternate(new Trials[]{integerTrials, doubleTrials, bigDecimalTrials});
+        final Trials<? extends Number> alternateTrialsFromArray = api.alternate(new Trials[]{integerTrials, doubleTrials, bigDecimalTrials});
 
-        alternateTrailsFromArray.withLimit(limit).supplyTo(number -> {
+        alternateTrialsFromArray.withLimit(limit).supplyTo(number -> {
             System.out.println(number.doubleValue());
         });
 
+        System.out.println("Chained integers...");
+
         chainedIntegers().withLimit(limit).supplyTo(System.out::println);
+
+        System.out.println("Chained integers using an explicit termination case...");
+
+        chainedIntegersUsingAnExplicitTerminationCase().withLimit(limit).supplyTo(System.out::println);
+
+        System.out.println("Chained integers and Booleans in a tree...");
 
         chainedBooleansAndIntegersInATree().withLimit(limit).supplyTo(System.out::println);
     }
