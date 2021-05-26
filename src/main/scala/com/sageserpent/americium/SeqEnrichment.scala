@@ -6,10 +6,11 @@ import scala.language.postfixOps
 
 trait SeqEnrichment {
   implicit class RichSeq[Container[Item] <: Seq[Item], Item](
-      items: Container[Item]) {
-    def groupWhile(predicate: (Item, Item) => Boolean)(
-        implicit bf: BuildFrom[Container[Item], Item, Container[Item]])
-      : Seq[Container[Item]] = {
+      items: Container[Item]
+  ) {
+    def groupWhile(predicate: (Item, Item) => Boolean)(implicit
+        bf: BuildFrom[Container[Item], Item, Container[Item]]
+    ): Seq[Container[Item]] = {
       if (items.isEmpty)
         Seq.empty[Container[Item]]
       else {
@@ -33,37 +34,41 @@ trait SeqEnrichment {
     }
   }
 
-  implicit class RichSequenceOfSequences[Container[Item] <: Seq[Item] forSome {
-    type Item
-  }, InnerContainer[Subelement] <: Traversable[Subelement], Subelement](
-      innerSequences: Container[InnerContainer[Subelement]]) {
+  implicit class RichSequenceOfSequences[
+      Container[Item],
+      InnerContainer[Subelement] <: Iterable[Subelement],
+      Subelement
+  ](innerSequences: Container[InnerContainer[Subelement]]) {
 
-    def zipN(
-        implicit bf: BuildFrom[InnerContainer[Subelement],
-                               Subelement,
-                               InnerContainer[Subelement]])
-      : LazyList[InnerContainer[Subelement]] = {
+    def zipN(implicit
+        bf: BuildFrom[InnerContainer[Subelement], Subelement, InnerContainer[
+          Subelement
+        ]]
+    ): LazyList[InnerContainer[Subelement]] = {
       def linkAndRemainingInnerSequencesFrom(
-          innerSequences: Seq[InnerContainer[Subelement]])
-        : LazyList[InnerContainer[Subelement]] = {
-        val nonEmptyInnerSequences
-          : Seq[InnerContainer[Subelement]] = innerSequences filter (_.nonEmpty)
+          innerSequences: Seq[InnerContainer[Subelement]]
+      ): LazyList[InnerContainer[Subelement]] = {
+        val nonEmptyInnerSequences: Seq[InnerContainer[Subelement]] =
+          innerSequences filter (_.nonEmpty)
         if (nonEmptyInnerSequences.nonEmpty) {
           val (link, remainingInnerSequences) =
             (nonEmptyInnerSequences map (innerSequence =>
               innerSequence.head -> innerSequence.tail
-                .asInstanceOf[InnerContainer[Subelement]])).unzip
+                .asInstanceOf[InnerContainer[Subelement]]
+            )).unzip
           val convertedLink = {
             val builder = bf.newBuilder(innerSequences.head)
             link.foreach(builder += _)
             builder.result()
           }
           convertedLink #:: linkAndRemainingInnerSequencesFrom(
-            remainingInnerSequences)
+            remainingInnerSequences
+          )
         } else LazyList.empty
       }
       linkAndRemainingInnerSequencesFrom(
-        innerSequences.asInstanceOf[Seq[InnerContainer[Subelement]]])
+        innerSequences.asInstanceOf[Seq[InnerContainer[Subelement]]]
+      )
     }
   }
 }
