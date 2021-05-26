@@ -5,7 +5,7 @@ import scala.collection.immutable.List
 import scala.language.postfixOps
 
 trait SeqEnrichment {
-  implicit class RichSeq[Container[Item] <: Seq[Item], Item](
+  implicit class RichSeq[Container[X] <: Seq[X], Item](
       items: Container[Item]
   ) {
     def groupWhile(predicate: (Item, Item) => Boolean)(implicit
@@ -35,7 +35,7 @@ trait SeqEnrichment {
   }
 
   implicit class RichSequenceOfSequences[
-      Container[Item],
+      Container[_],
       InnerContainer[Subelement] <: Iterable[Subelement],
       Subelement
   ](innerSequences: Container[InnerContainer[Subelement]]) {
