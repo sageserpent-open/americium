@@ -29,7 +29,7 @@ import _root_.java.util.function.{
   Supplier,
   Function => JavaFunction
 }
-import scala.collection.mutable
+import scala.collection.{BuildFrom, mutable}
 import scala.jdk.CollectionConverters._
 import scala.util.Random
 
@@ -88,7 +88,36 @@ object TrialsImplementation {
     override def booleans: TrialsImplementation[JavaBoolean] =
       scalaApi.booleans.map(Boolean.box _)
   }
-  val scalaApi = new CommonApi with TrialsApi {
+
+  // This is only here to avoid a baffling error from the compiler
+  // saying "can't existentially abstract over parameterized type",
+  // which is what happens if the override for `several` is pulled
+  // down into the definition of `scalaApi`. Of course, most of
+  // what's in that definition could be hoisted up into `TrialsApi`
+  // as trait implementation, but that doesn't sit nicely with the
+  // analogous Java interface `JavaTrialsAPi`, so let's go with this...
+  trait Wart extends TrialsApi {
+    override def several[Container[_], ItemCase](
+        items: Trials[ItemCase]
+    )(implicit
+        bf: BuildFrom[List[ItemCase], ItemCase, Container[ItemCase]]
+    ): Trials[Container[ItemCase]] = {
+
+      def addItem(partialResult: List[ItemCase]): Trials[Container[ItemCase]] =
+        alternate(
+          only {
+            val builder = bf.newBuilder(Nil)
+            partialResult.foreach(builder += _)
+            builder.result()
+          },
+          items.flatMap(item => addItem(item :: partialResult))
+        )
+
+      addItem(Nil)
+    }
+  }
+
+  val scalaApi = new CommonApi with Wart {
     override def delay[Case](
         delayed: => Trials[Case]
     ): TrialsImplementation[Case] =

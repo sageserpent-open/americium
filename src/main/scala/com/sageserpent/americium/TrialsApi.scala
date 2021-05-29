@@ -1,5 +1,7 @@
 package com.sageserpent.americium
 
+import scala.collection.BuildFrom
+
 trait TrialsApi {
   def delay[Case](delayed: => Trials[Case]): Trials[Case]
 
@@ -30,4 +32,10 @@ trait TrialsApi {
   def doubles: Trials[Double]
 
   def booleans: Trials[Boolean]
+
+  def several[Container[_], ItemCase](
+      items: Trials[ItemCase]
+  )(implicit
+      bf: BuildFrom[List[ItemCase], ItemCase, Container[ItemCase]]
+  ): Trials[Container[ItemCase]]
 }

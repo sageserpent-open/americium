@@ -141,6 +141,11 @@ class TrialsSpec
     api.booleans
       .withLimit(limit)
       .supplyTo(println)
+
+    api
+      .several[List, Int](api.integers)
+      .withLimit(limit)
+      .supplyTo(println)
   }
 
   "test driving the Java API" should "not produce smoke" in {
@@ -308,6 +313,7 @@ class TrialsSpec
         Seq(1 to 10, 20 to 30 map (_.toString)),
         Seq(1 to 10, Seq(true, false), 20 to 30),
         Seq(1, "3", 99),
+        Seq(1, "3", 2 to 4),
         Seq(1 to 10, Seq(12), -3 to -1),
         Seq(Seq(0), 1 to 10, 13, -3 to -1)
       )
@@ -341,6 +347,7 @@ class TrialsSpec
         Seq(1 to 10, 20 to 30 map (_.toString)),
         Seq(1 to 10, Seq(true, false), 20 to 30),
         Seq(1, "3", 99),
+        Seq(1, "3", 2 to 4),
         Seq(1 to 10, Seq(12), -3 to -1),
         Seq(Seq(0), 1 to 10, 13, -3 to -1),
         Seq((_: Long).toString),
