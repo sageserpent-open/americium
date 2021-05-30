@@ -102,18 +102,18 @@ object TrialsImplementation {
     )(implicit
         bf: BuildFrom[List[ItemCase], ItemCase, Container[ItemCase]]
     ): Trials[Container[ItemCase]] = {
-      val builder = bf.newBuilder(Nil)
 
-      def addItem: Trials[Container[ItemCase]] =
+      def addItem(partialResult: List[ItemCase]): Trials[Container[ItemCase]] =
         alternate(
-          only(builder.result()),
-          items.flatMap { item =>
-            builder += item
-            addItem
-          }
+          only {
+            val builder = bf.newBuilder(Nil)
+            partialResult.foreach(builder += _)
+            builder.result()
+          },
+          items.flatMap(item => addItem(item :: partialResult))
         )
 
-      addItem
+      addItem(Nil)
     }
   }
 
