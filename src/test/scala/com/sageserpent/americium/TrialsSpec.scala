@@ -355,7 +355,7 @@ class TrialsSpec
       )
     ) { alternatives =>
       withExpectations {
-        val alternativeIds = Vector.fill(alternatives.size) {
+        val alternativeInvariantIds = Vector.fill(alternatives.size) {
           UUID.randomUUID()
         }
 
@@ -367,24 +367,142 @@ class TrialsSpec
             case factory: (Long => Any) =>
               api.stream(factory)
             case singleton => api.only(singleton)
-          } zip alternativeIds map {
+          } zip alternativeInvariantIds map {
             // Set up a unique invariant on each alternative - it should supply pairs,
             // each of which has the same id component that denotes the alternative. As
             // the id is unique, the implementation of `Trials.alternative` cannot fake
             // the id values - so they must come from the alternatives somehow. Furthermore,
             // the pair should satisfy a predicate on its hash.
-            case (trials, id) => trials.map(_ -> id).filter(predicateOnHash)
+            case (trials, invariantId) =>
+              trials.map(_ -> invariantId).filter(predicateOnHash)
           })
 
         val mockConsumer = mockFunction[(Any, UUID), Unit]
 
         mockConsumer
           .expects(where { identifiedCase: (Any, UUID) =>
-            alternativeIds.contains(identifiedCase._2) && predicateOnHash(
+            alternativeInvariantIds.contains(
+              identifiedCase._2
+            ) && predicateOnHash(
               identifiedCase
             )
           })
           .anyNumberOfTimes()
+
+        sut.withLimit(limit).supplyTo(mockConsumer)
+      }
+    }
+
+  "collection trials" should "yield cases whose elements satisfy the same invariants as the values yielded by the base element trials" in
+    forAll(
+      Table(
+        "input",
+        1 to 10,
+        20 to 30 map (_.toString),
+        Seq(true, false),
+        1,
+        "3",
+        99,
+        Seq(12),
+        Seq.empty,
+        (_: Long).toString,
+        identity[Long] _
+      )
+    ) { input =>
+      withExpectations {
+        val invariantId = UUID.randomUUID()
+
+        def predicateOnHash(caze: Any) = 0 == caze.hashCode() % 3
+
+        val sut: Trials[List[(Any, UUID)]] =
+          api.several(
+            (input match {
+              case sequence: Seq[_] => api.choose(sequence)
+              case factory: (Long => Any) =>
+                api.stream(factory)
+              case singleton => api.only(singleton)
+            }).map(
+              _ ->
+                // Set up an invariant - it should supply pairs, each of which has
+                // the same id component. As the id is unique, the implementation
+                // of `Trials.several` cannot fake the id values - so they must come
+                // from the base trials somehow. Furthermore, the pair should satisfy
+                // a predicate on its hash.
+                invariantId
+            ).filter(predicateOnHash)
+          )
+
+        val mockConsumer = mockFunction[List[(Any, UUID)], Unit]
+
+        mockConsumer
+          .expects(where {
+            (_: List[(Any, UUID)]).forall(identifiedCase =>
+              invariantId == identifiedCase._2 && predicateOnHash(
+                identifiedCase
+              )
+            )
+          })
+          .anyNumberOfTimes()
+
+        sut.withLimit(limit).supplyTo(mockConsumer)
+      }
+    }
+
+  they should "yield members of the Cartesian product when the base elements trials are finite choices" in
+    forAll(
+      Table(
+        "input",
+        1 to 10,
+        20 to 30 map (_.toString),
+        Seq(true, false),
+        1,
+        "3",
+        99,
+        Seq(12),
+        Seq.empty
+      )
+    ) { input =>
+      withExpectations {
+        val maximumLengthOfACartesianProductMember = 3
+
+        def cartesianProductSizeLimitation(caze: List[Any]) =
+          maximumLengthOfACartesianProductMember >= caze.size
+
+        val sut: Trials[List[Any]] =
+          api
+            .several(input match {
+              case sequence: Seq[_] => api.choose(sequence)
+              case factory: (Long => Any) =>
+                api.stream(factory)
+              case singleton => api.only(singleton)
+            })
+            .filter(cartesianProductSizeLimitation)
+
+        val mockConsumer = mockFunction[Any, Unit]
+
+        val elements = input match {
+          case sequence: Seq[Any] =>
+            sequence.toSet
+          case singleton => Set(singleton)
+        }
+
+        val cartesianProductMembers: Set[List[Any]] = if (elements.nonEmpty) {
+          def cartesianProduct(
+              subProducts: LazyList[List[Any]]
+          ): LazyList[List[Any]] = subProducts.lazyAppendedAll(
+            cartesianProduct(
+              subProducts.flatMap(subProduct => elements.map(_ :: subProduct))
+            )
+          )
+
+          cartesianProduct(LazyList(Nil))
+            .takeWhile(cartesianProductSizeLimitation)
+            .toSet
+        } else Set(Nil)
+
+        cartesianProductMembers.foreach(product =>
+          mockConsumer.expects(product)
+        )
 
         sut.withLimit(limit).supplyTo(mockConsumer)
       }
