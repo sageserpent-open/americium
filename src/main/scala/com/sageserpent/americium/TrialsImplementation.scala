@@ -29,7 +29,7 @@ import _root_.java.util.function.{
   Supplier,
   Function => JavaFunction
 }
-import scala.collection.{BuildFrom, mutable}
+import scala.collection.mutable
 import scala.jdk.CollectionConverters._
 import scala.util.Random
 
@@ -97,16 +97,16 @@ object TrialsImplementation {
   // as trait implementation, but that doesn't sit nicely with the
   // analogous Java interface `JavaTrialsAPi`, so let's go with this...
   trait Wart extends TrialsApi {
-    override def several[Container[_], ItemCase](
+    override def several[Container, ItemCase](
         items: Trials[ItemCase]
     )(implicit
-        bf: BuildFrom[List[ItemCase], ItemCase, Container[ItemCase]]
-    ): Trials[Container[ItemCase]] = {
+        factory: scala.collection.Factory[ItemCase, Container]
+    ): Trials[Container] = {
 
-      def addItem(partialResult: List[ItemCase]): Trials[Container[ItemCase]] =
+      def addItem(partialResult: List[ItemCase]): Trials[Container] =
         alternate(
           only {
-            val builder = bf.newBuilder(Nil)
+            val builder = factory.newBuilder
             partialResult.foreach(builder += _)
             builder.result()
           },

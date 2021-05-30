@@ -143,7 +143,7 @@ class TrialsSpec
       .supplyTo(println)
 
     api
-      .several[List, Int](api.integers)
+      .several[Set[_], Int](api.integers)
       .withLimit(limit)
       .supplyTo(println)
   }
@@ -470,7 +470,7 @@ class TrialsSpec
 
         val sut: Trials[List[Any]] =
           api
-            .several(input match {
+            .several[List[_], Any](input match {
               case sequence: Seq[_] => api.choose(sequence)
               case factory: (Long => Any) =>
                 api.stream(factory)
