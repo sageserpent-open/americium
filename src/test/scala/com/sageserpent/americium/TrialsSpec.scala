@@ -39,33 +39,16 @@ object TrialsSpec {
   val limit: Int = 2000
 
   def integerVectorTrials: Trials[Vector[Int]] =
-    api.alternate(
-      api.only(Vector.empty),
-      api.integers.flatMap(head =>
-        integerVectorTrials.map(tail => head +: tail)
-      )
-    )
+    api.integers.several
 
   def doubleVectorTrials: Trials[Vector[Double]] =
-    api.alternate(
-      api.only(Vector.empty),
-      api.doubles.flatMap(head => doubleVectorTrials.map(tail => head +: tail))
-    )
+    api.doubles.several
 
   def longVectorTrials: Trials[Vector[Long]] =
-    api.alternate(
-      api.only(Vector.empty),
-      api.longs.flatMap(head => longVectorTrials.map(tail => head +: tail))
-    )
+    api.longs.several
 
   def listTrials: Trials[List[Int]] =
-    api.alternate(
-      for {
-        head <- api.integers
-        tail <- listTrials
-      } yield head :: tail,
-      api.only(Nil)
-    )
+    api.integers.several
 
   def binaryTreeTrials: Trials[BinaryTree] =
     api.alternate(
