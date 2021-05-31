@@ -146,6 +146,11 @@ class TrialsSpec
       .several[Set[_]]
       .withLimit(limit)
       .supplyTo(println)
+
+    api.integers
+      .several[Vector[_]]
+      .withLimit(limit)
+      .supplyTo(println)
   }
 
   "test driving the Java API" should "not produce smoke" in {
