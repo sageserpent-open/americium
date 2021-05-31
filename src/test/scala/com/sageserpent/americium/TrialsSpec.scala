@@ -142,8 +142,8 @@ class TrialsSpec
       .withLimit(limit)
       .supplyTo(println)
 
-    api
-      .several[Set[_], Int](api.integers)
+    api.integers
+      .several[Set[_]]
       .withLimit(limit)
       .supplyTo(println)
   }
@@ -415,22 +415,21 @@ class TrialsSpec
         def predicateOnHash(caze: Any) = 0 == caze.hashCode() % 3
 
         val sut: Trials[List[(Any, UUID)]] =
-          api.several(
-            (input match {
-              case sequence: Seq[_] => api.choose(sequence)
-              case factory: (Long => Any) =>
-                api.stream(factory)
-              case singleton => api.only(singleton)
-            }).map(
-              _ ->
-                // Set up an invariant - it should supply pairs, each of which has
-                // the same id component. As the id is unique, the implementation
-                // of `Trials.several` cannot fake the id values - so they must come
-                // from the base trials somehow. Furthermore, the pair should satisfy
-                // a predicate on its hash.
-                invariantId
-            ).filter(predicateOnHash)
-          )
+          (input match {
+            case sequence: Seq[_] => api.choose(sequence)
+            case factory: (Long => Any) =>
+              api.stream(factory)
+            case singleton => api.only(singleton)
+          }).map(
+            _ ->
+              // Set up an invariant - it should supply pairs, each of which has
+              // the same id component. As the id is unique, the implementation
+              // of `Trials.several` cannot fake the id values - so they must come
+              // from the base trials somehow. Furthermore, the pair should satisfy
+              // a predicate on its hash.
+              invariantId
+          ).filter(predicateOnHash)
+            .several
 
         val mockConsumer = mockFunction[List[(Any, UUID)], Unit]
 
@@ -469,13 +468,12 @@ class TrialsSpec
           maximumLengthOfACartesianProductMember >= caze.size
 
         val sut: Trials[List[Any]] =
-          api
-            .several[List[_], Any](input match {
-              case sequence: Seq[_] => api.choose(sequence)
-              case factory: (Long => Any) =>
-                api.stream(factory)
-              case singleton => api.only(singleton)
-            })
+          (input match {
+            case sequence: Seq[_] => api.choose(sequence)
+            case factory: (Long => Any) =>
+              api.stream(factory)
+            case singleton => api.only(singleton)
+          }).several[List[_]]
             .filter(cartesianProductSizeLimitation)
 
         val mockConsumer = mockFunction[Any, Unit]

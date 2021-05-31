@@ -1,7 +1,5 @@
 package com.sageserpent.americium
 
-import scala.collection.Factory
-
 trait TrialsApi {
   def delay[Case](delayed: => Trials[Case]): Trials[Case]
 
@@ -32,10 +30,4 @@ trait TrialsApi {
   def doubles: Trials[Double]
 
   def booleans: Trials[Boolean]
-
-  def several[Container, ItemCase](
-      items: Trials[ItemCase]
-  )(implicit
-      factory: Factory[ItemCase, Container]
-  ): Trials[Container]
 }

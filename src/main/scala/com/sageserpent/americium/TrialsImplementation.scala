@@ -89,44 +89,16 @@ object TrialsImplementation {
       scalaApi.booleans.map(Boolean.box _)
   }
 
-  // This is only here to avoid a baffling error from the compiler
-  // saying "can't existentially abstract over parameterized type",
-  // which is what happens if the override for `several` is pulled
-  // down into the definition of `scalaApi`. Of course, most of
-  // what's in that definition could be hoisted up into `TrialsApi`
-  // as trait implementation, but that doesn't sit nicely with the
-  // analogous Java interface `JavaTrialsAPi`, so let's go with this...
-  trait Wart extends TrialsApi {
-    override def several[Container, ItemCase](
-        items: Trials[ItemCase]
-    )(implicit
-        factory: scala.collection.Factory[ItemCase, Container]
-    ): Trials[Container] = {
-
-      def addItem(partialResult: List[ItemCase]): Trials[Container] =
-        alternate(
-          only {
-            val builder = factory.newBuilder
-            partialResult.foreach(builder += _)
-            builder.result()
-          },
-          items.flatMap(item => addItem(item :: partialResult))
-        )
-
-      addItem(Nil)
-    }
-  }
-
-  val scalaApi = new CommonApi with Wart {
+  val scalaApi = new CommonApi with TrialsApi {
     override def delay[Case](
         delayed: => Trials[Case]
     ): TrialsImplementation[Case] =
-      TrialsImplementation(Free.defer(delayed.generation))
+      TrialsImplementation(Free.defer(delayed.generation), this)
 
     override def choose[Case](
         choices: Iterable[Case]
     ): TrialsImplementation[Case] =
-      new TrialsImplementation(Choice(choices.toVector))
+      new TrialsImplementation(Choice(choices.toVector), this)
 
     override def alternate[Case](
         firstAlternative: Trials[Case],
@@ -145,7 +117,7 @@ object TrialsImplementation {
     override def stream[Case](
         factory: Long => Case
     ): TrialsImplementation[Case] =
-      new TrialsImplementation(Factory(factory))
+      new TrialsImplementation(Factory(factory), this)
 
     override def integers: TrialsImplementation[Int] = stream(_.hashCode)
 
@@ -194,7 +166,7 @@ object TrialsImplementation {
   abstract class CommonApi {
 
     def only[Case](onlyCase: Case): TrialsImplementation[Case] =
-      TrialsImplementation(pure[GenerationOperation, Case](onlyCase))
+      TrialsImplementation(pure[GenerationOperation, Case](onlyCase), scalaApi)
 
     def choose[Case](
         firstChoice: Case,
@@ -222,7 +194,8 @@ object TrialsImplementation {
 }
 
 case class TrialsImplementation[+Case](
-    override val generation: TrialsImplementation.Generation[_ <: Case]
+    override val generation: TrialsImplementation.Generation[_ <: Case],
+    api: TrialsApi
 ) extends JavaTrials[Case]
     with Trials[Case] {
 
@@ -560,7 +533,7 @@ case class TrialsImplementation[+Case](
   override def map[TransformedCase](
       transform: Case => TransformedCase
   ): TrialsImplementation[TransformedCase] =
-    TrialsImplementation(generation map transform)
+    TrialsImplementation(generation map transform, api)
 
   override def flatMap[TransformedCase](
       step: JavaFunction[_ >: Case, JavaTrials[TransformedCase]]
@@ -574,7 +547,10 @@ case class TrialsImplementation[+Case](
 
   override def filter(predicate: Case => Boolean): TrialsImplementation[Case] =
     flatMap((caze: Case) =>
-      new TrialsImplementation(FiltrationResult(Some(caze).filter(predicate)))
+      new TrialsImplementation(
+        FiltrationResult(Some(caze).filter(predicate)),
+        api
+      )
     )
 
   def mapFilter[TransformedCase](
@@ -589,13 +565,14 @@ case class TrialsImplementation[+Case](
       filteringTransform: Case => Option[TransformedCase]
   ): TrialsImplementation[TransformedCase] =
     flatMap((caze: Case) =>
-      new TrialsImplementation(FiltrationResult(filteringTransform(caze)))
+      new TrialsImplementation(FiltrationResult(filteringTransform(caze)), api)
     )
 
   def this(
-      generationOperation: TrialsImplementation.GenerationOperation[Case]
+      generationOperation: TrialsImplementation.GenerationOperation[Case],
+      api: TrialsApi
   ) = {
-    this(liftF(generationOperation))
+    this(liftF(generationOperation), api)
   }
 
   override def flatMap[TransformedCase](
@@ -603,7 +580,7 @@ case class TrialsImplementation[+Case](
   ): TrialsImplementation[TransformedCase] = {
     val adaptedStep = (step andThen (_.generation))
       .asInstanceOf[Case => Generation[TransformedCase]]
-    TrialsImplementation(generation flatMap adaptedStep)
+    TrialsImplementation(generation flatMap adaptedStep, api)
   }
 
   override def supplyTo(recipe: String, consumer: Consumer[_ >: Case]): Unit =
@@ -623,5 +600,22 @@ case class TrialsImplementation[+Case](
           override def recipe: String = decisionStages.asJson.spaces4
         }
     }
+  }
+
+  override def several[Container](implicit
+      factory: scala.collection.Factory[Case, Container]
+  ): Trials[Container] = {
+
+    def addItem(partialResult: List[Case]): Trials[Container] =
+      api.alternate(
+        api.only {
+          val builder = factory.newBuilder
+          partialResult.foreach(builder += _)
+          builder.result()
+        },
+        flatMap((item: Case) => addItem(item :: partialResult))
+      )
+
+    addItem(Nil)
   }
 }
