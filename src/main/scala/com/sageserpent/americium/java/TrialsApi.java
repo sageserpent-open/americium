@@ -1,5 +1,6 @@
 package com.sageserpent.americium.java;
 
+import java.time.Instant;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -73,4 +74,10 @@ public interface TrialsApi {
     Trials<Double> doubles();
 
     Trials<Boolean> booleans();
+
+    Trials<Character> characters();
+
+    Trials<Instant> instants();
+
+    Trials<String> strings();
 }

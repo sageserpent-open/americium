@@ -134,6 +134,18 @@ class TrialsSpec
       .several[Vector[_]]
       .withLimit(limit)
       .supplyTo(println)
+
+    api.characters
+      .withLimit(limit)
+      .supplyTo(println)
+
+    api.instants
+      .withLimit(limit)
+      .supplyTo(println)
+
+    api.strings
+      .withLimit(limit)
+      .supplyTo(println)
   }
 
   "test driving the Java API" should "not produce smoke" in {
@@ -181,6 +193,18 @@ class TrialsSpec
       .supplyTo(println)
 
     javaApi.booleans
+      .withLimit(limit)
+      .supplyTo(println)
+
+    javaApi.characters
+      .withLimit(limit)
+      .supplyTo(println)
+
+    javaApi.instants
+      .withLimit(limit)
+      .supplyTo(println)
+
+    javaApi.strings
       .withLimit(limit)
       .supplyTo(println)
   }
@@ -720,6 +744,12 @@ class TrialsSpec
     forAll(
       Table[TrialsAndCriterion[_]](
         "trials -> exceptionCriterion",
+        (
+          // This first entry isn't expected to shrink the values, only the length of the failing case.
+          api.strings map (_.toVector) map (_.map(_.toInt)),
+          (integerVector: Vector[Int]) =>
+            1 < integerVector.size && integerVector.sum > 7
+        ),
         (
           doubleVectorTrials,
           (doubleVector: Vector[Double]) =>

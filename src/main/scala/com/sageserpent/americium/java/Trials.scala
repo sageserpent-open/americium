@@ -14,8 +14,7 @@ object Trials {
 
   trait WithLimit[+Case] {
 
-    /**
-      * Consume trial cases until either there are no more or an exception is thrown by {@code consumer}.
+    /** Consume trial cases until either there are no more or an exception is thrown by {@code consumer}.
       * If an exception is thrown, attempts will be made to shrink the trial case that caused the
       * exception to a simpler case that throws an exception - the specific kind of exception isn't
       * necessarily the same between the first exceptional case and the final simplified one. The exception
@@ -37,22 +36,22 @@ trait Trials[+Case] extends TrialsFactoring[Case] {
   private[americium] val scalaTrials: ScalaTrials[Case]
 
   def map[TransformedCase](
-      transform: function.Function[_ >: Case, TransformedCase])
-    : Trials[TransformedCase]
+      transform: function.Function[_ >: Case, TransformedCase]
+  ): Trials[TransformedCase]
 
   def flatMap[TransformedCase](
-      step: function.Function[_ >: Case, Trials[TransformedCase]])
-    : Trials[TransformedCase]
+      step: function.Function[_ >: Case, Trials[TransformedCase]]
+  ): Trials[TransformedCase]
 
   def filter(predicate: Predicate[_ >: Case]): Trials[Case]
 
   def mapFilter[TransformedCase](
-      filteringTransform: function.Function[_ >: Case,
-                                            Optional[TransformedCase]])
-    : Trials[TransformedCase]
+      filteringTransform: function.Function[_ >: Case, Optional[
+        TransformedCase
+      ]]
+  ): Trials[TransformedCase]
 
-  /**
-    * Fluent syntax for configuring a limit to the number of cases
+  /** Fluent syntax for configuring a limit to the number of cases
     * supplied to a consumer.
     *
     * @param limit
@@ -60,8 +59,7 @@ trait Trials[+Case] extends TrialsFactoring[Case] {
     */
   def withLimit(limit: Int): WithLimit[Case]
 
-  /**
-    * Consume the single trial case reproduced by a recipe. This is intended
+  /** Consume the single trial case reproduced by a recipe. This is intended
     * to repeatedly run a test against a known failing case when debugging, so
     * the expectation is for this to *eventually* not throw an exception after
     * code changes are made in the system under test.
