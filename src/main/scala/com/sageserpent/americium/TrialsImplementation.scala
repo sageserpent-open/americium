@@ -18,10 +18,12 @@ import io.circe.{Decoder, Encoder}
 
 import _root_.java.lang.{
   Boolean => JavaBoolean,
+  Character => JavaCharacter,
   Double => JavaDouble,
   Iterable => JavaIterable,
   Long => JavaLong
 }
+import _root_.java.time.Instant
 import _root_.java.util.Optional
 import _root_.java.util.function.{
   Consumer,
@@ -87,18 +89,27 @@ object TrialsImplementation {
 
     override def booleans: TrialsImplementation[JavaBoolean] =
       scalaApi.booleans.map(Boolean.box _)
+
+    override def characters(): TrialsImplementation[JavaCharacter] =
+      scalaApi.characters.map(Char.box _)
+
+    override def instants(): TrialsImplementation[Instant] =
+      scalaApi.instants
+
+    override def strings(): TrialsImplementation[String] =
+      scalaApi.strings
   }
 
   val scalaApi = new CommonApi with TrialsApi {
     override def delay[Case](
         delayed: => Trials[Case]
     ): TrialsImplementation[Case] =
-      TrialsImplementation(Free.defer(delayed.generation), this)
+      TrialsImplementation(Free.defer(delayed.generation))
 
     override def choose[Case](
         choices: Iterable[Case]
     ): TrialsImplementation[Case] =
-      new TrialsImplementation(Choice(choices.toVector), this)
+      new TrialsImplementation(Choice(choices.toVector))
 
     override def alternate[Case](
         firstAlternative: Trials[Case],
@@ -117,7 +128,7 @@ object TrialsImplementation {
     override def stream[Case](
         factory: Long => Case
     ): TrialsImplementation[Case] =
-      new TrialsImplementation(Factory(factory), this)
+      new TrialsImplementation(Factory(factory))
 
     override def integers: TrialsImplementation[Int] = stream(_.hashCode)
 
@@ -140,6 +151,16 @@ object TrialsImplementation {
 
     override def booleans: TrialsImplementation[Boolean] =
       choose(true, false)
+
+    override def characters: TrialsImplementation[Char] =
+      choose(0 to 0xffff).map((_: Int).toChar)
+
+    override def instants: TrialsImplementation[Instant] =
+      longs.map(Instant.ofEpochMilli _)
+
+    override def strings: TrialsImplementation[String] = {
+      characters.several[String]
+    }
   }
 
   implicit val decisionStagesEncoder: Encoder[DecisionStages] =
@@ -166,7 +187,7 @@ object TrialsImplementation {
   abstract class CommonApi {
 
     def only[Case](onlyCase: Case): TrialsImplementation[Case] =
-      TrialsImplementation(pure[GenerationOperation, Case](onlyCase), scalaApi)
+      TrialsImplementation(pure[GenerationOperation, Case](onlyCase))
 
     def choose[Case](
         firstChoice: Case,
@@ -194,8 +215,7 @@ object TrialsImplementation {
 }
 
 case class TrialsImplementation[+Case](
-    override val generation: TrialsImplementation.Generation[_ <: Case],
-    api: TrialsApi
+    override val generation: TrialsImplementation.Generation[_ <: Case]
 ) extends JavaTrials[Case]
     with Trials[Case] {
 
@@ -533,7 +553,7 @@ case class TrialsImplementation[+Case](
   override def map[TransformedCase](
       transform: Case => TransformedCase
   ): TrialsImplementation[TransformedCase] =
-    TrialsImplementation(generation map transform, api)
+    TrialsImplementation(generation map transform)
 
   override def flatMap[TransformedCase](
       step: JavaFunction[_ >: Case, JavaTrials[TransformedCase]]
@@ -548,8 +568,7 @@ case class TrialsImplementation[+Case](
   override def filter(predicate: Case => Boolean): TrialsImplementation[Case] =
     flatMap((caze: Case) =>
       new TrialsImplementation(
-        FiltrationResult(Some(caze).filter(predicate)),
-        api
+        FiltrationResult(Some(caze).filter(predicate))
       )
     )
 
@@ -565,14 +584,13 @@ case class TrialsImplementation[+Case](
       filteringTransform: Case => Option[TransformedCase]
   ): TrialsImplementation[TransformedCase] =
     flatMap((caze: Case) =>
-      new TrialsImplementation(FiltrationResult(filteringTransform(caze)), api)
+      new TrialsImplementation(FiltrationResult(filteringTransform(caze)))
     )
 
   def this(
-      generationOperation: TrialsImplementation.GenerationOperation[Case],
-      api: TrialsApi
+      generationOperation: TrialsImplementation.GenerationOperation[Case]
   ) = {
-    this(liftF(generationOperation), api)
+    this(liftF(generationOperation))
   }
 
   override def flatMap[TransformedCase](
@@ -580,7 +598,7 @@ case class TrialsImplementation[+Case](
   ): TrialsImplementation[TransformedCase] = {
     val adaptedStep = (step andThen (_.generation))
       .asInstanceOf[Case => Generation[TransformedCase]]
-    TrialsImplementation(generation flatMap adaptedStep, api)
+    TrialsImplementation(generation flatMap adaptedStep)
   }
 
   override def supplyTo(recipe: String, consumer: Consumer[_ >: Case]): Unit =
@@ -604,11 +622,11 @@ case class TrialsImplementation[+Case](
 
   override def several[Container](implicit
       factory: scala.collection.Factory[Case, Container]
-  ): Trials[Container] = {
+  ): TrialsImplementation[Container] = {
 
-    def addItem(partialResult: List[Case]): Trials[Container] =
-      api.alternate(
-        api.only {
+    def addItem(partialResult: List[Case]): TrialsImplementation[Container] =
+      scalaApi.alternate(
+        scalaApi.only {
           val builder = factory.newBuilder
           partialResult.foreach(builder += _)
           builder.result()

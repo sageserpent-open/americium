@@ -1,5 +1,7 @@
 package com.sageserpent.americium
 
+import _root_.java.time.Instant
+
 trait TrialsApi {
   def delay[Case](delayed: => Trials[Case]): Trials[Case]
 
@@ -30,4 +32,10 @@ trait TrialsApi {
   def doubles: Trials[Double]
 
   def booleans: Trials[Boolean]
+
+  def characters: Trials[Char]
+
+  def instants: Trials[Instant]
+
+  def strings: Trials[String]
 }
