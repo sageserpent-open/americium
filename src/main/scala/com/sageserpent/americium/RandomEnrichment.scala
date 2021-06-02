@@ -500,11 +500,9 @@ trait RandomEnrichment {
         pickAnItem(streams)
       }
 
-    def splitIntoNonEmptyPieces[Container[Element] <: Iterable[
-      Element
-    ] forSome { type Element }, X](
-        items: Container[X]
-    ): LazyList[Container[X]] = {
+    def splitIntoNonEmptyPieces[Container[X] <: Iterable[X], Item](
+        items: Container[Item]
+    ): LazyList[Container[Item]] = {
       val numberOfItems = items.size
       if (0 < numberOfItems) {
         val numberOfSplitsDesired = chooseAnyNumberFromOneTo(numberOfItems)
@@ -515,19 +513,22 @@ trait RandomEnrichment {
 
         def splits(
             indicesToSplitAt: LazyList[Int],
-            items: Container[X],
+            items: Container[Item],
             indexOfPreviousSplit: Int
-        ): LazyList[Container[X]] =
+        ): LazyList[Container[Item]] =
           indicesToSplitAt match {
             case LazyList() =>
               if (items.isEmpty) LazyList.empty
               else LazyList(items)
             case indexToSplitAt #:: remainingIndicesToSplitAt =>
-              val (splitPiece, remainingItems) =
+              val (
+                splitPiece: Container[Item],
+                remainingItems: Container[Item]
+              ) =
                 items splitAt (indexToSplitAt - indexOfPreviousSplit)
-              splitPiece.asInstanceOf[Container[X]] #:: splits(
+              splitPiece #:: splits(
                 remainingIndicesToSplitAt,
-                remainingItems.asInstanceOf[Container[X]],
+                remainingItems,
                 indexToSplitAt
               )
           }
