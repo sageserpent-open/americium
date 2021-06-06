@@ -6,8 +6,8 @@ import _root_.com.sageserpent.americium.{
 }
 import com.sageserpent.americium.java.Trials.WithLimit
 
-import _root_.java.util.function.{Consumer, Predicate}
-import java.util.{Optional, function}
+import _root_.java.util.function.{Consumer, Predicate, Function => JavaFunction}
+import java.util.Optional
 
 object Trials {
   def api(): TrialsApi = TrialsImplementation.javaApi
@@ -36,17 +36,17 @@ trait Trials[+Case] extends TrialsFactoring[Case] {
   private[americium] val scalaTrials: ScalaTrials[Case]
 
   def map[TransformedCase](
-      transform: function.Function[_ >: Case, TransformedCase]
+      transform: JavaFunction[_ >: Case, TransformedCase]
   ): Trials[TransformedCase]
 
   def flatMap[TransformedCase](
-      step: function.Function[_ >: Case, Trials[TransformedCase]]
+      step: JavaFunction[_ >: Case, Trials[TransformedCase]]
   ): Trials[TransformedCase]
 
   def filter(predicate: Predicate[_ >: Case]): Trials[Case]
 
   def mapFilter[TransformedCase](
-      filteringTransform: function.Function[_ >: Case, Optional[
+      filteringTransform: JavaFunction[_ >: Case, Optional[
         TransformedCase
       ]]
   ): Trials[TransformedCase]
