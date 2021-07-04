@@ -564,8 +564,9 @@ case class TrialsImplementation[+Case](
       elementComparator: JavaComparator[_ >: Case]
   ): TrialsImplementation[ImmutableSortedSet[_ <: Case]] = ???
 
-  override def maps[Value]()
-      : TrialsImplementation[ImmutableMap[_ <: Case, Value]] = ???
+  override def maps[Value](
+      values: JavaTrials[Value]
+  ): TrialsImplementation[ImmutableMap[_ <: Case, Value]] = ???
 
   override def sortedMaps[Value](
       elementComparator: JavaComparator[_ >: Case],

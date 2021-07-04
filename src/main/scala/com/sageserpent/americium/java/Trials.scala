@@ -1,9 +1,6 @@
 package com.sageserpent.americium.java
 
-import _root_.com.sageserpent.americium.{
-  TrialsImplementation,
-  Trials => ScalaTrials
-}
+import _root_.com.sageserpent.americium.{TrialsImplementation, Trials => ScalaTrials}
 import com.google.common.collect._
 import com.sageserpent.americium.java.Trials.WithLimit
 
@@ -82,7 +79,7 @@ trait Trials[+Case] extends TrialsFactoring[Case] {
       elementComparator: Comparator[_ >: Case]
   ): Trials[ImmutableSortedSet[_ <: Case]]
 
-  def maps[Value](): Trials[ImmutableMap[_ <: Case, Value]]
+  def maps[Value](values: Trials[Value]): Trials[ImmutableMap[_ <: Case, Value]]
 
   def sortedMaps[Value](
       elementComparator: Comparator[_ >: Case],
