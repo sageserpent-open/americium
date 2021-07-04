@@ -4,10 +4,11 @@ import _root_.com.sageserpent.americium.{
   TrialsImplementation,
   Trials => ScalaTrials
 }
+import com.google.common.collect._
 import com.sageserpent.americium.java.Trials.WithLimit
 
 import _root_.java.util.function.{Consumer, Predicate, Function => JavaFunction}
-import java.util.Optional
+import java.util.{Comparator, Optional}
 
 object Trials {
   def api(): TrialsApi = TrialsImplementation.javaApi
@@ -72,4 +73,19 @@ trait Trials[+Case] extends TrialsFactoring[Case] {
     *                          of {@link Trials} instance.
     */
   def supplyTo(recipe: String, consumer: Consumer[_ >: Case]): Unit
+
+  def lists(): Trials[ImmutableList[_ <: Case]]
+
+  def sets(): Trials[ImmutableSet[_ <: Case]]
+
+  def sortedSets(
+      elementComparator: Comparator[_ >: Case]
+  ): Trials[ImmutableSortedSet[_ <: Case]]
+
+  def maps[Value](): Trials[ImmutableMap[_ <: Case, Value]]
+
+  def sortedMaps[Value](
+      elementComparator: Comparator[_ >: Case],
+      values: Trials[Value]
+  ): Trials[ImmutableSortedMap[_ <: Case, Value]]
 }

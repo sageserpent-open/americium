@@ -6,6 +6,7 @@ import cats.free.Free
 import cats.free.Free.{liftF, pure}
 import cats.syntax.applicative._
 import cats.{Eval, ~>}
+import com.google.common.collect._
 import com.sageserpent.americium.java.{
   Trials => JavaTrials,
   TrialsApi => JavaTrialsApi
@@ -24,13 +25,13 @@ import _root_.java.lang.{
   Long => JavaLong
 }
 import _root_.java.time.Instant
-import _root_.java.util.Optional
 import _root_.java.util.function.{
   Consumer,
   Predicate,
   Supplier,
   Function => JavaFunction
 }
+import _root_.java.util.{Optional, Comparator => JavaComparator}
 import scala.collection.mutable
 import scala.jdk.CollectionConverters._
 import scala.util.Random
@@ -548,6 +549,22 @@ case class TrialsImplementation[+Case](
   override def map[TransformedCase](
       transform: JavaFunction[_ >: Case, TransformedCase]
   ): TrialsImplementation[TransformedCase] = map(transform.apply _)
+
+  override def lists(): TrialsImplementation[ImmutableList[_ <: Case]] = ???
+
+  override def sets(): TrialsImplementation[ImmutableSet[_ <: Case]] = ???
+
+  override def sortedSets(
+      elementComparator: JavaComparator[_ >: Case]
+  ): TrialsImplementation[ImmutableSortedSet[_ <: Case]] = ???
+
+  override def maps[Value]()
+      : TrialsImplementation[ImmutableMap[_ <: Case, Value]] = ???
+
+  override def sortedMaps[Value](
+      elementComparator: JavaComparator[_ >: Case],
+      values: JavaTrials[Value]
+  ): TrialsImplementation[ImmutableSortedMap[_ <: Case, Value]] = ???
 
   // Scala-only API ...
   override def map[TransformedCase](

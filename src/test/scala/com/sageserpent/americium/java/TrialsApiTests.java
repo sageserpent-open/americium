@@ -65,5 +65,9 @@ public class TrialsApiTests {
         System.out.println("Chained integers and Booleans in a tree...");
 
         chainedBooleansAndIntegersInATree().withLimit(limit).supplyTo(System.out::println);
+
+        System.out.println("A sorted map of strings keyed by integers...");
+
+        integerTrials.sortedMaps(Integer::compare, api.strings()).withLimit(limit).supplyTo(System.out::println);
     }
 }
