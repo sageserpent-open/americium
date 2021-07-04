@@ -213,6 +213,12 @@ object TrialsImplementation {
   // will deal with these.
   case class FiltrationResult[Case](result: Option[Case])
       extends GenerationOperation[Case]
+
+  trait Builder[-Case, Container] {
+    def +=(caze: Case): Unit
+
+    def result(): Container
+  }
 }
 
 case class TrialsImplementation[+Case](
@@ -639,12 +645,21 @@ case class TrialsImplementation[+Case](
 
   override def several[Container](implicit
       factory: scala.collection.Factory[Case, Container]
-  ): TrialsImplementation[Container] = {
+  ): TrialsImplementation[Container] = several(new Builder[Case, Container] {
+    val underlyingBuilder = factory.newBuilder
 
+    override def +=(caze: Case): Unit = { underlyingBuilder += caze }
+
+    override def result(): Container = underlyingBuilder.result()
+  })
+
+  private def several[Container](
+      builderFactory: => Builder[Case, Container]
+  ): TrialsImplementation[Container] = {
     def addItem(partialResult: List[Case]): TrialsImplementation[Container] =
       scalaApi.alternate(
         scalaApi.only {
-          val builder = factory.newBuilder
+          val builder = builderFactory
           partialResult.foreach(builder += _)
           builder.result()
         },
