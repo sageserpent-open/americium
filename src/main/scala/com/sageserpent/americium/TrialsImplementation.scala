@@ -31,7 +31,7 @@ import _root_.java.util.function.{
   Supplier,
   Function => JavaFunction
 }
-import _root_.java.util.{Optional, Comparator => JavaComparator}
+import _root_.java.util.{Optional, Comparator => JavaComparator, Map => JavaMap}
 import scala.collection.mutable
 import scala.jdk.CollectionConverters._
 import scala.util.Random
@@ -556,9 +556,25 @@ case class TrialsImplementation[+Case](
       transform: JavaFunction[_ >: Case, TransformedCase]
   ): TrialsImplementation[TransformedCase] = map(transform.apply _)
 
-  override def lists(): TrialsImplementation[ImmutableList[_ <: Case]] = ???
+  override def lists(): TrialsImplementation[ImmutableList[_ <: Case]] =
+    several(new Builder[Case, ImmutableList[_ <: Case]] {
+      private val underlyingBuilder = ImmutableList.builder[Case]()
 
-  override def sets(): TrialsImplementation[ImmutableSet[_ <: Case]] = ???
+      override def +=(caze: Case): Unit = { underlyingBuilder.add(caze) }
+
+      override def result(): ImmutableList[_ <: Case] =
+        underlyingBuilder.build()
+    })
+
+  override def sets(): TrialsImplementation[ImmutableSet[_ <: Case]] =
+    several(new Builder[Case, ImmutableSet[_ <: Case]] {
+      private val underlyingBuilder = ImmutableSet.builder[Case]()
+
+      override def +=(caze: Case): Unit = { underlyingBuilder.add(caze) }
+
+      override def result(): ImmutableSet[_ <: Case] =
+        underlyingBuilder.build()
+    })
 
   override def sortedSets(
       elementComparator: JavaComparator[_ >: Case]
@@ -566,7 +582,18 @@ case class TrialsImplementation[+Case](
 
   override def maps[Value](
       values: JavaTrials[Value]
-  ): TrialsImplementation[ImmutableMap[_ <: Case, Value]] = ???
+  ): TrialsImplementation[ImmutableMap[_ <: Case, Value]] = {
+    val annoyingWorkaroundToPreventAmbiguity
+        : JavaFunction[Case, JavaTrials[(Case, Value)]] = key =>
+      values.map(key -> _)
+
+    flatMap(annoyingWorkaroundToPreventAmbiguity)
+      .several[Map[_ <: Case, Value]]
+      .map((_: Map[_ <: Case, Value]).asJava)
+      .map((mapToWrap: JavaMap[_ <: Case, Value]) =>
+        ImmutableMap.copyOf(mapToWrap)
+      )
+  }
 
   override def sortedMaps[Value](
       elementComparator: JavaComparator[_ >: Case],
