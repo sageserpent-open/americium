@@ -66,8 +66,22 @@ public class TrialsApiTests {
 
         chainedBooleansAndIntegersInATree().withLimit(limit).supplyTo(System.out::println);
 
+        System.out.println("A list of doubles...");
+
+        doubleTrials.lists().withLimit(limit).supplyTo(System.out::println);
+
+        System.out.println("A set of doubles...");
+
+        doubleTrials.sets().withLimit(limit).supplyTo(System.out::println);
+
+        System.out.println("A map of strings keyed by integers...");
+
+        Trials<Integer> integersTrialsWithVariety = api.choose(1, 2, 3);
+
+        integersTrialsWithVariety.maps(api.strings()).withLimit(limit).supplyTo(System.out::println);
+
         System.out.println("A sorted map of strings keyed by integers...");
 
-        integerTrials.sortedMaps(Integer::compare, api.strings()).withLimit(limit).supplyTo(System.out::println);
+        integersTrialsWithVariety.sortedMaps(Integer::compare, api.strings()).withLimit(limit).supplyTo(System.out::println);
     }
 }
