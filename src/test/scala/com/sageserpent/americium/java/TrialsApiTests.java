@@ -74,6 +74,10 @@ public class TrialsApiTests {
 
         doubleTrials.sets().withLimit(limit).supplyTo(System.out::println);
 
+        System.out.println("A sorted set of doubles...");
+
+        doubleTrials.sortedSets(Double::compareTo).withLimit(limit).supplyTo(System.out::println);
+
         System.out.println("A map of strings keyed by integers...");
 
         Trials<Integer> integersTrialsWithVariety = api.choose(1, 2, 3);
