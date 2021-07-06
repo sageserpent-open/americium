@@ -578,7 +578,16 @@ case class TrialsImplementation[+Case](
 
   override def sortedSets(
       elementComparator: JavaComparator[_ >: Case]
-  ): TrialsImplementation[ImmutableSortedSet[_ <: Case]] = ???
+  ): TrialsImplementation[ImmutableSortedSet[_ <: Case]] =
+    several(new Builder[Case, ImmutableSortedSet[_ <: Case]] {
+      private val underlyingBuilder: ImmutableSortedSet.Builder[Case] =
+        new ImmutableSortedSet.Builder(elementComparator)
+
+      override def +=(caze: Case): Unit = { underlyingBuilder.add(caze) }
+
+      override def result(): ImmutableSortedSet[_ <: Case] =
+        underlyingBuilder.build()
+    })
 
   override def maps[Value](
       values: JavaTrials[Value]
@@ -598,7 +607,18 @@ case class TrialsImplementation[+Case](
   override def sortedMaps[Value](
       elementComparator: JavaComparator[_ >: Case],
       values: JavaTrials[Value]
-  ): TrialsImplementation[ImmutableSortedMap[_ <: Case, Value]] = ???
+  ): TrialsImplementation[ImmutableSortedMap[_ <: Case, Value]] = {
+    val annoyingWorkaroundToPreventAmbiguity
+        : JavaFunction[Case, JavaTrials[(Case, Value)]] = key =>
+      values.map(key -> _)
+
+    flatMap(annoyingWorkaroundToPreventAmbiguity)
+      .several[Map[_ <: Case, Value]]
+      .map((_: Map[_ <: Case, Value]).asJava)
+      .map((mapToWrap: JavaMap[_ <: Case, Value]) =>
+        ImmutableSortedMap.copyOf(mapToWrap, elementComparator)
+      )
+  }
 
   // Scala-only API ...
   override def map[TransformedCase](
