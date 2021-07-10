@@ -94,7 +94,7 @@ public class TrialsApiTests {
     }
 
     static Stream<ImmutableSet<? extends String>> sets() {
-        return JUnit5Provider.of(api.strings().sets());
+        return JUnit5Provider.of(api.strings().sets(), 30);
     }
 
     @ParameterizedTest
