@@ -3,10 +3,12 @@ package com.sageserpent.americium.java;
 import com.google.common.collect.ImmutableSet;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import java.math.BigDecimal;
 import java.util.Iterator;
+import java.util.Map;
 
 public class TrialsApiTests {
     private final static TrialsApi api = Trials.api();
@@ -94,12 +96,22 @@ public class TrialsApiTests {
     }
 
     static Iterator<? extends ImmutableSet<? extends String>> sets() {
-        return JUnit5Provider.of(api.strings().sets(), 30);
+        return JUnit5Provider.of(30, api.strings().sets());
     }
 
     @ParameterizedTest
     @MethodSource(value = "sets")
-    void testDriveProvider(ImmutableSet<? extends String> distinctStrings) {
+    void testDriveSetsProvider(ImmutableSet<? extends String> distinctStrings) {
         System.out.println(distinctStrings);
+    }
+
+    static Iterator<Arguments> mixtures() {
+        return JUnit5Provider.of(32, api.integers(), api.strings().maps(api.booleans()));
+    }
+
+    @ParameterizedTest
+    @MethodSource(value = "mixtures")
+    void testDriveMixturesProvider(int integer, Map<String, Boolean> dictionary) {
+        System.out.println(String.format("%d, %s", integer, dictionary));
     }
 }
