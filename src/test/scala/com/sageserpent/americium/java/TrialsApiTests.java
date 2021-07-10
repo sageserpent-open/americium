@@ -6,7 +6,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import java.math.BigDecimal;
-import java.util.stream.Stream;
+import java.util.Iterator;
 
 public class TrialsApiTests {
     private final static TrialsApi api = Trials.api();
@@ -93,7 +93,7 @@ public class TrialsApiTests {
         integersTrialsWithVariety.sortedMaps(Integer::compare, api.strings()).withLimit(limit).supplyTo(System.out::println);
     }
 
-    static Stream<ImmutableSet<? extends String>> sets() {
+    static Iterator<? extends ImmutableSet<? extends String>> sets() {
         return JUnit5Provider.of(api.strings().sets(), 30);
     }
 
