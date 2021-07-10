@@ -1,8 +1,12 @@
 package com.sageserpent.americium.java;
 
+import com.google.common.collect.ImmutableSet;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.math.BigDecimal;
+import java.util.stream.Stream;
 
 public class TrialsApiTests {
     private final static TrialsApi api = Trials.api();
@@ -87,5 +91,15 @@ public class TrialsApiTests {
         System.out.println("A sorted map of strings keyed by integers...");
 
         integersTrialsWithVariety.sortedMaps(Integer::compare, api.strings()).withLimit(limit).supplyTo(System.out::println);
+    }
+
+    static Stream<ImmutableSet<? extends String>> sets() {
+        return JUnit5Provider.of(api.strings().sets());
+    }
+
+    @ParameterizedTest
+    @MethodSource(value = "sets")
+    void testDriveProvider(ImmutableSet<? extends String> distinctStrings) {
+        System.out.println(distinctStrings);
     }
 }

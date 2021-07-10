@@ -33,6 +33,7 @@ lazy val settings = Seq(
   libraryDependencies += "io.circe"                   %% "circe-generic"             % "0.14.0-M4",
   libraryDependencies += "io.circe"                   %% "circe-parser"              % "0.14.0-M4",
   libraryDependencies += "com.google.guava"            % "guava"                     % "30.1.1-jre",
+  libraryDependencies += "org.junit.jupiter"           % "junit-jupiter-params"      % "5.7.0",
   libraryDependencies += "org.typelevel"              %% "cats-laws"                 % "2.4.2"                          % Test,
   libraryDependencies += "org.scalatest"              %% "scalatest"                 % "3.2.5"                          % Test,
   libraryDependencies += "org.scalacheck"             %% "scalacheck"                % "1.15.3"                         % Test,
