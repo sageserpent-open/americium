@@ -1,11 +1,14 @@
 package com.sageserpent.americium.java
 
-import _root_.com.sageserpent.americium.{TrialsImplementation, Trials => ScalaTrials}
+import _root_.com.sageserpent.americium.{
+  TrialsImplementation,
+  Trials => ScalaTrials
+}
 import com.google.common.collect._
 import com.sageserpent.americium.java.Trials.WithLimit
 
 import _root_.java.util.function.{Consumer, Predicate, Function => JavaFunction}
-import java.util.{Comparator, Optional}
+import java.util.{Comparator, Optional, Iterator => JavaIterator}
 
 object Trials {
   def api(): TrialsApi = TrialsImplementation.javaApi
@@ -27,6 +30,8 @@ object Trials {
       *       they could potentially all fit within the limit.
       */
     def supplyTo(consumer: Consumer[_ >: Case]): Unit
+
+    def asIterator(): JavaIterator[_ <: Case]
   }
 }
 

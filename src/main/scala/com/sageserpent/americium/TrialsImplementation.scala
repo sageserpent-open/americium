@@ -31,7 +31,12 @@ import _root_.java.util.function.{
   Supplier,
   Function => JavaFunction
 }
-import _root_.java.util.{Optional, Comparator => JavaComparator, Map => JavaMap}
+import _root_.java.util.{
+  Optional,
+  Comparator => JavaComparator,
+  Iterator => JavaIterator,
+  Map => JavaMap
+}
 import scala.collection.mutable
 import scala.jdk.CollectionConverters._
 import scala.util.Random
@@ -401,6 +406,14 @@ case class TrialsImplementation[+Case](
                 shrink(caze, throwable, decisionStages, factoryShrinkage, limit)
             }
         }
+      }
+
+      override def asIterator(): JavaIterator[_ <: Case] = {
+        val randomBehaviour = new Random(734874)
+
+        val factoryShrinkage = 1
+
+        cases(limit, None, randomBehaviour, factoryShrinkage).map(_._2).asJava
       }
     }
 
