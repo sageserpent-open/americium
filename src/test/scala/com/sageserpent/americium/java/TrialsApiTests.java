@@ -105,7 +105,7 @@ public class TrialsApiTests {
         System.out.println(distinctStrings);
     }
 
-    static Iterator<Arguments> mixtures() {
+    static Iterator<? extends Arguments> mixtures() {
         return JUnit5Provider.of(32, api.integers(), api.strings().maps(api.booleans()));
     }
 
