@@ -1,6 +1,7 @@
 package com.sageserpent.americium
 
 import cats._
+import cats.implicits._
 import com.sageserpent.americium.Trials.WithLimit
 import com.sageserpent.americium.TrialsImplementation.GenerationSupport
 import com.sageserpent.americium.java.TrialsFactoring
@@ -13,6 +14,19 @@ object Trials extends TrialsByMagnolia {
 
   trait WithLimit[+Case] {
     def supplyTo(consumer: Case => Unit): Unit
+  }
+
+  trait WithLimitTuple2[+Case1, +Case2] extends WithLimit[(Case1, Case2)] {
+    def supplyTo(consumer: (Case1, Case2) => Unit): Unit = supplyTo(
+      consumer.tupled
+    )
+  }
+
+  trait WithLimitTuple3[+Case1, +Case2, +Case3]
+      extends WithLimit[(Case1, Case2, Case3)] {
+    def supplyTo(consumer: (Case1, Case2, Case3) => Unit): Unit = supplyTo(
+      consumer.tupled
+    )
   }
 
   implicit val monadInstance: Monad[Trials] = new Monad[Trials]
@@ -31,6 +45,30 @@ object Trials extends TrialsByMagnolia {
           f: A => Option[B]
       ): Trials[B] = fa.mapFilter(f)
     }
+
+  implicit class tuple2Trials[+Case1, +Case2](
+      val pair: (Trials[Case1], Trials[Case2])
+  ) extends AnyVal {
+    def withLimit(limit: Int): WithLimitTuple2[Case1, Case2] =
+      new WithLimitTuple2[Case1, Case2] {
+        val withLimit = pair.mapN(Tuple2.apply).withLimit(limit)
+
+        override def supplyTo(consumer: ((Case1, Case2)) => Unit): Unit =
+          withLimit.supplyTo(consumer)
+      }
+  }
+
+  implicit class tuple3Trials[+Case1, +Case2, +Case3](
+      val triple: (Trials[Case1], Trials[Case2], Trials[Case3])
+  ) extends AnyVal {
+    def withLimit(limit: Int): WithLimitTuple3[Case1, Case2, Case3] =
+      new WithLimitTuple3[Case1, Case2, Case3] {
+        val withLimit = triple.mapN(Tuple3.apply).withLimit(limit)
+
+        override def supplyTo(consumer: ((Case1, Case2, Case3)) => Unit): Unit =
+          withLimit.supplyTo(consumer)
+      }
+  }
 }
 
 trait Trials[+Case] extends TrialsFactoring[Case] with GenerationSupport[Case] {
