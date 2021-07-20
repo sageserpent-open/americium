@@ -144,8 +144,7 @@ class RichSeqSpec extends AnyFlatSpec with Matchers {
       }
 
   it should "preserve the order of items as they appear in their own input inner sequence" in
-    (possiblyEmptyInputSequenceTrials map (_.sorted) map (_ map (_.toLong)))
-      .several[List[List[Long]]]
+    (possiblyEmptyInputSequenceTrials map (_.sorted) map (_ map (_.toLong))).lists
       .filter(_.nonEmpty)
       .withLimit(100)
       .supplyTo { inputMultiplierSequences =>
@@ -163,8 +162,7 @@ class RichSeqSpec extends AnyFlatSpec with Matchers {
       }
 
   it should "preserve the order of items as they appear across the input sequences, if the inner sequence type preserves the original order" in
-    (possiblyEmptyInputSequenceTrials map (_ map (_.toLong)))
-      .several[List[List[Long]]]
+    (possiblyEmptyInputSequenceTrials map (_ map (_.toLong))).lists
       .filter(_.nonEmpty)
       .withLimit(100)
       .supplyTo { inputMultiplierSequences =>
@@ -184,8 +182,7 @@ class RichSeqSpec extends AnyFlatSpec with Matchers {
       }
 
   it should "impose the inner sequence type's ordering on items taken from across the input sequence, if such an ordering is defined" in
-    (possiblyEmptyInputSequenceTrials map (items => SortedSet(items: _*)))
-      .several[List[SortedSet[Int]]]
+    (possiblyEmptyInputSequenceTrials map (items => SortedSet(items: _*))).lists
       .filter(_.nonEmpty)
       .withLimit(100)
       .supplyTo { inputSequences =>

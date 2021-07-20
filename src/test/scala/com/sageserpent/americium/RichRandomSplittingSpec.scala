@@ -19,7 +19,7 @@ class RichRandomSplittingSpec
 
   val itemTrials: Trials[Char] = api.characters
 
-  val itemsTrials = itemTrials.several[List[Char]]
+  val itemsTrials: Trials[List[Char]] = itemTrials.lists
 
   val numberOfRepeatsTrials: Trials[Int] = api.choose(1, 4)
 
