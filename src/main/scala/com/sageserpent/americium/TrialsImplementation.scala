@@ -569,7 +569,8 @@ case class TrialsImplementation[+Case](
       transform: JavaFunction[_ >: Case, TransformedCase]
   ): TrialsImplementation[TransformedCase] = map(transform.apply _)
 
-  override def lists(): TrialsImplementation[ImmutableList[_ <: Case]] =
+  override def immutableLists()
+      : TrialsImplementation[ImmutableList[_ <: Case]] =
     several(new Builder[Case, ImmutableList[_ <: Case]] {
       private val underlyingBuilder = ImmutableList.builder[Case]()
 
@@ -579,7 +580,7 @@ case class TrialsImplementation[+Case](
         underlyingBuilder.build()
     })
 
-  override def sets(): TrialsImplementation[ImmutableSet[_ <: Case]] =
+  override def immutableSets(): TrialsImplementation[ImmutableSet[_ <: Case]] =
     several(new Builder[Case, ImmutableSet[_ <: Case]] {
       private val underlyingBuilder = ImmutableSet.builder[Case]()
 
@@ -589,7 +590,7 @@ case class TrialsImplementation[+Case](
         underlyingBuilder.build()
     })
 
-  override def sortedSets(
+  override def immutableSortedSets(
       elementComparator: JavaComparator[_ >: Case]
   ): TrialsImplementation[ImmutableSortedSet[_ <: Case]] =
     several(new Builder[Case, ImmutableSortedSet[_ <: Case]] {
@@ -602,7 +603,7 @@ case class TrialsImplementation[+Case](
         underlyingBuilder.build()
     })
 
-  override def maps[Value](
+  override def immutableMaps[Value](
       values: JavaTrials[Value]
   ): TrialsImplementation[ImmutableMap[_ <: Case, Value]] = {
     val annoyingWorkaroundToPreventAmbiguity
@@ -617,7 +618,7 @@ case class TrialsImplementation[+Case](
       )
   }
 
-  override def sortedMaps[Value](
+  override def immutableSortedMaps[Value](
       elementComparator: JavaComparator[_ >: Case],
       values: JavaTrials[Value]
   ): TrialsImplementation[ImmutableSortedMap[_ <: Case, Value]] = {

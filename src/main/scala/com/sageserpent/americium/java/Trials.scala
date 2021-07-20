@@ -76,17 +76,19 @@ trait Trials[+Case] extends TrialsFactoring[Case] {
     */
   def supplyTo(recipe: String, consumer: Consumer[_ >: Case]): Unit
 
-  def lists(): Trials[ImmutableList[_ <: Case]]
+  def immutableLists(): Trials[ImmutableList[_ <: Case]]
 
-  def sets(): Trials[ImmutableSet[_ <: Case]]
+  def immutableSets(): Trials[ImmutableSet[_ <: Case]]
 
-  def sortedSets(
+  def immutableSortedSets(
       elementComparator: Comparator[_ >: Case]
   ): Trials[ImmutableSortedSet[_ <: Case]]
 
-  def maps[Value](values: Trials[Value]): Trials[ImmutableMap[_ <: Case, Value]]
+  def immutableMaps[Value](
+      values: Trials[Value]
+  ): Trials[ImmutableMap[_ <: Case, Value]]
 
-  def sortedMaps[Value](
+  def immutableSortedMaps[Value](
       elementComparator: Comparator[_ >: Case],
       values: Trials[Value]
   ): Trials[ImmutableSortedMap[_ <: Case, Value]]
