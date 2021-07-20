@@ -93,4 +93,8 @@ trait Trials[+Case] extends TrialsFactoring[Case] with GenerationSupport[Case] {
   def several[Container](implicit
       factory: Factory[Case, Container]
   ): Trials[Container]
+
+  def lists(implicit
+      factory: Factory[Case, List[_]]
+  ): Trials[List[Case]] = several
 }

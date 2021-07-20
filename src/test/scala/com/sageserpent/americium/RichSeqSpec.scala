@@ -72,7 +72,7 @@ class RichSeqSpec extends AnyFlatSpec with Matchers {
       }
 
   it should "fragment the input sequence into single item groups if the predicate is always false" in
-    (nonEmptyInputSequenceTrials)
+    nonEmptyInputSequenceTrials
       .withLimit(100)
       .supplyTo { inputSequence =>
         val groups = inputSequence.groupWhile(groupNothingTogether)
@@ -80,7 +80,7 @@ class RichSeqSpec extends AnyFlatSpec with Matchers {
       }
 
   it should "reproduce the input sequence as a single group if the predicate is always true" in
-    (nonEmptyInputSequenceTrials)
+    nonEmptyInputSequenceTrials
       .withLimit(100)
       .supplyTo { inputSequence =>
         val groups = inputSequence.groupWhile(groupEverythingTogether)
@@ -88,7 +88,7 @@ class RichSeqSpec extends AnyFlatSpec with Matchers {
       }
 
   it should "identify runs of adjacent duplicates if the predicate is equality" in
-    (nonEmptyInputSequenceTrials)
+    nonEmptyInputSequenceTrials
       .withLimit(100)
       .supplyTo { inputSequence =>
         val groups          = inputSequence.groupWhile(groupEqualTogether)
@@ -113,9 +113,9 @@ class RichSeqSpec extends AnyFlatSpec with Matchers {
   }
 
   it should "result in an empty stream if all of the input inner sequences are empty" in
-    (api
-      .only(List.empty[Int]))
-      .several[List[List[Int]]]
+    api
+      .only(List.empty[Int])
+      .lists
       .filter(_.nonEmpty)
       .withLimit(100)
       .supplyTo { emptyInnerSequences =>
@@ -124,8 +124,7 @@ class RichSeqSpec extends AnyFlatSpec with Matchers {
       }
 
   it should "yield non empty inner sequences if at least one of the input inner sequences is not empty" in
-    nonEmptyInputSequenceTrials
-      .several[List[List[Int]]]
+    nonEmptyInputSequenceTrials.lists
       .filter(_.nonEmpty)
       .withLimit(100)
       .supplyTo { innerSequences =>
@@ -135,8 +134,7 @@ class RichSeqSpec extends AnyFlatSpec with Matchers {
       }
 
   it should "preserve all items in the input inner sequences" in
-    nonEmptyInputSequenceTrials
-      .several[List[List[Int]]]
+    nonEmptyInputSequenceTrials.lists
       .filter(_.nonEmpty)
       .withLimit(100)
       .supplyTo { inputSequences =>
