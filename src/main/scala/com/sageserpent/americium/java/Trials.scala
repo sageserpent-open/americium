@@ -7,11 +7,24 @@ import _root_.com.sageserpent.americium.{
 import com.google.common.collect._
 import com.sageserpent.americium.java.Trials.WithLimit
 
-import _root_.java.util.function.{Consumer, Predicate, Function => JavaFunction}
+import _root_.java.util.function.{
+  Consumer,
+  Predicate,
+  Supplier,
+  Function => JavaFunction
+}
 import java.util.{Comparator, Optional, Iterator => JavaIterator}
 
 object Trials {
   def api(): TrialsApi = TrialsImplementation.javaApi
+
+  def whenever[Result](satisfiedPrecondition: Boolean)(
+      block: Supplier[Result]
+  ): Result = ScalaTrials.whenever(satisfiedPrecondition)(block.get())
+
+  def whenever(satisfiedPrecondition: Boolean)(
+      block: Runnable
+  ): Unit = ScalaTrials.whenever(satisfiedPrecondition)(block.run())
 
   trait WithLimit[+Case] {
 

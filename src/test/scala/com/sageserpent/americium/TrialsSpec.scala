@@ -1,5 +1,6 @@
 package com.sageserpent.americium
 
+import com.sageserpent.americium.Trials.RejectionByInlineFilter
 import com.sageserpent.americium.java.{
   Trials => JavaTrials,
   TrialsApi => JavaTrialsApi
@@ -837,6 +838,102 @@ class TrialsSpec
     implicitly[Trials.Factory[BinaryTree]].trials
       .withLimit(limit)
       .supplyTo(println)
+  }
+
+  "inlined filtration" should "execute the controlled block if and only if the precondition holds" in {
+    assertThrows[RejectionByInlineFilter] {
+      Trials.whenever(false) {
+        fail(
+          "If the precondition doesn't hold, the block should not be executed."
+        )
+      }
+    }
+
+    Trials.whenever(true) {
+      succeed
+    }
+  }
+
+  val oddHash = 1 == (_: Any).hashCode % 2
+
+  it should "cover all the cases that would be covered by an explicit filtration over finite possibilities" in forAll(
+    Table(
+      "trials",
+      api.only(2),
+      api.only(15),
+      api.choose(0 until 20),
+      api.alternate(
+        api.only(1),
+        api.choose(0 until 20),
+        api.only(15)
+      ),
+      api.choose(0 until 20).flatMap(x => api.choose(1, 3).map(x * _))
+    )
+  ) { trials =>
+    withExpectations {
+      val mockConsumer = mockFunction[Int, Unit]
+
+      // Whatever cases are supplied by a monadic filtration set the expectations...
+      trials
+        .filter(oddHash)
+        .withLimit(limit)
+        .supplyTo(mockConsumer.expects(_: Int): Unit)
+
+      // ... now let's see if we see the same cases when we filter inline.
+      trials
+        .withLimit(limit)
+        .supplyTo(caze =>
+          Trials.whenever(oddHash(caze)) {
+            mockConsumer(caze)
+          }
+        )
+    }
+  }
+
+  it should "cover a similar number of cases that would be covered by an explicit filtration over infinite possibilities" in forAll(
+    Table(
+      "trials",
+      api.integers,
+      api.alternate(
+        api.integers,
+        api.only(1),
+        api.choose(0 until 20)
+      ),
+      api.integers.flatMap(x => api.choose(1, 3).map(x * _))
+    )
+  ) { trials =>
+    withExpectations {
+      // Count the cases supplied by a monadic filtration...
+
+      val numberOfCasesViaMonadicFiltration = {
+        var count = 0
+
+        trials
+          .filter(oddHash)
+          .withLimit(limit)
+          .supplyTo { _ => count = 1 + count }
+
+        count
+      }
+
+      val mockConsumer = mockFunction[Int, Unit]
+
+      // ... now let's see if we receive roughly the same number of cases when we filter inline.
+
+      mockConsumer
+        .expects(*)
+        .repeat(
+          (0.9 * numberOfCasesViaMonadicFiltration).floor.toInt to (1.1 * numberOfCasesViaMonadicFiltration).ceil.toInt
+        ): Unit
+
+      trials
+        .withLimit(limit)
+        .supplyTo(caze =>
+          Trials.whenever(oddHash(caze)) {
+            mockConsumer(caze)
+          }
+        )
+    }
   }
 
   "mapping using a Java function" should "compile" in {

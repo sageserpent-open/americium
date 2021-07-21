@@ -12,6 +12,13 @@ import scala.language.implicitConversions
 object Trials extends TrialsByMagnolia {
   def api: TrialsApi = TrialsImplementation.scalaApi
 
+  private[americium] class RejectionByInlineFilter extends RuntimeException
+
+  def whenever[Result](satisfiedPrecondition: Boolean)(
+      block: => Result
+  ): Result =
+    if (satisfiedPrecondition) block else throw new RejectionByInlineFilter()
+
   trait WithLimit[+Case] {
     def supplyTo(consumer: Case => Unit): Unit
   }
