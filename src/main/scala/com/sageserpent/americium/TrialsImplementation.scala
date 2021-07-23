@@ -7,6 +7,7 @@ import cats.free.Free.{liftF, pure}
 import cats.syntax.applicative._
 import cats.{Eval, ~>}
 import com.google.common.collect._
+import com.sageserpent.americium.Trials.RejectionByInlineFilter
 import com.sageserpent.americium.java.{
   Trials => JavaTrials,
   TrialsApi => JavaTrialsApi
@@ -324,6 +325,7 @@ case class TrialsImplementation[+Case](
                   try {
                     consumer(potentialShrunkCase)
                   } catch {
+                    case rejection: RejectionByInlineFilter => throw rejection
                     case throwableFromPotentialShrunkCase: Throwable =>
                       def shrinkDecisionStages(
                           caze: Case,
@@ -351,6 +353,8 @@ case class TrialsImplementation[+Case](
                                 try {
                                   consumer(potentialShrunkCase)
                                 } catch {
+                                  case rejection: RejectionByInlineFilter =>
+                                    throw rejection
                                   case throwableFromPotentialShrunkCase: Throwable =>
                                     shrinkDecisionStages(
                                       potentialShrunkCase,
@@ -402,6 +406,7 @@ case class TrialsImplementation[+Case](
             try {
               consumer(caze)
             } catch {
+              case rejection: RejectionByInlineFilter => throw rejection
               case throwable: Throwable =>
                 shrink(caze, throwable, decisionStages, factoryShrinkage, limit)
             }
@@ -535,33 +540,60 @@ case class TrialsImplementation[+Case](
         }
       }
 
-    new Iterator[Option[(DecisionStages, Case)]] {
+    {
+      // NASTY HACK: what was previously a Java-style imperative iterator implementation has, ahem, 'matured'
+      // into an overall imperative iterator forwarding to another with a `collect` to flatten out the `Option`
+      // part of the latter's output. Both co-operate by sharing mutable state used to determine when the overall
+      // iterator should stop yielding output. This in turn allows another hack, namely to intercept calls to
+      // `forEach` on the overall iterator so that it can monitor cases that don't pass inline filtration.
       var starvationCountdown: Int         = limit
+      var backupOfStarvationCountdown      = 0
       var numberOfUniqueCasesProduced: Int = 0
       val potentialDuplicates              = mutable.Set.empty[DecisionStages]
 
-      override def hasNext: Boolean =
-        0 < remainingGap && 0 < starvationCountdown
+      def remainingGap = limit - numberOfUniqueCasesProduced
 
-      override def next(): Option[(DecisionStages, Case)] =
-        generation
-          .foldMap(interpreter(depth = 0))
-          .run(State.initial)
-          .value
-          .value match {
-          case Some((State(decisionStages, multiplicity), caze))
-              if potentialDuplicates.add(decisionStages) =>
-            numberOfUniqueCasesProduced += 1
-            starvationCountdown =
-              Math.round(Math.sqrt(starvationCountdown * remainingGap)).toInt
-            Some(decisionStages -> caze)
-          case _ =>
-            starvationCountdown -= 1
-            None
+      val coreIterator = new Iterator[Option[(DecisionStages, Case)]] {
+        override def hasNext: Boolean =
+          0 < remainingGap && 0 < starvationCountdown
+
+        override def next(): Option[(DecisionStages, Case)] =
+          generation
+            .foldMap(interpreter(depth = 0))
+            .run(State.initial)
+            .value
+            .value match {
+            case Some((State(decisionStages, multiplicity), caze))
+                if potentialDuplicates.add(decisionStages) =>
+              numberOfUniqueCasesProduced += 1
+              backupOfStarvationCountdown = starvationCountdown
+              starvationCountdown =
+                Math.round(Math.sqrt(starvationCountdown * remainingGap)).toInt
+              Some(decisionStages -> caze)
+            case _ =>
+              starvationCountdown -= 1
+              None
+          }
+      }.collect { case Some(caze) => caze }
+
+      new Iterator[(DecisionStages, Case)] {
+        override def hasNext: Boolean = coreIterator.hasNext
+
+        override def next(): (DecisionStages, Case) = coreIterator.next()
+
+        override def foreach[U](f: ((DecisionStages, Case)) => U): Unit = {
+          super.foreach { input =>
+            try {
+              f(input)
+            } catch {
+              case _: RejectionByInlineFilter =>
+                numberOfUniqueCasesProduced -= 1
+                starvationCountdown = backupOfStarvationCountdown
+            }
+          }
         }
-
-      private def remainingGap = limit - numberOfUniqueCasesProduced
-    }.collect { case Some(caze) => caze }
+      }
+    }
   }
 
   // Java-only API ...
