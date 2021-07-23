@@ -588,7 +588,7 @@ case class TrialsImplementation[+Case](
             } catch {
               case _: RejectionByInlineFilter =>
                 numberOfUniqueCasesProduced -= 1
-                starvationCountdown = backupOfStarvationCountdown
+                starvationCountdown = backupOfStarvationCountdown - 1
             }
           }
         }
