@@ -890,7 +890,7 @@ class TrialsSpec
     }
   }
 
-  it should "cover a similar number of cases that would be covered by an explicit filtration over infinite possibilities" in forAll(
+  it should "cover the same number of cases that would be covered by an explicit filtration over infinite possibilities" in forAll(
     Table(
       "trials",
       api.integers,
@@ -918,13 +918,11 @@ class TrialsSpec
 
       val mockConsumer = mockFunction[Int, Unit]
 
-      // ... now let's see if we receive roughly the same number of cases when we filter inline.
+      // ... now let's see if we receive *exactly* the same number of cases when we filter inline.
 
       mockConsumer
         .expects(*)
-        .repeat(
-          (0.9 * numberOfCasesViaMonadicFiltration).floor.toInt to (1.1 * numberOfCasesViaMonadicFiltration).ceil.toInt
-        ): Unit
+        .repeat(numberOfCasesViaMonadicFiltration): Unit
 
       trials
         .withLimit(limit)
