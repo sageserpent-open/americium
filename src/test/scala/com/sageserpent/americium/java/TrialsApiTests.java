@@ -10,6 +10,8 @@ import java.math.BigDecimal;
 import java.util.Iterator;
 import java.util.Map;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+
 public class TrialsApiTests {
     private final static TrialsApi api = Trials.api();
 
@@ -113,5 +115,16 @@ public class TrialsApiTests {
     @MethodSource(value = "mixtures")
     void testDriveMixturesProvider(int integer, Map<String, Boolean> dictionary) {
         System.out.println(String.format("%d, %s", integer, dictionary));
+    }
+
+    @Test
+    void testDriveInlinedFiltration() {
+        api.integers().immutableSets().withLimit(100).supplyTo(setOfIntegers -> {
+            final boolean satisfiedPrecondition = setOfIntegers.stream().allMatch(value -> 0 == value % 2);
+            Trials.whenever(satisfiedPrecondition, () -> {
+                System.out.println(setOfIntegers);
+                assertThat("All members of the set are even", satisfiedPrecondition);
+            });
+        });
     }
 }
