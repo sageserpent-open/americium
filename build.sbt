@@ -20,6 +20,7 @@ lazy val settings = Seq(
       email = "gjmurphy1@icloud.com"
     )
   ),
+  releasePublishArtifactsAction := PgpKeys.publishSigned.value,
   name := "americium",
   scalaVersion := "2.13.5",
   scalacOptions += s"-target:jvm-${javaVersion}",
