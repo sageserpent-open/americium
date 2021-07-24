@@ -68,7 +68,7 @@ This brings us to the next pain point for the author, which is the extent to whi
 What the author wanted was a framework that:
 
 1. Offers automatic shrinkage to a minimal or nearly-minimal test case.
-1. Shrink efficiently. 
+1. Shrinks efficiently. 
 1. Offers direct reproduction of a failing, minimised test case.
 1. Covers finite combinations of atomic cases without duplication when building composite cases.
 1. Gets out of the way of testing style - doesn't care about whether the test are pure functional or imperative, doesn't offer a DSL or try to structure your test suite.
