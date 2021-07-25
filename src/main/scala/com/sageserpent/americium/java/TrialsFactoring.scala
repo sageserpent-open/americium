@@ -3,8 +3,7 @@ package com.sageserpent.americium.java
 trait TrialsFactoring[+Case] {
   // Scala and Java API ...
 
-  /**
-    * Reproduce a specific case in a repeatable fashion, based on a recipe.
+  /** Reproduce a specific case in a repeatable fashion, based on a recipe.
     *
     * @param recipe This encodes a specific case and will only be understood by the
     *               same *value* of trials instance that was used to obtain it.
@@ -17,14 +16,14 @@ trait TrialsFactoring[+Case] {
 
   abstract class TrialException(cause: Throwable)
       extends RuntimeException(cause) {
+    override def toString: String =
+      s"Trial exception with underlying cause:\n${getCause}\nCase:\n$provokingCase\nReproduce with recipe:\n$recipe"
 
-    /**
-      * @return The {@code Case} that provoked the exception.
+    /** @return The {@code Case} that provoked the exception.
       */
     def provokingCase: Case
 
-    /**
-      * @return A recipe that can be used to reproduce the provoking {@code Case}
+    /** @return A recipe that can be used to reproduce the provoking {@code Case}
       *         when supplied to the corresponding trials instance.
       */
     def recipe: String
