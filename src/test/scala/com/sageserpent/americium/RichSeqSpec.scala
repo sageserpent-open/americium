@@ -28,10 +28,10 @@ class RichSeqSpec extends AnyFlatSpec with Matchers {
   )
 
   private val nonEmptyInputSequenceTrials: Trials[List[Int]] =
-    api.integers.several[List[Int]].filter(_.nonEmpty)
+    api.integers.lists.filter(_.nonEmpty)
 
   private val possiblyEmptyInputSequenceTrials =
-    api.integers.several[List[Int]]
+    api.integers.lists
 
   "groupWhile" should "respect the exact sequence type that it works on" in {
     "val groups: Seq[List[Int]] = List(1, 2, 2).groupWhile(groupEverythingTogether)" should compile
