@@ -126,8 +126,21 @@ class TrialsSpec
       .withLimit(limit)
       .supplyTo(println)
 
+    api.integers.sets
+      .withLimit(limit)
+      .supplyTo(println)
+
+    api.integers.sortedSets
+      .withLimit(limit)
+      .supplyTo(println)
+
     api.integers
-      .several[Set[_]]
+      .maps(api.strings)
+      .withLimit(limit)
+      .supplyTo(println)
+
+    api.integers
+      .sortedMaps(api.strings)
       .withLimit(limit)
       .supplyTo(println)
 

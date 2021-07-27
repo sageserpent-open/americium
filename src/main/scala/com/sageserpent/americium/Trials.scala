@@ -7,6 +7,7 @@ import com.sageserpent.americium.TrialsImplementation.GenerationSupport
 import com.sageserpent.americium.java.TrialsFactoring
 
 import scala.collection.Factory
+import scala.collection.immutable.{SortedMap, SortedSet}
 import scala.language.implicitConversions
 
 object Trials extends TrialsByMagnolia {
@@ -101,5 +102,17 @@ trait Trials[+Case] extends TrialsFactoring[Case] with GenerationSupport[Case] {
       factory: Factory[Case, Container]
   ): Trials[Container]
 
-  def lists: Trials[List[Case]] = several
+  def lists: Trials[List[Case]]
+
+  def sets: Trials[Set[_ <: Case]]
+
+  def sortedSets(implicit
+      ordering: Ordering[_ >: Case]
+  ): Trials[SortedSet[_ <: Case]]
+
+  def maps[Value](values: Trials[Value]): Trials[Map[_ <: Case, Value]]
+
+  def sortedMaps[Value](values: Trials[Value])(implicit
+      ordering: Ordering[_ >: Case]
+  ): Trials[SortedMap[_ <: Case, Value]]
 }

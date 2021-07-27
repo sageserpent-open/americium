@@ -6,7 +6,7 @@ import cats.free.Free
 import cats.free.Free.{liftF, pure}
 import cats.syntax.applicative._
 import cats.{Eval, ~>}
-import com.google.common.collect._
+import com.google.common.collect.{Ordering => _, _}
 import com.sageserpent.americium.Trials.RejectionByInlineFilter
 import com.sageserpent.americium.java.{
   Trials => JavaTrials,
@@ -38,6 +38,7 @@ import _root_.java.util.{
   Iterator => JavaIterator,
   Map => JavaMap
 }
+import scala.collection.immutable.{SortedMap, SortedSet}
 import scala.collection.mutable
 import scala.jdk.CollectionConverters._
 import scala.util.Random
@@ -606,7 +607,9 @@ case class TrialsImplementation[+Case](
     several(new Builder[Case, ImmutableList[_ <: Case]] {
       private val underlyingBuilder = ImmutableList.builder[Case]()
 
-      override def +=(caze: Case): Unit = { underlyingBuilder.add(caze) }
+      override def +=(caze: Case): Unit = {
+        underlyingBuilder.add(caze)
+      }
 
       override def result(): ImmutableList[_ <: Case] =
         underlyingBuilder.build()
@@ -616,7 +619,9 @@ case class TrialsImplementation[+Case](
     several(new Builder[Case, ImmutableSet[_ <: Case]] {
       private val underlyingBuilder = ImmutableSet.builder[Case]()
 
-      override def +=(caze: Case): Unit = { underlyingBuilder.add(caze) }
+      override def +=(caze: Case): Unit = {
+        underlyingBuilder.add(caze)
+      }
 
       override def result(): ImmutableSet[_ <: Case] =
         underlyingBuilder.build()
@@ -629,7 +634,9 @@ case class TrialsImplementation[+Case](
       private val underlyingBuilder: ImmutableSortedSet.Builder[Case] =
         new ImmutableSortedSet.Builder(elementComparator)
 
-      override def +=(caze: Case): Unit = { underlyingBuilder.add(caze) }
+      override def +=(caze: Case): Unit = {
+        underlyingBuilder.add(caze)
+      }
 
       override def result(): ImmutableSortedSet[_ <: Case] =
         underlyingBuilder.build()
@@ -737,16 +744,6 @@ case class TrialsImplementation[+Case](
     }
   }
 
-  override def several[Container](implicit
-      factory: scala.collection.Factory[Case, Container]
-  ): TrialsImplementation[Container] = several(new Builder[Case, Container] {
-    val underlyingBuilder = factory.newBuilder
-
-    override def +=(caze: Case): Unit = { underlyingBuilder += caze }
-
-    override def result(): Container = underlyingBuilder.result()
-  })
-
   private def several[Container](
       builderFactory: => Builder[Case, Container]
   ): TrialsImplementation[Container] = {
@@ -761,5 +758,57 @@ case class TrialsImplementation[+Case](
       )
 
     addItem(Nil)
+  }
+
+  override def several[Container](implicit
+      factory: scala.collection.Factory[Case, Container]
+  ): TrialsImplementation[Container] = several(new Builder[Case, Container] {
+    val underlyingBuilder = factory.newBuilder
+
+    override def +=(caze: Case): Unit = {
+      underlyingBuilder += caze
+    }
+
+    override def result(): Container = underlyingBuilder.result()
+  })
+
+  override def lists: Trials[List[Case]] = several
+
+  override def sets: Trials[Set[_ <: Case]] = several
+
+  override def sortedSets(implicit
+      ordering: Ordering[_ >: Case]
+  ): Trials[SortedSet[_ <: Case]] = several(
+    new Builder[Case, SortedSet[_ <: Case]] {
+      val underlyingBuilder: mutable.Builder[Case, SortedSet[Case]] =
+        SortedSet.newBuilder(ordering.asInstanceOf[Ordering[Case]])
+
+      override def +=(caze: Case): Unit = {
+        underlyingBuilder += caze
+      }
+
+      override def result(): SortedSet[_ <: Case] = underlyingBuilder.result()
+    }
+  )
+
+  override def maps[Value](
+      values: Trials[Value]
+  ): Trials[Map[_ <: Case, Value]] = {
+    val annoyingWorkaroundToPreventAmbiguity: Case => Trials[(Case, Value)] =
+      key => values.map(key -> _)
+    flatMap(annoyingWorkaroundToPreventAmbiguity).several[Map[Case, Value]]
+  }
+
+  override def sortedMaps[Value](values: Trials[Value])(implicit
+      ordering: Ordering[_ >: Case]
+  ): Trials[SortedMap[_ <: Case, Value]] = {
+    val annoyingWorkaroundToPreventAmbiguity: Case => Trials[(Case, Value)] =
+      key => values.map(key -> _)
+    flatMap(annoyingWorkaroundToPreventAmbiguity)
+      .several[Map[Case, Value]]
+      .map(
+        SortedMap
+          .from(_: Map[Case, Value])(ordering.asInstanceOf[Ordering[Case]])
+      )
   }
 }
