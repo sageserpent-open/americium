@@ -115,4 +115,10 @@ trait Trials[+Case] extends TrialsFactoring[Case] with GenerationSupport[Case] {
   def sortedMaps[Value](values: Trials[Value])(implicit
       ordering: Ordering[_ >: Case]
   ): Trials[SortedMap[_ <: Case, Value]]
+
+  def lotsOfSize[Container](size: Int)(implicit
+      factory: Factory[Case, Container]
+  ): Trials[Container]
+
+  def listsOfSize(size: Int): Trials[List[Case]]
 }

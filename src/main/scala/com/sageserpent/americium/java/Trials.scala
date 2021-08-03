@@ -105,4 +105,6 @@ trait Trials[+Case] extends TrialsFactoring[Case] {
       elementComparator: Comparator[_ >: Case],
       values: Trials[Value]
   ): Trials[ImmutableSortedMap[_ <: Case, Value]]
+
+  def immutableListsOfSize(size: Int): Trials[ImmutableList[_ <: Case]]
 }

@@ -1,6 +1,9 @@
 package com.sageserpent.americium.java;
 
+import com.google.common.collect.ImmutableList;
+
 import java.time.Instant;
+import java.util.List;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -43,6 +46,8 @@ public interface TrialsApi {
     <Case> Trials<Case> alternate(Iterable<Trials<Case>> alternatives);
 
     <Case> Trials<Case> alternate(Trials<Case>[] alternatives);
+
+    <Case> Trials<ImmutableList<Case>> lists(List<Trials<Case>> listOfTrials);
 
     /**
      * Produce a trials instance that stream cases from a factory.

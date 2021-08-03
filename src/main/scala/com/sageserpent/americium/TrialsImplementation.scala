@@ -4,8 +4,8 @@ import cats.collections.Dequeue
 import cats.data.{OptionT, State, StateT}
 import cats.free.Free
 import cats.free.Free.{liftF, pure}
-import cats.syntax.applicative._
-import cats.{Eval, ~>}
+import cats.implicits._
+import cats.{Eval, Traverse, ~>}
 import com.google.common.collect.{Ordering => _, _}
 import com.sageserpent.americium.Trials.RejectionByInlineFilter
 import com.sageserpent.americium.java.{
@@ -36,6 +36,7 @@ import _root_.java.util.{
   Optional,
   Comparator => JavaComparator,
   Iterator => JavaIterator,
+  List => JavaList,
   Map => JavaMap
 }
 import scala.collection.immutable.{SortedMap, SortedSet}
@@ -80,6 +81,24 @@ object TrialsImplementation {
         alternatives: Array[JavaTrials[Case]]
     ): TrialsImplementation[Case] =
       scalaApi.alternate(alternatives.toSeq.map(_.scalaTrials))
+
+    override def lists[Case](
+        listOfTrials: JavaList[JavaTrials[Case]]
+    ): TrialsImplementation[ImmutableList[Case]] =
+      // NASTY HACK: make a throwaway trials of type `TrialsImplementation` to act as a springboard to flatmap the 'real' result into the correct type.
+      scalaApi
+        .only(())
+        .flatMap((_: Unit) =>
+          scalaApi
+            .sequences[Case, List](
+              listOfTrials.asScala.map(_.scalaTrials).toList
+            )
+            .map { sequence =>
+              val builder = ImmutableList.builder[Case]()
+              sequence.foreach(builder.add)
+              builder.build()
+            }
+        )
 
     override def stream[Case](
         factory: JavaFunction[JavaLong, Case]
@@ -132,6 +151,12 @@ object TrialsImplementation {
         alternatives: Iterable[Trials[Case]]
     ): TrialsImplementation[Case] =
       choose(alternatives).flatMap(identity[Trials[Case]] _)
+
+    override def sequences[Case, Sequence[_]: Traverse](
+        sequenceOfTrials: Sequence[Trials[Case]]
+    )(implicit
+        factory: collection.Factory[Case, Sequence[Case]]
+    ): Trials[Sequence[Case]] = sequenceOfTrials.sequence
 
     override def stream[Case](
         factory: Long => Case
@@ -673,6 +698,22 @@ case class TrialsImplementation[+Case](
       )
   }
 
+  override def immutableListsOfSize(
+      size: Int
+  ): TrialsImplementation[ImmutableList[_ <: Case]] = lotsOfSize(
+    size,
+    new Builder[Case, ImmutableList[_ <: Case]] {
+      private val underlyingBuilder = ImmutableList.builder[Case]()
+
+      override def +=(caze: Case): Unit = {
+        underlyingBuilder.add(caze)
+      }
+
+      override def result(): ImmutableList[_ <: Case] =
+        underlyingBuilder.build()
+    }
+  )
+
   // Scala-only API ...
   override def map[TransformedCase](
       transform: Case => TransformedCase
@@ -747,17 +788,17 @@ case class TrialsImplementation[+Case](
   private def several[Container](
       builderFactory: => Builder[Case, Container]
   ): TrialsImplementation[Container] = {
-    def addItem(partialResult: List[Case]): TrialsImplementation[Container] =
+    def addItems(partialResult: List[Case]): TrialsImplementation[Container] =
       scalaApi.alternate(
         scalaApi.only {
           val builder = builderFactory
           partialResult.foreach(builder += _)
           builder.result()
         },
-        flatMap((item: Case) => addItem(item :: partialResult))
+        flatMap((item: Case) => addItems(item :: partialResult))
       )
 
-    addItem(Nil)
+    addItems(Nil)
   }
 
   override def several[Container](implicit
@@ -778,7 +819,7 @@ case class TrialsImplementation[+Case](
 
   override def sortedSets(implicit
       ordering: Ordering[_ >: Case]
-  ): Trials[SortedSet[_ <: Case]] = several(
+  ): TrialsImplementation[SortedSet[_ <: Case]] = several(
     new Builder[Case, SortedSet[_ <: Case]] {
       val underlyingBuilder: mutable.Builder[Case, SortedSet[Case]] =
         SortedSet.newBuilder(ordering.asInstanceOf[Ordering[Case]])
@@ -793,7 +834,7 @@ case class TrialsImplementation[+Case](
 
   override def maps[Value](
       values: Trials[Value]
-  ): Trials[Map[_ <: Case, Value]] = {
+  ): TrialsImplementation[Map[_ <: Case, Value]] = {
     val annoyingWorkaroundToPreventAmbiguity: Case => Trials[(Case, Value)] =
       key => values.map(key -> _)
     flatMap(annoyingWorkaroundToPreventAmbiguity).several[Map[Case, Value]]
@@ -801,7 +842,7 @@ case class TrialsImplementation[+Case](
 
   override def sortedMaps[Value](values: Trials[Value])(implicit
       ordering: Ordering[_ >: Case]
-  ): Trials[SortedMap[_ <: Case, Value]] = {
+  ): TrialsImplementation[SortedMap[_ <: Case, Value]] = {
     val annoyingWorkaroundToPreventAmbiguity: Case => Trials[(Case, Value)] =
       key => values.map(key -> _)
     flatMap(annoyingWorkaroundToPreventAmbiguity)
@@ -811,4 +852,42 @@ case class TrialsImplementation[+Case](
           .from(_: Map[Case, Value])(ordering.asInstanceOf[Ordering[Case]])
       )
   }
+
+  private def lotsOfSize[Container](
+      size: Int,
+      builderFactory: => Builder[Case, Container]
+  ): TrialsImplementation[Container] = {
+    def addItems(
+        numberOfItems: Int,
+        partialResult: List[Case]
+    ): TrialsImplementation[Container] =
+      if (0 >= numberOfItems) scalaApi.only {
+        val builder = builderFactory
+        partialResult.foreach(builder += _)
+        builder.result()
+      }
+      else
+        flatMap((item: Case) =>
+          addItems(numberOfItems - 1, item :: partialResult)
+        )
+
+    addItems(size, Nil)
+  }
+
+  override def lotsOfSize[Container](size: Int)(implicit
+      factory: collection.Factory[Case, Container]
+  ): TrialsImplementation[Container] = lotsOfSize(
+    size,
+    new Builder[Case, Container] {
+      val underlyingBuilder = factory.newBuilder
+
+      override def +=(caze: Case): Unit = {
+        underlyingBuilder += caze
+      }
+
+      override def result(): Container = underlyingBuilder.result()
+    }
+  )
+
+  override def listsOfSize(size: Int): Trials[List[Case]] = lotsOfSize(size)
 }
