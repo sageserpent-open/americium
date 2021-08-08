@@ -1,6 +1,6 @@
-# Americium - **_Test cases galore! Automatic case shrinkage! Bring your own test style. For Scala and
+# Americium - **_Test cases galore! Automatic case shrinkage! Bring your own test style. For Scala and Java..._**
 
-Java..._** [![Build Status](https://travis-ci.com/sageserpent-open/americium.svg?branch=master)](https://travis-ci.com/sageserpent-open/americium)
+[![Build Status](https://travis-ci.com/sageserpent-open/americium.svg?branch=master)](https://travis-ci.com/sageserpent-open/americium)
 
 ## Why ##
 
@@ -34,30 +34,30 @@ import scala.math.Ordering
 
 // Insertion sort, but with a bug...
 def notSoStableSort[Element](
-                              elements: List[Element]
+                                    elements: List[Element]
                             )(implicit ordering: Ordering[Element]): List[Element] =
-  elements match {
-    case Nil => Nil
-    case head :: tail =>
-      notSoStableSort(tail).span(ordering.lteq(_, head)) match {
-        case (first, second) => first ++ (head :: second)
-      }
-  }
+   elements match {
+      case Nil => Nil
+      case head :: tail =>
+         notSoStableSort(tail).span(ordering.lteq(_, head)) match {
+            case (first, second) => first ++ (head :: second)
+         }
+   }
 
 notSoStableSort(Nil: List[(Int, Int)])(
-  Ordering.by(_._1)
+   Ordering.by(_._1)
 ) // List() - Hey - worked first time...
 notSoStableSort(List(1 -> 2))(
-  Ordering.by(_._1)
+   Ordering.by(_._1)
 ) // List((1,2)) - Yeah, check those edge cases!
 notSoStableSort(List(1 -> 2, -1 -> 9))(
-  Ordering.by(_._1)
+   Ordering.by(_._1)
 ) // List((-1,9), (1,2)) - Fancy a beer, anyone?
 notSoStableSort(List(1 -> 2, -1 -> 9, 1 -> 3))(
-  Ordering.by(_._1)
+   Ordering.by(_._1)
 ) // List((-1,9), (1,3), (1,2)) ? Uh? I wanted List((-1,9), (1,2), (1,3))!!!!
 notSoStableSort(List(1 -> 2, 1 -> 3))(
-  Ordering.by(_._1)
+   Ordering.by(_._1)
 ) // List((1,3), (1,2)) ? Huh! I wanted List((1,2), (1,3)) - going to be working overtime...
 
 ```
@@ -131,45 +131,45 @@ val api = Trials.api
 
 // Here's the trials instance...
 val associationLists = (for {
-  key <- api.choose(0 to 100)
-  value <- api.integers
+   key <- api.choose(0 to 100)
+   value <- api.integers
 } yield key -> value).lists
 
 "stableSorting" should "sort according to the ordering" in
-  associationLists
-    .filter(
-      _.nonEmpty
-    ) // Filter out the empty case as we can't assert sensibly on it.
-    .withLimit(200)
-    .supplyTo { nonEmptyAssocationList: List[(Int, Int)] =>
-      val sortedResult = notSoStableSort(nonEmptyAssocationList)(ordering)
+        associationLists
+                .filter(
+                   _.nonEmpty
+                ) // Filter out the empty case as we can't assert sensibly on it.
+                .withLimit(200)
+                .supplyTo { nonEmptyAssocationList: List[(Int, Int)] =>
+                   val sortedResult = notSoStableSort(nonEmptyAssocationList)(ordering)
 
-      assert(
-        sortedResult.zip(sortedResult.tail).forall((ordering.lteq _).tupled)
-      )
-    }
+                   assert(
+                      sortedResult.zip(sortedResult.tail).forall((ordering.lteq _).tupled)
+                   )
+                }
 
 it should "conserve the original elements" in
-  associationLists.withLimit(200).supplyTo {
-    associationList: List[(Int, Int)] =>
-      val sortedResult = notSoStableSort(associationList)(ordering)
+        associationLists.withLimit(200).supplyTo {
+           associationList: List[(Int, Int)] =>
+              val sortedResult = notSoStableSort(associationList)(ordering)
 
-      sortedResult should contain theSameElementsAs associationList
-  }
+              sortedResult should contain theSameElementsAs associationList
+        }
 
 // Until the bug is fixed, we expect this test to fail...
 it should "also preserve the original order of the subsequences of elements that are equivalent according to the order" in
-  associationLists.withLimit(200).supplyTo {
-    associationList: List[(Int, Int)] =>
-      Trials.whenever(
-        associationList.nonEmpty
-      ) // Filter out the empty case as while we can assert on it, the assertion would be trivial.
-      {
-        val sortedResult = notSoStableSort(associationList)(ordering)
+        associationLists.withLimit(200).supplyTo {
+           associationList: List[(Int, Int)] =>
+              Trials.whenever(
+                 associationList.nonEmpty
+              ) // Filter out the empty case as while we can assert on it, the assertion would be trivial.
+              {
+                 val sortedResult = notSoStableSort(associationList)(ordering)
 
-        assert(sortedResult.groupBy(_._1) == associationList.groupBy(_._1))
-      }
-  }
+                 assert(sortedResult.groupBy(_._1) == associationList.groupBy(_._1))
+              }
+        }
 ```
 
 Run the tests - the last one will fail with a nicely minimised case:
@@ -190,51 +190,51 @@ test that focuses solely on the test case causing the problem:
 ```scala
 // Until the bug is fixed, we expect this test to fail...
 it should "also preserve the original order of the subsequences of elements that are equivalent according to the order - this time with the failure reproduced directly" in
-  associationLists
-    .withRecipe(
-      """[
-        |    {
-        |        "ChoiceOf" : {
-        |            "index" : 1
-        |        }
-        |    },
-        |    {
-        |        "ChoiceOf" : {
-        |            "index" : 97
-        |        }
-        |    },
-        |    {
-        |        "FactoryInputOf" : {
-        |            "input" : 1358603204065315550
-        |        }
-        |    },
-        |    {
-        |        "ChoiceOf" : {
-        |            "index" : 1
-        |        }
-        |    },
-        |    {
-        |        "ChoiceOf" : {
-        |            "index" : 97
-        |        }
-        |    },
-        |    {
-        |        "FactoryInputOf" : {
-        |            "input" : -84795172735105265
-        |        }
-        |    },
-        |    {
-        |        "ChoiceOf" : {
-        |            "index" : 0
-        |        }
-        |    }
-        |]""".stripMargin)
-    .supplyTo { associationList: List[(Int, Int)] => {
-      val sortedResult = notSoStableSort(associationList)(ordering)
+        associationLists
+                .withRecipe(
+                   """[
+                     |    {
+                     |        "ChoiceOf" : {
+                     |            "index" : 1
+                     |        }
+                     |    },
+                     |    {
+                     |        "ChoiceOf" : {
+                     |            "index" : 97
+                     |        }
+                     |    },
+                     |    {
+                     |        "FactoryInputOf" : {
+                     |            "input" : 1358603204065315550
+                     |        }
+                     |    },
+                     |    {
+                     |        "ChoiceOf" : {
+                     |            "index" : 1
+                     |        }
+                     |    },
+                     |    {
+                     |        "ChoiceOf" : {
+                     |            "index" : 97
+                     |        }
+                     |    },
+                     |    {
+                     |        "FactoryInputOf" : {
+                     |            "input" : -84795172735105265
+                     |        }
+                     |    },
+                     |    {
+                     |        "ChoiceOf" : {
+                     |            "index" : 0
+                     |        }
+                     |    }
+                     |]""".stripMargin)
+                .supplyTo { associationList: List[(Int, Int)] => {
+                   val sortedResult = notSoStableSort(associationList)(ordering)
 
-      assert(sortedResult.groupBy(_._1) == associationList.groupBy(_._1))
-    }
-    }  
+                   assert(sortedResult.groupBy(_._1) == associationList.groupBy(_._1))
+                }
+                }  
 ```
 
 ## Where ##
