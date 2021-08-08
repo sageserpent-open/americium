@@ -136,7 +136,9 @@ object TrialsImplementation {
     override def choose[Case](
         choices: Iterable[Case]
     ): TrialsImplementation[Case] =
-      new TrialsImplementation(Choice(choices.toVector))
+      new TrialsImplementation(
+        Choice(SortedMap.from(LazyList.from(1).zip(choices)))
+      )
 
     override def alternate[Case](
         firstAlternative: Trials[Case],
@@ -234,7 +236,9 @@ object TrialsImplementation {
 
   case class FactoryInputOf(input: Long) extends Decision
 
-  case class Choice[Case](choices: Vector[Case])
+  // Use a sorted map keyed by cumulative frequency to implement weighted
+  // choices. That idea is inspired by Scalacheck's `Gen.frequency`.
+  case class Choice[Case](choicesByCumulativeFrequency: SortedMap[Int, Case])
       extends GenerationOperation[Case]
 
   case class Factory[Case](factory: Long => Case)
@@ -278,13 +282,16 @@ case class TrialsImplementation[+Case](
             generationOperation: GenerationOperation[Case]
         ): DecisionIndicesContext[Case] = {
           generationOperation match {
-            case Choice(choices) =>
+            case Choice(choicesByCumulativeFrequency) =>
               for {
                 decisionStages <- State.get[DecisionStages]
                 Some((ChoiceOf(decisionIndex), remainingDecisionStages)) =
                   decisionStages.uncons
                 _ <- State.set(remainingDecisionStages)
-              } yield choices(decisionIndex)
+              } yield choicesByCumulativeFrequency
+                .minAfter(1 + decisionIndex)
+                .get
+                ._2
 
             case Factory(factory) =>
               for {
@@ -503,8 +510,9 @@ case class TrialsImplementation[+Case](
             generationOperation: GenerationOperation[Case]
         ): StateUpdating[Case] =
           generationOperation match {
-            case Choice(choices) =>
-              val numberOfChoices = choices.size
+            case Choice(choicesByCumulativeFrequency) =>
+              val numberOfChoices =
+                choicesByCumulativeFrequency.keys.lastOption.getOrElse(0)
               if (0 < numberOfChoices)
                 for {
                   state <- StateT.get[DeferredOption, State]
@@ -533,7 +541,7 @@ case class TrialsImplementation[+Case](
                   possibilitiesThatFollowSomeChoiceOfDecisionStages(
                     state.decisionStages
                   ) = Choices(remainingPossibleIndices)
-                  choices(index)
+                  choicesByCumulativeFrequency.minAfter(1 + index).get._2
                 }
               else StateT.liftF(OptionT.none)
 
