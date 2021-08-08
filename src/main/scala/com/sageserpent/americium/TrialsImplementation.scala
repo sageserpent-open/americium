@@ -284,7 +284,7 @@ case class TrialsImplementation[+Case](
                 Some((ChoiceOf(decisionIndex), remainingDecisionStages)) =
                   decisionStages.uncons
                 _ <- State.set(remainingDecisionStages)
-              } yield choices.drop(decisionIndex).head
+              } yield choices(decisionIndex)
 
             case Factory(factory) =>
               for {

@@ -100,8 +100,6 @@ public class TrialsApiTests {
         System.out.println("A sorted map of strings keyed by integers...");
 
         integersTrialsWithVariety.immutableSortedMaps(Integer::compare, api.strings()).withLimit(limit).supplyTo(System.out::println);
-
-        System.out.println("A sequence of values each chosen from a corresponding range...");
     }
 
     static Iterator<? extends ImmutableSet<? extends String>> sets() {
