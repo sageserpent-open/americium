@@ -22,7 +22,8 @@ class Examples extends AnyFlatSpec with Matchers {
 
   val api = Trials.api
 
-  val associationLists = (for {
+  // Here's the trials instance...
+  val associationLists: Trials[List[(Int, Int)]] = (for {
     key   <- api.choose(0 to 100)
     value <- api.integers
   } yield key -> value).lists
@@ -62,6 +63,54 @@ class Examples extends AnyFlatSpec with Matchers {
           assert(sortedResult.groupBy(_._1) == associationList.groupBy(_._1))
         }
     }
+
+  // Until the bug is fixed, we expect this test to fail...
+  it should "also preserve the original order of the subsequences of elements that are equivalent according to the order - this time with the failure reproduced directly" ignore
+    associationLists
+      .withRecipe("""[
+                                  |    {
+                                  |        "ChoiceOf" : {
+                                  |            "index" : 1
+                                  |        }
+                                  |    },
+                                  |    {
+                                  |        "ChoiceOf" : {
+                                  |            "index" : 97
+                                  |        }
+                                  |    },
+                                  |    {
+                                  |        "FactoryInputOf" : {
+                                  |            "input" : 1358603204065315550
+                                  |        }
+                                  |    },
+                                  |    {
+                                  |        "ChoiceOf" : {
+                                  |            "index" : 1
+                                  |        }
+                                  |    },
+                                  |    {
+                                  |        "ChoiceOf" : {
+                                  |            "index" : 97
+                                  |        }
+                                  |    },
+                                  |    {
+                                  |        "FactoryInputOf" : {
+                                  |            "input" : -84795172735105265
+                                  |        }
+                                  |    },
+                                  |    {
+                                  |        "ChoiceOf" : {
+                                  |            "index" : 0
+                                  |        }
+                                  |    }
+                                  |]""".stripMargin)
+      .supplyTo { associationList: List[(Int, Int)] =>
+        {
+          val sortedResult = notSoStableSort(associationList)(ordering)
+
+          assert(sortedResult.groupBy(_._1) == associationList.groupBy(_._1))
+        }
+      }
 
   val listsFavouringDuplicatedEntries: Trials[List[Int]] =
     for {
