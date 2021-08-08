@@ -17,23 +17,24 @@ class Examples extends AnyFlatSpec with Matchers {
         }
     }
 
+  // We're going to sort a list of associations (key-value pairs) by the key...
   val ordering = Ordering.by[(Int, Int), Int](_._1)
 
   val api = Trials.api
 
-  val lists = (for {
+  val associationLists = (for {
     key   <- api.choose(0 to 100)
     value <- api.integers
   } yield key -> value).lists
 
   "stableSorting" should "sort according to the ordering" in
-    lists
+    associationLists
       .filter(
         _.nonEmpty
       ) // Filter out the empty case as we can't assert sensibly on it.
       .withLimit(200)
-      .supplyTo { nonEmptyList: List[(Int, Int)] =>
-        val sortedResult = notSoStableSort(nonEmptyList)(ordering)
+      .supplyTo { nonEmptyAssocationList: List[(Int, Int)] =>
+        val sortedResult = notSoStableSort(nonEmptyAssocationList)(ordering)
 
         assert(
           sortedResult.zip(sortedResult.tail).forall((ordering.lteq _).tupled)
@@ -41,23 +42,25 @@ class Examples extends AnyFlatSpec with Matchers {
       }
 
   it should "conserve the original elements" in
-    lists.withLimit(200).supplyTo { list: List[(Int, Int)] =>
-      val sortedResult = notSoStableSort(list)(ordering)
+    associationLists.withLimit(200).supplyTo {
+      associationList: List[(Int, Int)] =>
+        val sortedResult = notSoStableSort(associationList)(ordering)
 
-      sortedResult should contain theSameElementsAs list
+        sortedResult should contain theSameElementsAs associationList
     }
 
   // Until the bug is fixed, we expect this test to fail...
   it should "also preserve the original order of the subsequences of elements that are equivalent according to the order" ignore
-    lists.withLimit(200).supplyTo { list: List[(Int, Int)] =>
-      Trials.whenever(
-        list.nonEmpty
-      ) // Filter out the empty case as while we can assert on it, the assertion would be trivial.
-      {
-        val sortedResult = notSoStableSort(list)(ordering)
+    associationLists.withLimit(200).supplyTo {
+      associationList: List[(Int, Int)] =>
+        Trials.whenever(
+          associationList.nonEmpty
+        ) // Filter out the empty case as while we can assert on it, the assertion would be trivial.
+        {
+          val sortedResult = notSoStableSort(associationList)(ordering)
 
-        assert(sortedResult.groupBy(_._1) == list.groupBy(_._1))
-      }
+          assert(sortedResult.groupBy(_._1) == associationList.groupBy(_._1))
+        }
     }
 
   val listsFavouringDuplicatedEntries: Trials[List[Int]] =

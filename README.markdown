@@ -1,4 +1,5 @@
 # Americium - **_Test cases galore! Automatic case shrinkage! Bring your own test style. For Scala and
+
 Java..._** [![Build Status](https://travis-ci.com/sageserpent-open/americium.svg?branch=master)](https://travis-ci.com/sageserpent-open/americium)
 
 ## Why ##
@@ -117,7 +118,57 @@ So, finally we come to `Trials` - which is what this library has to offer.
 Well, that and some syntax enhancements to the Scala `Random` class that might also pique your interest, but go see for
 yourself in the code, it's simple enough...
 
-## What ##
+## How ##
+
+Let's take our sorting implementation above...
+
+```scala
+// We're going to sort a list of associations (key-value pairs) by the key...
+val ordering = Ordering.by[(Int, Int), Int](_._1)
+
+val api = Trials.api
+
+val associationLists = (for {
+  key <- api.choose(0 to 100)
+  value <- api.integers
+} yield key -> value).lists
+
+"stableSorting" should "sort according to the ordering" in
+  associationLists
+    .filter(
+      _.nonEmpty
+    ) // Filter out the empty case as we can't assert sensibly on it.
+    .withLimit(200)
+    .supplyTo { nonEmptyAssocationList: List[(Int, Int)] =>
+      val sortedResult = notSoStableSort(nonEmptyAssocationList)(ordering)
+
+      assert(
+        sortedResult.zip(sortedResult.tail).forall((ordering.lteq _).tupled)
+      )
+    }
+
+it should "conserve the original elements" in
+  associationLists.withLimit(200).supplyTo {
+    associationList: List[(Int, Int)] =>
+      val sortedResult = notSoStableSort(associationList)(ordering)
+
+      sortedResult should contain theSameElementsAs associationList
+  }
+
+// Until the bug is fixed, we expect this test to fail...
+it should "also preserve the original order of the subsequences of elements that are equivalent according to the order" ignore
+  associationLists.withLimit(200).supplyTo {
+    associationList: List[(Int, Int)] =>
+      Trials.whenever(
+        associationList.nonEmpty
+      ) // Filter out the empty case as while we can assert on it, the assertion would be trivial.
+      {
+        val sortedResult = notSoStableSort(associationList)(ordering)
+
+        assert(sortedResult.groupBy(_._1) == associationList.groupBy(_._1))
+      }
+  }
+```
 
 ## Where ##
 
