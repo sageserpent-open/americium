@@ -767,9 +767,9 @@ case class TrialsImplementation[+Case](
   }
 
   override def supplyTo(recipe: String, consumer: Consumer[_ >: Case]): Unit =
-    supplyTo(recipe, consumer.accept _)
+    (consumer) => supplyTo(recipe)(consumer)
 
-  override def supplyTo(recipe: String, consumer: Case => Unit): Unit = {
+  override def supplyTo(recipe: String)(consumer: Case => Unit): Unit = {
     val decisionStages = parseDecisionIndices(recipe)
     val reproducedCase = reproduce(decisionStages)
 

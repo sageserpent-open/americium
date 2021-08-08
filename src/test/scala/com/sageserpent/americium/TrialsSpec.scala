@@ -686,7 +686,7 @@ class TrialsSpec
         .asInstanceOf[sut.TrialException]
 
       val exceptionRecreatedViaRecipe = Try {
-        sut.supplyTo(exception.recipe, surprisedConsumer)
+        sut.supplyTo(exception.recipe)(surprisedConsumer)
       }.failed.get
         .asInstanceOf[sut.TrialException]
 

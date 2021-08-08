@@ -96,7 +96,7 @@ trait Trials[+Case] extends TrialsFactoring[Case] with GenerationSupport[Case] {
 
   def withLimit(limit: Int): WithLimit[Case]
 
-  def supplyTo(recipe: String, consumer: Case => Unit): Unit
+  def supplyTo(recipe: String)(consumer: Case => Unit): Unit
 
   def several[Container](implicit
       factory: Factory[Case, Container]
