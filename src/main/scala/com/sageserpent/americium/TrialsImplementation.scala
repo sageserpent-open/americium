@@ -144,7 +144,7 @@ object TrialsImplementation {
         otherAlternatives: Trials[Case]*
     ): TrialsImplementation[Case] =
       alternate(
-        firstAlternative +: secondAlternative +: Seq(otherAlternatives: _*)
+        firstAlternative +: secondAlternative +: otherAlternatives
       )
 
     override def alternate[Case](
