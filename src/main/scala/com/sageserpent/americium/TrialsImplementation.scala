@@ -316,12 +316,20 @@ case class TrialsImplementation[+Case](
 
   override def withLimit(
       limit: Int
-  ): JavaTrials.WithLimit[Case] with Trials.WithLimit[Case] =
-    new JavaTrials.WithLimit[Case] with Trials.WithLimit[Case] {
+  ): JavaTrials.SupplyToSyntax[Case] with Trials.SupplyToSyntax[Case] =
+    new JavaTrials.SupplyToSyntax[Case] with Trials.SupplyToSyntax[Case] {
 
       // Java-only API ...
       override def supplyTo(consumer: Consumer[_ >: Case]): Unit =
         supplyTo(consumer.accept _)
+
+      override def asIterator(): JavaIterator[_ <: Case] = {
+        val randomBehaviour = new Random(734874)
+
+        val factoryShrinkage = 1
+
+        cases(limit, None, randomBehaviour, factoryShrinkage).map(_._2).asJava
+      }
 
       // Scala-only API ...
       override def supplyTo(consumer: Case => Unit): Unit = {
@@ -437,14 +445,6 @@ case class TrialsImplementation[+Case](
                 shrink(caze, throwable, decisionStages, factoryShrinkage, limit)
             }
         }
-      }
-
-      override def asIterator(): JavaIterator[_ <: Case] = {
-        val randomBehaviour = new Random(734874)
-
-        val factoryShrinkage = 1
-
-        cases(limit, None, randomBehaviour, factoryShrinkage).map(_._2).asJava
       }
     }
 
@@ -766,24 +766,37 @@ case class TrialsImplementation[+Case](
     TrialsImplementation(generation flatMap adaptedStep)
   }
 
-  override def supplyTo(recipe: String, consumer: Consumer[_ >: Case]): Unit =
-    (consumer) => supplyTo(recipe)(consumer)
+  def withRecipe(
+      recipe: String
+  ): JavaTrials.SupplyToSyntax[Case] with Trials.SupplyToSyntax[Case] =
+    new JavaTrials.SupplyToSyntax[Case] with Trials.SupplyToSyntax[Case] {
 
-  override def supplyTo(recipe: String)(consumer: Case => Unit): Unit = {
-    val decisionStages = parseDecisionIndices(recipe)
-    val reproducedCase = reproduce(decisionStages)
+      // Java-only API ...
+      override def supplyTo(consumer: Consumer[_ >: Case]): Unit =
+        supplyTo(consumer.accept _)
 
-    try {
-      consumer(reproducedCase)
-    } catch {
-      case exception: Throwable =>
-        throw new TrialException(exception) {
-          override def provokingCase: Case = reproducedCase
+      override def asIterator(): JavaIterator[_ <: Case] = Seq {
+        val decisionStages = parseDecisionIndices(recipe)
+        reproduce(decisionStages)
+      }.asJava.iterator()
 
-          override def recipe: String = decisionStages.asJson.spaces4
+      // Scala-only API ...
+      override def supplyTo(consumer: Case => Unit): Unit = {
+        val decisionStages = parseDecisionIndices(recipe)
+        val reproducedCase = reproduce(decisionStages)
+
+        try {
+          consumer(reproducedCase)
+        } catch {
+          case exception: Throwable =>
+            throw new TrialException(exception) {
+              override def provokingCase: Case = reproducedCase
+
+              override def recipe: String = decisionStages.asJson.spaces4
+            }
         }
+      }
     }
-  }
 
   private def several[Container](
       builderFactory: => Builder[Case, Container]

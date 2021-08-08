@@ -5,7 +5,7 @@ import _root_.com.sageserpent.americium.{
   Trials => ScalaTrials
 }
 import com.google.common.collect._
-import com.sageserpent.americium.java.Trials.WithLimit
+import com.sageserpent.americium.java.Trials.SupplyToSyntax
 
 import _root_.java.util.function.{
   Consumer,
@@ -26,7 +26,7 @@ object Trials {
       block: Runnable
   ): Unit = ScalaTrials.whenever(satisfiedPrecondition)(block.run())
 
-  trait WithLimit[+Case] {
+  trait SupplyToSyntax[+Case] {
 
     /** Consume trial cases until either there are no more or an exception is thrown by {@code consumer}.
       * If an exception is thrown, attempts will be made to shrink the trial case that caused the
@@ -71,23 +71,18 @@ trait Trials[+Case] extends TrialsFactoring[Case] {
     * supplied to a consumer.
     *
     * @param limit
-    * @return An instance of {@link WithLimit} with the limit configured.
+    * @return An instance of {@link SupplyToSyntax} with the limit configured.
     */
-  def withLimit(limit: Int): WithLimit[Case]
+  def withLimit(limit: Int): SupplyToSyntax[Case]
 
-  /** Consume the single trial case reproduced by a recipe. This is intended
-    * to repeatedly run a test against a known failing case when debugging, so
-    * the expectation is for this to *eventually* not throw an exception after
-    * code changes are made in the system under test.
+  /** Reproduce a trial case using a recipe. This is intended to repeatedly
+    * run a test against a known failing case when debugging.
     *
-    * @param recipe   This encodes a specific {@code Case} and will only be understood by the
-    *                 same *value* of {@link Trials} that was used to obtain it.
-    * @param consumer An operation that consumes a {@code Case}, and may throw an exception.
-    * @throws RuntimeException if the recipe is not one corresponding to the receiver,
-    *                          either due to it being created by a different flavour
-    *                          of {@link Trials} instance.
+    * @param recipe This encodes a specific {@code Case} and will only be understood by the
+    *               same *value* of {@link Trials} that was used to obtain it.
+    * @return An instance of {@link SupplyToSyntax} that supplies the reproduced trial case.
     */
-  def supplyTo(recipe: String, consumer: Consumer[_ >: Case]): Unit
+  def withRecipe(recipe: String): SupplyToSyntax[Case]
 
   def immutableLists(): Trials[ImmutableList[_ <: Case]]
 

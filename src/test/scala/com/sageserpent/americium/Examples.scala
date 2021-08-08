@@ -82,13 +82,14 @@ class Examples extends AnyFlatSpec with Matchers {
 
   // We expect this test to fail because our assumptions are wrong...
   "a lazy developer" should "get an unwelcome surprise" ignore
-    listsFavouringDuplicatedEntries.withLimit(50).supplyTo { list =>
-      vainAttemptToDisproveHavingMoreThanTwoAdjacentDuplicates(list)
-    }
+    listsFavouringDuplicatedEntries
+      .withLimit(50)
+      .supplyTo(vainAttemptToDisproveHavingMoreThanTwoAdjacentDuplicates)
 
   // We expect this test to fail because our assumptions are wrong...
   they should "get an unwelcome surprise - this time with the failure reproduced directly" ignore {
-    listsFavouringDuplicatedEntries.supplyTo("""[
+    listsFavouringDuplicatedEntries
+      .withRecipe("""[
           |    {
           |        "ChoiceOf" : {
           |            "index" : 3
@@ -124,8 +125,7 @@ class Examples extends AnyFlatSpec with Matchers {
           |            "index" : 2
           |        }
           |    }
-          |]""".stripMargin)({ list =>
-      vainAttemptToDisproveHavingMoreThanTwoAdjacentDuplicates(list)
-    })
+          |]""".stripMargin)
+      .supplyTo(vainAttemptToDisproveHavingMoreThanTwoAdjacentDuplicates)
   }
 }
