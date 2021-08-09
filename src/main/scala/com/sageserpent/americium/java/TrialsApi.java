@@ -4,6 +4,7 @@ import com.google.common.collect.ImmutableList;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -28,6 +29,14 @@ public interface TrialsApi {
     <Case> Trials<Case> choose(Iterable<Case> choices);
 
     <Case> Trials<Case> choose(Case[] choices);
+
+    <Case> Trials<Case> chooseWithWeights(Map.Entry<Integer, Case> firstChoice,
+                                          Map.Entry<Integer, Case> secondChoice,
+                                          Map.Entry<Integer, Case>... otherChoices);
+
+    <Case> Trials<Case> chooseWithWeights(Iterable<Map.Entry<Integer, Case>> choices);
+
+    <Case> Trials<Case> chooseWithWeights(Map.Entry<Integer, Case>[] choices);
 
     /**
      * Produce a trials instance that alternates between the cases of the given alternatives.

@@ -18,6 +18,14 @@ trait TrialsApi {
 
   def choose[Case](choices: Iterable[Case]): Trials[Case]
 
+  def chooseWithWeights[Case](
+      firstChoice: (Int, Case),
+      secondChoice: (Int, Case),
+      otherChoices: (Int, Case)*
+  ): Trials[Case]
+
+  def chooseWithWeights[Case](choices: Iterable[(Int, Case)]): Trials[Case]
+
   def alternate[Case](
       firstAlternative: Trials[Case],
       secondAlternative: Trials[Case],

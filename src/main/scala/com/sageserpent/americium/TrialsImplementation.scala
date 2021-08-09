@@ -22,6 +22,7 @@ import _root_.java.lang.{
   Boolean => JavaBoolean,
   Character => JavaCharacter,
   Double => JavaDouble,
+  Integer => JavaInteger,
   Iterable => JavaIterable,
   Long => JavaLong
 }
@@ -61,6 +62,31 @@ object TrialsImplementation {
         choices: Array[Case with AnyRef]
     ): TrialsImplementation[Case] =
       scalaApi.choose(choices.toSeq)
+
+    override def chooseWithWeights[Case](
+        firstChoice: JavaMap.Entry[JavaInteger, Case],
+        secondChoice: JavaMap.Entry[JavaInteger, Case],
+        otherChoices: JavaMap.Entry[JavaInteger, Case]*
+    ): TrialsImplementation[Case] =
+      scalaApi.chooseWithWeights(
+        (firstChoice +: secondChoice +: otherChoices) map (entry =>
+          Int.unbox(entry.getKey) -> entry.getValue
+        )
+      )
+
+    override def chooseWithWeights[Case](
+        choices: JavaIterable[JavaMap.Entry[JavaInteger, Case]]
+    ): TrialsImplementation[Case] =
+      scalaApi.chooseWithWeights(
+        choices.asScala.map(entry => Int.unbox(entry.getKey) -> entry.getValue)
+      )
+
+    override def chooseWithWeights[Case](
+        choices: Array[JavaMap.Entry[JavaInteger, Case]]
+    ): TrialsImplementation[Case] =
+      scalaApi.chooseWithWeights(choices.toSeq.map { entry =>
+        Int.unbox(entry.getKey) -> entry.getValue
+      })
 
     override def alternate[Case](
         firstAlternative: JavaTrials[_ <: Case],
@@ -105,7 +131,7 @@ object TrialsImplementation {
     ): TrialsImplementation[Case] =
       scalaApi.stream(Long.box _ andThen factory.apply)
 
-    override def integers: TrialsImplementation[Integer] =
+    override def integers: TrialsImplementation[JavaInteger] =
       scalaApi.integers.map(Int.box _)
 
     override def longs: TrialsImplementation[JavaLong] =
@@ -139,6 +165,20 @@ object TrialsImplementation {
       new TrialsImplementation(
         Choice(SortedMap.from(LazyList.from(1).zip(choices)))
       )
+
+    override def chooseWithWeights[Case](
+        firstChoice: (Int, Case),
+        secondChoice: (Int, Case),
+        otherChoices: (Int, Case)*
+    ): TrialsImplementation[Case] =
+      chooseWithWeights(firstChoice +: secondChoice +: otherChoices)
+
+    override def chooseWithWeights[Case](
+        choices: Iterable[(Int, Case)]
+    ): TrialsImplementation[Case] =
+      choose(choices).map(
+        (_: (Int, Case))._2
+      ) // THIS IS DELIBERATELY WRONG! NOW TO WRITE A TEST TO EXPOSE THIS...
 
     override def alternate[Case](
         firstAlternative: Trials[Case],
