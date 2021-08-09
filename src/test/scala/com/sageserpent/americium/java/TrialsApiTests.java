@@ -1,16 +1,21 @@
 package com.sageserpent.americium.java;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.math.BigDecimal;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.stream.Stream;
 
+import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.lessThanOrEqualTo;
 
 public class TrialsApiTests {
     private final static TrialsApi api = Trials.api();
@@ -127,4 +132,43 @@ public class TrialsApiTests {
             });
         });
     }
+
+    @ParameterizedTest
+    @ValueSource(ints = {0, 1, 2, 5, 10})
+    void testDriveListTrialsFromListOfTrials(int numberOfElements) {
+        final Trials<ImmutableList<Integer>> lists;
+
+        {
+            final ImmutableList.Builder<Trials<Integer>> builder = ImmutableList.builder();
+
+            for (int size = 1; numberOfElements >= size; ++size) {
+                builder.add(api.choose(Stream.iterate(0, previous -> 1 + previous).limit(size).toArray(Integer[]::new)));
+            }
+
+            lists = api.lists(builder.build());
+        }
+
+        lists.withLimit(100).supplyTo(list -> {
+            assertThat("The size of the list should be number of element trials", list.size(), equalTo(numberOfElements));
+
+            System.out.println(list);
+
+            for (int index = 0; numberOfElements > index; ++index) {
+                assertThat("The range should not exceed the index", list.get(index), lessThanOrEqualTo(index));
+            }
+        });
+    }
+
+    @ParameterizedTest
+    @ValueSource(ints = {0, 1, 2, 5, 10})
+    void testDriveSizedListTrials(int numberOfElements) {
+        final Trials<ImmutableList<? extends Integer>> lists = api.integers().immutableListsOfSize(numberOfElements);
+
+        lists.withLimit(100).supplyTo(list -> {
+            assertThat("The size of the list should be number of element trials", list.size(), equalTo(numberOfElements));
+
+            System.out.println(list);
+        });
+    }
+
 }

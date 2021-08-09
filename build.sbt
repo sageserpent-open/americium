@@ -45,7 +45,8 @@ lazy val settings = Seq(
   libraryDependencies ++= Seq(
     "org.junit.platform" % "junit-platform-runner" % "1.7.0" % Test,
     "org.junit.jupiter"  % "junit-jupiter-engine"  % "5.7.0" % Test
-  )
+  ),
+  libraryDependencies += "org.hamcrest" % "hamcrest" % "2.2" % Test
 )
 
 lazy val americium = (project in file(".")).settings(settings: _*)

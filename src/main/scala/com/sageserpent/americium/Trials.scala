@@ -2,11 +2,12 @@ package com.sageserpent.americium
 
 import cats._
 import cats.implicits._
-import com.sageserpent.americium.Trials.WithLimit
+import com.sageserpent.americium.Trials.SupplyToSyntax
 import com.sageserpent.americium.TrialsImplementation.GenerationSupport
 import com.sageserpent.americium.java.TrialsFactoring
 
 import scala.collection.Factory
+import scala.collection.immutable.{SortedMap, SortedSet}
 import scala.language.implicitConversions
 
 object Trials extends TrialsByMagnolia {
@@ -19,18 +20,19 @@ object Trials extends TrialsByMagnolia {
   ): Result =
     if (satisfiedPrecondition) block else throw new RejectionByInlineFilter()
 
-  trait WithLimit[+Case] {
+  trait SupplyToSyntax[+Case] {
     def supplyTo(consumer: Case => Unit): Unit
   }
 
-  trait WithLimitTuple2[+Case1, +Case2] extends WithLimit[(Case1, Case2)] {
+  trait SupplyToSyntaxTuple2[+Case1, +Case2]
+      extends SupplyToSyntax[(Case1, Case2)] {
     def supplyTo(consumer: (Case1, Case2) => Unit): Unit = supplyTo(
       consumer.tupled
     )
   }
 
-  trait WithLimitTuple3[+Case1, +Case2, +Case3]
-      extends WithLimit[(Case1, Case2, Case3)] {
+  trait SupplyToSyntaxTuple3[+Case1, +Case2, +Case3]
+      extends SupplyToSyntax[(Case1, Case2, Case3)] {
     def supplyTo(consumer: (Case1, Case2, Case3) => Unit): Unit = supplyTo(
       consumer.tupled
     )
@@ -56,8 +58,8 @@ object Trials extends TrialsByMagnolia {
   implicit class tuple2Trials[+Case1, +Case2](
       val pair: (Trials[Case1], Trials[Case2])
   ) extends AnyVal {
-    def withLimit(limit: Int): WithLimitTuple2[Case1, Case2] =
-      new WithLimitTuple2[Case1, Case2] {
+    def withLimit(limit: Int): SupplyToSyntaxTuple2[Case1, Case2] =
+      new SupplyToSyntaxTuple2[Case1, Case2] {
         val withLimit = pair.mapN(Tuple2.apply).withLimit(limit)
 
         override def supplyTo(consumer: ((Case1, Case2)) => Unit): Unit =
@@ -68,8 +70,8 @@ object Trials extends TrialsByMagnolia {
   implicit class tuple3Trials[+Case1, +Case2, +Case3](
       val triple: (Trials[Case1], Trials[Case2], Trials[Case3])
   ) extends AnyVal {
-    def withLimit(limit: Int): WithLimitTuple3[Case1, Case2, Case3] =
-      new WithLimitTuple3[Case1, Case2, Case3] {
+    def withLimit(limit: Int): SupplyToSyntaxTuple3[Case1, Case2, Case3] =
+      new SupplyToSyntaxTuple3[Case1, Case2, Case3] {
         val withLimit = triple.mapN(Tuple3.apply).withLimit(limit)
 
         override def supplyTo(consumer: ((Case1, Case2, Case3)) => Unit): Unit =
@@ -93,13 +95,31 @@ trait Trials[+Case] extends TrialsFactoring[Case] with GenerationSupport[Case] {
       filteringTransform: Case => Option[TransformedCase]
   ): Trials[TransformedCase]
 
-  def withLimit(limit: Int): WithLimit[Case]
+  def withLimit(limit: Int): SupplyToSyntax[Case]
 
-  def supplyTo(recipe: String, consumer: Case => Unit): Unit
+  def withRecipe(recipe: String): SupplyToSyntax[Case]
 
   def several[Container](implicit
       factory: Factory[Case, Container]
   ): Trials[Container]
 
-  def lists: Trials[List[Case]] = several
+  def lists: Trials[List[Case]]
+
+  def sets: Trials[Set[_ <: Case]]
+
+  def sortedSets(implicit
+      ordering: Ordering[_ >: Case]
+  ): Trials[SortedSet[_ <: Case]]
+
+  def maps[Value](values: Trials[Value]): Trials[Map[_ <: Case, Value]]
+
+  def sortedMaps[Value](values: Trials[Value])(implicit
+      ordering: Ordering[_ >: Case]
+  ): Trials[SortedMap[_ <: Case, Value]]
+
+  def lotsOfSize[Container](size: Int)(implicit
+      factory: Factory[Case, Container]
+  ): Trials[Container]
+
+  def listsOfSize(size: Int): Trials[List[Case]]
 }

@@ -1,6 +1,10 @@
 package com.sageserpent.americium.java;
 
+import com.google.common.collect.ImmutableList;
+
 import java.time.Instant;
+import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -26,6 +30,14 @@ public interface TrialsApi {
 
     <Case> Trials<Case> choose(Case[] choices);
 
+    <Case> Trials<Case> chooseWithWeights(Map.Entry<Integer, Case> firstChoice,
+                                          Map.Entry<Integer, Case> secondChoice,
+                                          Map.Entry<Integer, Case>... otherChoices);
+
+    <Case> Trials<Case> chooseWithWeights(Iterable<Map.Entry<Integer, Case>> choices);
+
+    <Case> Trials<Case> chooseWithWeights(Map.Entry<Integer, Case>[] choices);
+
     /**
      * Produce a trials instance that alternates between the cases of the given alternatives.
      * <p>
@@ -43,6 +55,16 @@ public interface TrialsApi {
     <Case> Trials<Case> alternate(Iterable<Trials<Case>> alternatives);
 
     <Case> Trials<Case> alternate(Trials<Case>[] alternatives);
+
+    <Case> Trials<Case> alternateWithWeights(Map.Entry<Integer, Trials<? extends Case>> firstAlternative,
+                                             Map.Entry<Integer, Trials<? extends Case>> secondAlternative,
+                                             Map.Entry<Integer, Trials<? extends Case>>... otherAlternatives);
+
+    <Case> Trials<Case> alternateWithWeights(Iterable<Map.Entry<Integer, Trials<Case>>> alternatives);
+
+    <Case> Trials<Case> alternateWithWeights(Map.Entry<Integer, Trials<Case>>[] alternatives);
+
+    <Case> Trials<ImmutableList<Case>> lists(List<Trials<Case>> listOfTrials);
 
     /**
      * Produce a trials instance that stream cases from a factory.
