@@ -205,7 +205,19 @@ object TrialsImplementation {
       new TrialsImplementation(
         Choice(choices.unzip match {
           case (weights, plainChoices) =>
-            SortedMap.from(weights.scanLeft(0)(_ + _).drop(1).zip(plainChoices))
+            SortedMap.from(
+              weights
+                .scanLeft(0) {
+                  case (cumulativeWeight, weight) if 0 < weight =>
+                    cumulativeWeight + weight
+                  case (_, weight) =>
+                    throw new IllegalArgumentException(
+                      s"Weight $weight amongst provided weights of $weights must be greater than zero"
+                    )
+                }
+                .drop(1)
+                .zip(plainChoices)
+            )
         })
       )
 
@@ -235,7 +247,8 @@ object TrialsImplementation {
         alternatives: Iterable[
           (Int, Trials[Case])
         ]
-    ): TrialsImplementation[Case] = ???
+    ): TrialsImplementation[Case] =
+      chooseWithWeights(alternatives).flatMap(identity[Trials[Case]] _)
 
     override def sequences[Case, Sequence[_]: Traverse](
         sequenceOfTrials: Sequence[Trials[Case]]
