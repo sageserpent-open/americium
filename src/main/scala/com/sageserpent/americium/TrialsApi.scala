@@ -34,6 +34,16 @@ trait TrialsApi {
 
   def alternate[Case](alternatives: Iterable[Trials[Case]]): Trials[Case]
 
+  def alternateWithWeights[Case](
+      firstAlternative: (Int, Trials[Case]),
+      secondAlternative: (Int, Trials[Case]),
+      otherAlternatives: (Int, Trials[Case])*
+  ): Trials[Case]
+
+  def alternateWithWeights[Case](
+      alternatives: Iterable[(Int, Trials[Case])]
+  ): Trials[Case]
+
   def sequences[Case, Sequence[_]: Traverse](
       sequenceOfTrials: Sequence[Trials[Case]]
   )(implicit

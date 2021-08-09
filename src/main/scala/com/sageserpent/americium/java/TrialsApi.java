@@ -56,6 +56,14 @@ public interface TrialsApi {
 
     <Case> Trials<Case> alternate(Trials<Case>[] alternatives);
 
+    <Case> Trials<Case> alternateWithWeights(Map.Entry<Integer, Trials<? extends Case>> firstAlternative,
+                                             Map.Entry<Integer, Trials<? extends Case>> secondAlternative,
+                                             Map.Entry<Integer, Trials<? extends Case>>... otherAlternatives);
+
+    <Case> Trials<Case> alternateWithWeights(Iterable<Map.Entry<Integer, Trials<Case>>> alternatives);
+
+    <Case> Trials<Case> alternateWithWeights(Map.Entry<Integer, Trials<Case>>[] alternatives);
+
     <Case> Trials<ImmutableList<Case>> lists(List<Trials<Case>> listOfTrials);
 
     /**

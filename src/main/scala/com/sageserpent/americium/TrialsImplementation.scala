@@ -84,9 +84,9 @@ object TrialsImplementation {
     override def chooseWithWeights[Case](
         choices: Array[JavaMap.Entry[JavaInteger, Case]]
     ): TrialsImplementation[Case] =
-      scalaApi.chooseWithWeights(choices.toSeq.map { entry =>
-        Int.unbox(entry.getKey) -> entry.getValue
-      })
+      scalaApi.chooseWithWeights(
+        choices.toSeq.map(entry => Int.unbox(entry.getKey) -> entry.getValue)
+      )
 
     override def alternate[Case](
         firstAlternative: JavaTrials[_ <: Case],
@@ -94,7 +94,7 @@ object TrialsImplementation {
         otherAlternatives: JavaTrials[_ <: Case]*
     ): TrialsImplementation[Case] =
       scalaApi.alternate(
-        (firstAlternative +: secondAlternative +: Seq(otherAlternatives: _*))
+        (firstAlternative +: secondAlternative +: otherAlternatives)
           .map(_.scalaTrials)
       )
 
@@ -107,6 +107,32 @@ object TrialsImplementation {
         alternatives: Array[JavaTrials[Case]]
     ): TrialsImplementation[Case] =
       scalaApi.alternate(alternatives.toSeq.map(_.scalaTrials))
+
+    override def alternateWithWeights[Case](
+        firstAlternative: JavaMap.Entry[JavaInteger, JavaTrials[_ <: Case]],
+        secondAlternative: JavaMap.Entry[JavaInteger, JavaTrials[_ <: Case]],
+        otherAlternatives: JavaMap.Entry[JavaInteger, JavaTrials[_ <: Case]]*
+    ): TrialsImplementation[Case] = scalaApi.alternateWithWeights(
+      (firstAlternative +: secondAlternative +: otherAlternatives)
+        .map(entry => Int.unbox(entry.getKey) -> entry.getValue.scalaTrials)
+    )
+
+    override def alternateWithWeights[Case](
+        alternatives: JavaIterable[JavaMap.Entry[JavaInteger, JavaTrials[Case]]]
+    ): TrialsImplementation[Case] =
+      scalaApi.alternateWithWeights(
+        alternatives.asScala.map(entry =>
+          Int.unbox(entry.getKey) -> entry.getValue.scalaTrials
+        )
+      )
+
+    override def alternateWithWeights[Case](
+        alternatives: Array[JavaMap.Entry[JavaInteger, JavaTrials[Case]]]
+    ): TrialsImplementation[Case] = scalaApi.alternateWithWeights(
+      alternatives.toSeq.map(entry =>
+        Int.unbox(entry.getKey) -> entry.getValue.scalaTrials
+      )
+    )
 
     override def lists[Case](
         listOfTrials: JavaList[JavaTrials[Case]]
@@ -193,6 +219,20 @@ object TrialsImplementation {
         alternatives: Iterable[Trials[Case]]
     ): TrialsImplementation[Case] =
       choose(alternatives).flatMap(identity[Trials[Case]] _)
+
+    override def alternateWithWeights[Case](
+        firstAlternative: (Int, Trials[Case]),
+        secondAlternative: (Int, Trials[Case]),
+        otherAlternatives: (Int, Trials[Case])*
+    ): TrialsImplementation[Case] = alternateWithWeights(
+      firstAlternative +: secondAlternative +: otherAlternatives
+    )
+
+    override def alternateWithWeights[Case](
+        alternatives: Iterable[
+          (Int, Trials[Case])
+        ]
+    ): TrialsImplementation[Case] = ???
 
     override def sequences[Case, Sequence[_]: Traverse](
         sequenceOfTrials: Sequence[Trials[Case]]
