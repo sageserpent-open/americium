@@ -202,9 +202,12 @@ object TrialsImplementation {
     override def chooseWithWeights[Case](
         choices: Iterable[(Int, Case)]
     ): TrialsImplementation[Case] =
-      choose(choices).map(
-        (_: (Int, Case))._2
-      ) // THIS IS DELIBERATELY WRONG! NOW TO WRITE A TEST TO EXPOSE THIS...
+      new TrialsImplementation(
+        Choice(choices.unzip match {
+          case (weights, plainChoices) =>
+            SortedMap.from(weights.scanLeft(0)(_ + _).drop(1).zip(plainChoices))
+        })
+      )
 
     override def alternate[Case](
         firstAlternative: Trials[Case],
