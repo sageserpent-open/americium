@@ -13,6 +13,7 @@ import org.scalatest.prop.TableDrivenPropertyChecks
 
 import _root_.java.util.UUID
 import _root_.java.util.function.{Predicate, Function => JavaFunction}
+import scala.collection.mutable
 import scala.jdk.CollectionConverters._
 import scala.util.Try
 
@@ -293,7 +294,9 @@ class TrialsSpec
     ) { possibleChoices =>
       withExpectations {
         val weightedChoices =
-          possibleChoices.map(choice => 1 + choice.hashCode() % 10 -> choice)
+          possibleChoices.map(choice =>
+            1 + choice.hashCode().abs % 10 -> choice
+          )
 
         val sut: Trials[Any] = api.chooseWithWeights(weightedChoices)
 
@@ -383,11 +386,111 @@ class TrialsSpec
         sut.withLimit(limit).supplyTo(mockConsumer)
 
         alternatives
-          .flatMap {
-            case several: Seq[_] => several
-            case singleton       => Seq(singleton)
+          .foreach {
+            case several: Seq[_] =>
+              several.foreach(possibleChoice =>
+                mockConsumer.verify(possibleChoice)
+              )
+            case singleton => mockConsumer.verify(singleton)
           }
-          .foreach(possibleChoice => mockConsumer.verify(possibleChoice))
+      }
+    }
+
+  it should "yield all and only the cases that would be yielded by its alternatives in the given weights" in
+    forAll(
+      Table(
+        "alternatives",
+        Seq.empty,
+        Seq(1 to 10),
+        Seq(1 to 10, 20 to 30 map (_.toString)),
+        Seq(1 to 10, Seq(true, false), 20 to 30),
+        Seq(1, "3", 99),
+        Seq(1, "3", 2 to 4),
+        Seq(1 to 10, Seq(12), -3 to -1),
+        Seq(Seq(0), 1 to 10, 13, -3 to -1)
+      )
+    ) { alternatives =>
+      withExpectations {
+        val weightedAlternatives =
+          alternatives.map(choice => 1 + choice.hashCode().abs % 10 -> choice)
+
+        val sut: Trials[Any] =
+          api.alternateWithWeights(weightedAlternatives map {
+            case (weight, sequence: Seq[_]) => weight -> api.choose(sequence)
+            case (weight, singleton)        => weight -> api.only(singleton)
+          })
+
+        val mockConsumer = stubFunction[Any, Unit]
+
+        sut.withLimit(limit).supplyTo(mockConsumer)
+
+        weightedAlternatives
+          .foreach {
+            case (weight, several: Seq[_]) =>
+              several.foreach(possibleChoice =>
+                mockConsumer.verify(possibleChoice).repeat(weight)
+              )
+            case (weight, singleton) =>
+              mockConsumer.verify(singleton).repeat(weight)
+          }
+      }
+    }
+
+  "an alternation over streams" should "yield the cases that would be yielded by its alternatives in proportion to the given weights" in
+    forAll(
+      Table(
+        "alternatives",
+        Seq.empty,
+        Seq((_: Long).toString),
+        Seq((_: Long).toString, identity[Long] _, (_: Long) * 2),
+        Seq((_: Long).toString, identity[Long] _, (_: Long) * 2, (_: Long) * 2)
+      )
+    ) { alternatives =>
+      withExpectations {
+        val alternativeInvariantIds = Vector.fill(alternatives.size) {
+          UUID.randomUUID()
+        }
+
+        val weightedAlternatives =
+          alternatives
+            .map(choice => 1 + choice.hashCode().abs % 10 -> choice)
+            .toMap
+
+        val sut: Trials[(Any, UUID)] =
+          api.alternateWithWeights(
+            weightedAlternatives.zip(alternativeInvariantIds) map {
+              case ((weight, factory: (Long => Any)), invariantId) =>
+                weight -> api.stream(factory).map(_ -> invariantId)
+            }
+          )
+
+        val mockConsumer = mockFunction[(Any, UUID), Unit]
+
+        val invariantIdCounts = mutable.Map.empty[UUID, Int]
+
+        mockConsumer.stubs(*) onCall ({ case (_, invariantId) =>
+          invariantIdCounts.updateWith(invariantId) {
+            case count @ Some(_) => count.map(1 + _)
+            case None            => Some(1)
+          }
+        }: ((Any, UUID)) => Unit)
+
+        sut.withLimit(limit).supplyTo(mockConsumer)
+
+        val totalNumberOfCalls = invariantIdCounts.values.sum
+
+        val weights = weightedAlternatives.map(_._1)
+
+        val totalWeight = weights.sum
+
+        alternativeInvariantIds.zip(weights).foreach {
+          case (invariantId, weight) =>
+            val expectedCallCount =
+              Math
+                .round((totalNumberOfCalls.toDouble * weight) / totalWeight)
+                .toInt
+            invariantIdCounts(invariantId) should be(expectedCallCount +- 10)
+        }
       }
     }
 
@@ -761,7 +864,7 @@ class TrialsSpec
                   .withLimit(limit)
                   .supplyTo(complainingConsumer)
                 catch {
-                  case exceptionFromFilteredTrials =>
+                  case exceptionFromFilteredTrials: Throwable =>
                     exceptionFromFilteredTrials.getCause match {
                       case exceptionWithAtLeastAsLargeCasePayload: ExceptionWithCasePayload[
                             Vector[X]
