@@ -280,6 +280,33 @@ class TrialsSpec
       }
     }
 
+  it should "yield all and only the cases given to it in the given weights" in
+    forAll(
+      Table(
+        "possibleChoices",
+        Seq.empty,
+        1 to 10,
+        -5 to 5 map (_.toString),
+        Seq(true),
+        Seq(4.3)
+      )
+    ) { possibleChoices =>
+      withExpectations {
+        val weightedChoices =
+          possibleChoices.map(choice => 1 + choice.hashCode() % 10 -> choice)
+
+        val sut: Trials[Any] = api.chooseWithWeights(weightedChoices)
+
+        val mockConsumer = stubFunction[Any, Unit]
+
+        sut.withLimit(limit).supplyTo(mockConsumer)
+
+        weightedChoices.foreach { case (weight, possibleChoice) =>
+          mockConsumer.verify(possibleChoice).repeat(weight)
+        }
+      }
+    }
+
   case class ExceptionWithCasePayload[Case](caze: Case) extends RuntimeException
 
   "a choice that includes exceptional cases" should "result in one of the corresponding exceptions" in {
