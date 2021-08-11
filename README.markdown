@@ -182,9 +182,13 @@ Trial exception with underlying cause:
 org.scalatest.exceptions.TestFailedException: HashMap(97 -> List((97,1809838260), (97,-1532594126))) did not equal HashMap(97 -> List((97,-1532594126), (97,1809838260)))
 Case:
 List((97,-1532594126), (97,1809838260))
+Reproduce with recipe:
+[
+.... block of JSON ....
+]
 ```
 
-We also see a recipe for reproduction too in the output. We can use this recipe to make a temporary bug-reproduction
+We also see a JSON recipe for reproduction too further down in the output. We can use this recipe to make a temporary bug-reproduction
 test that focuses solely on the test case causing the problem:
 
 ```scala
