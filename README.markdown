@@ -22,7 +22,7 @@ For one thing, not all frameworks allow direct reproduction of the offending tes
 execution for a piece of data takes appreciable time, then running the entire parameterised test up to the point of
 failure can take minutes for more sophisticated tests. What's more, the test case that provokes the test failure may be
 extraordinarily complex; these frameworks all use the notion of building up test cases based on combining randomly
-varying data into bigger and bigger chunks, which often means that whtever provokes a failure is buried in a complex
+varying data into bigger and bigger chunks, which often means that whatever provokes a failure is buried in a complex
 test case with additional random data that is of no relevance to the failure.
 
 For example, if we are testing a stable sorting algorithm in Scala, we may find due to the use of weak equality in the
