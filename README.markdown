@@ -99,7 +99,7 @@ support.
 
 What the author wanted was a framework that:
 
-1. Offers automatic shrinkage to a minimal or nearly-minimal test case.
+1. Offers automatic shrinkage to a minimal or nearly-minimal test case. __Yes, invariants are preserved on test case data.__
 1. Shrinks efficiently.
 1. Offers direct reproduction of a failing, minimised test case.
 1. Covers finite combinations of atomic cases without duplication when building composite cases.
