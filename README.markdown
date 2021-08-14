@@ -103,7 +103,7 @@ What the author wanted was a framework that:
 1. Shrinks efficiently.
 1. Offers direct reproduction of a failing, minimised test case.
 1. Covers finite combinations of atomic cases without duplication when building composite cases.
-1. Gets out of the way of testing style - doesn't care about whether the test are pure functional or imperative, doesn't
+1. Gets out of the way of testing style - doesn't care about whether the tests are pure functional or imperative, doesn't
    offer a DSL or try to structure your test suite.
 1. Supports Scala and Java as first class citizens.
 1. Supports covariance of test case generation in Scala, so cases for a subclass can be substituted for cases for a
