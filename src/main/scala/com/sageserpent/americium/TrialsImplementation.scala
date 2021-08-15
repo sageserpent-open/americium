@@ -467,8 +467,7 @@ case class TrialsImplementation[+Case](
                       def shrinkDecisionStages(
                           caze: Case,
                           throwable: Throwable,
-                          decisionStages: DecisionStages,
-                          factoryShrinkage: Long
+                          decisionStages: DecisionStages
                       ): Unit = {
                         val numberOfDecisionStages = decisionStages.size
 
@@ -480,7 +479,7 @@ case class TrialsImplementation[+Case](
                             limit,
                             Some(reducedNumberOfDecisionStages),
                             randomBehaviour,
-                            factoryShrinkage
+                            increasedFactoryShrinkage
                           )
                             .foreach {
                               case (
@@ -496,8 +495,7 @@ case class TrialsImplementation[+Case](
                                     shrinkDecisionStages(
                                       potentialShrunkCase,
                                       throwableFromPotentialShrunkCase,
-                                      decisionStagesForPotentialShrunkCase,
-                                      factoryShrinkage
+                                      decisionStagesForPotentialShrunkCase
                                     )
                                 }
                             }
@@ -514,7 +512,7 @@ case class TrialsImplementation[+Case](
                           caze,
                           throwable,
                           decisionStages,
-                          factoryShrinkage,
+                          increasedFactoryShrinkage,
                           limitWithExtraLeewayThatHasBeenObservedToFindBetterShrunkCases
                         )
                       }
@@ -522,8 +520,7 @@ case class TrialsImplementation[+Case](
                       shrinkDecisionStages(
                         potentialShrunkCase,
                         throwableFromPotentialShrunkCase,
-                        decisionStagesForPotentialShrunkCase,
-                        increasedFactoryShrinkage
+                        decisionStagesForPotentialShrunkCase
                       )
                   }
               }
