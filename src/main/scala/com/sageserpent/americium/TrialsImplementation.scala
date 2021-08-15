@@ -438,6 +438,9 @@ case class TrialsImplementation[+Case](
       override def supplyTo(consumer: Case => Unit): Unit = {
         val randomBehaviour = new Random(734874)
 
+        // This is the outer recursive function in the mutual shrinkage recursion - it
+        // increases the shrinkage factor, and if that yields a failing case, it then
+        // hands over to its inner partner to shrink on the number of decision steps...
         def shrink(
             caze: Case,
             throwable: Throwable,
@@ -445,7 +448,10 @@ case class TrialsImplementation[+Case](
             factoryShrinkage: Long,
             limit: Int
         ): Unit = {
-          if ((Long.MaxValue >> 1) >= factoryShrinkage) {
+          val stillEnoughRoomToIncreaseShrinkageFactor =
+            (Long.MaxValue >> 1) >= factoryShrinkage
+
+          if (stillEnoughRoomToIncreaseShrinkageFactor) {
             val increasedFactoryShrinkage = factoryShrinkage * 2
 
             cases(
@@ -462,8 +468,13 @@ case class TrialsImplementation[+Case](
                   try {
                     consumer(potentialShrunkCase)
                   } catch {
-                    case rejection: RejectionByInlineFilter => throw rejection
+                    case rejection: RejectionByInlineFilter          => throw rejection
                     case throwableFromPotentialShrunkCase: Throwable =>
+                      // This is the inner recursive function in the mutual shrinkage recursion - it
+                      // decreases the maximum number of decision steps and if that yields a failing
+                      // case, it recurses to itself to keep whittling them down. If an invocation
+                      // doesn't find a failing case, it recurses back to its outer partner to increase
+                      // the shrinkage factor again...
                       def shrinkDecisionStages(
                           caze: Case,
                           throwable: Throwable,
@@ -525,6 +536,9 @@ case class TrialsImplementation[+Case](
                   }
               }
           }
+
+          // At this point the outer recursion hasn't found a failing case, so we call it
+          // a day and go with the best we've got from further up the call chain...
 
           throw new TrialException(throwable) {
             override def provokingCase: Case = caze
