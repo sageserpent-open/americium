@@ -40,14 +40,18 @@ object TrialsSpec {
 
   val limit: Int = 2000
 
-  def integerVectorTrials: Trials[Vector[Int]] =
-    api.integers.several
+  def integerVectorTrials: Trials[Vector[Int]] = {
+    // FIXME: the need to do this shows that some kind of weighted distribution is a good idea.
+    api.alternateWithWeights(1 -> api.only(0), 10 -> api.integers).several
+  }
 
   def doubleVectorTrials: Trials[Vector[Double]] =
-    api.doubles.several
+    // FIXME: the need to do this shows that some kind of weighted distribution is a good idea.
+    api.alternateWithWeights(1 -> api.only(0.0), 10 -> api.doubles).several
 
   def longVectorTrials: Trials[Vector[Long]] =
-    api.longs.several
+    // FIXME: the need to do this shows that some kind of weighted distribution is a good idea.
+    api.alternateWithWeights(1 -> api.only(0L), 10 -> api.longs).several
 
   def listTrials: Trials[List[Int]] =
     api.integers.several
@@ -59,7 +63,10 @@ object TrialsSpec {
         flag         <- api.booleans
         rightSubtree <- binaryTreeTrials
       } yield Branch(leftSubtree, flag, rightSubtree),
-      api.integers.map(Leaf.apply)
+      // FIXME: the need to do this shows that some kind of weighted distribution is a good idea.
+      api
+        .alternateWithWeights(1 -> api.only(0), 10 -> api.integers)
+        .map(Leaf.apply)
     )
 
 }
@@ -826,14 +833,15 @@ class TrialsSpec
   }
 
   it should "be shrunk to a simple case" in {
-    type TrialsAndCriterion[X] = (Trials[Vector[X]], Vector[X] => Boolean)
+    type DescriptionTrialsAndCriterion[X] =
+      (String, Trials[Vector[X]], Vector[X] => Boolean)
 
     def testBodyInWildcardCapture[X](
-        trialsAndCriterion: TrialsAndCriterion[X]
+        trialsAndCriterion: DescriptionTrialsAndCriterion[X]
     ) =
       withExpectations {
         trialsAndCriterion match {
-          case (sut, exceptionCriterion) =>
+          case (description, sut, exceptionCriterion) =>
             val complainingConsumer = { caze: Vector[X] =>
               if (exceptionCriterion(caze))
                 throw ExceptionWithCasePayload(caze)
@@ -853,7 +861,7 @@ class TrialsSpec
                   ] =>
                 val provokingCase = exception.provokingCase
 
-                println(s"Provoking case: $provokingCase")
+                println(s"Provoking case for '$description': $provokingCase")
 
                 provokingCase should be(exceptionWithCasePayload.caze)
 
@@ -886,56 +894,138 @@ class TrialsSpec
       }
 
     forAll(
-      Table[TrialsAndCriterion[_]](
+      Table[DescriptionTrialsAndCriterion[_]](
         "trials -> exceptionCriterion",
         (
           // This first entry isn't expected to shrink the values, only the length of the failing case.
+          "Has more than one item and sums to more than 7.",
           api.strings map (_.toVector) map (_.map(_.toInt)),
           (integerVector: Vector[Int]) =>
             1 < integerVector.size && integerVector.sum > 7
         ),
         (
+          "Has more than one item and sums to more than 7.",
           doubleVectorTrials,
           (doubleVector: Vector[Double]) =>
             1 < doubleVector.size && doubleVector.sum > 7
         ),
         (
+          "Has more than one item and sums to more than 7.",
           integerVectorTrials,
           (integerVector: Vector[Int]) =>
             1 < integerVector.size && integerVector.sum > 7
         ),
         (
+          "Has more than one item, no zeroes and sums to more than 7.",
+          integerVectorTrials,
+          (integerVector: Vector[Int]) =>
+            1 < integerVector.size && integerVector.sum > 7 && integerVector
+              .forall(0 != _)
+        ),
+        (
+          "Has more than one item, at least one zero and sums to more than 7.",
+          integerVectorTrials,
+          (integerVector: Vector[Int]) =>
+            1 < integerVector.size && integerVector.sum > 7 && integerVector
+              .exists(0 == _)
+        ),
+        (
+          "Has more than one item and sums to more than 7.",
           longVectorTrials,
           (longVector: Vector[Long]) =>
             1 < longVector.size && longVector.sum > 7
         ),
         (
+          "Has more than one item, no zeroes and sums to more than 7.",
+          longVectorTrials,
+          (longVector: Vector[Long]) =>
+            1 < longVector.size && longVector.sum > 7 && longVector.forall(
+              0 != _
+            )
+        ),
+        (
+          "Has more than one item, at least one zero and sums to more than 7.",
+          longVectorTrials,
+          (longVector: Vector[Long]) =>
+            1 < longVector.size && longVector.sum > 7 && longVector.exists(
+              0 == _
+            )
+        ),
+        (
+          "Has more than 7 items.",
           integerVectorTrials,
           (integerVector: Vector[Int]) => integerVector.size > 7
         ),
         (
+          "Has more than one item, at least one non-zero and sums to a multiple of 7.",
           integerVectorTrials,
           (integerVector: Vector[Int]) =>
             1 < integerVector.size && 0 == integerVector.sum % 7 && integerVector
               .exists(0 != _)
         ),
         (
+          "Has more than one item, no zeroes and sums to a multiple of 7.",
+          integerVectorTrials,
+          (integerVector: Vector[Int]) =>
+            1 < integerVector.size && 0 == integerVector.sum % 7 && integerVector
+              .forall(0 != _)
+        ),
+        (
+          "Has more than one item, at least one zero and sums to a multiple of 7.",
+          integerVectorTrials,
+          (integerVector: Vector[Int]) =>
+            1 < integerVector.size && 0 == integerVector.sum % 7 && integerVector
+              .exists(0 == _)
+        ),
+        (
+          "Has more than one item and sums to a positive multiple of 7.",
           integerVectorTrials,
           (integerVector: Vector[Int]) =>
             1 < integerVector.size && 0 == integerVector.sum % 7 && 0 < integerVector.sum
         ),
         (
+          "Has more than one item, no zeroes and sums to a positive multiple of 7.",
+          integerVectorTrials,
+          (integerVector: Vector[Int]) =>
+            1 < integerVector.size && 0 == integerVector.sum % 7 && 0 < integerVector.sum && integerVector
+              .forall(0 != _)
+        ),
+        (
+          "Has more than one item, at least one non-zero and sums to a positive multiple of 7.",
+          integerVectorTrials,
+          (integerVector: Vector[Int]) =>
+            1 < integerVector.size && 0 == integerVector.sum % 7 && 0 < integerVector.sum && integerVector
+              .exists(0 != _)
+        ),
+        (
+          "Flattened binary tree that sums to a multiple of 19 greater than 19.",
           binaryTreeTrials map (_.flatten),
           (integerVector: Vector[Int]) =>
             1 < integerVector.size && 0 == integerVector.sum % 19 && 19 < integerVector.sum
         ),
         (
+          "Flattened binary tree with no zeroes that sums to a multiple of 19 greater than 19.",
+          binaryTreeTrials map (_.flatten),
+          (integerVector: Vector[Int]) =>
+            1 < integerVector.size && 0 == integerVector.sum % 19 && 19 < integerVector.sum && integerVector
+              .forall(0 != _)
+        ),
+        (
+          "Flattened binary tree with at least one zero that sums to a multiple of 19 greater than 19.",
+          binaryTreeTrials map (_.flatten),
+          (integerVector: Vector[Int]) =>
+            1 < integerVector.size && 0 == integerVector.sum % 19 && 19 < integerVector.sum && integerVector
+              .exists(0 == _)
+        ),
+        (
+          "Flattened binary tree with at least one non-zero that sums to a multiple of 19 greater than 19.",
           integerVectorTrials,
           (integerVector: Vector[Int]) =>
             5 < integerVector.size && 0 == integerVector.sum % 7 && integerVector
               .exists(0 != _)
         ),
         (
+          "Has more than one item and is not sorted in ascending order.",
           integerVectorTrials,
           (integerVector: Vector[Int]) =>
             2 < integerVector.size && integerVector
@@ -943,6 +1033,7 @@ class TrialsSpec
               .exists { case (first, second) => first > second }
         ),
         (
+          "No duplicates.",
           integerVectorTrials,
           (integerVector: Vector[Int]) =>
             2 < integerVector.size && integerVector.distinct == integerVector
