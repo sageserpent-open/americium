@@ -351,6 +351,18 @@ object TrialsImplementation {
 
     def result(): Container
   }
+
+  type FactoryInputsByDecisionStagesPrefix = Map[DecisionStages, Long]
+
+  def factoryInputsByDecisionStagesPrefixFrom(
+      decisionStages: DecisionStages
+  ): FactoryInputsByDecisionStagesPrefix = decisionStages.toList.inits
+    .map(Dequeue.apply)
+    .map(_.unsnoc)
+    .collect { case Some((FactoryInputOf(input), decisionStagesPrefix)) =>
+      decisionStagesPrefix -> input
+    }
+    .toMap
 }
 
 case class TrialsImplementation[+Case](
@@ -431,11 +443,16 @@ case class TrialsImplementation[+Case](
 
         val factoryShrinkage = 1
 
-        cases(limit, None, randomBehaviour, factoryShrinkage).map(_._2).asJava
+        val empty: FactoryInputsByDecisionStagesPrefix = Map.empty
+
+        cases(limit, None, randomBehaviour, factoryShrinkage, empty)
+          .map(_._2)
+          .asJava
       }
 
       // Scala-only API ...
       override def supplyTo(consumer: Case => Unit): Unit = {
+
         val randomBehaviour = new Random(734874)
 
         // This is the outer recursive function in the mutual shrinkage recursion - it
@@ -458,7 +475,8 @@ case class TrialsImplementation[+Case](
               limit,
               Some(decisionStages.size),
               randomBehaviour,
-              increasedFactoryShrinkage
+              increasedFactoryShrinkage,
+              factoryInputsByDecisionStagesPrefixFrom(decisionStages)
             )
               .foreach {
                 case (
@@ -490,7 +508,10 @@ case class TrialsImplementation[+Case](
                             limit,
                             Some(reducedNumberOfDecisionStages),
                             randomBehaviour,
-                            increasedFactoryShrinkage
+                            increasedFactoryShrinkage,
+                            factoryInputsByDecisionStagesPrefixFrom(
+                              decisionStages
+                            ) // NOTE: the final decision stage is irrelevant as we have shrunk the number of decision stages.
                           )
                             .foreach {
                               case (
@@ -549,15 +570,24 @@ case class TrialsImplementation[+Case](
 
         val factoryShrinkage = 1
 
-        cases(limit, None, randomBehaviour, factoryShrinkage).foreach {
-          case (decisionStages, caze) =>
-            try {
-              consumer(caze)
-            } catch {
-              case rejection: RejectionByInlineFilter => throw rejection
-              case throwable: Throwable =>
-                shrink(caze, throwable, decisionStages, factoryShrinkage, limit)
-            }
+        val factoryInputsByDecisionStagesPrefix
+            : FactoryInputsByDecisionStagesPrefix =
+          Map.empty
+
+        cases(
+          limit,
+          None,
+          randomBehaviour,
+          factoryShrinkage,
+          factoryInputsByDecisionStagesPrefix
+        ).foreach { case (decisionStages, caze) =>
+          try {
+            consumer(caze)
+          } catch {
+            case rejection: RejectionByInlineFilter => throw rejection
+            case throwable: Throwable =>
+              shrink(caze, throwable, decisionStages, factoryShrinkage, limit)
+          }
         }
       }
     }
@@ -566,7 +596,8 @@ case class TrialsImplementation[+Case](
       limit: Int,
       overridingMaximumNumberOfDecisionStages: Option[Int],
       randomBehaviour: Random,
-      factoryShrinkage: Long
+      factoryShrinkage: Long,
+      factoryInputsByDecisionStagesPrefix: FactoryInputsByDecisionStagesPrefix
   ): Iterator[(DecisionStages, Case)] = {
     require(0 < factoryShrinkage)
 
@@ -656,7 +687,15 @@ case class TrialsImplementation[+Case](
               for {
                 state <- StateT.get[DeferredOption, State]
                 _     <- liftUnitIfTheNumberOfDecisionStagesIsNotTooLarge(state)
-                input = randomBehaviour.nextLong() / factoryShrinkage
+                input = factoryInputsByDecisionStagesPrefix
+                  .get(state.decisionStages)
+                  .fold(randomBehaviour.nextLong() / factoryShrinkage)(
+                    inputToLimitRange => {
+                      val rangeFromZero = inputToLimitRange.abs
+                      val sign          = if (randomBehaviour.nextBoolean()) 1 else -1
+                      sign * randomBehaviour.nextLong(1 + rangeFromZero)
+                    }
+                  )
                 _ <- StateT.set[DeferredOption, State](
                   state.update(FactoryInputOf(input))
                 )
