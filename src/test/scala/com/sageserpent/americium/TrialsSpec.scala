@@ -898,7 +898,7 @@ class TrialsSpec
         "trials -> exceptionCriterion",
         (
           // This first entry isn't expected to shrink the values, only the length of the failing case.
-          "Has more than one item and sums to more than 7.",
+          "Has more than one text item whose converted values sum to more than 7.",
           api.strings map (_.toVector) map (_.map(_.toInt)),
           (integerVector: Vector[Int]) =>
             1 < integerVector.size && integerVector.sum > 7
@@ -998,34 +998,34 @@ class TrialsSpec
               .exists(0 != _)
         ),
         (
-          "Flattened binary tree that sums to a multiple of 19 greater than 19.",
+          "Flattened binary tree with a non-leaf node that sums to a multiple of 19 greater than 19.",
           binaryTreeTrials map (_.flatten),
           (integerVector: Vector[Int]) =>
             1 < integerVector.size && 0 == integerVector.sum % 19 && 19 < integerVector.sum
         ),
         (
-          "Flattened binary tree with no zeroes that sums to a multiple of 19 greater than 19.",
+          "Flattened binary tree with a non-leaf node and no zeroes that sums to a multiple of 19 greater than 19.",
           binaryTreeTrials map (_.flatten),
           (integerVector: Vector[Int]) =>
             1 < integerVector.size && 0 == integerVector.sum % 19 && 19 < integerVector.sum && integerVector
               .forall(0 != _)
         ),
         (
-          "Flattened binary tree with at least one zero that sums to a multiple of 19 greater than 19.",
+          "Flattened binary tree with a non-leaf node and at least one zero that sums to a multiple of 19 greater than 19.",
           binaryTreeTrials map (_.flatten),
           (integerVector: Vector[Int]) =>
             1 < integerVector.size && 0 == integerVector.sum % 19 && 19 < integerVector.sum && integerVector
               .exists(0 == _)
         ),
         (
-          "Flattened binary tree with at least one non-zero that sums to a multiple of 19 greater than 19.",
+          "Has more than five items, at least one non-zero and sums to a multiple of 19 greater than 19.",
           integerVectorTrials,
           (integerVector: Vector[Int]) =>
             5 < integerVector.size && 0 == integerVector.sum % 7 && integerVector
               .exists(0 != _)
         ),
         (
-          "Has more than one item and is not sorted in ascending order.",
+          "Has more than two items and is not sorted in ascending order.",
           integerVectorTrials,
           (integerVector: Vector[Int]) =>
             2 < integerVector.size && integerVector
@@ -1033,7 +1033,7 @@ class TrialsSpec
               .exists { case (first, second) => first > second }
         ),
         (
-          "No duplicates.",
+          "Has more than two items and no duplicates.",
           integerVectorTrials,
           (integerVector: Vector[Int]) =>
             2 < integerVector.size && integerVector.distinct == integerVector
