@@ -466,8 +466,15 @@ case class TrialsImplementation[+Case](
           val numberOfDecisionStages = decisionStages.size
 
           if (0 < numberOfDecisionStages) {
+            // NOTE: there's some voodoo in choosing the exponential scaling factor - if it's too high, say 2,
+            // then the solutions are hardly shrunk at all. If it is unity, then the solutions are shrunk a
+            // bit but can be still involve overly 'large' values, in the sense that the factory input values
+            // are large. This needs finessing, but will do for now...
+            val limitWithExtraLeewayThatHasBeenObservedToFindBetterShrunkCases =
+              (100 * limit / 99) max limit
+
             cases(
-              limit,
+              limitWithExtraLeewayThatHasBeenObservedToFindBetterShrunkCases,
               Some(numberOfDecisionStages),
               randomBehaviour,
               factoryShrinkage
@@ -501,13 +508,6 @@ case class TrialsImplementation[+Case](
                       val potentialShrunkCaseIsAnImprovement =
                         !(moreComplex || atLeastOneWiderFactoryInput)
 
-                      // NOTE: there's some voodoo in choosing the exponential scaling factor - if it's too high, say 2,
-                      // then the solutions are hardly shrunk at all. If it is unity, then the solutions are shrunk a
-                      // bit but can be still involve overly 'large' values, in the sense that the factory input values
-                      // are large. This needs finessing, but will do for now...
-                      val limitWithExtraLeewayThatHasBeenObservedToFindBetterShrunkCases =
-                        (100 * limit / 99) max limit
-
                       val stillEnoughRoomToIncreaseShrinkageFactor =
                         (Long.MaxValue >> 1) >= factoryShrinkage
 
@@ -525,21 +525,12 @@ case class TrialsImplementation[+Case](
                           factoryInputsByDecisionStagesPrefixForPotentialShrunkCase,
                           limitWithExtraLeewayThatHasBeenObservedToFindBetterShrunkCases
                         )
-                      } else {
-                        shrink(
-                          caze,
-                          throwable,
-                          decisionStages,
-                          increasedFactoryShrinkage,
-                          factoryInputsByDecisionStagesPrefix,
-                          limitWithExtraLeewayThatHasBeenObservedToFindBetterShrunkCases
-                        )
                       }
                   }
               }
           }
 
-          // At this point the outer recursion hasn't found a failing case, so we call it
+          // At this point the recursion hasn't found a failing case, so we call it
           // a day and go with the best we've got from further up the call chain...
 
           throw new TrialException(throwable) {
@@ -550,10 +541,6 @@ case class TrialsImplementation[+Case](
         }
 
         val factoryShrinkage = 1
-
-        val factoryInputsByDecisionStagesPrefix
-            : FactoryInputsByDecisionStagesPrefix =
-          Map.empty
 
         cases(limit, None, randomBehaviour, factoryShrinkage).foreach {
           case (decisionStages, caze) =>
