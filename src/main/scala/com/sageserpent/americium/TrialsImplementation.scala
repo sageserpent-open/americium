@@ -465,7 +465,9 @@ case class TrialsImplementation[+Case](
         ): Unit = {
           val numberOfDecisionStages = decisionStages.size
 
-          if (0 < numberOfDecisionStages) {
+          if (
+            0 < numberOfDecisionStages && factoryInputsByDecisionStagesPrefix.nonEmpty
+          ) {
             // NOTE: there's some voodoo in choosing the exponential scaling factor - if it's too high, say 2,
             // then the solutions are hardly shrunk at all. If it is unity, then the solutions are shrunk a
             // bit but can be still involve overly 'large' values, in the sense that the factory input values
