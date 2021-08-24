@@ -465,7 +465,9 @@ case class TrialsImplementation[+Case](
         ): Unit = {
           val numberOfDecisionStages = decisionStages.size
 
-          if (0 < numberOfDecisionStages) {
+          if (
+            0 < numberOfDecisionStages && factoryInputsByDecisionStagesPrefix.nonEmpty
+          ) {
             cases(
               limit,
               Some(numberOfDecisionStages),
