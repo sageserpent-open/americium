@@ -351,18 +351,6 @@ object TrialsImplementation {
 
     def result(): Container
   }
-
-  type FactoryInputsByDecisionStagesPrefix = Map[DecisionStages, Long]
-
-  def factoryInputsByDecisionStagesPrefixFrom(
-      decisionStages: DecisionStages
-  ): FactoryInputsByDecisionStagesPrefix = decisionStages.toList.inits
-    .map(Dequeue.apply)
-    .map(_.unsnoc)
-    .collect { case Some((FactoryInputOf(input), decisionStagesPrefix)) =>
-      decisionStagesPrefix -> input
-    }
-    .toMap
 }
 
 case class TrialsImplementation[+Case](
@@ -443,8 +431,6 @@ case class TrialsImplementation[+Case](
 
         val factoryShrinkage = 1
 
-        val empty: FactoryInputsByDecisionStagesPrefix = Map.empty
-
         cases(limit, None, randomBehaviour, factoryShrinkage)
           .map(_._2)
           .asJava
@@ -460,7 +446,6 @@ case class TrialsImplementation[+Case](
             throwable: Throwable,
             decisionStages: DecisionStages,
             factoryShrinkage: Long,
-            factoryInputsByDecisionStagesPrefix: FactoryInputsByDecisionStagesPrefix,
             limit: Int
         ): Unit = {
           val numberOfDecisionStages = decisionStages.size
@@ -489,11 +474,6 @@ case class TrialsImplementation[+Case](
                   } catch {
                     case rejection: RejectionByInlineFilter => throw rejection
                     case throwableFromPotentialShrunkCase: Throwable =>
-                      val factoryInputsByDecisionStagesPrefixForPotentialShrunkCase =
-                        factoryInputsByDecisionStagesPrefixFrom(
-                          decisionStagesForPotentialShrunkCase
-                        )
-
                       assert(
                         decisionStagesForPotentialShrunkCase.size <= numberOfDecisionStages
                       )
@@ -501,39 +481,28 @@ case class TrialsImplementation[+Case](
                       val lessComplex =
                         decisionStagesForPotentialShrunkCase.size < numberOfDecisionStages
 
-                      assert(
-                        factoryInputsByDecisionStagesPrefixForPotentialShrunkCase.size <= factoryInputsByDecisionStagesPrefix.size
-                      )
-
-                      val fewerFactoryInputs =
-                        factoryInputsByDecisionStagesPrefixForPotentialShrunkCase.size < factoryInputsByDecisionStagesPrefix.size
-
-                      val atLeastOneWiderFactoryInput =
-                        factoryInputsByDecisionStagesPrefixForPotentialShrunkCase
-                          .exists { case (decisionStagesPrefix, factoryInput) =>
-                            factoryInputsByDecisionStagesPrefix
-                              .get(decisionStagesPrefix)
-                              .fold(false)(factoryInput.abs > _.abs)
-                          }
-
-                      val potentialShrunkCaseIsAnImprovement =
-                        lessComplex || fewerFactoryInputs || !atLeastOneWiderFactoryInput
+                      val shouldPersevere =
+                        decisionStagesForPotentialShrunkCase.exists {
+                          case FactoryInputOf(input) if 0 < input.abs => true
+                          case _                                      => false
+                        } || lessComplex
 
                       val stillEnoughRoomToIncreaseShrinkageFactor =
                         (Long.MaxValue >> 1) >= factoryShrinkage
 
                       val increasedFactoryShrinkage =
-                        if (stillEnoughRoomToIncreaseShrinkageFactor)
+                        if (
+                          !lessComplex && stillEnoughRoomToIncreaseShrinkageFactor
+                        )
                           2 * factoryShrinkage
                         else factoryShrinkage
 
-                      if (potentialShrunkCaseIsAnImprovement) {
+                      if (shouldPersevere) {
                         shrink(
                           potentialShrunkCase,
                           throwableFromPotentialShrunkCase,
                           decisionStagesForPotentialShrunkCase,
                           increasedFactoryShrinkage,
-                          factoryInputsByDecisionStagesPrefixForPotentialShrunkCase,
                           limitWithExtraLeewayThatHasBeenObservedToFindBetterShrunkCases
                         )
                       }
@@ -565,7 +534,6 @@ case class TrialsImplementation[+Case](
                   throwable,
                   decisionStages,
                   factoryShrinkage,
-                  factoryInputsByDecisionStagesPrefixFrom(decisionStages),
                   limit
                 )
             }
