@@ -490,7 +490,7 @@ case class TrialsImplementation[+Case](
                           case _                                      => false
                         } || lessComplex
 
-                      val increasedFactoryShrinkage =
+                      val factoryShrinkageForRecursion =
                         if (
                           !lessComplex && stillEnoughRoomToIncreaseShrinkageFactor
                         )
@@ -502,12 +502,18 @@ case class TrialsImplementation[+Case](
                           potentialShrunkCase,
                           throwableFromPotentialShrunkCase,
                           decisionStagesForPotentialShrunkCase,
-                          increasedFactoryShrinkage,
+                          factoryShrinkageForRecursion,
                           limitWithExtraLeewayThatHasBeenObservedToFindBetterShrunkCases
                         )
                       }
                   }
               }
+
+            // At this point, slogging through the potential shrunk cases failed to find
+            // any failures; as a brute force approach, simply retry with an increased
+            // shrinkage factor - this will eventually terminate as the shrinkage factor
+            // isn't allowed to exceed its upper limit, and it does winkle out some really
+            // hard to find shrunk cases this way.
 
             if (stillEnoughRoomToIncreaseShrinkageFactor) {
               val increasedFactoryShrinkage = 2 * factoryShrinkage
