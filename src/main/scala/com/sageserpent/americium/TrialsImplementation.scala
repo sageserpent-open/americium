@@ -570,22 +570,19 @@ case class TrialsImplementation[+Case](
     type DeferredOption[Case] = OptionT[Eval, Case]
 
     case class State(
-        decisionStages: DecisionStages,
-        multiplicity: Option[Int]
+        decisionStages: DecisionStages
     ) {
-      def update(decision: ChoiceOf, multiplicity: Int): State = copy(
-        decisionStages = decisionStages :+ decision,
-        multiplicity = this.multiplicity.map(_ * multiplicity)
+      def update(decision: ChoiceOf): State = copy(
+        decisionStages = decisionStages :+ decision
       )
 
       def update(decision: FactoryInputOf): State = copy(
-        decisionStages = decisionStages :+ decision,
-        multiplicity = None
+        decisionStages = decisionStages :+ decision
       )
     }
 
     object State {
-      val initial = new State(Dequeue.empty, Some(1))
+      val initial = new State(Dequeue.empty)
     }
 
     type DecisionIndicesAndMultiplicity = (DecisionStages, Int)
@@ -637,8 +634,7 @@ case class TrialsImplementation[+Case](
                     }
                   _ <- StateT.set[DeferredOption, State](
                     state.update(
-                      ChoiceOf(index),
-                      numberOfChoices
+                      ChoiceOf(index)
                     )
                   )
                 } yield {
@@ -701,7 +697,7 @@ case class TrialsImplementation[+Case](
             .run(State.initial)
             .value
             .value match {
-            case Some((State(decisionStages, multiplicity), caze))
+            case Some((State(decisionStages), caze))
                 if potentialDuplicates.add(decisionStages) =>
               numberOfUniqueCasesProduced += 1
               backupOfStarvationCountdown = starvationCountdown
