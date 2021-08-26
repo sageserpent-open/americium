@@ -1018,7 +1018,7 @@ class TrialsSpec
               .exists(0 == _)
         ),
         (
-          "Has more than five items, at least one non-zero and sums to a multiple of 19 greater than 19.",
+          "Has more than five items, at least one non-zero and sums to a multiple of 7.",
           integerVectorTrials,
           (integerVector: Vector[Int]) =>
             5 < integerVector.size && 0 == integerVector.sum % 7 && integerVector
