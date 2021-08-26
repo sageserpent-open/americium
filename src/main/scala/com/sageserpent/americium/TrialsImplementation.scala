@@ -458,6 +458,9 @@ case class TrialsImplementation[+Case](
             val limitWithExtraLeewayThatHasBeenObservedToFindBetterShrunkCases =
               (100 * limit / 99) max limit
 
+            val stillEnoughRoomToIncreaseShrinkageFactor =
+              (Long.MaxValue >> 1) >= factoryShrinkage
+
             cases(
               limitWithExtraLeewayThatHasBeenObservedToFindBetterShrunkCases,
               Some(numberOfDecisionStages),
@@ -487,9 +490,6 @@ case class TrialsImplementation[+Case](
                           case _                                      => false
                         } || lessComplex
 
-                      val stillEnoughRoomToIncreaseShrinkageFactor =
-                        (Long.MaxValue >> 1) >= factoryShrinkage
-
                       val increasedFactoryShrinkage =
                         if (
                           !lessComplex && stillEnoughRoomToIncreaseShrinkageFactor
@@ -508,6 +508,18 @@ case class TrialsImplementation[+Case](
                       }
                   }
               }
+
+            if (stillEnoughRoomToIncreaseShrinkageFactor) {
+              val increasedFactoryShrinkage = 2 * factoryShrinkage
+
+              shrink(
+                caze,
+                throwable,
+                decisionStages,
+                increasedFactoryShrinkage,
+                limitWithExtraLeewayThatHasBeenObservedToFindBetterShrunkCases
+              )
+            }
           }
 
           // At this point the recursion hasn't found a failing case, so we call it
