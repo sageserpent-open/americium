@@ -1,3 +1,4 @@
+import sbtrelease.ReleaseStateTransformations._
 import xerial.sbt.Sonatype._
 
 val jUnitVersion = "5.7.0"
@@ -20,7 +21,20 @@ lazy val settings = Seq(
       email = "gjmurphy1@icloud.com"
     )
   ),
-  releasePublishArtifactsAction := PgpKeys.publishSigned.value,
+  releaseProcess := Seq[ReleaseStep](
+    checkSnapshotDependencies,
+    inquireVersions,
+    runClean,
+    runTest,
+    setReleaseVersion,
+    commitReleaseVersion,
+    tagRelease,
+    releaseStepCommandAndRemaining("publishSigned"),
+    releaseStepCommand("sonatypeBundleRelease"),
+    setNextVersion,
+    commitNextVersion,
+    pushChanges
+  ),
   name := "americium",
   scalaVersion := "2.13.5",
   scalacOptions += s"-target:jvm-${javaVersion}",
