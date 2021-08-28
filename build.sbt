@@ -13,7 +13,7 @@ lazy val settings = Seq(
   licenses += ("MIT", url("http://opensource.org/licenses/MIT")),
   organization := "com.sageserpent",
   organizationName := "sageserpent",
-  description := "Generation of test data for paramterised testing",
+  description := "Generation of test data for parameterised testing",
   sonatypeProjectHosting := Some(
     GitHubHosting(
       user = "sageserpent-open",
