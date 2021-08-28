@@ -486,8 +486,10 @@ case class TrialsImplementation[+Case](
 
                       val shouldPersevere =
                         decisionStagesForPotentialShrunkCase.exists {
-                          case FactoryInputOf(input) if 0 < input.abs => true
-                          case _                                      => false
+                          case FactoryInputOf(_)
+                              if stillEnoughRoomToIncreaseShrinkageFactor =>
+                            true
+                          case _ => false
                         } || lessComplex
 
                       val factoryShrinkageForRecursion =

@@ -144,42 +144,42 @@ class Examples extends AnyFlatSpec with Matchers {
   they should "get an unwelcome surprise - this time with the failure reproduced directly" ignore {
     listsFavouringDuplicatedEntries
       .withRecipe("""[
-          |    {
-          |        "ChoiceOf" : {
-          |            "index" : 3
-          |        }
-          |    },
-          |    {
-          |        "FactoryInputOf" : {
-          |            "input" : 15991474626846586
-          |        }
-          |    },
-          |    {
-          |        "FactoryInputOf" : {
-          |            "input" : 9804482648641656
-          |        }
-          |    },
-          |    {
-          |        "FactoryInputOf" : {
-          |            "input" : -31260894364365456
-          |        }
-          |    },
-          |    {
-          |        "ChoiceOf" : {
-          |            "index" : 2
-          |        }
-          |    },
-          |    {
-          |        "ChoiceOf" : {
-          |            "index" : 2
-          |        }
-          |    },
-          |    {
-          |        "ChoiceOf" : {
-          |            "index" : 2
-          |        }
-          |    }
-          |]""".stripMargin)
+                    |    {
+                    |        "ChoiceOf" : {
+                    |            "index" : 3
+                    |        }
+                    |    },
+                    |    {
+                    |        "FactoryInputOf" : {
+                    |            "input" : 0
+                    |        }
+                    |    },
+                    |    {
+                    |        "FactoryInputOf" : {
+                    |            "input" : 0
+                    |        }
+                    |    },
+                    |    {
+                    |        "FactoryInputOf" : {
+                    |            "input" : -1
+                    |        }
+                    |    },
+                    |    {
+                    |        "ChoiceOf" : {
+                    |            "index" : 1
+                    |        }
+                    |    },
+                    |    {
+                    |        "ChoiceOf" : {
+                    |            "index" : 0
+                    |        }
+                    |    },
+                    |    {
+                    |        "ChoiceOf" : {
+                    |            "index" : 1
+                    |        }
+                    |    }
+                    |]""".stripMargin)
       .supplyTo(vainAttemptToDisproveHavingMoreThanTwoAdjacentDuplicates)
   }
 }
