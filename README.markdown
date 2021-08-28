@@ -34,30 +34,30 @@ import scala.math.Ordering
 
 // Insertion sort, but with a bug...
 def notSoStableSort[Element](
-                                    elements: List[Element]
+                              elements: List[Element]
                             )(implicit ordering: Ordering[Element]): List[Element] =
-   elements match {
-      case Nil => Nil
-      case head :: tail =>
-         notSoStableSort(tail).span(ordering.lteq(_, head)) match {
-            case (first, second) => first ++ (head :: second)
-         }
-   }
+  elements match {
+    case Nil => Nil
+    case head :: tail =>
+      notSoStableSort(tail).span(ordering.lteq(_, head)) match {
+        case (first, second) => first ++ (head :: second)
+      }
+  }
 
 notSoStableSort(Nil: List[(Int, Int)])(
-   Ordering.by(_._1)
+  Ordering.by(_._1)
 ) // List() - Hey - worked first time...
 notSoStableSort(List(1 -> 2))(
-   Ordering.by(_._1)
+  Ordering.by(_._1)
 ) // List((1,2)) - Yeah, check those edge cases!
 notSoStableSort(List(1 -> 2, -1 -> 9))(
-   Ordering.by(_._1)
+  Ordering.by(_._1)
 ) // List((-1,9), (1,2)) - Fancy a beer, anyone?
 notSoStableSort(List(1 -> 2, -1 -> 9, 1 -> 3))(
-   Ordering.by(_._1)
+  Ordering.by(_._1)
 ) // List((-1,9), (1,3), (1,2)) ? Uh? I wanted List((-1,9), (1,2), (1,3))!!!!
 notSoStableSort(List(1 -> 2, 1 -> 3))(
-   Ordering.by(_._1)
+  Ordering.by(_._1)
 ) // List((1,3), (1,2)) ? Huh! I wanted List((1,2), (1,3)) - going to be working overtime...
 
 ```
@@ -99,12 +99,13 @@ support.
 
 What the author wanted was a framework that:
 
-1. Offers automatic shrinkage to a minimal or nearly-minimal test case. __Yes, invariants are preserved on test case data.__
+1. Offers automatic shrinkage to a minimal or nearly-minimal test case. __Yes, invariants are preserved on test case
+   data.__
 1. Shrinks efficiently.
 1. Offers direct reproduction of a failing, minimised test case.
 1. Covers finite combinations of atomic cases without duplication when building composite cases.
-1. Gets out of the way of testing style - doesn't care about whether the tests are pure functional or imperative, doesn't
-   offer a DSL or try to structure your test suite.
+1. Gets out of the way of testing style - doesn't care about whether the tests are pure functional or imperative,
+   doesn't offer a DSL or try to structure your test suite.
 1. Supports Scala and Java as first class citizens.
 1. Supports covariance of test case generation in Scala, so cases for a subclass can be substituted for cases for a
    supertrait/superclass.
@@ -130,7 +131,7 @@ val ordering = Ordering.by[(Int, Int), Int](_._1)
 val api = Trials.api
 
 // Here's the trials instance...
-val associationLists = (for {
+val associationLists: Trials[List[(Int, Int)]] = (for {
    key <- api.choose(0 to 100)
    value <- api.integers
 } yield key -> value).lists
@@ -140,10 +141,12 @@ val associationLists = (for {
                 .filter(
                    _.nonEmpty
                 ) // Filter out the empty case as we can't assert sensibly on it.
-                .withLimit(200)
+                .withLimit(200) // Only check up to 200 cases inclusive.
                 .supplyTo { nonEmptyAssocationList: List[(Int, Int)] =>
+                   // This is a parameterised test, using `nonEmptyAssociationList` as the test case parameter...
                    val sortedResult = notSoStableSort(nonEmptyAssocationList)(ordering)
 
+                   // Using Scalatest assertions here...
                    assert(
                       sortedResult.zip(sortedResult.tail).forall((ordering.lteq _).tupled)
                    )
@@ -174,71 +177,71 @@ it should "also preserve the original order of the subsequences of elements that
 
 Run the tests - the last one will fail with a nicely minimised case:
 
-```org.scalatest.exceptions.TestFailedException: HashMap(97 -> List((97,1809838260), (97,-1532594126))) did not equal HashMap(97 -> List((97,-1532594126), (97,1809838260)))
-Expected :HashMap(97 -> List((97,-1532594126), (97,1809838260)))
-Actual   :org.scalatest.exceptions.TestFailedException: HashMap(97 -> List((97,1809838260), (97,-1532594126)))
+```org.scalatest.exceptions.TestFailedException: HashMap(46 -> List((46,0), (46,2))) did not equal HashMap(46 -> List((46,2), (46,0)))
+Expected :HashMap(46 -> List((46,2), (46,0)))
+Actual   :org.scalatest.exceptions.TestFailedException: HashMap(46 -> List((46,0), (46,2)))
 
 Trial exception with underlying cause:
-org.scalatest.exceptions.TestFailedException: HashMap(97 -> List((97,1809838260), (97,-1532594126))) did not equal HashMap(97 -> List((97,-1532594126), (97,1809838260)))
+org.scalatest.exceptions.TestFailedException: HashMap(46 -> List((46,0), (46,2))) did not equal HashMap(46 -> List((46,2), (46,0)))
 Case:
-List((97,-1532594126), (97,1809838260))
+List((46,2), (46,0))
 Reproduce with recipe:
 [
 .... block of JSON ....
 ]
 ```
 
-We also see a JSON recipe for reproduction too further down in the output. We can use this recipe to make a temporary bug-reproduction
-test that focuses solely on the test case causing the problem:
+We also see a JSON recipe for reproduction too further down in the output. We can use this recipe to make a temporary
+bug-reproduction test that focuses solely on the test case causing the problem:
 
 ```scala
 // Until the bug is fixed, we expect this test to fail...
-it should "also preserve the original order of the subsequences of elements that are equivalent according to the order - this time with the failure reproduced directly" in
-        associationLists
-                .withRecipe(
-                   """[
-                     |    {
-                     |        "ChoiceOf" : {
-                     |            "index" : 1
-                     |        }
-                     |    },
-                     |    {
-                     |        "ChoiceOf" : {
-                     |            "index" : 97
-                     |        }
-                     |    },
-                     |    {
-                     |        "FactoryInputOf" : {
-                     |            "input" : 1358603204065315550
-                     |        }
-                     |    },
-                     |    {
-                     |        "ChoiceOf" : {
-                     |            "index" : 1
-                     |        }
-                     |    },
-                     |    {
-                     |        "ChoiceOf" : {
-                     |            "index" : 97
-                     |        }
-                     |    },
-                     |    {
-                     |        "FactoryInputOf" : {
-                     |            "input" : -84795172735105265
-                     |        }
-                     |    },
-                     |    {
-                     |        "ChoiceOf" : {
-                     |            "index" : 0
-                     |        }
-                     |    }
-                     |]""".stripMargin)
-                .supplyTo { associationList: List[(Int, Int)] => {
-                   val sortedResult = notSoStableSort(associationList)(ordering)
+it should "also preserve the original order of the subsequences of elements that are equivalent according to the order - this time with the failure reproduced directly" ignore
+  associationLists
+    .withRecipe(
+      """[
+        |    {
+        |        "ChoiceOf" : {
+        |            "index" : 1
+        |        }
+        |    },
+        |    {
+        |        "ChoiceOf" : {
+        |            "index" : 46
+        |        }
+        |    },
+        |    {
+        |        "FactoryInputOf" : {
+        |            "input" : 0
+        |        }
+        |    },
+        |    {
+        |        "ChoiceOf" : {
+        |            "index" : 1
+        |        }
+        |    },
+        |    {
+        |        "ChoiceOf" : {
+        |            "index" : 46
+        |        }
+        |    },
+        |    {
+        |        "FactoryInputOf" : {
+        |            "input" : 2
+        |        }
+        |    },
+        |    {
+        |        "ChoiceOf" : {
+        |            "index" : 0
+        |        }
+        |    }
+        |]""".stripMargin)
+    .supplyTo { associationList: List[(Int, Int)] => {
+      val sortedResult = notSoStableSort(associationList)(ordering)
 
-                   assert(sortedResult.groupBy(_._1) == associationList.groupBy(_._1))
-                }
-                }  
+      assert(sortedResult.groupBy(_._1) == associationList.groupBy(_._1))
+    }
+    } 
 ```
 
 ## Where ##

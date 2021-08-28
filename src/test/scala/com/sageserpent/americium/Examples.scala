@@ -32,11 +32,13 @@ class Examples extends AnyFlatSpec with Matchers {
     associationLists
       .filter(
         _.nonEmpty
-      ) // Filter out the empty case as we can't assert sensibly on it.
-      .withLimit(200)
+      )               // Filter out the empty case as we can't assert sensibly on it.
+      .withLimit(200) // Only check up to 200 cases inclusive.
       .supplyTo { nonEmptyAssocationList: List[(Int, Int)] =>
+        // This is a parameterised test, using `nonEmptyAssociationList` as the test case parameter...
         val sortedResult = notSoStableSort(nonEmptyAssocationList)(ordering)
 
+        // Using Scalatest assertions here...
         assert(
           sortedResult.zip(sortedResult.tail).forall((ordering.lteq _).tupled)
         )
@@ -68,42 +70,42 @@ class Examples extends AnyFlatSpec with Matchers {
   it should "also preserve the original order of the subsequences of elements that are equivalent according to the order - this time with the failure reproduced directly" ignore
     associationLists
       .withRecipe("""[
-                                  |    {
-                                  |        "ChoiceOf" : {
-                                  |            "index" : 1
-                                  |        }
-                                  |    },
-                                  |    {
-                                  |        "ChoiceOf" : {
-                                  |            "index" : 97
-                                  |        }
-                                  |    },
-                                  |    {
-                                  |        "FactoryInputOf" : {
-                                  |            "input" : 1358603204065315550
-                                  |        }
-                                  |    },
-                                  |    {
-                                  |        "ChoiceOf" : {
-                                  |            "index" : 1
-                                  |        }
-                                  |    },
-                                  |    {
-                                  |        "ChoiceOf" : {
-                                  |            "index" : 97
-                                  |        }
-                                  |    },
-                                  |    {
-                                  |        "FactoryInputOf" : {
-                                  |            "input" : -84795172735105265
-                                  |        }
-                                  |    },
-                                  |    {
-                                  |        "ChoiceOf" : {
-                                  |            "index" : 0
-                                  |        }
-                                  |    }
-                                  |]""".stripMargin)
+                    |    {
+                    |        "ChoiceOf" : {
+                    |            "index" : 1
+                    |        }
+                    |    },
+                    |    {
+                    |        "ChoiceOf" : {
+                    |            "index" : 46
+                    |        }
+                    |    },
+                    |    {
+                    |        "FactoryInputOf" : {
+                    |            "input" : 0
+                    |        }
+                    |    },
+                    |    {
+                    |        "ChoiceOf" : {
+                    |            "index" : 1
+                    |        }
+                    |    },
+                    |    {
+                    |        "ChoiceOf" : {
+                    |            "index" : 46
+                    |        }
+                    |    },
+                    |    {
+                    |        "FactoryInputOf" : {
+                    |            "input" : 2
+                    |        }
+                    |    },
+                    |    {
+                    |        "ChoiceOf" : {
+                    |            "index" : 0
+                    |        }
+                    |    }
+                    |]""".stripMargin)
       .supplyTo { associationList: List[(Int, Int)] =>
         {
           val sortedResult = notSoStableSort(associationList)(ordering)
