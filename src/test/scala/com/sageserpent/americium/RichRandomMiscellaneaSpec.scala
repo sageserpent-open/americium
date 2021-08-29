@@ -98,7 +98,7 @@ class RichRandomMiscellaneaSpec extends AnyFlatSpec with Matchers {
   it should "uniformly distribute items chosen from a sequence" in {
     val random = new Random(1)
 
-    for (upperBound <- (1 to 15) ++ (98 to 105) ++ (598 to 610)) {
+    for (upperBound <- (1 to 15) ++ Seq(100) ++ (605 to 610)) {
       val concreteRangeOfIntegers = 0 until upperBound
 
       sampleDistributions(
