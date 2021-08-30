@@ -273,6 +273,9 @@ it should "also preserve the original order of the subsequences of elements that
 ### Java ###
 
 ```java
+import com.sageserpent.americium.java.Trials;
+import com.sageserpent.americium.java.TrialsApi;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Maps;
@@ -389,6 +392,7 @@ class Cookbook {
 
 ```scala
 import com.sageserpent.americium.Trials.api
+
 import org.scalatest.flatspec.AnyFlatSpec
 
 import java.awt.geom.{Ellipse2D, Rectangle2D}
