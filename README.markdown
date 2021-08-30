@@ -3,8 +3,7 @@
 [![Build Status](https://travis-ci.com/sageserpent-open/americium.svg?branch=master)](https://travis-ci.com/sageserpent-open/americium)
 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.sageserpent/americium_2.13/badge.svg?style=flat&gav=true)](https://maven-badges.herokuapp.com/maven-central/com.sageserpent/americium_2.13/badge.svg)
 
-
-## Why ##
+## What? Why? ##
 
 You like writing parameterised tests - so you have a block of test code expressed as a test method or function of lambda
 form, and something that pumps test cases into that code block as one or more arguments.
@@ -41,6 +40,7 @@ def notSoStableSort[Element](
   elements match {
     case Nil => Nil
     case head :: tail =>
+      // Spot the deliberate mistake......vvvv
       notSoStableSort(tail).span(ordering.lteq(_, head)) match {
         case (first, second) => first ++ (head :: second)
       }
@@ -121,60 +121,68 @@ So, finally we come to `Trials` - which is what this library has to offer.
 Well, that and some syntax enhancements to the Scala `Random` class that might also pique your interest, but go see for
 yourself in the code, it's simple enough...
 
-## How ##
+## Example ##
 
 Let's take our sorting implementation above, write some proper parameterised tests and drive them via a `Trials`
 instance ...
 
 ```scala
+
+import com.sageserpent.americium.Trials.api // Start with the Scala api for `Trials`...
+
 // We're going to sort a list of associations (key-value pairs) by the key...
 val ordering = Ordering.by[(Int, Int), Int](_._1)
 
-val api = Trials.api
+// Build up a trials instance for key value pairs by flat-mapping from simpler trials instances for the keys and values...
+val keyValuePairs: Trials[(Int, Int)] = for {
+  key <- api.choose(
+    0 to 100
+  ) // We want to encourage duplicated keys - so a key is always some integer from 0 up to but not including 100.
+  value <-
+    api.integers // A value on the other hand is any integer from right across the permissible range.
+} yield key -> value
 
-// Here's the trials instance...
-val associationLists: Trials[List[(Int, Int)]] = (for {
-   key <- api.choose(0 to 100)
-   value <- api.integers
-} yield key -> value).lists
+// Here's the trials instance we use to drive the tests for sorting...
+val associationLists: Trials[List[(Int, Int)]] =
+  keyValuePairs.lists // This makes a trials of lists out of the simpler trials of key-value pairs.
 
 "stableSorting" should "sort according to the ordering" in
-        associationLists
-                .filter(
-                   _.nonEmpty
-                ) // Filter out the empty case as we can't assert sensibly on it.
-                .withLimit(200) // Only check up to 200 cases inclusive.
-                .supplyTo { nonEmptyAssocationList: List[(Int, Int)] =>
-                   // This is a parameterised test, using `nonEmptyAssociationList` as the test case parameter...
-                   val sortedResult = notSoStableSort(nonEmptyAssocationList)(ordering)
+  associationLists
+    .filter(
+      _.nonEmpty
+    ) // Filter out the empty case as we can't assert sensibly on it.
+    .withLimit(200) // Only check up to 200 cases inclusive.
+    .supplyTo { nonEmptyAssocationList: List[(Int, Int)] =>
+      // This is a parameterised test, using `nonEmptyAssociationList` as the test case parameter...
+      val sortedResult = notSoStableSort(nonEmptyAssocationList)(ordering)
 
-                   // Using Scalatest assertions here...
-                   assert(
-                      sortedResult.zip(sortedResult.tail).forall((ordering.lteq _).tupled)
-                   )
-                }
+      // Using Scalatest assertions here...
+      assert(
+        sortedResult.zip(sortedResult.tail).forall((ordering.lteq _).tupled)
+      )
+    }
 
 it should "conserve the original elements" in
-        associationLists.withLimit(200).supplyTo {
-           associationList: List[(Int, Int)] =>
-              val sortedResult = notSoStableSort(associationList)(ordering)
+  associationLists.withLimit(200).supplyTo {
+    associationList: List[(Int, Int)] =>
+      val sortedResult = notSoStableSort(associationList)(ordering)
 
-              sortedResult should contain theSameElementsAs associationList
-        }
+      sortedResult should contain theSameElementsAs associationList
+  }
 
 // Until the bug is fixed, we expect this test to fail...
 it should "also preserve the original order of the subsequences of elements that are equivalent according to the order" in
-        associationLists.withLimit(200).supplyTo {
-           associationList: List[(Int, Int)] =>
-              Trials.whenever(
-                 associationList.nonEmpty
-              ) // Filter out the empty case as while we can assert on it, the assertion would be trivial.
-              {
-                 val sortedResult = notSoStableSort(associationList)(ordering)
+  associationLists.withLimit(200).supplyTo {
+    associationList: List[(Int, Int)] =>
+      Trials.whenever(
+        associationList.nonEmpty
+      ) // Filter out the empty case as while we can assert on it, the assertion would be trivial.
+      {
+        val sortedResult = notSoStableSort(associationList)(ordering)
 
-                 assert(sortedResult.groupBy(_._1) == associationList.groupBy(_._1))
-              }
-        }
+        assert(sortedResult.groupBy(_._1) == associationList.groupBy(_._1))
+      }
+  }
 ```
 
 Run the tests - the last one will fail with a nicely minimised case:
@@ -196,7 +204,7 @@ Reproduce with recipe:
 We also see a JSON recipe for reproduction too further down in the output. We can use this recipe to make a temporary
 bug-reproduction test that focuses solely on the test case causing the problem:
 
-```scala
+   ```scala
 // Until the bug is fixed, we expect this test to fail...
 it should "also preserve the original order of the subsequences of elements that are equivalent according to the order - this time with the failure reproduced directly" ignore
   associationLists
@@ -244,9 +252,274 @@ it should "also preserve the original order of the subsequences of elements that
       assert(sortedResult.groupBy(_._1) == associationList.groupBy(_._1))
     }
     } 
+   ```
+
+## Cookbook ##
+
+- Start with a trials api for either Java or Scala.
+- Coax some trials instances out of the api - either use the factory methods that give you canned trials instances, or
+  specify your own cases to choose from (either with equal probability or with weights), or hard-wire in some single
+  value.
+- Transform them by mapping.
+- Combine them together by flat-mapping.
+- Filter out what you don't want.
+- You can alternate between different recipes for making the same shape case data, either with equal probability or with
+  weights.
+- Use helper methods to make a trials from some collection out of a simpler trials for the collection's elements.
+- Once you've built up the right shape of trials instance, put it to use: specify an upper limit for the number of cases
+  you want to examine and feed them to your test code. When your test code throws an exception, the trials machinery
+  will try to shrink down whatever test case caused it.
+
+### Java ###
+
+```java
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSortedSet;
+import com.google.common.collect.Maps;
+import org.junit.jupiter.api.Test;
+
+import java.awt.*;
+import java.awt.geom.Ellipse2D;
+import java.awt.geom.Rectangle2D;
+import java.math.BigInteger;
+import java.time.*;
+
+class Cookbook {
+    /* Start with a trials api for Java. */
+
+    private final static TrialsApi api = Trials.api();
+
+    /*
+     Coax some trials instances out of the api...
+     ... either use the factory methods that give you canned trials instances ...
+    */
+
+    final Trials<Integer> integers = api.integers();
+
+    final Trials<String> strings = api.strings();
+
+    final Trials<Instant> instants = api.instants();
+
+    /*
+     ... or specify your own cases to choose from ...
+     ... either with equal probability ...
+    */
+
+    final Trials<Color> colors = api.choose(Color.RED, Color.GREEN, Color.BLUE);
+
+    /* ... or with weights ... */
+
+    final Trials<String> elementsInTheHumanBody = api.chooseWithWeights(
+            Maps.immutableEntry(65,
+                    "Oxygen"),
+            Maps.immutableEntry(18,
+                    "Carbon"),
+            Maps.immutableEntry(10,
+                    "Hydrogen"),
+            Maps.immutableEntry(3,
+                    "Nitrogen"));
+
+    /* ... or hard-wire in some single value. */
+
+    final Trials<Object> thisIsABitEmbarrassing = api.only(null);
+
+    /* Transform them by mapping. */
+
+    final Trials<Integer> evenNumbers = integers.map(integral -> 2 * integral);
+
+    final Trials<ZoneId> zoneIds = api.choose("UTC", "Europe/London", "Asia/Singapore", "Atlantic/Madeira").map(ZoneId::of);
+
+    /* Combine them together by flat-mapping. */
+
+    final Trials<ZonedDateTime> zonedDateTimes = instants.flatMap(instant -> zoneIds.map(zoneId -> ZonedDateTime.ofInstant(instant, zoneId)));
+
+    /* Filter out what you don't want. */
+
+    final Trials<ZonedDateTime> notOnASunday = zonedDateTimes.filter(zonedDateTime -> !zonedDateTime.toOffsetDateTime().getDayOfWeek().equals(DayOfWeek.SUNDAY));
+
+    /*
+     You can alternate between different recipes for making the same shape case data...
+     ... either with equal probability ...
+    */
+
+    final Trials<Rectangle2D> rectangles = api.doubles().flatMap(x -> api.doubles().flatMap(y -> api.doubles().flatMap(w -> api.doubles().map(h -> new Rectangle2D.Double(x, y, w, h)))));
+
+    final Trials<Ellipse2D> ellipses = api.doubles().flatMap(x -> api.doubles().flatMap(y -> api.doubles().flatMap(w -> api.doubles().map(h -> new Ellipse2D.Double(x, y, w, h)))));
+
+    final Trials<? extends Shape> shapes = api.alternate(rectangles, ellipses);
+
+    /* ... or with weights. */
+
+    final Trials<BigInteger> likelyToBePrime = api.alternateWithWeights(
+            Maps.immutableEntry(10,
+                    api.choose(1, 3, 5, 7, 11, 13, 17, 19).map(BigInteger::valueOf)), // Mostly from this pool of small primes - nice and quick.
+            Maps.immutableEntry(1,
+                    api.longs().map(BigInteger::valueOf).map(BigInteger::nextProbablePrime)) // Occasionally we want a big prime and will pay the cost of computing it.
+    );
+
+    /* Use helper methods to make a trials from some collection out of a simpler trials for the collection's elements. */
+
+    final Trials<ImmutableList<? extends Shape>> listsOfShapes = ((Trials<Shape>) shapes).immutableLists();
+
+    final Trials<ImmutableSortedSet<? extends BigInteger>> sortedSetsOfPrimes = likelyToBePrime.immutableSortedSets(BigInteger::compareTo);
+
+    /*
+     Once you've built up the right shape of trials instance, put it to use: specify an upper limit for the number of cases
+     you want to examine and feed them to your test code. When your test code throws an exception, the trials machinery
+     will try to shrink down whatever test case caused it.
+    */
+
+    @Test
+    public void theExtraDayInALeapYearIsJustNotToleratedIfItsNotOnASunday() {
+        notOnASunday.withLimit(50).supplyTo(when -> {
+            final LocalDate localDate = when.toLocalDate();
+
+            try {
+                assert !localDate.getMonth().equals(Month.FEBRUARY) || localDate.getDayOfMonth() != 29;
+            } catch (AssertionError exception) {
+                System.out.println(when);   // Watch the shrinkage in action!
+                throw exception;
+            }
+        });
+    }
+}
 ```
 
-## Where ##
+### Scala ###
+
+```scala
+import com.sageserpent.americium.Trials.api
+import org.scalatest.flatspec.AnyFlatSpec
+
+import java.awt.geom.{Ellipse2D, Rectangle2D}
+import java.awt.{List => _, _}
+import java.math.BigInteger
+import java.time._
+import scala.collection.immutable.SortedSet
+
+class Cookbook extends AnyFlatSpec {
+  /*
+     Coax some trials instances out of the api...
+     ... either use the factory methods that give you canned trials instances ...
+   */
+  val integers: Trials[Int] = api.integers
+
+  val strings: Trials[String] = api.strings
+
+  val instants: Trials[Instant] = api.instants
+
+  /*
+     ... or specify your own cases to choose from ...
+     ... either with equal probability ...
+   */
+
+  val colors: Trials[Color] =
+    api.choose(Color.RED, Color.GREEN, Color.BLUE)
+
+  /* ... or with weights ... */
+
+  val elementsInTheHumanBody: Trials[String] = api.chooseWithWeights(
+    65 -> "Oxygen",
+    18 -> "Carbon",
+    10 -> "Hydrogen",
+    3 -> "Nitrogen"
+  )
+
+  /* ... or hard-wire in some single value. */
+
+  val thisIsABitEmbarrassing: Trials[Null] = api.only(null)
+
+  /* Transform them by mapping. */
+
+  val evenNumbers: Trials[Int] = integers.map(integral => 2 * integral)
+
+  val zoneIds: Trials[ZoneId] = api
+    .choose("UTC", "Europe/London", "Asia/Singapore", "Atlantic/Madeira")
+    .map(ZoneId.of)
+
+  /* Combine them together by flat-mapping. */
+
+  val zonedDateTimes: Trials[ZonedDateTime] =
+    for {
+      instant <- instants
+      zoneId <- zoneIds
+    } yield ZonedDateTime.ofInstant(instant, zoneId)
+
+  /* Filter out what you don't want. */
+
+  val notOnASunday: Trials[ZonedDateTime] =
+    zonedDateTimes.filter(_.toOffsetDateTime.getDayOfWeek != DayOfWeek.SUNDAY)
+
+  /*
+     You can alternate between different recipes for making the same shape case data...
+     ... either with equal probability ...
+   */
+
+  val rectangles: Trials[Rectangle2D.Double] =
+    for {
+      x <- api.doubles
+      y <- api.doubles
+      w <- api.doubles
+      h <- api.doubles
+    } yield new Rectangle2D.Double(x, y, w, h)
+
+  val ellipses: Trials[Ellipse2D.Double] = for {
+    x <- api.doubles
+    y <- api.doubles
+    w <- api.doubles
+    h <- api.doubles
+  } yield new Ellipse2D.Double(x, y, w, h)
+
+  val shapes: Trials[Shape] = api.alternate(rectangles, ellipses)
+
+  /* ... or with weights. */
+
+  val likelyToBePrime: Trials[BigInt] = api.alternateWithWeights(
+    10 -> api
+      .choose(1, 3, 5, 7, 11, 13, 17, 19)
+      .map(
+        BigInt.apply
+      ), // Mostly from this pool of small primes - nice and quick.
+    1 -> api.longs
+      .map(BigInteger.valueOf)
+      .map(
+        _.nextProbablePrime: BigInt
+      ) // Occasionally we want a big prime and will pay the cost of computing it.
+  )
+
+  /* Use helper methods to make a trials from some collection out of a simpler trials for the collection's elements. */
+
+  val listsOfShapes: Trials[List[Shape]] =
+    shapes.lists
+
+  val sortedSetsOfPrimes: Trials[SortedSet[_ <: BigInt]] =
+    likelyToBePrime.sortedSets
+
+  /*
+     Once you've built up the right shape of trials instance, put it to use: specify an upper limit for the number of cases
+     you want to examine and feed them to your test code. When your test code throws an exception, the trials machinery
+     will try to shrink down whatever test case caused it.
+   */
+
+  "the extra day in a leap year" should "not be tolerated if its not on a Sunday" in {
+    notOnASunday
+      .withLimit(50)
+      .supplyTo { when =>
+        val localDate = when.toLocalDate
+        try assert(
+          !(localDate.getMonth == Month.FEBRUARY) || localDate.getDayOfMonth != 29
+        )
+        catch {
+          case exception =>
+            println(when) // Watch the shrinkage in action!
+
+            throw exception
+        }
+      }
+  }
+}
+
+```
 
 ## Rhetorical Questions ##
 
