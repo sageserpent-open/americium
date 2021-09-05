@@ -52,17 +52,17 @@ trait Trials[Case] extends TrialsFactoring[Case] {
   private[americium] val scalaTrials: ScalaTrials[Case]
 
   def map[TransformedCase](
-      transform: JavaFunction[_ >: Case, TransformedCase]
+      transform: JavaFunction[Case, TransformedCase]
   ): Trials[TransformedCase]
 
   def flatMap[TransformedCase](
-      step: JavaFunction[_ >: Case, Trials[TransformedCase]]
+      step: JavaFunction[Case, Trials[TransformedCase]]
   ): Trials[TransformedCase]
 
-  def filter(predicate: Predicate[_ >: Case]): Trials[Case]
+  def filter(predicate: Predicate[Case]): Trials[Case]
 
   def mapFilter[TransformedCase](
-      filteringTransform: JavaFunction[_ >: Case, Optional[
+      filteringTransform: JavaFunction[Case, Optional[
         TransformedCase
       ]]
   ): Trials[TransformedCase]

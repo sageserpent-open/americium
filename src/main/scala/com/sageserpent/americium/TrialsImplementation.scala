@@ -273,11 +273,11 @@ object TrialsImplementation {
           (input.toDouble * JavaDouble.MAX_EXPONENT / Long.MaxValue).toInt
         )
       }
-        .flatMap((zeroOrPositive: Double) =>
+        .flatMap(zeroOrPositive =>
           booleans
             .map((negative: Boolean) =>
               if (negative) -zeroOrPositive else zeroOrPositive
-            )
+            ): Trials[Double]
         )
 
     override def booleans: TrialsImplementation[Boolean] =
@@ -734,8 +734,26 @@ case class TrialsImplementation[Case](
 
   // Java-only API ...
   override def map[TransformedCase](
-      transform: JavaFunction[_ >: Case, TransformedCase]
+      transform: JavaFunction[Case, TransformedCase]
   ): TrialsImplementation[TransformedCase] = map(transform.apply _)
+
+  override def flatMap[TransformedCase](
+      step: JavaFunction[Case, JavaTrials[TransformedCase]]
+  ): TrialsImplementation[TransformedCase] =
+    flatMap(step.apply _ andThen (_.scalaTrials))
+
+  override def filter(
+      predicate: Predicate[Case]
+  ): TrialsImplementation[Case] =
+    filter(predicate.test _)
+
+  def mapFilter[TransformedCase](
+      filteringTransform: JavaFunction[Case, Optional[TransformedCase]]
+  ): TrialsImplementation[TransformedCase] =
+    mapFilter(filteringTransform.apply _ andThen {
+      case withPayload if withPayload.isPresent => Some(withPayload.get())
+      case _                                    => None
+    })
 
   override def immutableLists(): TrialsImplementation[ImmutableList[Case]] =
     several(new Builder[Case, ImmutableList[Case]] {
@@ -779,29 +797,20 @@ case class TrialsImplementation[Case](
   override def immutableMaps[Value](
       values: JavaTrials[Value]
   ): TrialsImplementation[ImmutableMap[Case, Value]] = {
-    val annoyingWorkaroundToPreventAmbiguity
-        : JavaFunction[Case, JavaTrials[(Case, Value)]] = key =>
-      values.map(key -> _)
-
-    flatMap(annoyingWorkaroundToPreventAmbiguity)
+    flatMap(key => values.map(key -> _))
       .several[Map[Case, Value]]
-      .map((_: Map[Case, Value]).asJava)
-      .map((mapToWrap: JavaMap[Case, Value]) => ImmutableMap.copyOf(mapToWrap))
+      .map[JavaMap[Case, Value]](_.asJava)
+      .map[ImmutableMap[Case, Value]](ImmutableMap.copyOf(_))
   }
-
   override def immutableSortedMaps[Value](
       elementComparator: JavaComparator[Case],
       values: JavaTrials[Value]
   ): TrialsImplementation[ImmutableSortedMap[Case, Value]] = {
-    val annoyingWorkaroundToPreventAmbiguity
-        : JavaFunction[Case, JavaTrials[(Case, Value)]] = key =>
-      values.map(key -> _)
-
-    flatMap(annoyingWorkaroundToPreventAmbiguity)
+    flatMap(key => values.map(key -> _))
       .several[Map[Case, Value]]
-      .map((_: Map[Case, Value]).asJava)
-      .map((mapToWrap: JavaMap[Case, Value]) =>
-        ImmutableSortedMap.copyOf(mapToWrap, elementComparator)
+      .map[JavaMap[Case, Value]](_.asJava)
+      .map[ImmutableSortedMap[Case, Value]](
+        ImmutableSortedMap.copyOf(_, elementComparator)
       )
   }
 
@@ -827,36 +836,23 @@ case class TrialsImplementation[Case](
   ): TrialsImplementation[TransformedCase] =
     TrialsImplementation(generation map transform)
 
-  override def flatMap[TransformedCase](
-      step: JavaFunction[_ >: Case, JavaTrials[TransformedCase]]
-  ): TrialsImplementation[TransformedCase] =
-    flatMap(step.apply _ andThen (_.scalaTrials))
-
   override def filter(
-      predicate: Predicate[_ >: Case]
-  ): TrialsImplementation[Case] =
-    filter(predicate.test _)
-
-  override def filter(predicate: Case => Boolean): TrialsImplementation[Case] =
-    flatMap((caze: Case) =>
+      predicate: Case => Boolean
+  ): TrialsImplementation[Case] = {
+    flatMap(caze =>
       new TrialsImplementation(
         FiltrationResult(Some(caze).filter(predicate))
-      )
+      ): Trials[Case]
     )
-
-  def mapFilter[TransformedCase](
-      filteringTransform: JavaFunction[_ >: Case, Optional[TransformedCase]]
-  ): TrialsImplementation[TransformedCase] =
-    mapFilter(filteringTransform.apply _ andThen {
-      case withPayload if withPayload.isPresent => Some(withPayload.get())
-      case _                                    => None
-    })
+  }
 
   override def mapFilter[TransformedCase](
       filteringTransform: Case => Option[TransformedCase]
   ): TrialsImplementation[TransformedCase] =
-    flatMap((caze: Case) =>
-      new TrialsImplementation(FiltrationResult(filteringTransform(caze)))
+    flatMap(caze =>
+      new TrialsImplementation(
+        FiltrationResult(filteringTransform(caze))
+      ): Trials[TransformedCase]
     )
 
   def this(
@@ -915,7 +911,7 @@ case class TrialsImplementation[Case](
           partialResult.foreach(builder += _)
           builder.result()
         },
-        flatMap((item: Case) => addItems(item :: partialResult))
+        flatMap(item => addItems(item :: partialResult): Trials[Container])
       )
 
     addItems(Nil)
@@ -933,9 +929,9 @@ case class TrialsImplementation[Case](
     override def result(): Container = underlyingBuilder.result()
   })
 
-  override def lists: Trials[List[Case]] = several
+  override def lists: TrialsImplementation[List[Case]] = several
 
-  override def sets: Trials[Set[_ <: Case]] = several
+  override def sets: TrialsImplementation[Set[_ <: Case]] = several
 
   override def sortedSets(implicit
       ordering: Ordering[_ >: Case]
@@ -954,22 +950,18 @@ case class TrialsImplementation[Case](
 
   override def maps[Value](
       values: Trials[Value]
-  ): TrialsImplementation[Map[Case, Value]] = {
-    val annoyingWorkaroundToPreventAmbiguity: Case => Trials[(Case, Value)] =
-      key => values.map(key -> _)
-    flatMap(annoyingWorkaroundToPreventAmbiguity).several[Map[Case, Value]]
-  }
+  ): TrialsImplementation[Map[Case, Value]] =
+    flatMap(key => values.map(key -> _)).several[Map[Case, Value]]
 
   override def sortedMaps[Value](values: Trials[Value])(implicit
       ordering: Ordering[_ >: Case]
   ): TrialsImplementation[SortedMap[Case, Value]] = {
-    val annoyingWorkaroundToPreventAmbiguity: Case => Trials[(Case, Value)] =
-      key => values.map(key -> _)
-    flatMap(annoyingWorkaroundToPreventAmbiguity)
-      .several[Map[Case, Value]]
-      .map(
+    flatMap(key => values.map(key -> _)).lists
+      .map[SortedMap[Case, Value]](
         SortedMap
-          .from(_: Map[Case, Value])(ordering.asInstanceOf[Ordering[Case]])
+          .from[Case, Value](_)(
+            ordering.asInstanceOf[Ordering[Case]]
+          ): SortedMap[Case, Value]
       )
   }
 
@@ -987,8 +979,8 @@ case class TrialsImplementation[Case](
         builder.result()
       }
       else
-        flatMap((item: Case) =>
-          addItems(numberOfItems - 1, item :: partialResult)
+        flatMap(item =>
+          addItems(numberOfItems - 1, item :: partialResult): Trials[Container]
         )
 
     addItems(size, Nil)
