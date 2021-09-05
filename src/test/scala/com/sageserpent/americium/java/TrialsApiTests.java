@@ -162,7 +162,7 @@ public class TrialsApiTests {
     @ParameterizedTest
     @ValueSource(ints = {0, 1, 2, 5, 10})
     void testDriveSizedListTrials(int numberOfElements) {
-        final Trials<ImmutableList<? extends Integer>> lists = api.integers().immutableListsOfSize(numberOfElements);
+        final Trials<ImmutableList<Integer>> lists = api.integers().immutableListsOfSize(numberOfElements);
 
         lists.withLimit(100).supplyTo(list -> {
             assertThat("The size of the list should be number of element trials", list.size(), equalTo(numberOfElements));

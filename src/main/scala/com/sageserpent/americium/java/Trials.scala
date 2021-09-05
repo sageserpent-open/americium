@@ -48,7 +48,7 @@ object Trials {
   }
 }
 
-trait Trials[+Case] extends TrialsFactoring[Case] {
+trait Trials[Case] extends TrialsFactoring[Case] {
   private[americium] val scalaTrials: ScalaTrials[Case]
 
   def map[TransformedCase](
@@ -84,22 +84,22 @@ trait Trials[+Case] extends TrialsFactoring[Case] {
     */
   def withRecipe(recipe: String): SupplyToSyntax[Case]
 
-  def immutableLists(): Trials[ImmutableList[_ <: Case]]
+  def immutableLists(): Trials[ImmutableList[Case]]
 
-  def immutableSets(): Trials[ImmutableSet[_ <: Case]]
+  def immutableSets(): Trials[ImmutableSet[Case]]
 
   def immutableSortedSets(
-      elementComparator: Comparator[_ >: Case]
-  ): Trials[ImmutableSortedSet[_ <: Case]]
+      elementComparator: Comparator[Case]
+  ): Trials[ImmutableSortedSet[Case]]
 
   def immutableMaps[Value](
       values: Trials[Value]
-  ): Trials[ImmutableMap[_ <: Case, Value]]
+  ): Trials[ImmutableMap[Case, Value]]
 
   def immutableSortedMaps[Value](
-      elementComparator: Comparator[_ >: Case],
+      elementComparator: Comparator[Case],
       values: Trials[Value]
-  ): Trials[ImmutableSortedMap[_ <: Case, Value]]
+  ): Trials[ImmutableSortedMap[Case, Value]]
 
-  def immutableListsOfSize(size: Int): Trials[ImmutableList[_ <: Case]]
+  def immutableListsOfSize(size: Int): Trials[ImmutableList[Case]]
 }
