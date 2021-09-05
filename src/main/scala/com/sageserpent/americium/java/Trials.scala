@@ -26,7 +26,7 @@ object Trials {
       block: Runnable
   ): Unit = ScalaTrials.whenever(satisfiedPrecondition)(block.run())
 
-  trait SupplyToSyntax[+Case] {
+  trait SupplyToSyntax[Case] {
 
     /** Consume trial cases until either there are no more or an exception is thrown by {@code consumer}.
       * If an exception is thrown, attempts will be made to shrink the trial case that caused the
@@ -42,9 +42,9 @@ object Trials {
       *       the non-duplicated cases have to be supplied, even if
       *       they could potentially all fit within the limit.
       */
-    def supplyTo(consumer: Consumer[_ >: Case]): Unit
+    def supplyTo(consumer: Consumer[Case]): Unit
 
-    def asIterator(): JavaIterator[_ <: Case]
+    def asIterator(): JavaIterator[Case]
   }
 }
 

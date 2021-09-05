@@ -7,11 +7,11 @@ import java.util.function.Supplier;
 import java.util.stream.Stream;
 
 public class JUnit5Provider {
-    public static <Case> Iterator<? extends Case> of(int limit, Trials<Case> trials) {
+    public static <Case> Iterator<Case> of(int limit, Trials<Case> trials) {
         return trials.withLimit(limit).asIterator();
     }
 
-    public static Iterator<? extends Arguments> of(int limit, Trials<?>... trials) {
+    public static Iterator<Arguments> of(int limit, Trials<?>... trials) {
         class ContextCapture {
             public Trials<Supplier<Stream.Builder<Object>>> addTrialsAt(int index, Trials<Supplier<Stream.Builder<Object>>> partialResult) {
                 return index < trials.length

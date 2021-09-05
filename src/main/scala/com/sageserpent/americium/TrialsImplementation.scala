@@ -423,10 +423,10 @@ case class TrialsImplementation[Case](
     new JavaTrials.SupplyToSyntax[Case] with Trials.SupplyToSyntax[Case] {
 
       // Java-only API ...
-      override def supplyTo(consumer: Consumer[_ >: Case]): Unit =
+      override def supplyTo(consumer: Consumer[Case]): Unit =
         supplyTo(consumer.accept _)
 
-      override def asIterator(): JavaIterator[_ <: Case] = {
+      override def asIterator(): JavaIterator[Case] = {
         val randomBehaviour = new Random(734874)
 
         val factoryShrinkage = 1
@@ -879,10 +879,10 @@ case class TrialsImplementation[Case](
     new JavaTrials.SupplyToSyntax[Case] with Trials.SupplyToSyntax[Case] {
 
       // Java-only API ...
-      override def supplyTo(consumer: Consumer[_ >: Case]): Unit =
+      override def supplyTo(consumer: Consumer[Case]): Unit =
         supplyTo(consumer.accept _)
 
-      override def asIterator(): JavaIterator[_ <: Case] = Seq {
+      override def asIterator(): JavaIterator[Case] = Seq {
         val decisionStages = parseDecisionIndices(recipe)
         reproduce(decisionStages)
       }.asJava.iterator()
