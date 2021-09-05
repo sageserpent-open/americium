@@ -349,7 +349,7 @@ class Cookbook {
 
     final Trials<Ellipse2D> ellipses = api.doubles().flatMap(x -> api.doubles().flatMap(y -> api.doubles().flatMap(w -> api.doubles().map(h -> new Ellipse2D.Double(x, y, w, h)))));
 
-    final Trials<? extends Shape> shapes = api.alternate(rectangles, ellipses);
+    final Trials<Shape> shapes = api.alternate(rectangles, ellipses);
 
     /* ... or with weights. */
 
@@ -362,9 +362,9 @@ class Cookbook {
 
     /* Use helper methods to make a trials from some collection out of a simpler trials for the collection's elements. */
 
-    final Trials<ImmutableList<? extends Shape>> listsOfShapes = ((Trials<Shape>) shapes).immutableLists();
+    final Trials<ImmutableList<Shape>> listsOfShapes = shapes.immutableLists();
 
-    final Trials<ImmutableSortedSet<? extends BigInteger>> sortedSetsOfPrimes = likelyToBePrime.immutableSortedSets(BigInteger::compareTo);
+    final Trials<ImmutableSortedSet<BigInteger>> sortedSetsOfPrimes = likelyToBePrime.immutableSortedSets(BigInteger::compareTo);
 
     /*
      Once you've built up the right shape of trials instance, put it to use: specify an upper limit for the number of cases
