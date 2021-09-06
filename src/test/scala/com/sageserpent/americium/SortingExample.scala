@@ -1,9 +1,10 @@
 package com.sageserpent.americium
 
+import com.sageserpent.americium.Trials.api
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
-class Examples extends AnyFlatSpec with Matchers {
+class SortingExample extends AnyFlatSpec with Matchers {
   // Insertion sort, but with a bug...
   def notSoStableSort[Element](
       elements: List[Element]
@@ -20,13 +21,18 @@ class Examples extends AnyFlatSpec with Matchers {
   // We're going to sort a list of associations (key-value pairs) by the key...
   val ordering = Ordering.by[(Int, Int), Int](_._1)
 
-  val api = Trials.api
+  // Build up a trials instance for key value pairs by flat-mapping from simpler trials instances for the keys and values...
+  val keyValuePairs: Trials[(Int, Int)] = for {
+    key <- api.choose(
+      0 to 100
+    ) // We want to encourage duplicated keys - so a key is always some integer from 0 up to but not including 100.
+    value <-
+      api.integers // A value on the other hand is any integer from right across the permissible range.
+  } yield key -> value
 
-  // Here's the trials instance...
-  val associationLists: Trials[List[(Int, Int)]] = (for {
-    key   <- api.choose(0 to 100)
-    value <- api.integers
-  } yield key -> value).lists
+  // Here's the trials instance we use to drive the tests for sorting...
+  val associationLists: Trials[List[(Int, Int)]] =
+    keyValuePairs.lists // This makes a trials of lists out of the simpler trials of key-value pairs.
 
   "stableSorting" should "sort according to the ordering" in
     associationLists
@@ -113,73 +119,4 @@ class Examples extends AnyFlatSpec with Matchers {
           assert(sortedResult.groupBy(_._1) == associationList.groupBy(_._1))
         }
       }
-
-  val listsFavouringDuplicatedEntries: Trials[List[Int]] =
-    for {
-      size    <- api.choose(0 to 10)
-      choices <- api.integers.listsOfSize(size)
-      values = api.choose(choices)
-      result <- values.listsOfSize(size)
-    } yield result
-
-  def vainAttemptToDisproveHavingMoreThanTwoAdjacentDuplicates(
-      list: List[Int]
-  ) = {
-    import com.sageserpent.americium.seqEnrichment._
-
-    val groupsOfAdjacentDuplicates = list.groupWhile(_ == _)
-
-    println(groupsOfAdjacentDuplicates)
-
-    assert(groupsOfAdjacentDuplicates.find(_.size > 2).isEmpty)
-  }
-
-  // We expect this test to fail because our assumptions are wrong...
-  "a lazy developer" should "get an unwelcome surprise" ignore
-    listsFavouringDuplicatedEntries
-      .withLimit(50)
-      .supplyTo(vainAttemptToDisproveHavingMoreThanTwoAdjacentDuplicates)
-
-  // We expect this test to fail because our assumptions are wrong...
-  they should "get an unwelcome surprise - this time with the failure reproduced directly" ignore {
-    listsFavouringDuplicatedEntries
-      .withRecipe("""[
-                    |    {
-                    |        "ChoiceOf" : {
-                    |            "index" : 3
-                    |        }
-                    |    },
-                    |    {
-                    |        "FactoryInputOf" : {
-                    |            "input" : 0
-                    |        }
-                    |    },
-                    |    {
-                    |        "FactoryInputOf" : {
-                    |            "input" : 0
-                    |        }
-                    |    },
-                    |    {
-                    |        "FactoryInputOf" : {
-                    |            "input" : -1
-                    |        }
-                    |    },
-                    |    {
-                    |        "ChoiceOf" : {
-                    |            "index" : 1
-                    |        }
-                    |    },
-                    |    {
-                    |        "ChoiceOf" : {
-                    |            "index" : 0
-                    |        }
-                    |    },
-                    |    {
-                    |        "ChoiceOf" : {
-                    |            "index" : 1
-                    |        }
-                    |    }
-                    |]""".stripMargin)
-      .supplyTo(vainAttemptToDisproveHavingMoreThanTwoAdjacentDuplicates)
-  }
 }

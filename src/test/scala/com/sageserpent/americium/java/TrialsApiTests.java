@@ -53,7 +53,7 @@ public class TrialsApiTests {
                 api.only(oneTenthAsABigDecimal.add(oneTenthAsABigDecimal).add(oneTenthAsABigDecimal))
                         .map(value -> value.multiply(BigDecimal.TEN));
 
-        final Trials<? extends Number> alternateTrials = api.alternate(integerTrials, doubleTrials, bigDecimalTrials);
+        final Trials<Number> alternateTrials = api.alternate(integerTrials, doubleTrials, bigDecimalTrials);
 
         final int limit = 20;
 
@@ -61,7 +61,7 @@ public class TrialsApiTests {
             System.out.println(number.doubleValue());
         });
 
-        final Trials<? extends Number> alternateTrialsFromArray = api.alternate(new Trials[]{integerTrials, doubleTrials, bigDecimalTrials});
+        final Trials<Number> alternateTrialsFromArray = api.alternate(new Trials[]{integerTrials, doubleTrials, bigDecimalTrials});
 
         alternateTrialsFromArray.withLimit(limit).supplyTo(number -> {
             System.out.println(number.doubleValue());
@@ -102,17 +102,17 @@ public class TrialsApiTests {
         integersTrialsWithVariety.immutableSortedMaps(Integer::compare, api.strings()).withLimit(limit).supplyTo(System.out::println);
     }
 
-    static Iterator<? extends ImmutableSet<? extends String>> sets() {
+    static Iterator<ImmutableSet<String>> sets() {
         return JUnit5Provider.of(30, api.strings().immutableSets());
     }
 
     @ParameterizedTest
     @MethodSource(value = "sets")
-    void testDriveSetsProvider(ImmutableSet<? extends String> distinctStrings) {
+    void testDriveSetsProvider(ImmutableSet<String> distinctStrings) {
         System.out.println(distinctStrings);
     }
 
-    static Iterator<? extends Arguments> mixtures() {
+    static Iterator<Arguments> mixtures() {
         return JUnit5Provider.of(32, api.integers(), api.strings().immutableMaps(api.booleans()));
     }
 
@@ -162,7 +162,7 @@ public class TrialsApiTests {
     @ParameterizedTest
     @ValueSource(ints = {0, 1, 2, 5, 10})
     void testDriveSizedListTrials(int numberOfElements) {
-        final Trials<ImmutableList<? extends Integer>> lists = api.integers().immutableListsOfSize(numberOfElements);
+        final Trials<ImmutableList<Integer>> lists = api.integers().immutableListsOfSize(numberOfElements);
 
         lists.withLimit(100).supplyTo(list -> {
             assertThat("The size of the list should be number of element trials", list.size(), equalTo(numberOfElements));
