@@ -91,7 +91,7 @@ Scalacheck does this, but with caveats: https://github.com/typelevel/scalacheck/
 a whirl and see how you fare. So does Hedgehog for that matter...
 
 This brings us to the next pain point for the author, which is the extent to which the framework has opinions about how
-your code is to be structured. Scalacheck comes not only with generation of test cases, but is own property-checking DSL
+your code is to be structured. Scalacheck comes not only with generation of test cases, but its own property-checking DSL
 and style of assembling a test suite, which you may or may not buy into. There is an integration into Scalatest so that
 you can supply test cases to a Scalatest test - perhaps you might like that better? MUnit will let you use Scalacheck,
 but you are back to its own DSL ... or perhaps you'd prefer UTest - not sure what you'd do there...
