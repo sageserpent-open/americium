@@ -91,10 +91,10 @@ Scalacheck does this, but with caveats: https://github.com/typelevel/scalacheck/
 a whirl and see how you fare. So does Hedgehog for that matter...
 
 This brings us to the next pain point for the author, which is the extent to which the framework has opinions about how
-your code is to be structured. Scalacheck comes not only with generation of test cases, but its own property-checking DSL
-and style of assembling a test suite, which you may or may not buy into. There is an integration into Scalatest so that
-you can supply test cases to a Scalatest test - perhaps you might like that better? MUnit will let you use Scalacheck,
-but you are back to its own DSL ... or perhaps you'd prefer UTest - not sure what you'd do there...
+your code is to be structured. Scalacheck comes not only with generation of test cases, but its own property-checking
+DSL and style of assembling a test suite, which you may or may not buy into. There is an integration into Scalatest so
+that you can supply test cases to a Scalatest test - perhaps you might like that better? MUnit will let you use
+Scalacheck, but you are back to its own DSL ... or perhaps you'd prefer UTest - not sure what you'd do there...
 
 ... or maybe you write in Java and use JUnit? What then? VavrTest doesn't at time of writing offer any shrinkage
 support.
@@ -133,7 +133,8 @@ import com.sageserpent.americium.Trials.api // Start with the Scala api for `Tri
 // We're going to sort a list of associations (key-value pairs) by the key...
 val ordering = Ordering.by[(Int, Int), Int](_._1)
 
-// Build up a trials instance for key value pairs by flat-mapping from simpler trials instances for the keys and values...
+// Build up a trials instance for key value pairs by flat-mapping from simpler
+// trials instances for the keys and values...
 val keyValuePairs: Trials[(Int, Int)] = for {
   key <- api.choose(
     0 to 100
@@ -153,7 +154,8 @@ val associationLists: Trials[List[(Int, Int)]] =
     ) // Filter out the empty case as we can't assert sensibly on it.
     .withLimit(200) // Only check up to 200 cases inclusive.
     .supplyTo { nonEmptyAssocationList: List[(Int, Int)] =>
-      // This is a parameterised test, using `nonEmptyAssociationList` as the test case parameter...
+      // This is a parameterised test, using `nonEmptyAssociationList` as the
+      // test case parameter...
       val sortedResult = notSoStableSort(nonEmptyAssocationList)(ordering)
 
       // Using Scalatest assertions here...
@@ -246,11 +248,10 @@ it should "also preserve the original order of the subsequences of elements that
         |        }
         |    }
         |]""".stripMargin)
-    .supplyTo { associationList: List[(Int, Int)] => {
+    .supplyTo { associationList: List[(Int, Int)] =>
       val sortedResult = notSoStableSort(associationList)(ordering)
 
       assert(sortedResult.groupBy(_._1) == associationList.groupBy(_._1))
-    }
     } 
    ```
 
@@ -263,8 +264,8 @@ it should "also preserve the original order of the subsequences of elements that
 - Transform them by mapping.
 - Combine them together by flat-mapping.
 - Filter out what you don't want.
-- You can alternate between different recipes for making the same shape case data, either with equal probability or with
-  weights.
+- You can alternate between different recipes for making the same shape of case data, either with equal probability or
+  with weights.
 - Use helper methods to make a trials from some collection out of a simpler trials for the collection's elements.
 - Once you've built up the right shape of trials instance, put it to use: specify an upper limit for the number of cases
   you want to examine and feed them to your test code. When your test code throws an exception, the trials machinery
@@ -294,7 +295,8 @@ class Cookbook {
 
     /*
      Coax some trials instances out of the api...
-     ... either use the factory methods that give you canned trials instances ...
+     ... either use the factory methods that give you canned trials instances
+      ...
     */
 
     final Trials<Integer> integers = api.integers();
@@ -314,13 +316,13 @@ class Cookbook {
 
     final Trials<String> elementsInTheHumanBody = api.chooseWithWeights(
             Maps.immutableEntry(65,
-                    "Oxygen"),
+                                "Oxygen"),
             Maps.immutableEntry(18,
-                    "Carbon"),
+                                "Carbon"),
             Maps.immutableEntry(10,
-                    "Hydrogen"),
+                                "Hydrogen"),
             Maps.immutableEntry(3,
-                    "Nitrogen"));
+                                "Nitrogen"));
 
     /* ... or hard-wire in some single value. */
 
@@ -330,24 +332,56 @@ class Cookbook {
 
     final Trials<Integer> evenNumbers = integers.map(integral -> 2 * integral);
 
-    final Trials<ZoneId> zoneIds = api.choose("UTC", "Europe/London", "Asia/Singapore", "Atlantic/Madeira").map(ZoneId::of);
+    final Trials<ZoneId> zoneIds =
+            api
+                    .choose("UTC",
+                            "Europe/London",
+                            "Asia/Singapore",
+                            "Atlantic/Madeira")
+                    .map(ZoneId::of);
 
     /* Combine them together by flat-mapping. */
 
-    final Trials<ZonedDateTime> zonedDateTimes = instants.flatMap(instant -> zoneIds.map(zoneId -> ZonedDateTime.ofInstant(instant, zoneId)));
+    final Trials<ZonedDateTime> zonedDateTimes =
+            instants.flatMap(instant -> zoneIds.map(zoneId -> ZonedDateTime.ofInstant(
+                    instant,
+                    zoneId)));
 
     /* Filter out what you don't want. */
 
-    final Trials<ZonedDateTime> notOnASunday = zonedDateTimes.filter(zonedDateTime -> !zonedDateTime.toOffsetDateTime().getDayOfWeek().equals(DayOfWeek.SUNDAY));
+    final Trials<ZonedDateTime> notOnASunday = zonedDateTimes.filter(
+            zonedDateTime -> !zonedDateTime
+                    .toOffsetDateTime()
+                    .getDayOfWeek()
+                    .equals(DayOfWeek.SUNDAY));
 
     /*
-     You can alternate between different recipes for making the same shape case data...
+     You can alternate between different recipes for making the same shape 
+     case data...
      ... either with equal probability ...
     */
 
-    final Trials<Rectangle2D> rectangles = api.doubles().flatMap(x -> api.doubles().flatMap(y -> api.doubles().flatMap(w -> api.doubles().map(h -> new Rectangle2D.Double(x, y, w, h)))));
+    final Trials<Rectangle2D> rectangles =
+            api.doubles().flatMap(x -> api.doubles().flatMap(
+                    y -> api
+                            .doubles()
+                            .flatMap(w -> api
+                                    .doubles()
+                                    .map(h -> new Rectangle2D.Double(x,
+                                                                     y,
+                                                                     w,
+                                                                     h)))));
 
-    final Trials<Ellipse2D> ellipses = api.doubles().flatMap(x -> api.doubles().flatMap(y -> api.doubles().flatMap(w -> api.doubles().map(h -> new Ellipse2D.Double(x, y, w, h)))));
+    final Trials<Ellipse2D> ellipses =
+            api.doubles().flatMap(x -> api.doubles().flatMap(
+                    y -> api
+                            .doubles()
+                            .flatMap(w -> api
+                                    .doubles()
+                                    .map(h -> new Ellipse2D.Double(x,
+                                                                   y,
+                                                                   w,
+                                                                   h)))));
 
     final Trials<Shape> shapes = api.alternate(rectangles, ellipses);
 
@@ -355,21 +389,32 @@ class Cookbook {
 
     final Trials<BigInteger> likelyToBePrime = api.alternateWithWeights(
             Maps.immutableEntry(10,
-                    api.choose(1, 3, 5, 7, 11, 13, 17, 19).map(BigInteger::valueOf)), // Mostly from this pool of small primes - nice and quick.
+                                api
+                                        .choose(1, 3, 5, 7, 11, 13, 17, 19)
+                                        .map(BigInteger::valueOf)),
+            // Mostly from this pool of small primes - nice and quick.
             Maps.immutableEntry(1,
-                    api.longs().map(BigInteger::valueOf).map(BigInteger::nextProbablePrime)) // Occasionally we want a big prime and will pay the cost of computing it.
+                                api
+                                        .longs()
+                                        .map(BigInteger::valueOf)
+                                        .map(BigInteger::nextProbablePrime))
+            // Occasionally we want a big prime and will pay the cost of 
+            // computing it.
     );
 
-    /* Use helper methods to make a trials from some collection out of a simpler trials for the collection's elements. */
+    /* Use helper methods to make a trials from some collection out of a simpler
+     trials for the collection's elements. */
 
     final Trials<ImmutableList<Shape>> listsOfShapes = shapes.immutableLists();
 
-    final Trials<ImmutableSortedSet<BigInteger>> sortedSetsOfPrimes = likelyToBePrime.immutableSortedSets(BigInteger::compareTo);
+    final Trials<ImmutableSortedSet<BigInteger>> sortedSetsOfPrimes =
+            likelyToBePrime.immutableSortedSets(BigInteger::compareTo);
 
     /*
-     Once you've built up the right shape of trials instance, put it to use: specify an upper limit for the number of cases
-     you want to examine and feed them to your test code. When your test code throws an exception, the trials machinery
-     will try to shrink down whatever test case caused it.
+     Once you've built up the right shape of trials instance, put it to
+     use: specify an upper limit for the number of cases you want to examine
+     and feed them to your test code. When your test code throws an exception,
+     the trials machinery will try to shrink down whatever test case caused it.
     */
 
     @Test
@@ -378,7 +423,8 @@ class Cookbook {
             final LocalDate localDate = when.toLocalDate();
 
             try {
-                assert !localDate.getMonth().equals(Month.FEBRUARY) || localDate.getDayOfMonth() != 29;
+                assert !localDate.getMonth().equals(Month.FEBRUARY) ||
+                       localDate.getDayOfMonth() != 29;
             } catch (AssertionError exception) {
                 System.out.println(when);   // Watch the shrinkage in action!
                 throw exception;
@@ -402,20 +448,17 @@ import java.time._
 import scala.collection.immutable.SortedSet
 
 class Cookbook extends AnyFlatSpec {
-  /*
-     Coax some trials instances out of the api...
-     ... either use the factory methods that give you canned trials instances ...
-   */
+  /* Coax some trials instances out of the api...
+   * ... either use the factory methods that give you canned trials instances
+   * ... */
   val integers: Trials[Int] = api.integers
 
   val strings: Trials[String] = api.strings
 
   val instants: Trials[Instant] = api.instants
 
-  /*
-     ... or specify your own cases to choose from ...
-     ... either with equal probability ...
-   */
+  /* ... or specify your own cases to choose from ...
+   * ... either with equal probability ... */
 
   val colors: Trials[Color] =
     api.choose(Color.RED, Color.GREEN, Color.BLUE)
@@ -454,10 +497,9 @@ class Cookbook extends AnyFlatSpec {
   val notOnASunday: Trials[ZonedDateTime] =
     zonedDateTimes.filter(_.toOffsetDateTime.getDayOfWeek != DayOfWeek.SUNDAY)
 
-  /*
-     You can alternate between different recipes for making the same shape case data...
-     ... either with equal probability ...
-   */
+  /* You can alternate between different recipes for making the same shape case
+   * data...
+   * ... either with equal probability ... */
 
   val rectangles: Trials[Rectangle2D.Double] =
     for {
@@ -491,7 +533,8 @@ class Cookbook extends AnyFlatSpec {
       ) // Occasionally we want a big prime and will pay the cost of computing it.
   )
 
-  /* Use helper methods to make a trials from some collection out of a simpler trials for the collection's elements. */
+  /* Use helper methods to make a trials from some collection out of a simpler
+   * trials for the collection's elements. */
 
   val listsOfShapes: Trials[List[Shape]] =
     shapes.lists
@@ -499,11 +542,10 @@ class Cookbook extends AnyFlatSpec {
   val sortedSetsOfPrimes: Trials[SortedSet[_ <: BigInt]] =
     likelyToBePrime.sortedSets
 
-  /*
-     Once you've built up the right shape of trials instance, put it to use: specify an upper limit for the number of cases
-     you want to examine and feed them to your test code. When your test code throws an exception, the trials machinery
-     will try to shrink down whatever test case caused it.
-   */
+  /* Once you've built up the right shape of trials instance, put it to use:
+   * specify an upper limit for the number of cases you want to examine and feed
+   * them to your test code. When your test code throws an exception, the trials
+   * machinery will try to shrink down whatever test case caused it. */
 
   "the extra day in a leap year" should "not be tolerated if its not on a Sunday" in {
     notOnASunday

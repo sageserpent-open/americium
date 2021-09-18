@@ -1,4 +1,4 @@
-package com.sageserpent.americium
+package com.sageserpent.americium.java
 
 import cats.collections.Dequeue
 import cats.data.{OptionT, State, StateT}
@@ -13,6 +13,7 @@ import com.sageserpent.americium.java.{
   TrialsApi => JavaTrialsApi
 }
 import com.sageserpent.americium.randomEnrichment.RichRandom
+import com.sageserpent.americium.{Trials, TrialsApi}
 import io.circe.generic.auto._
 import io.circe.parser._
 import io.circe.syntax._

@@ -3,8 +3,8 @@ package com.sageserpent.americium
 import cats._
 import cats.implicits._
 import com.sageserpent.americium.Trials.SupplyToSyntax
-import com.sageserpent.americium.TrialsImplementation.GenerationSupport
-import com.sageserpent.americium.java.TrialsFactoring
+import com.sageserpent.americium.java.TrialsImplementation.GenerationSupport
+import com.sageserpent.americium.java.{TrialsFactoring, TrialsImplementation}
 
 import scala.collection.Factory
 import scala.collection.immutable.{SortedMap, SortedSet}
