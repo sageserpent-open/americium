@@ -38,6 +38,14 @@ object Trials extends TrialsByMagnolia {
     )
   }
 
+  trait SupplyToSyntaxTuple4[+Case1, +Case2, +Case3, +Case4]
+      extends SupplyToSyntax[(Case1, Case2, Case3, Case4)] {
+    def supplyTo(consumer: (Case1, Case2, Case3, Case4) => Unit): Unit =
+      supplyTo(
+        consumer.tupled
+      )
+  }
+
   implicit val monadInstance: Monad[Trials] = new Monad[Trials]
     with StackSafeMonad[Trials] {
     override def pure[A](x: A): Trials[A] = api.only(x)
@@ -55,28 +63,49 @@ object Trials extends TrialsByMagnolia {
       ): Trials[B] = fa.mapFilter(f)
     }
 
-  implicit class tuple2Trials[+Case1, +Case2](
+  implicit class Tuple2Trials[+Case1, +Case2](
       val pair: (Trials[Case1], Trials[Case2])
   ) extends AnyVal {
     def withLimit(limit: Int): SupplyToSyntaxTuple2[Case1, Case2] =
-      new SupplyToSyntaxTuple2[Case1, Case2] {
-        val withLimit = pair.mapN(Tuple2.apply).withLimit(limit)
+      (consumer: ((Case1, Case2)) => Unit) =>
+        pair.mapN(Tuple2.apply).withLimit(limit).supplyTo(consumer)
 
-        override def supplyTo(consumer: ((Case1, Case2)) => Unit): Unit =
-          withLimit.supplyTo(consumer)
-      }
+    def withRecipe(recipe: String): SupplyToSyntaxTuple2[Case1, Case2] =
+      (consumer: ((Case1, Case2)) => Unit) =>
+        pair.mapN(Tuple2.apply).withRecipe(recipe).supplyTo(consumer)
   }
 
-  implicit class tuple3Trials[+Case1, +Case2, +Case3](
+  implicit class Tuple3Trials[+Case1, +Case2, +Case3](
       val triple: (Trials[Case1], Trials[Case2], Trials[Case3])
   ) extends AnyVal {
     def withLimit(limit: Int): SupplyToSyntaxTuple3[Case1, Case2, Case3] =
-      new SupplyToSyntaxTuple3[Case1, Case2, Case3] {
-        val withLimit = triple.mapN(Tuple3.apply).withLimit(limit)
+      (consumer: ((Case1, Case2, Case3)) => Unit) =>
+        triple.mapN(Tuple3.apply).withLimit(limit).supplyTo(consumer)
 
-        override def supplyTo(consumer: ((Case1, Case2, Case3)) => Unit): Unit =
-          withLimit.supplyTo(consumer)
-      }
+    def withRecipe(recipe: String): SupplyToSyntaxTuple3[Case1, Case2, Case3] =
+      (consumer: ((Case1, Case2, Case3)) => Unit) =>
+        triple.mapN(Tuple3.apply).withRecipe(recipe).supplyTo(consumer)
+  }
+
+  implicit class Tuple4Trials[+Case1, +Case2, +Case3, +Case4](
+      val quadruple: (
+          Trials[Case1],
+          Trials[Case2],
+          Trials[Case3],
+          Trials[Case4]
+      )
+  ) extends AnyVal {
+    def withLimit(
+        limit: Int
+    ): SupplyToSyntaxTuple4[Case1, Case2, Case3, Case4] =
+      (consumer: ((Case1, Case2, Case3, Case4)) => Unit) =>
+        quadruple.mapN(Tuple4.apply).withLimit(limit).supplyTo(consumer)
+
+    def withRecipe(
+        recipe: String
+    ): SupplyToSyntaxTuple4[Case1, Case2, Case3, Case4] =
+      (consumer: ((Case1, Case2, Case3, Case4)) => Unit) =>
+        quadruple.mapN(Tuple4.apply).withRecipe(recipe).supplyTo(consumer)
   }
 }
 

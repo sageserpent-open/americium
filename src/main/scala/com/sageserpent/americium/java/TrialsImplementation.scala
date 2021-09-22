@@ -14,6 +14,12 @@ import com.sageserpent.americium.java.{
 }
 import com.sageserpent.americium.randomEnrichment.RichRandom
 import com.sageserpent.americium.{Trials, TrialsApi}
+import cyclops.data.tuple.{
+  Tuple => JavaTuple,
+  Tuple2 => JavaTuple2,
+  Tuple3 => JavaTuple3,
+  Tuple4 => JavaTuple4
+}
 import io.circe.generic.auto._
 import io.circe.parser._
 import io.circe.syntax._
@@ -138,7 +144,9 @@ object TrialsImplementation {
     override def lists[Case](
         listOfTrials: JavaList[JavaTrials[Case]]
     ): TrialsImplementation[ImmutableList[Case]] =
-      // NASTY HACK: make a throwaway trials of type `TrialsImplementation` to act as a springboard to flatmap the 'real' result into the correct type.
+      // NASTY HACK: make a throwaway trials of type `TrialsImplementation` to
+      // act as a springboard to flatmap the 'real' result into the correct
+      // type.
       scalaApi
         .only(())
         .flatMap((_: Unit) =>
@@ -358,6 +366,7 @@ case class TrialsImplementation[Case](
     override val generation: TrialsImplementation.Generation[_ <: Case]
 ) extends JavaTrials[Case]
     with Trials[Case] {
+  thisTrialsImplementation =>
 
   import TrialsImplementation._
 
@@ -398,8 +407,9 @@ case class TrialsImplementation[Case](
                 _ <- State.set(remainingDecisionStages)
               } yield factory(input)
 
-            // NOTE: pattern-match only on `Some`, as we are reproducing a case that by
-            // dint of being reproduced, must have passed filtration the first time around.
+            // NOTE: pattern-match only on `Some`, as we are reproducing a case
+            // that by dint of being reproduced, must have passed filtration the
+            // first time around.
             case FiltrationResult(Some(caze)) =>
               caze.pure[DecisionIndicesContext]
           }
@@ -452,10 +462,12 @@ case class TrialsImplementation[Case](
           val numberOfDecisionStages = decisionStages.size
 
           if (0 < numberOfDecisionStages) {
-            // NOTE: there's some voodoo in choosing the exponential scaling factor - if it's too high, say 2,
-            // then the solutions are hardly shrunk at all. If it is unity, then the solutions are shrunk a
-            // bit but can be still involve overly 'large' values, in the sense that the factory input values
-            // are large. This needs finessing, but will do for now...
+            // NOTE: there's some voodoo in choosing the exponential scaling
+            // factor - if it's too high, say 2, then the solutions are hardly
+            // shrunk at all. If it is unity, then the solutions are shrunk a
+            // bit but can be still involve overly 'large' values, in the sense
+            // that the factory input values are large. This needs finessing,
+            // but will do for now...
             val limitWithExtraLeewayThatHasBeenObservedToFindBetterShrunkCases =
               (100 * limit / 99) max limit
 
@@ -512,11 +524,12 @@ case class TrialsImplementation[Case](
                   }
               }
 
-            // At this point, slogging through the potential shrunk cases failed to find
-            // any failures; as a brute force approach, simply retry with an increased
-            // shrinkage factor - this will eventually terminate as the shrinkage factor
-            // isn't allowed to exceed its upper limit, and it does winkle out some really
-            // hard to find shrunk cases this way.
+            // At this point, slogging through the potential shrunk cases failed
+            // to find any failures; as a brute force approach, simply retry
+            // with an increased shrinkage factor - this will eventually
+            // terminate as the shrinkage factor isn't allowed to exceed its
+            // upper limit, and it does winkle out some really hard to find
+            // shrunk cases this way.
 
             if (stillEnoughRoomToIncreaseShrinkageFactor) {
               val increasedFactoryShrinkage = 2 * factoryShrinkage
@@ -531,8 +544,9 @@ case class TrialsImplementation[Case](
             }
           }
 
-          // At this point the recursion hasn't found a failing case, so we call it
-          // a day and go with the best we've got from further up the call chain...
+          // At this point the recursion hasn't found a failing case, so we call
+          // it a day and go with the best we've got from further up the call
+          // chain...
 
           throw new TrialException(throwable) {
             override def provokingCase: Case = caze
@@ -593,11 +607,13 @@ case class TrialsImplementation[Case](
     type StateUpdating[Case] =
       StateT[DeferredOption, State, Case]
 
-    // NASTY HACK: what follows is a hacked alternative to using the reader monad whereby the injected
-    // context is *mutable*, but at least it's buried in the interpreter for `GenerationOperation`, expressed
-    // as a closure over `randomBehaviour`. The reified `FiltrationResult` values are also handled by the
-    // interpreter too. If it's any consolation, it means that flat-mapping is stack-safe - although I'm not
-    // entirely sure about alternation. Read 'em and weep!
+    // NASTY HACK: what follows is a hacked alternative to using the reader
+    // monad whereby the injected context is *mutable*, but at least it's buried
+    // in the interpreter for `GenerationOperation`, expressed as a closure over
+    // `randomBehaviour`. The reified `FiltrationResult` values are also handled
+    // by the interpreter too. If it's any consolation, it means that
+    // flat-mapping is stack-safe - although I'm not entirely sure about
+    // alternation. Read 'em and weep!
 
     val maximumNumberOfDecisionStages: Int = 100
 
@@ -620,7 +636,7 @@ case class TrialsImplementation[Case](
               if (0 < numberOfChoices)
                 for {
                   state <- StateT.get[DeferredOption, State]
-                  _     <- liftUnitIfTheNumberOfDecisionStagesIsNotTooLarge(state)
+                  _ <- liftUnitIfTheNumberOfDecisionStagesIsNotTooLarge(state)
                   index #:: remainingPossibleIndices =
                     possibilitiesThatFollowSomeChoiceOfDecisionStages
                       .get(
@@ -678,11 +694,14 @@ case class TrialsImplementation[Case](
       }
 
     {
-      // NASTY HACK: what was previously a Java-style imperative iterator implementation has, ahem, 'matured'
-      // into an overall imperative iterator forwarding to another with a `collect` to flatten out the `Option`
-      // part of the latter's output. Both co-operate by sharing mutable state used to determine when the overall
-      // iterator should stop yielding output. This in turn allows another hack, namely to intercept calls to
-      // `forEach` on the overall iterator so that it can monitor cases that don't pass inline filtration.
+      // NASTY HACK: what was previously a Java-style imperative iterator
+      // implementation has, ahem, 'matured' into an overall imperative iterator
+      // forwarding to another with a `collect` to flatten out the `Option` part
+      // of the latter's output. Both co-operate by sharing mutable state used
+      // to determine when the overall iterator should stop yielding output.
+      // This in turn allows another hack, namely to intercept calls to
+      // `forEach` on the overall iterator so that it can monitor cases that
+      // don't pass inline filtration.
       var starvationCountdown: Int         = limit
       var backupOfStarvationCountdown      = 0
       var numberOfUniqueCasesProduced: Int = 0
@@ -874,7 +893,6 @@ case class TrialsImplementation[Case](
       recipe: String
   ): JavaTrials.SupplyToSyntax[Case] with Trials.SupplyToSyntax[Case] =
     new JavaTrials.SupplyToSyntax[Case] with Trials.SupplyToSyntax[Case] {
-
       // Java-only API ...
       override def supplyTo(consumer: Consumer[Case]): Unit =
         supplyTo(consumer.accept _)
@@ -901,6 +919,117 @@ case class TrialsImplementation[Case](
         }
       }
     }
+
+  override def and[Case2](
+      secondTrials: JavaTrials[Case2]
+  ): JavaTrials.Tuple2Trials[Case, Case2] = {
+    // TODO: this is an overly long mess of prolix staircase code. It needs a
+    // makeover!
+    val trialsOfPairs: TrialsImplementation[JavaTuple2[Case, Case2]] = {
+      // NASTY HACK: have to use an explicit flatmap here, rather than an
+      // applicative construct, to ensure the result is a
+      // `TrialsImplementation`.
+      for {
+        first  <- this.scalaTrials
+        second <- secondTrials.scalaTrials
+      } yield JavaTuple.tuple(first, second)
+    }
+
+    new JavaTrials.Tuple2Trials[Case, Case2] {
+      override def and[Case3](
+          thirdTrials: JavaTrials[Case3]
+      ): JavaTrials.Tuple3Trials[Case, Case2, Case3] = {
+        val trialsOfTriples
+            : TrialsImplementation[JavaTuple3[Case, Case2, Case3]] = {
+          // NASTY HACK: have to use an explicit flatmap here, rather than an
+          // applicative construct, to ensure the result is a
+          // `TrialsImplementation`.
+          for {
+            first  <- thisTrialsImplementation.scalaTrials
+            second <- secondTrials.scalaTrials
+            third  <- thirdTrials.scalaTrials
+          } yield JavaTuple.tuple(first, second, third)
+        }
+
+        new JavaTrials.Tuple3Trials[Case, Case2, Case3] {
+          override def and[Case4](
+              fourthTrials: JavaTrials[Case4]
+          ): JavaTrials.Tuple4Trials[Case, Case2, Case3, Case4] = {
+            val trialsOfQuadruples: TrialsImplementation[
+              JavaTuple4[Case, Case2, Case3, Case4]
+            ] = {
+              // NASTY HACK: have to use an explicit flatmap here, rather than
+              // an
+              // applicative construct, to ensure the result is a
+              // `TrialsImplementation`.
+              for {
+                first  <- thisTrialsImplementation.scalaTrials
+                second <- secondTrials.scalaTrials
+                third  <- thirdTrials.scalaTrials
+                fourth <- fourthTrials.scalaTrials
+              } yield JavaTuple.tuple(first, second, third, fourth)
+            }
+
+            new JavaTrials.Tuple4Trials[Case, Case2, Case3, Case4] {
+              override def withLimit(
+                  limit: Int
+              ): JavaTrials.SupplyToSyntaxTuple4[Case, Case2, Case3, Case4] =
+                new JavaTrials.SupplyToSyntaxTuple4[Case, Case2, Case3, Case4] {
+                  val supplyToSyntax: JavaTrials.SupplyToSyntax[
+                    JavaTuple4[Case, Case2, Case3, Case4]
+                  ] =
+                    trialsOfQuadruples.withLimit(limit)
+                }
+              override def withRecipe(
+                  recipe: _root_.java.lang.String
+              ): JavaTrials.SupplyToSyntaxTuple4[Case, Case2, Case3, Case4] =
+                new JavaTrials.SupplyToSyntaxTuple4[Case, Case2, Case3, Case4] {
+                  val supplyToSyntax: JavaTrials.SupplyToSyntax[
+                    JavaTuple4[Case, Case2, Case3, Case4]
+                  ] =
+                    trialsOfQuadruples.withRecipe(recipe)
+                }
+            }
+          }
+
+          override def withLimit(
+              limit: Int
+          ): JavaTrials.SupplyToSyntaxTuple3[Case, Case2, Case3] =
+            new JavaTrials.SupplyToSyntaxTuple3[Case, Case2, Case3] {
+              val supplyToSyntax
+                  : JavaTrials.SupplyToSyntax[JavaTuple3[Case, Case2, Case3]] =
+                trialsOfTriples.withLimit(limit)
+            }
+
+          override def withRecipe(
+              recipe: _root_.java.lang.String
+          ): JavaTrials.SupplyToSyntaxTuple3[Case, Case2, Case3] =
+            new JavaTrials.SupplyToSyntaxTuple3[Case, Case2, Case3] {
+              val supplyToSyntax
+                  : JavaTrials.SupplyToSyntax[JavaTuple3[Case, Case2, Case3]] =
+                trialsOfTriples.withRecipe(recipe)
+            }
+        }
+      }
+
+      override def withLimit(
+          limit: Int
+      ): JavaTrials.SupplyToSyntaxTuple2[Case, Case2] =
+        new JavaTrials.SupplyToSyntaxTuple2[Case, Case2] {
+          val supplyToSyntax
+              : JavaTrials.SupplyToSyntax[JavaTuple2[Case, Case2]] =
+            trialsOfPairs.withLimit(limit)
+        }
+      override def withRecipe(
+          recipe: String
+      ): JavaTrials.SupplyToSyntaxTuple2[Case, Case2] =
+        new JavaTrials.SupplyToSyntaxTuple2[Case, Case2] {
+          val supplyToSyntax
+              : JavaTrials.SupplyToSyntax[JavaTuple2[Case, Case2]] =
+            trialsOfPairs.withRecipe(recipe)
+        }
+    }
+  }
 
   private def several[Container](
       builderFactory: => Builder[Case, Container]
