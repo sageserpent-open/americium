@@ -981,7 +981,7 @@ case class TrialsImplementation[Case](
                     trialsOfQuadruples.withLimit(limit)
                 }
               override def withRecipe(
-                  recipe: _root_.java.lang.String
+                  recipe: String
               ): JavaTrials.SupplyToSyntaxTuple4[Case, Case2, Case3, Case4] =
                 new JavaTrials.SupplyToSyntaxTuple4[Case, Case2, Case3, Case4] {
                   val supplyToSyntax: JavaTrials.SupplyToSyntax[
@@ -1002,7 +1002,7 @@ case class TrialsImplementation[Case](
             }
 
           override def withRecipe(
-              recipe: _root_.java.lang.String
+              recipe: String
           ): JavaTrials.SupplyToSyntaxTuple3[Case, Case2, Case3] =
             new JavaTrials.SupplyToSyntaxTuple3[Case, Case2, Case3] {
               val supplyToSyntax
