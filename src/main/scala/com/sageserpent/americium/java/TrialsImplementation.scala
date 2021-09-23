@@ -8,18 +8,13 @@ import cats.implicits._
 import cats.{Eval, Traverse, ~>}
 import com.google.common.collect.{Ordering => _, _}
 import com.sageserpent.americium.Trials.RejectionByInlineFilter
+import com.sageserpent.americium.java.tupleTrials.Tuple2Trials
 import com.sageserpent.americium.java.{
   Trials => JavaTrials,
   TrialsApi => JavaTrialsApi
 }
 import com.sageserpent.americium.randomEnrichment.RichRandom
 import com.sageserpent.americium.{Trials, TrialsApi}
-import cyclops.data.tuple.{
-  Tuple => JavaTuple,
-  Tuple2 => JavaTuple2,
-  Tuple3 => JavaTuple3,
-  Tuple4 => JavaTuple4
-}
 import io.circe.generic.auto._
 import io.circe.parser._
 import io.circe.syntax._
@@ -923,112 +918,7 @@ case class TrialsImplementation[Case](
   override def and[Case2](
       secondTrials: JavaTrials[Case2]
   ): JavaTrials.Tuple2Trials[Case, Case2] = {
-    // TODO: this is an overly long mess of prolix staircase code. It needs a
-    // makeover!
-    val trialsOfPairs: TrialsImplementation[JavaTuple2[Case, Case2]] = {
-      // NASTY HACK: have to use an explicit flatmap here, rather than an
-      // applicative construct, to ensure the result is a
-      // `TrialsImplementation`.
-      for {
-        first  <- this.scalaTrials
-        second <- secondTrials.scalaTrials
-      } yield JavaTuple.tuple(first, second)
-    }
-
-    new JavaTrials.Tuple2Trials[Case, Case2] {
-      override def and[Case3](
-          thirdTrials: JavaTrials[Case3]
-      ): JavaTrials.Tuple3Trials[Case, Case2, Case3] = {
-        val trialsOfTriples
-            : TrialsImplementation[JavaTuple3[Case, Case2, Case3]] = {
-          // NASTY HACK: have to use an explicit flatmap here, rather than an
-          // applicative construct, to ensure the result is a
-          // `TrialsImplementation`.
-          for {
-            first  <- thisTrialsImplementation.scalaTrials
-            second <- secondTrials.scalaTrials
-            third  <- thirdTrials.scalaTrials
-          } yield JavaTuple.tuple(first, second, third)
-        }
-
-        new JavaTrials.Tuple3Trials[Case, Case2, Case3] {
-          override def and[Case4](
-              fourthTrials: JavaTrials[Case4]
-          ): JavaTrials.Tuple4Trials[Case, Case2, Case3, Case4] = {
-            val trialsOfQuadruples: TrialsImplementation[
-              JavaTuple4[Case, Case2, Case3, Case4]
-            ] = {
-              // NASTY HACK: have to use an explicit flatmap here, rather than
-              // an
-              // applicative construct, to ensure the result is a
-              // `TrialsImplementation`.
-              for {
-                first  <- thisTrialsImplementation.scalaTrials
-                second <- secondTrials.scalaTrials
-                third  <- thirdTrials.scalaTrials
-                fourth <- fourthTrials.scalaTrials
-              } yield JavaTuple.tuple(first, second, third, fourth)
-            }
-
-            new JavaTrials.Tuple4Trials[Case, Case2, Case3, Case4] {
-              override def withLimit(
-                  limit: Int
-              ): JavaTrials.SupplyToSyntaxTuple4[Case, Case2, Case3, Case4] =
-                new JavaTrials.SupplyToSyntaxTuple4[Case, Case2, Case3, Case4] {
-                  val supplyToSyntax: JavaTrials.SupplyToSyntax[
-                    JavaTuple4[Case, Case2, Case3, Case4]
-                  ] =
-                    trialsOfQuadruples.withLimit(limit)
-                }
-              override def withRecipe(
-                  recipe: String
-              ): JavaTrials.SupplyToSyntaxTuple4[Case, Case2, Case3, Case4] =
-                new JavaTrials.SupplyToSyntaxTuple4[Case, Case2, Case3, Case4] {
-                  val supplyToSyntax: JavaTrials.SupplyToSyntax[
-                    JavaTuple4[Case, Case2, Case3, Case4]
-                  ] =
-                    trialsOfQuadruples.withRecipe(recipe)
-                }
-            }
-          }
-
-          override def withLimit(
-              limit: Int
-          ): JavaTrials.SupplyToSyntaxTuple3[Case, Case2, Case3] =
-            new JavaTrials.SupplyToSyntaxTuple3[Case, Case2, Case3] {
-              val supplyToSyntax
-                  : JavaTrials.SupplyToSyntax[JavaTuple3[Case, Case2, Case3]] =
-                trialsOfTriples.withLimit(limit)
-            }
-
-          override def withRecipe(
-              recipe: String
-          ): JavaTrials.SupplyToSyntaxTuple3[Case, Case2, Case3] =
-            new JavaTrials.SupplyToSyntaxTuple3[Case, Case2, Case3] {
-              val supplyToSyntax
-                  : JavaTrials.SupplyToSyntax[JavaTuple3[Case, Case2, Case3]] =
-                trialsOfTriples.withRecipe(recipe)
-            }
-        }
-      }
-
-      override def withLimit(
-          limit: Int
-      ): JavaTrials.SupplyToSyntaxTuple2[Case, Case2] =
-        new JavaTrials.SupplyToSyntaxTuple2[Case, Case2] {
-          val supplyToSyntax
-              : JavaTrials.SupplyToSyntax[JavaTuple2[Case, Case2]] =
-            trialsOfPairs.withLimit(limit)
-        }
-      override def withRecipe(
-          recipe: String
-      ): JavaTrials.SupplyToSyntaxTuple2[Case, Case2] =
-        new JavaTrials.SupplyToSyntaxTuple2[Case, Case2] {
-          val supplyToSyntax
-              : JavaTrials.SupplyToSyntax[JavaTuple2[Case, Case2]] =
-            trialsOfPairs.withRecipe(recipe)
-        }
-    }
+    new Tuple2Trials(this, secondTrials)
   }
 
   private def several[Container](
