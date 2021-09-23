@@ -113,70 +113,20 @@ public abstract class Trials<Case> implements TrialsFactoring<Case> {
         Iterator<Case> asIterator();
     }
 
-    public static abstract class SupplyToSyntaxTuple2<Case1, Case2>
-            implements SupplyToSyntax<Tuple2<Case1, Case2>> {
-        public void supplyTo(BiConsumer<Case1, Case2> biConsumer) {
-            supplyTo(pair -> biConsumer.accept(pair._1(),
-                                               pair._2()));
-        }
-
-        @Override
-        public void supplyTo(Consumer<Tuple2<Case1, Case2>> consumer) {
-            supplyToSyntax().supplyTo(consumer);
-        }
-
-        @Override
-        public Iterator<Tuple2<Case1, Case2>> asIterator() {
-            return supplyToSyntax().asIterator();
-        }
-
-        protected abstract SupplyToSyntax<Tuple2<Case1, Case2>> supplyToSyntax();
+    public interface SupplyToSyntaxTuple2<Case1, Case2>
+            extends SupplyToSyntax<Tuple2<Case1, Case2>> {
+        void supplyTo(BiConsumer<Case1, Case2> biConsumer);
     }
 
-    public static abstract class SupplyToSyntaxTuple3<Case1, Case2, Case3>
-            implements SupplyToSyntax<Tuple3<Case1, Case2, Case3>> {
-        public void supplyTo(Consumer3<Case1, Case2, Case3> triConsumer) {
-            supplyTo(triple -> triConsumer.accept(triple._1(),
-                                                  triple._2(),
-                                                  triple._3()));
-        }
-
-        @Override
-        public void supplyTo(Consumer<Tuple3<Case1, Case2, Case3>> consumer) {
-            supplyToSyntax().supplyTo(consumer);
-        }
-
-        @Override
-        public Iterator<Tuple3<Case1, Case2, Case3>> asIterator() {
-            return supplyToSyntax().asIterator();
-        }
-
-        protected abstract SupplyToSyntax<Tuple3<Case1, Case2, Case3>> supplyToSyntax();
+    public interface SupplyToSyntaxTuple3<Case1, Case2, Case3>
+            extends SupplyToSyntax<Tuple3<Case1, Case2, Case3>> {
+        void supplyTo(Consumer3<Case1, Case2, Case3> triConsumer);
     }
 
-    public static abstract class SupplyToSyntaxTuple4<Case1, Case2, Case3,
-            Case4>
-            implements SupplyToSyntax<Tuple4<Case1, Case2, Case3, Case4>> {
-        public void supplyTo(
-                Consumer4<Case1, Case2, Case3, Case4> quadConsumer) {
-            supplyTo(quadruple -> quadConsumer.accept(quadruple._1(),
-                                                      quadruple._2(),
-                                                      quadruple._3(),
-                                                      quadruple._4()));
-        }
-
-        @Override
-        public void supplyTo(
-                Consumer<Tuple4<Case1, Case2, Case3, Case4>> consumer) {
-            supplyToSyntax().supplyTo(consumer);
-        }
-
-        @Override
-        public Iterator<Tuple4<Case1, Case2, Case3, Case4>> asIterator() {
-            return supplyToSyntax().asIterator();
-        }
-
-        protected abstract SupplyToSyntax<Tuple4<Case1, Case2, Case3, Case4>> supplyToSyntax();
+    public interface SupplyToSyntaxTuple4<Case1, Case2, Case3, Case4>
+            extends SupplyToSyntax<Tuple4<Case1, Case2, Case3, Case4>> {
+        void supplyTo(
+                Consumer4<Case1, Case2, Case3, Case4> quadConsumer);
     }
 
     public interface Tuple2Trials<Case1, Case2> {
