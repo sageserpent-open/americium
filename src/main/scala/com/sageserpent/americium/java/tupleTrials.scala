@@ -1,8 +1,9 @@
 package com.sageserpent.americium.java
 
+import cats.implicits._
+import cats.{Functor, Semigroupal}
 import com.sageserpent.americium.java.{Trials => JavaTrials}
 import cyclops.data.tuple.{
-  Tuple => JavaTuple,
   Tuple2 => JavaTuple2,
   Tuple3 => JavaTuple3,
   Tuple4 => JavaTuple4
@@ -13,6 +14,23 @@ import _root_.java.util.{Iterator => JavaIterator}
 import java.util.function.{BiConsumer, Consumer}
 
 object tupleTrials {
+  implicit val functorInstance: Functor[JavaTrials] = new Functor[JavaTrials] {
+    override def map[A, B](fa: JavaTrials[A])(
+        f: A => B
+    ): JavaTrials[B] = fa.map(f.apply _)
+  }
+
+  implicit val semigroupalInstance: Semigroupal[JavaTrials] =
+    new Semigroupal[JavaTrials] {
+      override def product[A, B](
+          fa: JavaTrials[A],
+          fb: JavaTrials[B]
+      ): JavaTrials[(A, B)] = for {
+        a <- fa
+        b <- fb
+      } yield a -> b
+    }
+
   // TODO: something clever with Magnolia, `HList`, something else in Shapeless
   // or just raw macros that saves the bother of churning out lots of copied
   // boilerplate...
@@ -20,12 +38,8 @@ object tupleTrials {
       firstTrials: JavaTrials[Case1],
       secondTrials: JavaTrials[Case2]
   ) extends JavaTrials.Tuple2Trials[Case1, Case2] {
-    val trialsOfPairs: JavaTrials[JavaTuple2[Case1, Case2]] = {
-      for {
-        first  <- firstTrials
-        second <- secondTrials
-      } yield JavaTuple.tuple(first, second)
-    }
+    val trialsOfPairs: JavaTrials[JavaTuple2[Case1, Case2]] =
+      (firstTrials, secondTrials).mapN(JavaTuple2.of[Case1, Case2] _)
 
     override def and[Case3](
         thirdTrials: JavaTrials[Case3]
@@ -75,13 +89,10 @@ object tupleTrials {
       secondTrials: JavaTrials[Case2],
       thirdTrials: JavaTrials[Case3]
   ) extends JavaTrials.Tuple3Trials[Case1, Case2, Case3] {
-    val trialsOfTriples: JavaTrials[JavaTuple3[Case1, Case2, Case3]] = {
-      for {
-        first  <- firstTrials
-        second <- secondTrials
-        third  <- thirdTrials
-      } yield JavaTuple.tuple(first, second, third)
-    }
+    val trialsOfTriples: JavaTrials[JavaTuple3[Case1, Case2, Case3]] =
+      (firstTrials, secondTrials, thirdTrials).mapN(
+        JavaTuple3.of[Case1, Case2, Case3] _
+      )
 
     override def and[Case4](
         fourthTrials: JavaTrials[Case4]
@@ -135,14 +146,9 @@ object tupleTrials {
   ) extends JavaTrials.Tuple4Trials[Case1, Case2, Case3, Case4] {
     val trialsOfQuadruples: JavaTrials[
       JavaTuple4[Case1, Case2, Case3, Case4]
-    ] = {
-      for {
-        first  <- firstTrials
-        second <- secondTrials
-        third  <- thirdTrials
-        fourth <- fourthTrials
-      } yield JavaTuple.tuple(first, second, third, fourth)
-    }
+    ] = (firstTrials, secondTrials, thirdTrials, fourthTrials).mapN(
+      JavaTuple4.of[Case1, Case2, Case3, Case4] _
+    )
 
     trait SupplyToSyntaxTuple4
         extends JavaTrials.SupplyToSyntaxTuple4[Case1, Case2, Case3, Case4] {
