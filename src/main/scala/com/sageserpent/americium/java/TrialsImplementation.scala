@@ -8,12 +8,15 @@ import cats.implicits._
 import cats.{Eval, Traverse, ~>}
 import com.google.common.collect.{Ordering => _, _}
 import com.sageserpent.americium.Trials.RejectionByInlineFilter
-import com.sageserpent.americium.java.tupleTrials.Tuple2Trials
+import com.sageserpent.americium.java.tupleTrials.{
+  Tuple2Trials => JavaTuple2Trials
+}
 import com.sageserpent.americium.java.{
   Trials => JavaTrials,
   TrialsApi => JavaTrialsApi
 }
 import com.sageserpent.americium.randomEnrichment.RichRandom
+import com.sageserpent.americium.tupleTrials.Tuple2Trials
 import com.sageserpent.americium.{Trials, TrialsApi}
 import io.circe.generic.auto._
 import io.circe.parser._
@@ -918,8 +921,12 @@ case class TrialsImplementation[Case](
   override def and[Case2](
       secondTrials: JavaTrials[Case2]
   ): JavaTrials.Tuple2Trials[Case, Case2] = {
-    new Tuple2Trials(this, secondTrials)
+    new JavaTuple2Trials(this, secondTrials)
   }
+
+  override def and[Case2](
+      secondTrials: Trials[Case2]
+  ): Trials.Tuple2Trials[Case, Case2] = new Tuple2Trials(this, secondTrials)
 
   private def several[Container](
       builderFactory: => Builder[Case, Container]

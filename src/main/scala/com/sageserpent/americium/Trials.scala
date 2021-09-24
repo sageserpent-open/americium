@@ -1,7 +1,6 @@
 package com.sageserpent.americium
 
 import cats._
-import cats.implicits._
 import com.sageserpent.americium.Trials.SupplyToSyntax
 import com.sageserpent.americium.java.TrialsImplementation.GenerationSupport
 import com.sageserpent.americium.java.{TrialsFactoring, TrialsImplementation}
@@ -20,32 +19,6 @@ object Trials extends TrialsByMagnolia {
   ): Result =
     if (satisfiedPrecondition) block else throw new RejectionByInlineFilter()
 
-  trait SupplyToSyntax[+Case] {
-    def supplyTo(consumer: Case => Unit): Unit
-  }
-
-  trait SupplyToSyntaxTuple2[+Case1, +Case2]
-      extends SupplyToSyntax[(Case1, Case2)] {
-    def supplyTo(consumer: (Case1, Case2) => Unit): Unit = supplyTo(
-      consumer.tupled
-    )
-  }
-
-  trait SupplyToSyntaxTuple3[+Case1, +Case2, +Case3]
-      extends SupplyToSyntax[(Case1, Case2, Case3)] {
-    def supplyTo(consumer: (Case1, Case2, Case3) => Unit): Unit = supplyTo(
-      consumer.tupled
-    )
-  }
-
-  trait SupplyToSyntaxTuple4[+Case1, +Case2, +Case3, +Case4]
-      extends SupplyToSyntax[(Case1, Case2, Case3, Case4)] {
-    def supplyTo(consumer: (Case1, Case2, Case3, Case4) => Unit): Unit =
-      supplyTo(
-        consumer.tupled
-      )
-  }
-
   implicit val monadInstance: Monad[Trials] = new Monad[Trials]
     with StackSafeMonad[Trials] {
     override def pure[A](x: A): Trials[A] = api.only(x)
@@ -63,49 +36,49 @@ object Trials extends TrialsByMagnolia {
       ): Trials[B] = fa.mapFilter(f)
     }
 
-  implicit class Tuple2Trials[+Case1, +Case2](
-      val pair: (Trials[Case1], Trials[Case2])
-  ) extends AnyVal {
-    def withLimit(limit: Int): SupplyToSyntaxTuple2[Case1, Case2] =
-      (consumer: ((Case1, Case2)) => Unit) =>
-        pair.mapN(Tuple2.apply).withLimit(limit).supplyTo(consumer)
-
-    def withRecipe(recipe: String): SupplyToSyntaxTuple2[Case1, Case2] =
-      (consumer: ((Case1, Case2)) => Unit) =>
-        pair.mapN(Tuple2.apply).withRecipe(recipe).supplyTo(consumer)
+  trait SupplyToSyntax[+Case] {
+    def supplyTo(consumer: Case => Unit): Unit
   }
 
-  implicit class Tuple3Trials[+Case1, +Case2, +Case3](
-      val triple: (Trials[Case1], Trials[Case2], Trials[Case3])
-  ) extends AnyVal {
-    def withLimit(limit: Int): SupplyToSyntaxTuple3[Case1, Case2, Case3] =
-      (consumer: ((Case1, Case2, Case3)) => Unit) =>
-        triple.mapN(Tuple3.apply).withLimit(limit).supplyTo(consumer)
-
-    def withRecipe(recipe: String): SupplyToSyntaxTuple3[Case1, Case2, Case3] =
-      (consumer: ((Case1, Case2, Case3)) => Unit) =>
-        triple.mapN(Tuple3.apply).withRecipe(recipe).supplyTo(consumer)
+  trait SupplyToSyntaxTuple2[+Case1, +Case2]
+      extends SupplyToSyntax[(Case1, Case2)] {
+    def supplyTo(consumer: (Case1, Case2) => Unit): Unit
   }
 
-  implicit class Tuple4Trials[+Case1, +Case2, +Case3, +Case4](
-      val quadruple: (
-          Trials[Case1],
-          Trials[Case2],
-          Trials[Case3],
-          Trials[Case4]
-      )
-  ) extends AnyVal {
+  trait SupplyToSyntaxTuple3[+Case1, +Case2, +Case3]
+      extends SupplyToSyntax[(Case1, Case2, Case3)] {
+    def supplyTo(consumer: (Case1, Case2, Case3) => Unit): Unit
+  }
+
+  trait SupplyToSyntaxTuple4[+Case1, +Case2, +Case3, +Case4]
+      extends SupplyToSyntax[(Case1, Case2, Case3, Case4)] {
+    def supplyTo(consumer: (Case1, Case2, Case3, Case4) => Unit): Unit
+  }
+
+  trait Tuple2Trials[+Case1, +Case2] {
+    def and[Case3](
+        thirdTrials: Trials[Case3]
+    ): Tuple3Trials[Case1, Case2, Case3]
+
+    def withLimit(limit: Int): SupplyToSyntaxTuple2[Case1, Case2]
+
+    def withRecipe(recipe: String): SupplyToSyntaxTuple2[Case1, Case2]
+  }
+
+  trait Tuple3Trials[+Case1, +Case2, +Case3] {
+    def withLimit(limit: Int): SupplyToSyntaxTuple3[Case1, Case2, Case3]
+
+    def withRecipe(recipe: String): SupplyToSyntaxTuple3[Case1, Case2, Case3]
+  }
+
+  trait Tuple4Trials[+Case1, +Case2, +Case3, +Case4] {
     def withLimit(
         limit: Int
-    ): SupplyToSyntaxTuple4[Case1, Case2, Case3, Case4] =
-      (consumer: ((Case1, Case2, Case3, Case4)) => Unit) =>
-        quadruple.mapN(Tuple4.apply).withLimit(limit).supplyTo(consumer)
+    ): SupplyToSyntaxTuple4[Case1, Case2, Case3, Case4]
 
     def withRecipe(
         recipe: String
-    ): SupplyToSyntaxTuple4[Case1, Case2, Case3, Case4] =
-      (consumer: ((Case1, Case2, Case3, Case4)) => Unit) =>
-        quadruple.mapN(Tuple4.apply).withRecipe(recipe).supplyTo(consumer)
+    ): SupplyToSyntaxTuple4[Case1, Case2, Case3, Case4]
   }
 }
 
@@ -127,6 +100,8 @@ trait Trials[+Case] extends TrialsFactoring[Case] with GenerationSupport[Case] {
   def withLimit(limit: Int): SupplyToSyntax[Case]
 
   def withRecipe(recipe: String): SupplyToSyntax[Case]
+
+  def and[Case2](secondTrials: Trials[Case2]): Trials.Tuple2Trials[Case, Case2]
 
   def several[Container](implicit
       factory: Factory[Case, Container]

@@ -38,14 +38,10 @@ object tupleTrials {
       firstTrials: JavaTrials[Case1],
       secondTrials: JavaTrials[Case2]
   ) extends JavaTrials.Tuple2Trials[Case1, Case2] {
-    val trialsOfPairs: JavaTrials[JavaTuple2[Case1, Case2]] =
-      (firstTrials, secondTrials).mapN(JavaTuple2.of[Case1, Case2] _)
-
     override def and[Case3](
         thirdTrials: JavaTrials[Case3]
-    ): JavaTrials.Tuple3Trials[Case1, Case2, Case3] = {
+    ): JavaTrials.Tuple3Trials[Case1, Case2, Case3] =
       new Tuple3Trials(firstTrials, secondTrials, thirdTrials)
-    }
 
     trait SupplyToSyntaxTuple2
         extends JavaTrials.SupplyToSyntaxTuple2[Case1, Case2] {
@@ -54,6 +50,9 @@ object tupleTrials {
           biConsumer.accept(pair._1, pair._2)
         )
       }
+
+      def trialsOfPairs: JavaTrials[JavaTuple2[Case1, Case2]] =
+        (firstTrials, secondTrials).mapN(JavaTuple2.of[Case1, Case2] _)
 
       override def supplyTo(
           consumer: Consumer[JavaTuple2[Case1, Case2]]
@@ -89,16 +88,10 @@ object tupleTrials {
       secondTrials: JavaTrials[Case2],
       thirdTrials: JavaTrials[Case3]
   ) extends JavaTrials.Tuple3Trials[Case1, Case2, Case3] {
-    val trialsOfTriples: JavaTrials[JavaTuple3[Case1, Case2, Case3]] =
-      (firstTrials, secondTrials, thirdTrials).mapN(
-        JavaTuple3.of[Case1, Case2, Case3] _
-      )
-
     override def and[Case4](
         fourthTrials: JavaTrials[Case4]
-    ): JavaTrials.Tuple4Trials[Case1, Case2, Case3, Case4] = {
+    ): JavaTrials.Tuple4Trials[Case1, Case2, Case3, Case4] =
       new Tuple4Trials(firstTrials, secondTrials, thirdTrials, fourthTrials)
-    }
 
     trait SupplyToSyntaxTuple3
         extends JavaTrials.SupplyToSyntaxTuple3[Case1, Case2, Case3] {
@@ -107,6 +100,11 @@ object tupleTrials {
           triConsumer.accept(triple._1, triple._2, triple._3)
         )
       }
+
+      def trialsOfTriples: JavaTrials[JavaTuple3[Case1, Case2, Case3]] =
+        (firstTrials, secondTrials, thirdTrials).mapN(
+          JavaTuple3.of[Case1, Case2, Case3] _
+        )
 
       override def supplyTo(
           consumer: Consumer[JavaTuple3[Case1, Case2, Case3]]
@@ -144,12 +142,6 @@ object tupleTrials {
       thirdTrials: JavaTrials[Case3],
       fourthTrials: JavaTrials[Case4]
   ) extends JavaTrials.Tuple4Trials[Case1, Case2, Case3, Case4] {
-    val trialsOfQuadruples: JavaTrials[
-      JavaTuple4[Case1, Case2, Case3, Case4]
-    ] = (firstTrials, secondTrials, thirdTrials, fourthTrials).mapN(
-      JavaTuple4.of[Case1, Case2, Case3, Case4] _
-    )
-
     trait SupplyToSyntaxTuple4
         extends JavaTrials.SupplyToSyntaxTuple4[Case1, Case2, Case3, Case4] {
       def supplyTo(
@@ -177,6 +169,12 @@ object tupleTrials {
         JavaTuple4[Case1, Case2, Case3, Case4]
       ]
     }
+
+    def trialsOfQuadruples: JavaTrials[
+      JavaTuple4[Case1, Case2, Case3, Case4]
+    ] = (firstTrials, secondTrials, thirdTrials, fourthTrials).mapN(
+      JavaTuple4.of[Case1, Case2, Case3, Case4] _
+    )
 
     override def withLimit(
         limit: Int
