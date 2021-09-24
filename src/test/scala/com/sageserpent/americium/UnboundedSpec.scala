@@ -12,7 +12,7 @@ class UnboundedSpec extends AnyFlatSpec with Matchers {
     implicitly[Trials.Factory[Unbounded[Int]]].trials
 
   "lifted finite values" should "be ordered correspondingly to the underlying finite values" in
-    (integerTrials, integerTrials)
+    (integerTrials and integerTrials)
       .withLimit(100)
       .supplyTo { (firstUnderlying, secondUnderlying) =>
         withClue(
@@ -49,7 +49,8 @@ class UnboundedSpec extends AnyFlatSpec with Matchers {
     )
   }
 
-  // TODO - use a laws approach for this, there will be one out there somewhere, probably in Cats...
+  // TODO - use a laws approach for this, there will be one out there somewhere,
+  // probably in Cats...
   "the same items" should "compare equal" in
     unboundedGenerator
       .withLimit(100)
@@ -59,9 +60,10 @@ class UnboundedSpec extends AnyFlatSpec with Matchers {
         }
       }
 
-  // TODO - use a laws approach for this, there will be one out there somewhere, probably in Cats...
+  // TODO - use a laws approach for this, there will be one out there somewhere,
+  // probably in Cats...
   "swapping two items" should "negate the comparison" in
-    (unboundedGenerator, unboundedGenerator)
+    (unboundedGenerator and unboundedGenerator)
       .withLimit(100)
       .supplyTo { (one, another) =>
         withClue(
@@ -71,9 +73,10 @@ class UnboundedSpec extends AnyFlatSpec with Matchers {
         }
       }
 
-  // TODO - use a laws approach for this, there will be one out there somewhere, probably in Cats...
+  // TODO - use a laws approach for this, there will be one out there somewhere,
+  // probably in Cats...
   "transitive unequal comparisons" should "be possible with step wise unequal comparisons that agree in sense" in
-    (unboundedGenerator, unboundedGenerator, unboundedGenerator)
+    (unboundedGenerator and unboundedGenerator and unboundedGenerator)
       .withLimit(100)
       .supplyTo { (first, common, last) =>
         val firstWithCommon = first.compare(common)
@@ -87,9 +90,10 @@ class UnboundedSpec extends AnyFlatSpec with Matchers {
         }
       }
 
-  // TODO - use a laws approach for this, there will be one out there somewhere, probably in Cats...
+  // TODO - use a laws approach for this, there will be one out there somewhere,
+  // probably in Cats...
   "transitive equal comparisons" should "be possible with step wise equal comparisons" in
-    (unboundedGenerator, unboundedGenerator, unboundedGenerator)
+    (unboundedGenerator and unboundedGenerator and unboundedGenerator)
       .withLimit(100)
       .supplyTo { (first, common, last) =>
         val firstWithCommon = first.compare(common)

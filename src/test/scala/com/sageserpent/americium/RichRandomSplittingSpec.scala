@@ -24,7 +24,7 @@ class RichRandomSplittingSpec
   val numberOfRepeatsTrials: Trials[Int] = api.choose(1, 4)
 
   "Splitting into non empty pieces" should "yield no pieces at all when there are no items" in
-    (seedTrials, numberOfRepeatsTrials)
+    (seedTrials and numberOfRepeatsTrials)
       .withLimit(100)
       .supplyTo((seed, numberOfRepeats) => {
         val random = new Random(seed)
@@ -35,7 +35,7 @@ class RichRandomSplittingSpec
       })
 
   it should "yield non empty pieces when there is at least one item" in {
-    (seedTrials, numberOfRepeatsTrials, itemsTrials)
+    (seedTrials and numberOfRepeatsTrials and itemsTrials)
       .withLimit(100)
       .supplyTo { (seed, numberOfRepeats, items) =>
         {
@@ -48,7 +48,7 @@ class RichRandomSplittingSpec
   }
 
   it should "preserve all items and not introduce any others" in {
-    (seedTrials, numberOfRepeatsTrials, itemsTrials)
+    (seedTrials and numberOfRepeatsTrials and itemsTrials)
       .withLimit(100)
       .supplyTo { (seed, numberOfRepeats, items) =>
         val random = new Random(seed)
@@ -66,7 +66,7 @@ class RichRandomSplittingSpec
   }
 
   it should "preserve the order of items" in {
-    (seedTrials, numberOfRepeatsTrials, itemsTrials)
+    (seedTrials and numberOfRepeatsTrials and itemsTrials)
       .withLimit(100)
       .supplyTo { (seed, numberOfRepeats, items) =>
         val random = new Random(seed)
@@ -81,7 +81,8 @@ class RichRandomSplittingSpec
   }
 
   it should "sometimes give more than one piece back when there is more than one item" in {
-    (seedTrials, itemsTrials filter (1 < _.length))
+    seedTrials
+      .and(itemsTrials filter (1 < _.length))
       .withLimit(100)
       .supplyTo { (seed, items) =>
         val random = new Random(seed)
@@ -99,23 +100,31 @@ class RichRandomSplittingSpec
   }
 
   it should "eventually yield all possible splits" in {
-    (seedTrials, api.choose(1, 5))
+    (seedTrials and api.choose(1, 5))
       .withLimit(100)
       .supplyTo { (seed, numberOfItems) =>
-        // Do not include the case of zero items in this test, it is tested elsewhere;
-        // it also doesn't play well with the logic below of making a set of repeated split outcomes.
+        // Do not include the case of zero items in this test, it is tested
+        // elsewhere;
+        // it also doesn't play well with the logic below of making a set of
+        // repeated split outcomes.
         whenever(0 < numberOfItems) {
           val items  = (1 to numberOfItems).toSet
           val random = new Random(seed)
-          // This is subtle - the best way to understand this is to visualise a bit string of length 'numberOfItems - 1'
-          // - the bit string aligns off by one with all but the first item, eg:-
+          // This is subtle - the best way to understand this is to visualise a
+          // bit string of length 'numberOfItems - 1'
+          // - the bit string aligns off by one with all but the first item,
+          // eg:-
           // I1, I2, I3, I4
           //      1,  0,  1
-          // Each one-bit corresponds to the decision to start a new piece, so the above example yields:-
+          // Each one-bit corresponds to the decision to start a new piece, so
+          // the above example yields:-
           // [I1], [I2, I3], [I4]
-          // The first item *has* to be included in a piece, so it has no corresponding bit.
-          // Likewise, we don't need an off-by-one bit - the last item is either joined on
-          // to the end of a bigger piece (0) or is in a piece by itself (1) - so only 'numberOfItems - 1'
+          // The first item *has* to be included in a piece, so it has no
+          // corresponding bit.
+          // Likewise, we don't need an off-by-one bit - the last item is either
+          // joined on
+          // to the end of a bigger piece (0) or is in a piece by itself (1) -
+          // so only 'numberOfItems - 1'
           // bits are required. Now you see it.
           val expectedNumberOfPossibleSplits =
             (1 << numberOfItems) / 2 // Avoid passing -1 to the right hand of the left shift invocation.
@@ -127,7 +136,7 @@ class RichRandomSplittingSpec
   }
 
   it should "yield splits whose lengths only depend on the number of items" in {
-    (seedTrials, itemsTrials)
+    (seedTrials and itemsTrials)
       .withLimit(100)
       .supplyTo { (seed, originalItems) =>
         val transformedItems = originalItems.map(item => (1 + item).toString)
