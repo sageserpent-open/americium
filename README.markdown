@@ -685,3 +685,15 @@ It's easy:
 ,
 [Scala example](https://github.com/sageserpent-open/americium/blob/afe7fca4215bfa00879b553aa7805bb5f8cf2d64/src/test/scala/com/sageserpent/americium/RichSeqSpec.scala#L50)
 .
+
+### Why is there a file 'IntelliJCodeStyle.xml' in the project? ###
+
+The author has a real problem with pull requests that consist of a wholesale reformatting of sources that also harbour
+some change in functionality within the reformatting noise. If you want to work on this and contribute back, please use
+the automatic reformatting tools in IntelliJ (or similar) to stick to the existing style. Bear in mind that the chosen
+formatting style isn't the author's favourite, but the simplicity of using automatic formatting on commit by far
+outweighs the meagre joys of having the code look *just so*. Just wait until you do a merge...
+
+The author uses IntelliJ's built-in Java formatter and the integration with Scalafmt.
+
+If you know of a better way of sharing reformatting settings / tooling, raise an issue.
