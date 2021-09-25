@@ -264,10 +264,10 @@ it should "also preserve the original order of the subsequences of elements that
 - Transform them by mapping.
 - Combine them together by flat-mapping.
 - Filter out what you don't want.
-- You can alternate between different recipes for making the same shape of case data, either with equal probability or
-  with weights.
+- You can alternate between different ways of making the same shape of case data, either with equal probability or with
+  weights.
 - Use helper methods to make a trials from some collection out of a simpler trials for the collection's elements.
-- Once you've built up the right shape of trials instance, put it to use: specify an upper limit for the number of cases
+- Once you've built up the right kind of trials instance, put it to use: specify an upper limit for the number of cases
   you want to examine and feed them to your test code. When your test code throws an exception, the trials machinery
   will try to shrink down whatever test case caused it.
 
@@ -356,7 +356,7 @@ class Cookbook {
                     .equals(DayOfWeek.SUNDAY));
 
     /*
-     You can alternate between different recipes for making the same shape 
+     You can alternate between different ways of making the same shape 
      case data...
      ... either with equal probability ...
     */
@@ -411,7 +411,7 @@ class Cookbook {
             likelyToBePrime.immutableSortedSets(BigInteger::compareTo);
 
     /*
-     Once you've built up the right shape of trials instance, put it to
+     Once you've built up the right kind of trials instance, put it to
      use: specify an upper limit for the number of cases you want to examine
      and feed them to your test code. When your test code throws an exception,
      the trials machinery will try to shrink down whatever test case caused it.
@@ -497,7 +497,7 @@ class Cookbook extends AnyFlatSpec {
   val notOnASunday: Trials[ZonedDateTime] =
     zonedDateTimes.filter(_.toOffsetDateTime.getDayOfWeek != DayOfWeek.SUNDAY)
 
-  /* You can alternate between different recipes for making the same shape case
+  /* You can alternate between different ways of making the same shape case
    * data...
    * ... either with equal probability ... */
 
@@ -542,7 +542,7 @@ class Cookbook extends AnyFlatSpec {
   val sortedSetsOfPrimes: Trials[SortedSet[_ <: BigInt]] =
     likelyToBePrime.sortedSets
 
-  /* Once you've built up the right shape of trials instance, put it to use:
+  /* Once you've built up the right kind of trials instance, put it to use:
    * specify an upper limit for the number of cases you want to examine and feed
    * them to your test code. When your test code throws an exception, the trials
    * machinery will try to shrink down whatever test case caused it. */
@@ -570,3 +570,85 @@ class Cookbook extends AnyFlatSpec {
 ## Rhetorical Questions ##
 
 ### How did this come about? ###
+
+As mentioned in the introduction above, working on this issue in the Plutonium
+project (https://github.com/sageserpent-open/plutonium/issues/57) exposed an infrequent bug via Scalacheck whose failing
+test cases were frightfully complex and not shrinkable by default. Until that bug can be reproduced via a minimised test
+case, it won't be fixed.
+
+The problem is that the test cases have invariants that are constraints on how the test data is built up - simply
+flinging arbitrary values of the right types together can build invalid test cases that cause such tests to fail with
+false negatives independently of the system under test. What is needed is something that shrinks a failing test case
+while sticking with the logic that enforces the invariant on the test cases being shrunk.
+
+Working with Scalacheck on
+this: [ImmutableObjectStorageSpec](https://github.com/sageserpent-open/curium/blob/8455ee0a387c6ab5373283a21f88ab6044d59ee1/src/test/scala/com/sageserpent/plutonium/curium/ImmutableObjectStorageSpec.scala#L227)
+in the Curium project motivated the author to try out some alternatives to Scalacheck; Zio and Hedgehog were explored,
+and they both allow integrated shrinking for free that respects the test case invariants. However they don't quite suit
+the author's wishlist for parameterised testing in general, so along came Americium.
+
+### The history starts with _"Start a project for the F# to Scala port of the Test Case Generation library."_. Huh? ###
+
+Ah - a long time ago there was an F# project that used some utility code that was hived off into a helper assembly - see
+here: https://github.com/sageserpent-open/NTestCaseBuilder/tree/master/development/solution/SageSerpent.Infrastructure
+
+Some of that code was ported to Scala as a learning exercise and ended up being used by the Plutonium and Curium
+projects as a shared dumping ground for utilities, including things for testing - see
+here: https://github.com/sageserpent-open/americium/blob/master/src/main/scala/com/sageserpent/americium/RandomEnrichment.scala
+
+Being lazy, the author carried on with the ignoble tradition of dumping experimental but useful code into the project,
+then decided to bury its murky past and re-invent it as a respectable member of society supporting parameterised
+testing. Now you know its terrible secret...
+
+### Americium? Plutonium? Curium? ###
+
+The author has a great appreciation of the actinide elements. There is a Neptunium project too, but I changed the name
+of its repository to make its use-case more obvious.
+
+### The introduction mentions Scalacheck Shapeless, do explain... ###
+
+This the automatic generation of trials for structured types, and is brought to us via the Mercator library - see it in
+action here:
+[TrialsSpec.scala](https://github.com/sageserpent-open/americium/blob/e69b9fb60cd90796d96ba1126a90f6c1ab2a7a1d/src/test/scala/com/sageserpent/americium/TrialsSpec.scala#L1057)
+and here:
+[TrialsSpec.scala](https://github.com/sageserpent-open/americium/blob/e69b9fb60cd90796d96ba1126a90f6c1ab2a7a1d/src/test/scala/com/sageserpent/americium/TrialsSpec.scala#L1067)
+
+Ask for a trials of your case class hierarchy types, and it shall be written for you!
+
+### When I use the `.choose` to build a trials instance from an API object, it won't shrink - why? ###
+
+Yes, and that is currently by design. When you use the `.choose` method to build a trials instance, you are saying
+that *you* want to provide the choices and that they are all equally as good - think of the members of an enumeration,
+for instance, or perhaps some user input choices in a UI. The trials machinery doesn't know anything about the domain
+these choices come from and won't try to order them according to some ranking of simplicity - they are taken to be
+equally valid.
+
+What *does* get shrunk is the complexity of the test cases - so if we have collections, or some kind of recursive
+definition, then smaller collections are taken to be simpler, as are cases built with less recursion. Collections shrink
+towards empty collections.
+
+Furthermore, the factory methods - `.doubles`, `.integers`, `.stream` etc also support shrinking - they have an internal
+parameter that controls the range of the generated values, so as shrinkage proceeds, the values get 'smaller' in some
+sense. For numeric values, that means tending towards zero from both positive and negative values.
+
+The `.strings` factory method shrinks in the same manner as for collections - the strings get shorter, tending to the
+empty string, although the characters range over the full UTF-16 set.
+
+This choice isn't written in stone - it would be possible to extend to shrinkage mechanism both to support shrinking
+over a finite set of choices according to their order of presentation to the api. One idea would be to implement custom
+ranges of the internal parameter...
+
+### Are the cases yielded by `.doubles`, `.integers`, `.stream` randomly distributed? ###
+
+Yes, and they should span pretty much the whole range of allowed values. As shrinkage kicks in, this range contracts to
+the 'mininal value' - 0 for numeric values, but that can be customised when using `.stream`.
+
+Hedgehog supports custom distributions and ranges, and Scalacheck has some heuristics for biasing its otherwise random
+distributions. Maybe there should be some support for this here, too...
+
+### If I write a recursive definition of a trials instance, do I need to protect against infinite recursion with a size parameter? ###
+
+No, but you do need to stop trivial infinite recursion. Thankfully that is simple, see here:
+[TrialsSpec.scala](https://github.com/sageserpent-open/americium/blob/e69b9fb60cd90796d96ba1126a90f6c1ab2a7a1d/src/test/scala/com/sageserpent/americium/TrialsSpec.scala#L59)
+Either wrap the recursive calls in a following bind in a flatmap, this will cause them to be evaluated lazily, or if you
+need to lead with a recursive call, wrap it in a call to `.delay`. Both techniques are shown in that example.
