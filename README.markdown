@@ -641,7 +641,7 @@ ranges of the internal parameter...
 ### Are the cases yielded by `.doubles`, `.integers`, `.stream` randomly distributed? ###
 
 Yes, and they should span pretty much the whole range of allowed values. As shrinkage kicks in, this range contracts to
-the 'mininal value' - 0 for numeric values, but that can be customised when using `.stream`.
+the 'mininal value' - zero for numeric values, but that can be customised when using `.stream`.
 
 Hedgehog supports custom distributions and ranges, and Scalacheck has some heuristics for biasing its otherwise random
 distributions. Maybe there should be some support for this here, too...
@@ -652,3 +652,36 @@ No, but you do need to stop trivial infinite recursion. Thankfully that is simpl
 [TrialsSpec.scala](https://github.com/sageserpent-open/americium/blob/e69b9fb60cd90796d96ba1126a90f6c1ab2a7a1d/src/test/scala/com/sageserpent/americium/TrialsSpec.scala#L59)
 Either wrap the recursive calls in a following bind in a flatmap, this will cause them to be evaluated lazily, or if you
 need to lead with a recursive call, wrap it in a call to `.delay`. Both techniques are shown in that example.
+
+### I can see a reference to Scalacheck in the project dependencies. So is this just a sham? ###
+
+Um ... you mean this one
+here:  [TrialsLaws](https://github.com/sageserpent-open/americium/blob/afe7fca4215bfa00879b553aa7805bb5f8cf2d64/src/test/scala/com/sageserpent/americium/TrialsLaws.scala#L32)
+?
+
+Well, the Cats laws testing framework is used to prove that `Trials` is a decent, law-abiding monadic type, and that
+framework plugs into Scalacheck, so yes, there is a *test* dependency.
+
+The author is truly embarrassed by this, but in his defence, notes that if Cats laws testing could be plugged
+into `Trials`, we would have recursively tested code. Not impossible to do, but requires a careful bootstrap approach to
+avoid testing a broken SUT with itself.
+
+An integration of `Trials` with Cats, or more generally with Scalacheck properties would be great though. Plenty of folk
+like Scalacheck's properties, so while it's not to the author's taste, why exclude them?
+
+### I want my test to work with multiple test parameters. ###
+
+Right, you mean perhaps that you want to preconfigure an SUT as one test parameter and then have a test plan implemented
+as a command sequence passed on via a second test parameter, or something like that? Maybe you have some stubs that
+interact with the SUT that you want to preconfigure and pass in via their own test parameters?
+
+Fear not - build up as many trials instances as you like for the bits and pieces you want to pass into the test, then
+join them together with the `.and` method. You get back an object that you can call `.withLimit(...).supplyTo`
+or `.withRecipe(...).supplyTo` as usual, only this time the test passed to `supplyTo` takes multiple parameters, or
+alternatively tuples of parameters - your choice.
+
+It's easy:
+[Java example](https://github.com/sageserpent-open/americium/blob/afe7fca4215bfa00879b553aa7805bb5f8cf2d64/src/test/scala/com/sageserpent/americium/java/TrialsApiTests.java#L240)
+,
+[Scala example](https://github.com/sageserpent-open/americium/blob/afe7fca4215bfa00879b553aa7805bb5f8cf2d64/src/test/scala/com/sageserpent/americium/RichSeqSpec.scala#L50)
+.
