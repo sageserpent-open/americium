@@ -602,7 +602,7 @@ testing. Now you know its terrible secret...
 
 ### Americium? Plutonium? Curium? ###
 
-The author has a great appreciation of the actinide elements. There is a Neptunium project too, but I changed the name
+The author has a great appreciation of the actinide elements. There is a Neptunium project too, but he changed the name
 of its repository to make its use-case more obvious.
 
 ### The introduction mentions Scalacheck Shapeless, do explain... ###
