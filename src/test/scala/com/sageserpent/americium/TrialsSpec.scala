@@ -41,16 +41,19 @@ object TrialsSpec {
   val limit: Int = 2000
 
   def integerVectorTrials: Trials[Vector[Int]] = {
-    // FIXME: the need to do this shows that some kind of weighted distribution is a good idea.
+    // FIXME: the need to do this shows that some kind of weighted distribution
+    // is a good idea.
     api.alternateWithWeights(1 -> api.only(0), 10 -> api.integers).several
   }
 
   def doubleVectorTrials: Trials[Vector[Double]] =
-    // FIXME: the need to do this shows that some kind of weighted distribution is a good idea.
+    // FIXME: the need to do this shows that some kind of weighted distribution
+    // is a good idea.
     api.alternateWithWeights(1 -> api.only(0.0), 10 -> api.doubles).several
 
   def longVectorTrials: Trials[Vector[Long]] =
-    // FIXME: the need to do this shows that some kind of weighted distribution is a good idea.
+    // FIXME: the need to do this shows that some kind of weighted distribution
+    // is a good idea.
     api.alternateWithWeights(1 -> api.only(0L), 10 -> api.longs).several
 
   def listTrials: Trials[List[Int]] =
@@ -63,7 +66,8 @@ object TrialsSpec {
         flag         <- api.booleans
         rightSubtree <- binaryTreeTrials
       } yield Branch(leftSubtree, flag, rightSubtree),
-      // FIXME: the need to do this shows that some kind of weighted distribution is a good idea.
+      // FIXME: the need to do this shows that some kind of weighted
+      // distribution is a good idea.
       api
         .alternateWithWeights(1 -> api.only(0), 10 -> api.integers)
         .map(Leaf.apply)
@@ -486,7 +490,7 @@ class TrialsSpec
 
         val totalNumberOfCalls = invariantIdCounts.values.sum
 
-        val weights = weightedAlternatives.map(_._1)
+        val weights = weightedAlternatives.keys
 
         val totalWeight = weights.sum
 
@@ -531,10 +535,14 @@ class TrialsSpec
               api.stream(factory)
             case singleton => api.only(singleton)
           } zip alternativeInvariantIds map {
-            // Set up a unique invariant on each alternative - it should supply pairs,
-            // each of which has the same id component that denotes the alternative. As
-            // the id is unique, the implementation of `Trials.alternative` cannot fake
-            // the id values - so they must come from the alternatives somehow. Furthermore,
+            // Set up a unique invariant on each alternative - it should supply
+            // pairs,
+            // each of which has the same id component that denotes the
+            // alternative. As
+            // the id is unique, the implementation of `Trials.alternative`
+            // cannot fake
+            // the id values - so they must come from the alternatives somehow.
+            // Furthermore,
             // the pair should satisfy a predicate on its hash.
             case (trials, invariantId) =>
               trials.map(_ -> invariantId).filter(predicateOnHash)
@@ -587,8 +595,10 @@ class TrialsSpec
             _ ->
               // Set up an invariant - it should supply pairs, each of which has
               // the same id component. As the id is unique, the implementation
-              // of `Trials.several` cannot fake the id values - so they must come
-              // from the base trials somehow. Furthermore, the pair should satisfy
+              // of `Trials.several` cannot fake the id values - so they must
+              // come
+              // from the base trials somehow. Furthermore, the pair should
+              // satisfy
               // a predicate on its hash.
               invariantId
           ).filter(predicateOnHash)
@@ -838,7 +848,7 @@ class TrialsSpec
 
     def testBodyInWildcardCapture[X](
         trialsAndCriterion: DescriptionTrialsAndCriterion[X]
-    ) =
+    ): Unit =
       withExpectations {
         trialsAndCriterion match {
           case (description, sut, exceptionCriterion) =>
@@ -897,7 +907,8 @@ class TrialsSpec
       Table[DescriptionTrialsAndCriterion[_]](
         "trials -> exceptionCriterion",
         (
-          // This first entry isn't expected to shrink the values, only the length of the failing case.
+          // This first entry isn't expected to shrink the values, only the
+          // length of the failing case.
           "Has more than one text item whose converted values sum to more than 7.",
           api.strings map (_.toVector) map (_.map(_.toInt)),
           (integerVector: Vector[Int]) =>
@@ -919,15 +930,15 @@ class TrialsSpec
           "Has more than one item, no zeroes and sums to more than 7.",
           integerVectorTrials,
           (integerVector: Vector[Int]) =>
-            1 < integerVector.size && integerVector.sum > 7 && integerVector
-              .forall(0 != _)
+            1 < integerVector.size && integerVector.sum > 7 && !integerVector
+              .contains(0)
         ),
         (
           "Has more than one item, at least one zero and sums to more than 7.",
           integerVectorTrials,
           (integerVector: Vector[Int]) =>
             1 < integerVector.size && integerVector.sum > 7 && integerVector
-              .exists(0 == _)
+              .contains(0)
         ),
         (
           "Has more than one item and sums to more than 7.",
@@ -939,17 +950,13 @@ class TrialsSpec
           "Has more than one item, no zeroes and sums to more than 7.",
           longVectorTrials,
           (longVector: Vector[Long]) =>
-            1 < longVector.size && longVector.sum > 7 && longVector.forall(
-              0 != _
-            )
+            1 < longVector.size && longVector.sum > 7 && !longVector.contains(0)
         ),
         (
           "Has more than one item, at least one zero and sums to more than 7.",
           longVectorTrials,
           (longVector: Vector[Long]) =>
-            1 < longVector.size && longVector.sum > 7 && longVector.exists(
-              0 == _
-            )
+            1 < longVector.size && longVector.sum > 7 && longVector.contains(0)
         ),
         (
           "Has more than 7 items.",
@@ -967,15 +974,15 @@ class TrialsSpec
           "Has more than one item, no zeroes and sums to a multiple of 7.",
           integerVectorTrials,
           (integerVector: Vector[Int]) =>
-            1 < integerVector.size && 0 == integerVector.sum % 7 && integerVector
-              .forall(0 != _)
+            1 < integerVector.size && 0 == integerVector.sum % 7 && !integerVector
+              .contains(0)
         ),
         (
           "Has more than one item, at least one zero and sums to a multiple of 7.",
           integerVectorTrials,
           (integerVector: Vector[Int]) =>
             1 < integerVector.size && 0 == integerVector.sum % 7 && integerVector
-              .exists(0 == _)
+              .contains(0)
         ),
         (
           "Has more than one item and sums to a positive multiple of 7.",
@@ -987,8 +994,8 @@ class TrialsSpec
           "Has more than one item, no zeroes and sums to a positive multiple of 7.",
           integerVectorTrials,
           (integerVector: Vector[Int]) =>
-            1 < integerVector.size && 0 == integerVector.sum % 7 && 0 < integerVector.sum && integerVector
-              .forall(0 != _)
+            1 < integerVector.size && 0 == integerVector.sum % 7 && 0 < integerVector.sum && !integerVector
+              .contains(0)
         ),
         (
           "Has more than one item, at least one non-zero and sums to a positive multiple of 7.",
@@ -1007,15 +1014,15 @@ class TrialsSpec
           "Flattened binary tree with a non-leaf node and no zeroes that sums to a multiple of 19 greater than 19.",
           binaryTreeTrials map (_.flatten),
           (integerVector: Vector[Int]) =>
-            1 < integerVector.size && 0 == integerVector.sum % 19 && 19 < integerVector.sum && integerVector
-              .forall(0 != _)
+            1 < integerVector.size && 0 == integerVector.sum % 19 && 19 < integerVector.sum && !integerVector
+              .contains(0)
         ),
         (
           "Flattened binary tree with a non-leaf node and at least one zero that sums to a multiple of 19 greater than 19.",
           binaryTreeTrials map (_.flatten),
           (integerVector: Vector[Int]) =>
             1 < integerVector.size && 0 == integerVector.sum % 19 && 19 < integerVector.sum && integerVector
-              .exists(0 == _)
+              .contains(0)
         ),
         (
           "Has more than five items, at least one non-zero and sums to a multiple of 7.",
@@ -1076,19 +1083,19 @@ class TrialsSpec
 
   "inlined filtration" should "execute the controlled block if and only if the precondition holds" in {
     assertThrows[RejectionByInlineFilter] {
-      Trials.whenever(false) {
+      Trials.whenever(satisfiedPrecondition = false) {
         fail(
           "If the precondition doesn't hold, the block should not be executed."
         )
       }
     }
 
-    Trials.whenever(true) {
+    Trials.whenever(satisfiedPrecondition = true) {
       succeed
     }
   }
 
-  val oddHash = 1 == (_: Any).hashCode % 2
+  private val oddHash = 1 == (_: Any).hashCode % 2
 
   it should "cover all the cases that would be covered by an explicit filtration over finite possibilities" in forAll(
     Table(
@@ -1107,7 +1114,8 @@ class TrialsSpec
     withExpectations {
       val mockConsumer = mockFunction[Int, Unit]
 
-      // Whatever cases are supplied by a monadic filtration set the expectations...
+      // Whatever cases are supplied by a monadic filtration set the
+      // expectations...
       trials
         .filter(oddHash)
         .withLimit(limit)
@@ -1152,7 +1160,8 @@ class TrialsSpec
 
       val mockConsumer = mockFunction[Int, Unit]
 
-      // ... now let's see if we receive *exactly* the same number of cases when we filter inline.
+      // ... now let's see if we receive *exactly* the same number of cases when
+      // we filter inline.
 
       mockConsumer
         .expects(*)

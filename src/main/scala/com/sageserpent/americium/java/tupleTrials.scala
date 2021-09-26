@@ -52,7 +52,7 @@ object tupleTrials {
       }
 
       def trialsOfPairs: JavaTrials[JavaTuple2[Case1, Case2]] =
-        (firstTrials, secondTrials).mapN(JavaTuple2.of[Case1, Case2] _)
+        (firstTrials, secondTrials).mapN(JavaTuple2.of[Case1, Case2])
 
       override def supplyTo(
           consumer: Consumer[JavaTuple2[Case1, Case2]]
@@ -103,7 +103,7 @@ object tupleTrials {
 
       def trialsOfTriples: JavaTrials[JavaTuple3[Case1, Case2, Case3]] =
         (firstTrials, secondTrials, thirdTrials).mapN(
-          JavaTuple3.of[Case1, Case2, Case3] _
+          JavaTuple3.of[Case1, Case2, Case3]
         )
 
       override def supplyTo(
@@ -173,7 +173,7 @@ object tupleTrials {
     def trialsOfQuadruples: JavaTrials[
       JavaTuple4[Case1, Case2, Case3, Case4]
     ] = (firstTrials, secondTrials, thirdTrials, fourthTrials).mapN(
-      JavaTuple4.of[Case1, Case2, Case3, Case4] _
+      JavaTuple4.of[Case1, Case2, Case3, Case4]
     )
 
     override def withLimit(

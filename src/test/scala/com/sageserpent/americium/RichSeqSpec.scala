@@ -158,7 +158,7 @@ class RichSeqSpec extends AnyFlatSpec with Matchers {
           actualItems filter (sequenceMarker == Math.floorMod(
             _,
             numberOfSequences
-          )) should contain inOrderElementsOf (inputSequence)
+          )) should contain inOrderElementsOf inputSequence
       }
 
   it should "preserve the order of items as they appear across the input sequences, if the inner sequence type preserves the original order" in

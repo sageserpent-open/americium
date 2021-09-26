@@ -165,19 +165,19 @@ object TrialsImplementation {
       scalaApi.stream(Long.box _ andThen factory.apply)
 
     override def integers: TrialsImplementation[JavaInteger] =
-      scalaApi.integers.map(Int.box _)
+      scalaApi.integers.map(Int.box)
 
     override def longs: TrialsImplementation[JavaLong] =
-      scalaApi.longs.map(Long.box _)
+      scalaApi.longs.map(Long.box)
 
     override def doubles: TrialsImplementation[JavaDouble] =
-      scalaApi.doubles.map(Double.box _)
+      scalaApi.doubles.map(Double.box)
 
     override def booleans: TrialsImplementation[JavaBoolean] =
-      scalaApi.booleans.map(Boolean.box _)
+      scalaApi.booleans.map(Boolean.box)
 
     override def characters(): TrialsImplementation[JavaCharacter] =
-      scalaApi.characters.map(Char.box _)
+      scalaApi.characters.map(Char.box)
 
     override def instants(): TrialsImplementation[Instant] =
       scalaApi.instants
@@ -240,7 +240,7 @@ object TrialsImplementation {
     override def alternate[Case](
         alternatives: Iterable[Trials[Case]]
     ): TrialsImplementation[Case] =
-      choose(alternatives).flatMap(identity[Trials[Case]] _)
+      choose(alternatives).flatMap(identity[Trials[Case]])
 
     override def alternateWithWeights[Case](
         firstAlternative: (Int, Trials[Case]),
@@ -255,7 +255,7 @@ object TrialsImplementation {
           (Int, Trials[Case])
         ]
     ): TrialsImplementation[Case] =
-      chooseWithWeights(alternatives).flatMap(identity[Trials[Case]] _)
+      chooseWithWeights(alternatives).flatMap(identity[Trials[Case]])
 
     override def sequences[Case, Sequence[_]: Traverse](
         sequenceOfTrials: Sequence[Trials[Case]]
@@ -294,7 +294,7 @@ object TrialsImplementation {
       choose(0 to 0xffff).map((_: Int).toChar)
 
     override def instants: TrialsImplementation[Instant] =
-      longs.map(Instant.ofEpochMilli _)
+      longs.map(Instant.ofEpochMilli)
 
     override def strings: TrialsImplementation[String] = {
       characters.several[String]
@@ -433,7 +433,7 @@ case class TrialsImplementation[Case](
 
       // Java-only API ...
       override def supplyTo(consumer: Consumer[Case]): Unit =
-        supplyTo(consumer.accept _)
+        supplyTo(consumer.accept)
 
       override def asIterator(): JavaIterator[Case] = {
         val randomBehaviour = new Random(734874)
@@ -753,7 +753,7 @@ case class TrialsImplementation[Case](
   // Java-only API ...
   override def map[TransformedCase](
       transform: JavaFunction[Case, TransformedCase]
-  ): TrialsImplementation[TransformedCase] = map(transform.apply _)
+  ): TrialsImplementation[TransformedCase] = map(transform.apply)
 
   override def flatMap[TransformedCase](
       step: JavaFunction[Case, JavaTrials[TransformedCase]]
@@ -763,7 +763,7 @@ case class TrialsImplementation[Case](
   override def filter(
       predicate: Predicate[Case]
   ): TrialsImplementation[Case] =
-    filter(predicate.test _)
+    filter(predicate.test)
 
   def mapFilter[TransformedCase](
       filteringTransform: JavaFunction[Case, Optional[TransformedCase]]
@@ -893,7 +893,7 @@ case class TrialsImplementation[Case](
     new JavaTrials.SupplyToSyntax[Case] with Trials.SupplyToSyntax[Case] {
       // Java-only API ...
       override def supplyTo(consumer: Consumer[Case]): Unit =
-        supplyTo(consumer.accept _)
+        supplyTo(consumer.accept)
 
       override def asIterator(): JavaIterator[Case] = Seq {
         val decisionStages = parseDecisionIndices(recipe)
@@ -947,7 +947,7 @@ case class TrialsImplementation[Case](
   override def several[Container](implicit
       factory: scala.collection.Factory[Case, Container]
   ): TrialsImplementation[Container] = several(new Builder[Case, Container] {
-    val underlyingBuilder = factory.newBuilder
+    private val underlyingBuilder = factory.newBuilder
 
     override def +=(caze: Case): Unit = {
       underlyingBuilder += caze
@@ -1018,7 +1018,7 @@ case class TrialsImplementation[Case](
   ): TrialsImplementation[Container] = lotsOfSize(
     size,
     new Builder[Case, Container] {
-      val underlyingBuilder = factory.newBuilder
+      private val underlyingBuilder = factory.newBuilder
 
       override def +=(caze: Case): Unit = {
         underlyingBuilder += caze

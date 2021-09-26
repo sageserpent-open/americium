@@ -32,7 +32,7 @@ public class TrialsApiTests {
 
     Trials<String> chainedBooleansAndIntegersInATree() {
         return api.alternate(
-                api.delay(() -> chainedBooleansAndIntegersInATree())
+                api.delay(this::chainedBooleansAndIntegersInATree)
                    .flatMap(left -> api.booleans()
                                        .flatMap(side -> chainedBooleansAndIntegersInATree()
                                                .map(right -> "(" + String.join(
@@ -40,7 +40,7 @@ public class TrialsApiTests {
                                                        left,
                                                        side.toString(),
                                                        right) + ")"))),
-                api.integers().map(value -> value.toString()));
+                api.integers().map(Object::toString));
     }
 
     Trials<String> chainedIntegersUsingAnExplicitTerminationCase() {

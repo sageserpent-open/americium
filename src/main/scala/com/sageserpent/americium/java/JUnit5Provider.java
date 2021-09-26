@@ -13,15 +13,21 @@ public class JUnit5Provider {
 
     public static Iterator<Arguments> of(int limit, Trials<?>... trials) {
         class ContextCapture {
-            public Trials<Supplier<Stream.Builder<Object>>> addTrialsAt(int index, Trials<Supplier<Stream.Builder<Object>>> partialResult) {
+            public Trials<Supplier<Stream.Builder<Object>>> addTrialsAt(
+                    int index,
+                    Trials<Supplier<Stream.Builder<Object>>> partialResult) {
                 return index < trials.length
-                        ? addTrialsAt(1 + index, partialResult.flatMap(builder -> trials[index].map(caze -> () -> builder.get().add(caze))))
-                        : partialResult;
+                       ? addTrialsAt(1 + index,
+                                     partialResult.flatMap(builder -> trials[index].map(
+                                             caze -> () -> builder
+                                                     .get()
+                                                     .add(caze))))
+                       : partialResult;
             }
         }
 
         return of(limit, new ContextCapture()
-                .addTrialsAt(0, Trials.api().only(() -> Stream.builder()))
+                .addTrialsAt(0, Trials.api().only(Stream::builder))
                 .map(Supplier::get)
                 .map(Stream.Builder::build)
                 .map(Stream::toArray)

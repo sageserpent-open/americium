@@ -12,7 +12,7 @@ object tupleTrials {
     ): Tuple3Trials[Case1, Case2, Case3] =
       new Tuple3Trials(firstTrials, secondTrials, thirdTrials)
 
-    trait SupplyToSyntaxTuple2[+Case1, +Case2]
+    trait SupplyToSyntaxTuple2
         extends Trials.SupplyToSyntaxTuple2[Case1, Case2] {
       def supplyTo(consumer: (Case1, Case2) => Unit): Unit = supplyTo(
         consumer.tupled
@@ -22,11 +22,11 @@ object tupleTrials {
     def trialsOfPairs: Trials[(Case1, Case2)] =
       (firstTrials, secondTrials).mapN(Tuple2.apply)
 
-    def withLimit(limit: Int): SupplyToSyntaxTuple2[Case1, Case2] =
+    def withLimit(limit: Int): SupplyToSyntaxTuple2 =
       (consumer: ((Case1, Case2)) => Unit) =>
         trialsOfPairs.withLimit(limit).supplyTo(consumer)
 
-    def withRecipe(recipe: String): SupplyToSyntaxTuple2[Case1, Case2] =
+    def withRecipe(recipe: String): SupplyToSyntaxTuple2 =
       (consumer: ((Case1, Case2)) => Unit) =>
         trialsOfPairs.withRecipe(recipe).supplyTo(consumer)
   }
@@ -41,7 +41,7 @@ object tupleTrials {
     ): Tuple4Trials[Case1, Case2, Case3, Case4] =
       new Tuple4Trials(firstTrials, secondTrials, thirdTrials, fourthTrials)
 
-    trait SupplyToSyntaxTuple3[+Case1, +Case2, +Case3]
+    trait SupplyToSyntaxTuple3
         extends Trials.SupplyToSyntaxTuple3[Case1, Case2, Case3] {
       def supplyTo(consumer: (Case1, Case2, Case3) => Unit): Unit = supplyTo(
         consumer.tupled
@@ -51,11 +51,11 @@ object tupleTrials {
     def trialsOfTriples: Trials[(Case1, Case2, Case3)] =
       (firstTrials, secondTrials, thirdTrials).mapN(Tuple3.apply)
 
-    def withLimit(limit: Int): SupplyToSyntaxTuple3[Case1, Case2, Case3] =
+    def withLimit(limit: Int): SupplyToSyntaxTuple3 =
       (consumer: ((Case1, Case2, Case3)) => Unit) =>
         trialsOfTriples.withLimit(limit).supplyTo(consumer)
 
-    def withRecipe(recipe: String): SupplyToSyntaxTuple3[Case1, Case2, Case3] =
+    def withRecipe(recipe: String): SupplyToSyntaxTuple3 =
       (consumer: ((Case1, Case2, Case3)) => Unit) =>
         trialsOfTriples.withRecipe(recipe).supplyTo(consumer)
   }
@@ -66,7 +66,7 @@ object tupleTrials {
       thirdTrials: Trials[Case3],
       fourthTrials: Trials[Case4]
   ) extends Trials.Tuple4Trials[Case1, Case2, Case3, Case4] {
-    trait SupplyToSyntaxTuple4[+Case1, +Case2, +Case3, +Case4]
+    trait SupplyToSyntaxTuple4
         extends Trials.SupplyToSyntaxTuple4[Case1, Case2, Case3, Case4] {
       def supplyTo(consumer: (Case1, Case2, Case3, Case4) => Unit): Unit =
         supplyTo(
@@ -79,13 +79,13 @@ object tupleTrials {
 
     def withLimit(
         limit: Int
-    ): SupplyToSyntaxTuple4[Case1, Case2, Case3, Case4] =
+    ): SupplyToSyntaxTuple4 =
       (consumer: ((Case1, Case2, Case3, Case4)) => Unit) =>
         trialsOfQuadruples.withLimit(limit).supplyTo(consumer)
 
     def withRecipe(
         recipe: String
-    ): SupplyToSyntaxTuple4[Case1, Case2, Case3, Case4] =
+    ): SupplyToSyntaxTuple4 =
       (consumer: ((Case1, Case2, Case3, Case4)) => Unit) =>
         trialsOfQuadruples.withRecipe(recipe).supplyTo(consumer)
   }

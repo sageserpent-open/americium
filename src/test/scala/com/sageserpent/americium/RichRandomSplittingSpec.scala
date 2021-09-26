@@ -13,7 +13,7 @@ class RichRandomSplittingSpec
     extends AnyFlatSpec
     with Matchers
     with Inspectors {
-  val api = Trials.api
+  val api: TrialsApi = Trials.api
 
   val seedTrials: Trials[Long] = api.longs
 

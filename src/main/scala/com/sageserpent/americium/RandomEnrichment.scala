@@ -17,7 +17,7 @@ trait RandomEnrichment {
       fromInt(random.nextInt(exclusiveLimit.toInt))
     }
 
-    def chooseAnyNumberFromOneTo[X: Numeric](inclusiveLimit: X) = {
+    def chooseAnyNumberFromOneTo[X: Numeric](inclusiveLimit: X): X = {
       val typeClass = implicitly[Numeric[X]]
       import typeClass._
       one + chooseAnyNumberFromZeroToOneLessThan(inclusiveLimit)
@@ -116,23 +116,23 @@ trait RandomEnrichment {
         def this(singleItem: Int) =
           this(singleItem, singleItem, EmptySubtree, EmptySubtree)
 
-        val numberOfItemsInRange =
+        private val numberOfItemsInRange =
           1 + upperBoundForItemRange - lowerBoundForItemRange
 
-        val inclusiveLowerBoundForAllItemsInSubtree =
+        val inclusiveLowerBoundForAllItemsInSubtree: Option[Int] =
           lesserSubtree.inclusiveLowerBoundForAllItemsInSubtree orElse Some(
             lowerBoundForItemRange
           )
 
-        val exclusiveUpperBoundForAllItemsInSubtree =
+        val exclusiveUpperBoundForAllItemsInSubtree: Option[Int] =
           greaterSubtree.exclusiveUpperBoundForAllItemsInSubtree orElse Some(
             upperBoundForItemRange
           )
 
-        val numberOfInteriorNodesInSubtree =
+        val numberOfInteriorNodesInSubtree: Int =
           1 + lesserSubtree.numberOfInteriorNodesInSubtree + greaterSubtree.numberOfInteriorNodesInSubtree
 
-        val numberOfItemsInSubtree =
+        val numberOfItemsInSubtree: Int =
           numberOfItemsInRange + lesserSubtree.numberOfItemsInSubtree + greaterSubtree.numberOfItemsInSubtree
 
         def addNewItemInTheVacantSlotAtIndex(
@@ -144,7 +144,8 @@ trait RandomEnrichment {
           require(
             indexOfVacantSlotAsOrderedByMissingItem < exclusiveLimit
           ) // This is a very loose upper bound, because 'indexOfVacantSlotAsOrderedByMissingItem' is progressively
-          // decremented for each move to a greater subtree. It does hold however, so is left in as a last line of
+          // decremented for each move to a greater subtree. It does hold
+          // however, so is left in as a last line of
           // defence sanity check.
 
           require(inclusiveLowerBound >= 0)
@@ -299,13 +300,13 @@ trait RandomEnrichment {
       }
 
       case object EmptySubtree extends BinaryTreeNode {
-        val inclusiveLowerBoundForAllItemsInSubtree = None
+        val inclusiveLowerBoundForAllItemsInSubtree: Option[Nothing] = None
 
-        val exclusiveUpperBoundForAllItemsInSubtree = None
+        val exclusiveUpperBoundForAllItemsInSubtree: Option[Nothing] = None
 
-        val numberOfInteriorNodesInSubtree = 0
+        val numberOfInteriorNodesInSubtree: Int = 0
 
-        val numberOfItemsInSubtree = 0
+        val numberOfItemsInSubtree: Int = 0
 
         def addNewItemInTheVacantSlotAtIndex(
             indexOfVacantSlotAsOrderedByMissingItem: Int,
@@ -316,7 +317,8 @@ trait RandomEnrichment {
           require(
             indexOfVacantSlotAsOrderedByMissingItem < exclusiveLimit
           ) // This is a very loose upper bound, because 'indexOfVacantSlotAsOrderedByMissingItem' is progressively
-          // decremented for each move to a greater subtree. It does hold however, so is left in as a last line of
+          // decremented for each move to a greater subtree. It does hold
+          // however, so is left in as a last line of
           // defence sanity check.
 
           require(inclusiveLowerBound >= 0)
@@ -414,15 +416,25 @@ trait RandomEnrichment {
       )
     }
 
-    def chooseOneOf[X](candidates: Traversable[X]) = {
-      // How does this algorithm work? It is a generalisation of the old trick of choosing an item from a sequence working down the sequence,
-      // either picking the head or recursing on to the tail of the sequence. The probability of picking the head at each stage of recursion
-      // increases in such a way that the cumulative product of the failure to pick probabilities and the final successful pick probability
-      // always comes out to be the same. That's the standard algorithm, the generalisation here is to pick blocks rather than single items,
-      // then to pick an exemplar from the chosen block as a final step. The block sizes go up geometrically, so the algorithm gets greedier as it carries
-      // on through a potentially very large sequence. The point of this is to avoid converting all of 'candidates' into a whopping great array-backed
-      // data structure to avoid overly large memory allocations. When reading this code, bear in mind that the algorithm actually traverses the
-      // sequence from back to front - the blocks and their lazily-evaluated exemplars are built up in forward order but picked from in reverse order.
+    def chooseOneOf[X](candidates: Traversable[X]): X = {
+      // How does this algorithm work? It is a generalisation of the old trick
+      // of choosing an item from a sequence working down the sequence,
+      // either picking the head or recursing on to the tail of the sequence.
+      // The probability of picking the head at each stage of recursion
+      // increases in such a way that the cumulative product of the failure to
+      // pick probabilities and the final successful pick probability
+      // always comes out to be the same. That's the standard algorithm, the
+      // generalisation here is to pick blocks rather than single items,
+      // then to pick an exemplar from the chosen block as a final step. The
+      // block sizes go up geometrically, so the algorithm gets greedier as it
+      // carries
+      // on through a potentially very large sequence. The point of this is to
+      // avoid converting all of 'candidates' into a whopping great array-backed
+      // data structure to avoid overly large memory allocations. When reading
+      // this code, bear in mind that the algorithm actually traverses the
+      // sequence from back to front - the blocks and their lazily-evaluated
+      // exemplars are built up in forward order but picked from in reverse
+      // order.
       @scala.annotation.tailrec
       def chooseExemplarsFromCandidateBlocks(
           candidates: Traversable[X],

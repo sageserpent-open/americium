@@ -19,7 +19,7 @@ class SortingExample extends AnyFlatSpec with Matchers {
     }
 
   // We're going to sort a list of associations (key-value pairs) by the key...
-  val ordering = Ordering.by[(Int, Int), Int](_._1)
+  val ordering: Ordering[(Int, Int)] = Ordering.by[(Int, Int), Int](_._1)
 
   // Build up a trials instance for key value pairs by flat-mapping from simpler
   // trials instances for the keys and values...

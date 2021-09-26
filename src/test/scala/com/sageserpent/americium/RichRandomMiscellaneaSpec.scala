@@ -36,7 +36,7 @@ class RichRandomMiscellaneaSpec extends AnyFlatSpec with Matchers {
       upperBound: Int,
       sampleSize: Int,
       buildRandomSequenceOfDistinctIntegersOfSize: Int => Seq[Int]
-  ) {
+  ): Unit = {
 
     val numberOfTrials =
       BargainBasement.numberOfCombinations(upperBound, sampleSize) * 1000
@@ -145,7 +145,7 @@ class RichRandomMiscellaneaSpec extends AnyFlatSpec with Matchers {
     }
   }
 
-  def anotherWayOfChoosingSeveralOf(
+  private def anotherWayOfChoosingSeveralOf(
       random: Random,
       candidates: Traversable[Int],
       numberToChoose: Int
@@ -155,7 +155,7 @@ class RichRandomMiscellaneaSpec extends AnyFlatSpec with Matchers {
     for (
       index <- random
         .buildRandomSequenceOfDistinctIntegersFromZeroToOneLessThan(
-          candidatesWithRandomAccess.size
+          candidatesWithRandomAccess.length
         ) take numberToChoose
     )
       yield candidatesWithRandomAccess(index)
@@ -167,7 +167,7 @@ class RichRandomMiscellaneaSpec extends AnyFlatSpec with Matchers {
           Seq[Int],
           Int
       ) => Unit
-  ) {
+  ): Unit = {
     val random = new Random(1)
 
     for (numberOfConsecutiveItems <- 1 to 105) {
@@ -229,8 +229,10 @@ class RichRandomMiscellaneaSpec extends AnyFlatSpec with Matchers {
     val random = new Random(1)
 
     for (inclusiveLowerBound <- 58 to 98) {
-      // When testing the choosing of one item, we can afford to work with larger supersets without blowing our testing
-      // budget due to a huge number of permutations - so break out a copy of the loop below as a special case.
+      // When testing the choosing of one item, we can afford to work with
+      // larger supersets without blowing our testing
+      // budget due to a huge number of permutations - so break out a copy of
+      // the loop below as a special case.
       for (numberOfConsecutiveItems <- (1 to 7) ++ (98 to 105)) {
         val superSet =
           (inclusiveLowerBound until inclusiveLowerBound + numberOfConsecutiveItems).toSet
@@ -320,7 +322,7 @@ class RichRandomMiscellaneaSpec extends AnyFlatSpec with Matchers {
 
   it should "yield the items in each sequence when picking alternately from several sequences" in {
     val randomBehaviour = new Random(89734873)
-    def testHandoff(sequences: Seq[Seq[Int]]) {
+    def testHandoff(sequences: Seq[Seq[Int]]): Unit = {
       val alternatelyPickedSequence =
         randomBehaviour.pickAlternatelyFrom(sequences)
       val setOfAllItemsPickedFrom =
@@ -416,7 +418,7 @@ class RichRandomMiscellaneaSpec extends AnyFlatSpec with Matchers {
       ) {
         if (minumumRequiredNumberOfPositions <= numberOfPositions) {
           val meanPosition =
-            positionSum.toDouble / numberOfPositions
+            positionSum / numberOfPositions
           printf(
             "Item: %d, mean position: %f, picked sequence length: %d\n",
             item,

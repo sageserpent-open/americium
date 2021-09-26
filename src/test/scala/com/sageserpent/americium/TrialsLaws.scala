@@ -10,7 +10,7 @@ import org.scalatestplus.scalacheck.Checkers
 import scala.collection.mutable
 
 class TrialsLaws extends AnyFlatSpec with Checkers {
-  val api = Trials.api
+  private val api = Trials.api
 
   implicit def equality[X: Eq]: Eq[Trials[X]] =
     (first: Trials[X], second: Trials[X]) => {
@@ -52,15 +52,19 @@ class TrialsLaws extends AnyFlatSpec with Checkers {
 
   they should "be a monad" in
     check(
-      Prop.all((discipline
-        .MonadTests[Trials]
-        .monad[Int, Int, String]
-        .all
-        .properties ++ discipline
-        .FunctorFilterTests[Trials]
-        .functorFilter[Int, Int, String]
-        .all
-        .properties).map { case (label, property) => label |: property }.toSeq: _*),
+      Prop.all(
+        (discipline
+          .MonadTests[Trials]
+          .monad[Int, Int, String]
+          .all
+          .properties ++ discipline
+          .FunctorFilterTests[Trials]
+          .functorFilter[Int, Int, String]
+          .all
+          .properties).map { case (label, property) =>
+          label |: property
+        }.toSeq: _*
+      ),
       MinSuccessful(1000)
     )
 
@@ -69,7 +73,8 @@ class TrialsLaws extends AnyFlatSpec with Checkers {
       (trials: Trials[Int]) => {
         trials.filter(1 == _ % 2).map(_.toDouble / 2) <-> trials
           .mapFilter(caze =>
-            if (1 == caze % 2) Some(caze.toDouble / 2) else None)
+            if (1 == caze % 2) Some(caze.toDouble / 2) else None
+          )
       },
       MinSuccessful(1000)
     )
