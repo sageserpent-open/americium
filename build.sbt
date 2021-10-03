@@ -1,11 +1,14 @@
 import sbtrelease.ReleaseStateTransformations._
 import xerial.sbt.Sonatype._
 
-val jUnitVersion = "5.7.0"
+lazy val jUnitVersion = "5.7.0"
 
-val javaVersion = "1.8"
+lazy val javaVersion = "1.8"
+
+lazy val scala2_13_Version = "2.13.6"
 
 lazy val settings = Seq(
+  crossScalaVersions     := Seq(scala2_13_Version),
   publishTo              := sonatypePublishToBundle.value,
   pomIncludeRepository   := { _ => false },
   sonatypeCredentialHost := "s01.oss.sonatype.org",
@@ -21,22 +24,27 @@ lazy val settings = Seq(
       email = "gjmurphy1@icloud.com"
     )
   ),
+  releaseCrossBuild := false, // Don't use the support for cross-building provided by `sbt-release`....
   releaseProcess := Seq[ReleaseStep](
     checkSnapshotDependencies,
     inquireVersions,
     runClean,
-    runTest,
+    releaseStepCommandAndRemaining(
+      "+test"
+    ), // ... instead, cross-build the testing step using SBT's own mechanism ...
     setReleaseVersion,
     commitReleaseVersion,
     tagRelease,
-    releaseStepCommandAndRemaining("publishSigned"),
+    releaseStepCommandAndRemaining(
+      "+publishSigned"
+    ), // ... likewise, cross-build the publishing step using SBT's own mechanism.
     releaseStepCommand("sonatypeBundleRelease"),
     setNextVersion,
     commitNextVersion,
     pushChanges
   ),
   name         := "americium",
-  scalaVersion := "2.13.5",
+  scalaVersion := "2.12.13",
   scalacOptions += s"-target:jvm-$javaVersion",
   javacOptions ++= Seq("-source", javaVersion, "-target", javaVersion),
   libraryDependencies += "com.propensive" %% "mercator"              % "0.3.0",
