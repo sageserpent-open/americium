@@ -25,6 +25,7 @@ import io.circe.{Decoder, Encoder}
 
 import _root_.java.lang.{
   Boolean => JavaBoolean,
+  Byte => JavaByte,
   Character => JavaCharacter,
   Double => JavaDouble,
   Integer => JavaInteger,
@@ -164,6 +165,9 @@ object TrialsImplementation {
     ): TrialsImplementation[Case] =
       scalaApi.stream(Long.box _ andThen factory.apply)
 
+    override def bytes(): JavaTrials[JavaByte] =
+      scalaApi.bytes.map(Byte.box)
+
     override def integers: TrialsImplementation[JavaInteger] =
       scalaApi.integers.map(Int.box)
 
@@ -267,6 +271,9 @@ object TrialsImplementation {
         factory: Long => Case
     ): TrialsImplementation[Case] =
       new TrialsImplementation(Factory(factory))
+
+    override def bytes: TrialsImplementation[Byte] =
+      stream(input => (input >> (JavaLong.SIZE / JavaByte.SIZE - 1)).toByte)
 
     override def integers: TrialsImplementation[Int] = stream(_.hashCode)
 

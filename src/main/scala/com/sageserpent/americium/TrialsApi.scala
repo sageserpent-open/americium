@@ -52,6 +52,8 @@ trait TrialsApi {
 
   def stream[Case](factory: Long => Case): Trials[Case]
 
+  def bytes: Trials[Byte]
+
   def integers: Trials[Int]
 
   def longs: Trials[Long]

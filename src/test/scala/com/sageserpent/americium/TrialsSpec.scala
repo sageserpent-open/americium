@@ -40,6 +40,12 @@ object TrialsSpec {
 
   val limit: Int = 2000
 
+  def byteVectorTrials: Trials[Vector[Byte]] = {
+    // FIXME: the need to do this shows that some kind of weighted distribution
+    // is a good idea.
+    api.alternateWithWeights(1 -> api.only(0.toByte), 10 -> api.bytes).several
+  }
+
   def integerVectorTrials: Trials[Vector[Int]] = {
     // FIXME: the need to do this shows that some kind of weighted distribution
     // is a good idea.
@@ -119,6 +125,10 @@ class TrialsSpec
 
     api
       .stream(_.toString)
+      .withLimit(limit)
+      .supplyTo(println)
+
+    api.bytes
       .withLimit(limit)
       .supplyTo(println)
 
@@ -203,6 +213,10 @@ class TrialsSpec
 
     javaApi
       .stream(_.toString)
+      .withLimit(limit)
+      .supplyTo(println)
+
+    javaApi.bytes
       .withLimit(limit)
       .supplyTo(println)
 
@@ -919,6 +933,12 @@ class TrialsSpec
           doubleVectorTrials,
           (doubleVector: Vector[Double]) =>
             1 < doubleVector.size && doubleVector.sum > 7
+        ),
+        (
+          "Has more than one item and sums to more than 7.",
+          byteVectorTrials,
+          (integerVector: Vector[Byte]) =>
+            1 < integerVector.size && integerVector.sum > 7
         ),
         (
           "Has more than one item and sums to more than 7.",
