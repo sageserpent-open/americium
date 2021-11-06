@@ -124,7 +124,7 @@ class TrialsSpec
       .supplyTo(println)
 
     api
-      .stream(_.toString)
+      .streamLegacy(_.toString)
       .withLimit(limit)
       .supplyTo(println)
 
@@ -212,7 +212,7 @@ class TrialsSpec
       .supplyTo(println)
 
     javaApi
-      .stream(_.toString)
+      .streamLegacy(_.toString)
       .withLimit(limit)
       .supplyTo(println)
 
@@ -485,7 +485,7 @@ class TrialsSpec
           api.alternateWithWeights(
             weightedAlternatives.zip(alternativeInvariantIds) map {
               case ((weight, factory: (Long => Any)), invariantId) =>
-                weight -> api.stream(factory).map(_ -> invariantId)
+                weight -> api.streamLegacy(factory).map(_ -> invariantId)
             }
           )
 
@@ -546,7 +546,7 @@ class TrialsSpec
           api.alternate(alternatives map {
             case sequence: Seq[_] => api.choose(sequence)
             case factory: (Long => Any) =>
-              api.stream(factory)
+              api.streamLegacy(factory)
             case singleton => api.only(singleton)
           } zip alternativeInvariantIds map {
             // Set up a unique invariant on each alternative - it should supply
@@ -603,7 +603,7 @@ class TrialsSpec
           (input match {
             case sequence: Seq[_] => api.choose(sequence)
             case factory: (Long => Any) =>
-              api.stream(factory)
+              api.streamLegacy(factory)
             case singleton => api.only(singleton)
           }).map(
             _ ->
@@ -658,7 +658,7 @@ class TrialsSpec
           (input match {
             case sequence: Seq[_] => api.choose(sequence)
             case factory: (Long => Any) =>
-              api.stream(factory)
+              api.streamLegacy(factory)
             case singleton => api.only(singleton)
           }).several[List[_]]
             .filter(cartesianProductSizeLimitation)
@@ -703,9 +703,9 @@ class TrialsSpec
           api.choose(0 until 10 map (_.toString)),
           api.choose(-10 until 0)
         ),
-        api.stream(_ * 1.46),
+        api.streamLegacy(_ * 1.46),
         api.alternate(
-          api.stream(_ * 1.46),
+          api.streamLegacy(_ * 1.46),
           api.choose(0 until 10 map (_.toString)),
           api.choose(-10 until 0)
         ),
@@ -733,7 +733,7 @@ class TrialsSpec
           api.choose(0 until 10 map (_.toString)),
           api.choose(-10 until 0)
         )                                                    -> 4,
-        api.stream(identity)                                 -> 200,
+        api.streamLegacy(identity)                           -> 200,
         implicitly[Trials.Factory[Either[Long, Int]]].trials -> 500
       )
     ) { (sut, limit) =>
@@ -759,14 +759,14 @@ class TrialsSpec
           api.choose(0 until 10 map (_.toString) map JackInABox.apply),
           api.choose(-10 until 0)
         ),
-        api.stream({
+        api.streamLegacy({
           case value if 0 == value % 3 => JackInABox(value)
           case value => value
         }),
         api.alternate(
           api.only(true),
           api.choose(-10 until 0),
-          api.stream(JackInABox.apply)
+          api.streamLegacy(JackInABox.apply)
         ),
         implicitly[Trials.Factory[Option[Int]]].trials.map {
           case None        => JackInABox(())
@@ -817,13 +817,13 @@ class TrialsSpec
         ),
         api.choose(-10 until 0)
       ),
-      api.stream({
+      api.streamLegacy({
         case value if 0 == value % 3 => JackInABox(value)
         case value => value
       }),
       api.alternate(
         api.only(true),
-        api.stream({
+        api.streamLegacy({
           case value if 0 == value % 3 => JackInABox(value)
           case value => value
         }),

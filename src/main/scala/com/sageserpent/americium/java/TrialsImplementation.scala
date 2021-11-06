@@ -160,10 +160,16 @@ object TrialsImplementation {
             }
         )
 
-    override def stream[Case](
+    override def streamLegacy[Case](
         factory: JavaFunction[JavaLong, Case]
-    ): TrialsImplementation[Case] =
-      scalaApi.stream(Long.box _ andThen factory.apply)
+    ): TrialsImplementation[Case] = stream(
+      new CaseFactory[Case] {
+        override def apply(input: Long): Case   = factory(input)
+        override val lowerBoundInput: Long      = Long.MinValue
+        override val upperBoundInput: Long      = Long.MaxValue
+        override val maximallyShrunkInput: Long = 0L
+      }
+    )
 
     override def bytes(): JavaTrials[JavaByte] =
       scalaApi.bytes.map(Byte.box)
@@ -267,20 +273,28 @@ object TrialsImplementation {
         factory: collection.Factory[Case, Sequence[Case]]
     ): Trials[Sequence[Case]] = sequenceOfTrials.sequence
 
-    override def stream[Case](
+    override def streamLegacy[Case](
         factory: Long => Case
-    ): TrialsImplementation[Case] =
-      new TrialsImplementation(Factory(factory))
+    ): TrialsImplementation[Case] = stream(
+      new CaseFactory[Case] {
+        override def apply(input: Long): Case   = factory(input)
+        override val lowerBoundInput: Long      = Long.MinValue
+        override val upperBoundInput: Long      = Long.MaxValue
+        override val maximallyShrunkInput: Long = 0L
+      }
+    )
 
     override def bytes: TrialsImplementation[Byte] =
-      stream(input => (input >> (JavaLong.SIZE / JavaByte.SIZE - 1)).toByte)
+      streamLegacy(input =>
+        (input >> (JavaLong.SIZE / JavaByte.SIZE - 1)).toByte
+      )
 
-    override def integers: TrialsImplementation[Int] = stream(_.hashCode)
+    override def integers: TrialsImplementation[Int] = streamLegacy(_.hashCode)
 
-    override def longs: TrialsImplementation[Long] = stream(identity)
+    override def longs: TrialsImplementation[Long] = streamLegacy(identity)
 
     override def doubles: TrialsImplementation[Double] =
-      stream { input =>
+      streamLegacy { input =>
         val betweenZeroAndOne = new Random(input).nextDouble()
         Math.scalb(
           betweenZeroAndOne,
@@ -340,6 +354,12 @@ object TrialsImplementation {
         otherChoices: Case*
     ): TrialsImplementation[Case] =
       scalaApi.choose(firstChoice +: secondChoice +: otherChoices)
+
+    def stream[Case](
+        caseFactory: CaseFactory[Case]
+    ): TrialsImplementation[Case] = new TrialsImplementation(
+      Factory(caseFactory)
+    )
   }
 
   case class ChoiceOf(index: Int) extends Decision
@@ -351,7 +371,7 @@ object TrialsImplementation {
   case class Choice[Case](choicesByCumulativeFrequency: SortedMap[Int, Case])
       extends GenerationOperation[Case]
 
-  case class Factory[Case](factory: Long => Case)
+  case class Factory[Case](factory: CaseFactory[Case])
       extends GenerationOperation[Case]
 
   // NASTY HACK: as `Free` does not support `filter/withFilter`, reify

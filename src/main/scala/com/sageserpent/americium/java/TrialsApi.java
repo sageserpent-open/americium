@@ -77,6 +77,8 @@ public interface TrialsApi {
 
     <Case> Trials<ImmutableList<Case>> lists(List<Trials<Case>> listOfTrials);
 
+    <Case> Trials<Case> stream(CaseFactory<Case> caseFactory);
+
     /**
      * Produce a trials instance that stream cases from a factory.
      * <p>
@@ -103,7 +105,7 @@ public interface TrialsApi {
      *                the factory.
      * @return The trials instance
      */
-    <Case> Trials<Case> stream(Function<Long, Case> factory);
+    <Case> Trials<Case> streamLegacy(Function<Long, Case> factory);
 
     Trials<Byte> bytes();
 
