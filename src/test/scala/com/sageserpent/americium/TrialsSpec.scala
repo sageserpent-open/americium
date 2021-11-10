@@ -693,6 +693,43 @@ class TrialsSpec
       }
     }
 
+  "sized collection trials" should "yield cases even when the size is large" in
+    forAll(
+      Table(
+        "input",
+        1 to 10,
+        20 to 30 map (_.toString),
+        Seq(true, false),
+        1,
+        "3",
+        99,
+        Seq(12),
+        (_: Long).toString,
+        identity[Long] _
+      )
+    ) { input =>
+      withExpectations {
+        val largeSize = 10000
+
+        val sut: Trials[List[Any]] =
+          (input match {
+            case sequence: Seq[_] => api.choose(sequence)
+            case factory: (Long => Any) =>
+              api.stream(factory)
+            case singleton => api.only(singleton)
+          }).lotsOfSize(largeSize)
+
+        val mockConsumer = mockFunction[List[Any], Unit]
+
+        mockConsumer
+          .expects(where(largeSize == (_: List[Any]).size))
+          .atLeastOnce()
+          .onCall((caze: List[Any]) => println(caze))
+
+        sut.withLimit(10).supplyTo(mockConsumer)
+      }
+    }
+
   "trials" should "yield repeatable cases" in
     forAll(
       Table(
