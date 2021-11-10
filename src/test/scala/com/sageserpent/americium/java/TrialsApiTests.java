@@ -221,7 +221,7 @@ public class TrialsApiTests {
     }
 
     @ParameterizedTest
-    @ValueSource(ints = {0, 1, 2, 5, 10})
+    @ValueSource(ints = {0, 1, 2, 5, 10, 100000})
     void testDriveSizedListTrials(int numberOfElements) {
         final Trials<ImmutableList<Integer>> lists =
                 api.integers().immutableListsOfSize(numberOfElements);

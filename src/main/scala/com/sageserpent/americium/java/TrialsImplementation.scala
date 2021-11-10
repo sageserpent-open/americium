@@ -620,7 +620,7 @@ case class TrialsImplementation[Case](
     // flat-mapping is stack-safe - although I'm not entirely sure about
     // alternation. Read 'em and weep!
 
-    val maximumNumberOfDecisionStages: Int = 100
+    val maximumNumberOfDecisionStages: Int = 10000
 
     sealed trait Possibilities
 
