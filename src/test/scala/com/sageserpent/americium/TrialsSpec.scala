@@ -709,24 +709,26 @@ class TrialsSpec
       )
     ) { input =>
       withExpectations {
-        val largeSize = 10000
+        Seq(1000, 10000, 30000) foreach { largeSize =>
+          println(s"largeSize: $largeSize")
 
-        val sut: Trials[List[Any]] =
-          (input match {
-            case sequence: Seq[_] => api.choose(sequence)
-            case factory: (Long => Any) =>
-              api.stream(factory)
-            case singleton => api.only(singleton)
-          }).lotsOfSize(largeSize)
+          val sut: Trials[List[Any]] =
+            (input match {
+              case sequence: Seq[_] => api.choose(sequence)
+              case factory: (Long => Any) =>
+                api.stream(factory)
+              case singleton => api.only(singleton)
+            }).lotsOfSize(largeSize)
 
-        val mockConsumer = mockFunction[List[Any], Unit]
+          val mockConsumer = mockFunction[List[Any], Unit]
 
-        mockConsumer
-          .expects(where(largeSize == (_: List[Any]).size))
-          .atLeastOnce()
-          .onCall((caze: List[Any]) => println(caze))
+          mockConsumer
+            .expects(where(largeSize == (_: List[Any]).size))
+            .atLeastOnce()
+            .onCall((caze: List[Any]) => println(caze))
 
-        sut.withLimit(10).supplyTo(mockConsumer)
+          sut.withLimit(10).supplyTo(mockConsumer)
+        }
       }
     }
 
