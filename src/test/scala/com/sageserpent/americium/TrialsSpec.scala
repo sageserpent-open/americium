@@ -727,7 +727,7 @@ class TrialsSpec
             .atLeastOnce()
             .onCall((caze: List[Any]) => println(caze))
 
-          sut.withLimit(10).supplyTo(mockConsumer)
+          sut.withLimit(3).supplyTo(mockConsumer)
         }
       }
     }
