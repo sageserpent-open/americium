@@ -360,6 +360,11 @@ object TrialsImplementation {
   case class FiltrationResult[Case](result: Option[Case])
       extends GenerationOperation[Case]
 
+  case class SuspendComplexityBudgeting() extends GenerationOperation[Unit]
+
+  case class ResumeComplexityBudgeting[Case](result: Case)
+      extends GenerationOperation[Case]
+
   trait Builder[-Case, Container] {
     def +=(caze: Case): Unit
 
@@ -415,8 +420,14 @@ case class TrialsImplementation[Case](
             // NOTE: pattern-match only on `Some`, as we are reproducing a case
             // that by dint of being reproduced, must have passed filtration the
             // first time around.
-            case FiltrationResult(Some(caze)) =>
-              caze.pure[DecisionIndicesContext]
+            case FiltrationResult(Some(result)) =>
+              result.pure[DecisionIndicesContext]
+
+            case SuspendComplexityBudgeting() =>
+              ().pure[DecisionIndicesContext]
+
+            case ResumeComplexityBudgeting(result) =>
+              result.pure[DecisionIndicesContext]
           }
         }
       }
@@ -589,22 +600,61 @@ case class TrialsImplementation[Case](
   ): Iterator[(DecisionStages, Case)] = {
     require(0 < factoryShrinkage)
 
+    // This is used instead of a straight `Option[Case]` to avoid stack overflow
+    // when interpreting `this.generation`. We need to do this because a) we
+    // have to support recursively flat-mapped trials and b) even non-recursive
+    // trials can bring in a lot of nested flat-maps. Of course, in the
+    // recursive case we merely convert the possibility of infinite recursion
+    // into infinite looping through the `Eval` trampolining mechanism, so we
+    // still have to guard against that and terminate at some point.
     type DeferredOption[Case] = OptionT[Eval, Case]
 
     case class State(
-        decisionStages: DecisionStages
+        decisionStages: DecisionStages,
+        complexity: Int,
+        budgetForComplexity: Boolean,
+        stackedBudgetingDecisions: List[Boolean]
     ) {
       def update(decision: ChoiceOf): State = copy(
-        decisionStages = decisionStages :+ decision
+        decisionStages = decisionStages :+ decision,
+        complexity = if (budgetForComplexity) 1 + complexity else complexity
       )
 
       def update(decision: FactoryInputOf): State = copy(
-        decisionStages = decisionStages :+ decision
+        decisionStages = decisionStages :+ decision,
+        complexity = if (budgetForComplexity) 1 + complexity else complexity
       )
+
+      def suspendComplexityBudgeting(): State =
+        copy(
+          budgetForComplexity = false,
+          stackedBudgetingDecisions =
+            budgetForComplexity :: stackedBudgetingDecisions
+        )
+
+      def resumeComplexityBudgeting(): State = {
+        val poppedBudgetingDecision :: olderBudgetingDecisions =
+          stackedBudgetingDecisions
+        copy(
+          // Always count the resumption of complexity budgeting as a single
+          // item, to avoid recursive flat mapping of non-budgeted trials
+          // leading to infinite looping despite having a complexity limit. This
+          // works only because `TrialsImplementation` is written to balance a
+          // suspension with a resumption.
+          complexity = 1 + complexity,
+          budgetForComplexity = poppedBudgetingDecision,
+          stackedBudgetingDecisions = olderBudgetingDecisions
+        )
+      }
     }
 
     object State {
-      val initial = new State(Dequeue.empty)
+      val initial = new State(
+        decisionStages = Dequeue.empty,
+        complexity = 0,
+        budgetForComplexity = true,
+        stackedBudgetingDecisions = List.empty
+      )
     }
 
     type DecisionIndicesAndMultiplicity = (DecisionStages, Int)
@@ -616,11 +666,9 @@ case class TrialsImplementation[Case](
     // monad whereby the injected context is *mutable*, but at least it's buried
     // in the interpreter for `GenerationOperation`, expressed as a closure over
     // `randomBehaviour`. The reified `FiltrationResult` values are also handled
-    // by the interpreter too. If it's any consolation, it means that
-    // flat-mapping is stack-safe - although I'm not entirely sure about
-    // alternation. Read 'em and weep!
+    // by the interpreter too. Read 'em and weep!
 
-    val maximumNumberOfDecisionStages: Int = 10000
+    val maximumNumberOfDecisionStages: Int = 100
 
     sealed trait Possibilities
 
@@ -681,16 +729,29 @@ case class TrialsImplementation[Case](
 
             case FiltrationResult(result) =>
               StateT.liftF(OptionT.fromOption(result))
+
+            case SuspendComplexityBudgeting() =>
+              for {
+                _ <- StateT.modify[DeferredOption, State](
+                  _.suspendComplexityBudgeting()
+                )
+              } yield ()
+
+            case ResumeComplexityBudgeting(result) =>
+              for {
+                _ <- StateT.modify[DeferredOption, State](
+                  _.resumeComplexityBudgeting()
+                )
+              } yield result
           }
 
         private def liftUnitIfTheNumberOfDecisionStagesIsNotTooLarge[Case](
             state: State
         ): StateUpdating[Unit] = {
-          val numberOfDecisionStages = state.decisionStages.size
           val limit = overridingMaximumNumberOfDecisionStages
             .getOrElse(maximumNumberOfDecisionStages)
-          if (numberOfDecisionStages < limit)
-            ().pure[StateUpdating]
+          if (state.complexity < limit)
+            StateT.pure(())
           else
             StateT.liftF[DeferredOption, State, Unit](
               OptionT.none
@@ -724,7 +785,7 @@ case class TrialsImplementation[Case](
             .run(State.initial)
             .value
             .value match {
-            case Some((State(decisionStages), caze))
+            case Some((State(decisionStages, _, _, _), caze))
                 if potentialDuplicates.add(decisionStages) =>
               numberOfUniqueCasesProduced += 1
               backupOfStarvationCountdown = starvationCountdown
@@ -1007,17 +1068,20 @@ case class TrialsImplementation[Case](
         numberOfItems: Int,
         partialResult: List[Case]
     ): TrialsImplementation[Container] =
-      if (0 >= numberOfItems) scalaApi.only {
-        val builder = builderFactory
-        partialResult.foreach(builder += _)
-        builder.result()
-      }
+      if (0 >= numberOfItems)
+        new TrialsImplementation(ResumeComplexityBudgeting {
+          val builder = builderFactory
+          partialResult.foreach(builder += _)
+          builder.result()
+        })
       else
         flatMap(item =>
           addItems(numberOfItems - 1, item :: partialResult): Trials[Container]
         )
 
-    addItems(size, Nil)
+    new TrialsImplementation(SuspendComplexityBudgeting()).flatMap(
+      (_ => addItems(size, Nil)): Unit => Trials[Container]
+    )
   }
 
   override def lotsOfSize[Container](size: Int)(implicit
