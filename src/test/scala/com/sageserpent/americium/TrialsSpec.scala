@@ -35,6 +35,15 @@ object TrialsSpec {
       leftSubtree.flatten ++ rightSubtree.flatten
   }
 
+  final case class BushyTree(growth: Either[List[BushyTree], Int]) {
+    growth.fold(branches => require(branches.nonEmpty), _ => ())
+
+    def flatten: Vector[Int] = growth.fold(
+      branches => branches.map(_.flatten).reduce(_ ++ _),
+      leafValue => Vector(leafValue)
+    )
+  }
+
   val api: TrialsApi         = Trials.api
   val javaApi: JavaTrialsApi = JavaTrials.api
 
@@ -65,20 +74,35 @@ object TrialsSpec {
   def listTrials: Trials[List[Int]] =
     api.integers.several
 
-  def binaryTreeTrials: Trials[BinaryTree] =
-    api.alternate(
-      for {
-        leftSubtree  <- api.delay(binaryTreeTrials)
-        flag         <- api.booleans
-        rightSubtree <- binaryTreeTrials
-      } yield Branch(leftSubtree, flag, rightSubtree),
+  def binaryTreeTrials: Trials[BinaryTree] = api.alternate(
+    for {
+      leftSubtree  <- api.delay(binaryTreeTrials)
+      flag         <- api.booleans
+      rightSubtree <- binaryTreeTrials
+    } yield Branch(leftSubtree, flag, rightSubtree),
+    // FIXME: the need to do this shows that some kind of weighted
+    // distribution is a good idea.
+    api
+      .alternateWithWeights(1 -> api.only(0), 10 -> api.integers)
+      .map(Leaf.apply)
+  )
+
+  def bushyTreeTrials: Trials[BushyTree] = api
+    .alternate(
+      api
+        .choose(1 to 10)
+        .flatMap(positiveNumberOfBranches =>
+          bushyTreeTrials
+            .listsOfSize(positiveNumberOfBranches)
+            .map(Left.apply)
+        ),
       // FIXME: the need to do this shows that some kind of weighted
       // distribution is a good idea.
       api
         .alternateWithWeights(1 -> api.only(0), 10 -> api.integers)
-        .map(Leaf.apply)
+        .map(Right.apply)
     )
-
+    .map(BushyTree.apply)
 }
 
 class TrialsSpec
@@ -705,7 +729,9 @@ class TrialsSpec
         99,
         Seq(12),
         (_: Long).toString,
-        identity[Long] _
+        identity[Long] _,
+        listTrials,
+        binaryTreeTrials
       )
     ) { input =>
       withExpectations {
@@ -714,7 +740,8 @@ class TrialsSpec
 
           val sut: Trials[List[Any]] =
             (input match {
-              case sequence: Seq[_] => api.choose(sequence)
+              case trials: Trials[_] => trials
+              case sequence: Seq[_]  => api.choose(sequence)
               case factory: (Long => Any) =>
                 api.stream(factory)
               case singleton => api.only(singleton)
@@ -1064,20 +1091,20 @@ class TrialsSpec
               .exists(0 != _)
         ),
         (
-          "Flattened binary tree with a non-leaf node that sums to a multiple of 19 greater than 19.",
+          "Flattened binary tree with more than one leaf that sums to a multiple of 19 greater than 19.",
           binaryTreeTrials map (_.flatten),
           (integerVector: Vector[Int]) =>
             1 < integerVector.size && 0 == integerVector.sum % 19 && 19 < integerVector.sum
         ),
         (
-          "Flattened binary tree with a non-leaf node and no zeroes that sums to a multiple of 19 greater than 19.",
+          "Flattened binary tree with more than one leaf and no zeroes that sums to a multiple of 19 greater than 19.",
           binaryTreeTrials map (_.flatten),
           (integerVector: Vector[Int]) =>
             1 < integerVector.size && 0 == integerVector.sum % 19 && 19 < integerVector.sum && !integerVector
               .contains(0)
         ),
         (
-          "Flattened binary tree with a non-leaf node and at least one zero that sums to a multiple of 19 greater than 19.",
+          "Flattened binary tree with more than one leaf and at least one zero that sums to a multiple of 19 greater than 19.",
           binaryTreeTrials map (_.flatten),
           (integerVector: Vector[Int]) =>
             1 < integerVector.size && 0 == integerVector.sum % 19 && 19 < integerVector.sum && integerVector
@@ -1103,6 +1130,14 @@ class TrialsSpec
           integerVectorTrials,
           (integerVector: Vector[Int]) =>
             2 < integerVector.size && integerVector.distinct == integerVector
+        ),
+        (
+          "Flattened bushy tree with more than two leaves whose odd leaves contain zeroes and even leaves contain non-zero values that sum to a multiple of 31 greater than 31.",
+          bushyTreeTrials map (_.flatten),
+          (integerVector: Vector[Int]) =>
+            2 < integerVector.size && 0 == integerVector.sum % 31 && 31 < integerVector.sum && (0 until integerVector.size forall (
+              index => 0 == index % 2 ^ 0 == integerVector(index)
+            ))
         )
       )
     ) { trialsAndCriterion =>
@@ -1116,6 +1151,10 @@ class TrialsSpec
       .supplyTo(println)
 
     binaryTreeTrials
+      .withLimit(limit)
+      .supplyTo(println)
+
+    bushyTreeTrials
       .withLimit(limit)
       .supplyTo(println)
   }
