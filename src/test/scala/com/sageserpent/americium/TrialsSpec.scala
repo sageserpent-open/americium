@@ -730,8 +730,7 @@ class TrialsSpec
         Seq(12),
         (_: Long).toString,
         identity[Long] _,
-        listTrials,
-        binaryTreeTrials
+        listTrials
       )
     ) { input =>
       withExpectations {
@@ -1132,8 +1131,8 @@ class TrialsSpec
             2 < integerVector.size && integerVector.distinct == integerVector
         ),
         (
-          "Flattened bushy tree with more than two leaves whose odd leaves contain zeroes and even leaves contain non-zero values that sum to a multiple of 31 greater than 31.",
-          bushyTreeTrials map (_.flatten),
+          "Flattened binary tree with more than two leaves whose odd-indexed leaves contain zeroes and even-indexed leaves contain non-zero values that sum to a multiple of 31 greater than 31.",
+          binaryTreeTrials map (_.flatten),
           (integerVector: Vector[Int]) =>
             2 < integerVector.size && 0 == integerVector.sum % 31 && 31 < integerVector.sum && (0 until integerVector.size forall (
               index => 0 == index % 2 ^ 0 == integerVector(index)
