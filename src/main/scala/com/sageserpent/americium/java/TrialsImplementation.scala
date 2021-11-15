@@ -360,10 +360,10 @@ object TrialsImplementation {
   case class FiltrationResult[Case](result: Option[Case])
       extends GenerationOperation[Case]
 
-  case class SuspendComplexityBudgeting() extends GenerationOperation[Unit]
+  case object NoteComplexity extends GenerationOperation[Int]
 
-  case class ResumeComplexityBudgeting[Case](result: Case)
-      extends GenerationOperation[Case]
+  case class ResetComplexity[Case](complexity: Int)
+      extends GenerationOperation[Unit]
 
   trait Builder[-Case, Container] {
     def +=(caze: Case): Unit
@@ -423,11 +423,11 @@ case class TrialsImplementation[Case](
             case FiltrationResult(Some(result)) =>
               result.pure[DecisionIndicesContext]
 
-            case SuspendComplexityBudgeting() =>
-              ().pure[DecisionIndicesContext]
+            case NoteComplexity =>
+              0.pure[DecisionIndicesContext]
 
-            case ResumeComplexityBudgeting(result) =>
-              result.pure[DecisionIndicesContext]
+            case ResetComplexity(_) =>
+              ().pure[DecisionIndicesContext]
           }
         }
       }
@@ -611,49 +611,23 @@ case class TrialsImplementation[Case](
 
     case class State(
         decisionStages: DecisionStages,
-        complexity: Int,
-        budgetForComplexity: Boolean,
-        stackedBudgetingDecisions: List[Boolean]
+        complexity: Int
     ) {
       def update(decision: ChoiceOf): State = copy(
         decisionStages = decisionStages :+ decision,
-        complexity = if (budgetForComplexity) 1 + complexity else complexity
+        complexity = 1 + complexity
       )
 
       def update(decision: FactoryInputOf): State = copy(
         decisionStages = decisionStages :+ decision,
-        complexity = if (budgetForComplexity) 1 + complexity else complexity
+        complexity = 1 + complexity
       )
-
-      def suspendComplexityBudgeting(): State =
-        copy(
-          budgetForComplexity = false,
-          stackedBudgetingDecisions =
-            budgetForComplexity :: stackedBudgetingDecisions
-        )
-
-      def resumeComplexityBudgeting(): State = {
-        val poppedBudgetingDecision :: olderBudgetingDecisions =
-          stackedBudgetingDecisions
-        copy(
-          // Always count the resumption of complexity budgeting as a single
-          // item, to avoid recursive flat mapping of non-budgeted trials
-          // leading to infinite looping despite having a complexity limit. This
-          // works only because `TrialsImplementation` is written to balance a
-          // suspension with a resumption.
-          complexity = 1 + complexity,
-          budgetForComplexity = poppedBudgetingDecision,
-          stackedBudgetingDecisions = olderBudgetingDecisions
-        )
-      }
     }
 
     object State {
       val initial = new State(
         decisionStages = Dequeue.empty,
-        complexity = 0,
-        budgetForComplexity = true,
-        stackedBudgetingDecisions = List.empty
+        complexity = 0
       )
     }
 
@@ -730,19 +704,17 @@ case class TrialsImplementation[Case](
             case FiltrationResult(result) =>
               StateT.liftF(OptionT.fromOption(result))
 
-            case SuspendComplexityBudgeting() =>
+            case NoteComplexity =>
+              for {
+                state <- StateT.get[DeferredOption, State]
+              } yield state.complexity
+
+            case ResetComplexity(complexity) =>
               for {
                 _ <- StateT.modify[DeferredOption, State](
-                  _.suspendComplexityBudgeting()
+                  _.copy(complexity = complexity)
                 )
               } yield ()
-
-            case ResumeComplexityBudgeting(result) =>
-              for {
-                _ <- StateT.modify[DeferredOption, State](
-                  _.resumeComplexityBudgeting()
-                )
-              } yield result
           }
 
         private def liftUnitIfTheNumberOfDecisionStagesIsNotTooLarge[Case](
@@ -785,7 +757,7 @@ case class TrialsImplementation[Case](
             .run(State.initial)
             .value
             .value match {
-            case Some((State(decisionStages, _, _, _), caze))
+            case Some((State(decisionStages, _), caze))
                 if potentialDuplicates.add(decisionStages) =>
               numberOfUniqueCasesProduced += 1
               backupOfStarvationCountdown = starvationCountdown
@@ -1063,26 +1035,30 @@ case class TrialsImplementation[Case](
   private def lotsOfSize[Container](
       size: Int,
       builderFactory: => Builder[Case, Container]
-  ): TrialsImplementation[Container] = {
-    def addItems(
-        numberOfItems: Int,
-        partialResult: List[Case]
-    ): TrialsImplementation[Container] =
-      if (0 >= numberOfItems)
-        new TrialsImplementation(ResumeComplexityBudgeting {
-          val builder = builderFactory
-          partialResult.foreach(builder += _)
-          builder.result()
-        })
-      else
-        flatMap(item =>
-          addItems(numberOfItems - 1, item :: partialResult): Trials[Container]
-        )
+  ): TrialsImplementation[Container] =
+    new TrialsImplementation(NoteComplexity).flatMap(complexity => {
+      def addItems(
+          numberOfItems: Int,
+          partialResult: List[Case]
+      ): TrialsImplementation[Container] =
+        if (0 >= numberOfItems)
+          scalaApi.only {
+            val builder = builderFactory
+            partialResult.foreach(builder += _)
+            builder.result()
+          }
+        else
+          flatMap(item =>
+            new TrialsImplementation(ResetComplexity(complexity)).flatMap(_ =>
+              addItems(
+                numberOfItems - 1,
+                item :: partialResult
+              ): Trials[Container]
+            ): Trials[Container]
+          )
 
-    new TrialsImplementation(SuspendComplexityBudgeting()).flatMap(
-      (_ => addItems(size, Nil)): Unit => Trials[Container]
-    )
-  }
+      addItems(size, Nil): Trials[Container]
+    })
 
   override def lotsOfSize[Container](size: Int)(implicit
       factory: collection.Factory[Case, Container]
