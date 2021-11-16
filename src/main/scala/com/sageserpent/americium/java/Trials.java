@@ -53,6 +53,9 @@ public abstract class Trials<Case> implements TrialsFactoring<Case> {
      */
     public abstract Trials.SupplyToSyntax<Case> withLimit(final int limit);
 
+    public abstract Trials.SupplyToSyntax<Case> withLimit(
+            final int limit, final int complexityWall);
+
     /**
      * Reproduce a trial case using a recipe. This is intended to repeatedly
      * run a test against a known failing case when debugging.

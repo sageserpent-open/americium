@@ -52,6 +52,8 @@ import scala.jdk.CollectionConverters._
 import scala.util.Random
 
 object TrialsImplementation {
+  val defaultComplexityWall = 100
+
   type DecisionStages   = Dequeue[Decision]
   type Generation[Case] = Free[GenerationOperation, Case]
   val javaApi = new CommonApi with JavaTrialsApi {
@@ -160,6 +162,9 @@ object TrialsImplementation {
             }
         )
 
+    override def complexities(): TrialsImplementation[JavaInteger] =
+      scalaApi.complexities.map(Int.box)
+
     override def stream[Case](
         factory: JavaFunction[JavaLong, Case]
     ): TrialsImplementation[Case] =
@@ -267,6 +272,12 @@ object TrialsImplementation {
         factory: collection.Factory[Case, Sequence[Case]]
     ): Trials[Sequence[Case]] = sequenceOfTrials.sequence
 
+    override def complexities: TrialsImplementation[Int] =
+      new TrialsImplementation(NoteComplexity)
+
+    def resetComplexity(complexity: Int): TrialsImplementation[Unit] =
+      new TrialsImplementation(ResetComplexity(complexity))
+
     override def stream[Case](
         factory: Long => Case
     ): TrialsImplementation[Case] =
@@ -360,10 +371,10 @@ object TrialsImplementation {
   case class FiltrationResult[Case](result: Option[Case])
       extends GenerationOperation[Case]
 
-  case class SuspendComplexityBudgeting() extends GenerationOperation[Unit]
+  case object NoteComplexity extends GenerationOperation[Int]
 
-  case class ResumeComplexityBudgeting[Case](result: Case)
-      extends GenerationOperation[Case]
+  case class ResetComplexity[Case](complexity: Int)
+      extends GenerationOperation[Unit]
 
   trait Builder[-Case, Container] {
     def +=(caze: Case): Unit
@@ -423,11 +434,11 @@ case class TrialsImplementation[Case](
             case FiltrationResult(Some(result)) =>
               result.pure[DecisionIndicesContext]
 
-            case SuspendComplexityBudgeting() =>
-              ().pure[DecisionIndicesContext]
+            case NoteComplexity =>
+              0.pure[DecisionIndicesContext]
 
-            case ResumeComplexityBudgeting(result) =>
-              result.pure[DecisionIndicesContext]
+            case ResetComplexity(_) =>
+              ().pure[DecisionIndicesContext]
           }
         }
       }
@@ -447,6 +458,12 @@ case class TrialsImplementation[Case](
   override def withLimit(
       limit: Int
   ): JavaTrials.SupplyToSyntax[Case] with Trials.SupplyToSyntax[Case] =
+    withLimit(limit, defaultComplexityWall)
+
+  override def withLimit(
+      limit: Int,
+      complexityWall: Int
+  ): JavaTrials.SupplyToSyntax[Case] with Trials.SupplyToSyntax[Case] =
     new JavaTrials.SupplyToSyntax[Case] with Trials.SupplyToSyntax[Case] {
 
       // Java-only API ...
@@ -458,7 +475,7 @@ case class TrialsImplementation[Case](
 
         val factoryShrinkage = 1
 
-        cases(limit, None, randomBehaviour, factoryShrinkage)
+        cases(limit, complexityWall, randomBehaviour, factoryShrinkage)
           .map(_._2)
           .asJava
       }
@@ -492,7 +509,7 @@ case class TrialsImplementation[Case](
 
             cases(
               limitWithExtraLeewayThatHasBeenObservedToFindBetterShrunkCases,
-              Some(numberOfDecisionStages),
+              numberOfDecisionStages,
               randomBehaviour,
               factoryShrinkage
             )
@@ -573,8 +590,8 @@ case class TrialsImplementation[Case](
 
         val factoryShrinkage = 1
 
-        cases(limit, None, randomBehaviour, factoryShrinkage).foreach {
-          case (decisionStages, caze) =>
+        cases(limit, complexityWall, randomBehaviour, factoryShrinkage)
+          .foreach { case (decisionStages, caze) =>
             try {
               consumer(caze)
             } catch {
@@ -588,13 +605,13 @@ case class TrialsImplementation[Case](
                   limit
                 )
             }
-        }
+          }
       }
     }
 
   private def cases(
       limit: Int,
-      overridingMaximumNumberOfDecisionStages: Option[Int],
+      complexityWall: Int,
       randomBehaviour: Random,
       factoryShrinkage: Long
   ): Iterator[(DecisionStages, Case)] = {
@@ -611,49 +628,23 @@ case class TrialsImplementation[Case](
 
     case class State(
         decisionStages: DecisionStages,
-        complexity: Int,
-        budgetForComplexity: Boolean,
-        stackedBudgetingDecisions: List[Boolean]
+        complexity: Int
     ) {
       def update(decision: ChoiceOf): State = copy(
         decisionStages = decisionStages :+ decision,
-        complexity = if (budgetForComplexity) 1 + complexity else complexity
+        complexity = 1 + complexity
       )
 
       def update(decision: FactoryInputOf): State = copy(
         decisionStages = decisionStages :+ decision,
-        complexity = if (budgetForComplexity) 1 + complexity else complexity
+        complexity = 1 + complexity
       )
-
-      def suspendComplexityBudgeting(): State =
-        copy(
-          budgetForComplexity = false,
-          stackedBudgetingDecisions =
-            budgetForComplexity :: stackedBudgetingDecisions
-        )
-
-      def resumeComplexityBudgeting(): State = {
-        val poppedBudgetingDecision :: olderBudgetingDecisions =
-          stackedBudgetingDecisions
-        copy(
-          // Always count the resumption of complexity budgeting as a single
-          // item, to avoid recursive flat mapping of non-budgeted trials
-          // leading to infinite looping despite having a complexity limit. This
-          // works only because `TrialsImplementation` is written to balance a
-          // suspension with a resumption.
-          complexity = 1 + complexity,
-          budgetForComplexity = poppedBudgetingDecision,
-          stackedBudgetingDecisions = olderBudgetingDecisions
-        )
-      }
     }
 
     object State {
       val initial = new State(
         decisionStages = Dequeue.empty,
-        complexity = 0,
-        budgetForComplexity = true,
-        stackedBudgetingDecisions = List.empty
+        complexity = 0
       )
     }
 
@@ -667,8 +658,6 @@ case class TrialsImplementation[Case](
     // in the interpreter for `GenerationOperation`, expressed as a closure over
     // `randomBehaviour`. The reified `FiltrationResult` values are also handled
     // by the interpreter too. Read 'em and weep!
-
-    val maximumNumberOfDecisionStages: Int = 100
 
     sealed trait Possibilities
 
@@ -730,33 +719,27 @@ case class TrialsImplementation[Case](
             case FiltrationResult(result) =>
               StateT.liftF(OptionT.fromOption(result))
 
-            case SuspendComplexityBudgeting() =>
+            case NoteComplexity =>
+              for {
+                state <- StateT.get[DeferredOption, State]
+              } yield state.complexity
+
+            case ResetComplexity(complexity) =>
               for {
                 _ <- StateT.modify[DeferredOption, State](
-                  _.suspendComplexityBudgeting()
+                  _.copy(complexity = complexity)
                 )
               } yield ()
-
-            case ResumeComplexityBudgeting(result) =>
-              for {
-                _ <- StateT.modify[DeferredOption, State](
-                  _.resumeComplexityBudgeting()
-                )
-              } yield result
           }
 
         private def liftUnitIfTheNumberOfDecisionStagesIsNotTooLarge[Case](
             state: State
-        ): StateUpdating[Unit] = {
-          val limit = overridingMaximumNumberOfDecisionStages
-            .getOrElse(maximumNumberOfDecisionStages)
-          if (state.complexity < limit)
-            StateT.pure(())
-          else
-            StateT.liftF[DeferredOption, State, Unit](
-              OptionT.none
-            )
-        }
+        ): StateUpdating[Unit] = if (state.complexity < complexityWall)
+          StateT.pure(())
+        else
+          StateT.liftF[DeferredOption, State, Unit](
+            OptionT.none
+          )
       }
 
     {
@@ -785,7 +768,7 @@ case class TrialsImplementation[Case](
             .run(State.initial)
             .value
             .value match {
-            case Some((State(decisionStages, _, _, _), caze))
+            case Some((State(decisionStages, _), caze))
                 if potentialDuplicates.add(decisionStages) =>
               numberOfUniqueCasesProduced += 1
               backupOfStarvationCountdown = starvationCountdown
@@ -1063,26 +1046,32 @@ case class TrialsImplementation[Case](
   private def lotsOfSize[Container](
       size: Int,
       builderFactory: => Builder[Case, Container]
-  ): TrialsImplementation[Container] = {
-    def addItems(
-        numberOfItems: Int,
-        partialResult: List[Case]
-    ): TrialsImplementation[Container] =
-      if (0 >= numberOfItems)
-        new TrialsImplementation(ResumeComplexityBudgeting {
-          val builder = builderFactory
-          partialResult.foreach(builder += _)
-          builder.result()
-        })
-      else
-        flatMap(item =>
-          addItems(numberOfItems - 1, item :: partialResult): Trials[Container]
-        )
+  ): TrialsImplementation[Container] =
+    scalaApi.complexities.flatMap(complexity => {
+      def addItems(
+          numberOfItems: Int,
+          partialResult: List[Case]
+      ): Trials[Container] =
+        if (0 >= numberOfItems)
+          scalaApi.only {
+            val builder = builderFactory
+            partialResult.foreach(builder += _)
+            builder.result()
+          }
+        else
+          flatMap(item =>
+            (scalaApi
+              .resetComplexity(complexity): Trials[Unit])
+              .flatMap(_ =>
+                addItems(
+                  numberOfItems - 1,
+                  item :: partialResult
+                )
+              )
+          )
 
-    new TrialsImplementation(SuspendComplexityBudgeting()).flatMap(
-      (_ => addItems(size, Nil)): Unit => Trials[Container]
-    )
-  }
+      addItems(size, Nil)
+    })
 
   override def lotsOfSize[Container](size: Int)(implicit
       factory: collection.Factory[Case, Container]
