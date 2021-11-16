@@ -52,6 +52,8 @@ import scala.jdk.CollectionConverters._
 import scala.util.Random
 
 object TrialsImplementation {
+  val defaultComplexityWall = 100
+
   type DecisionStages   = Dequeue[Decision]
   type Generation[Case] = Free[GenerationOperation, Case]
   val javaApi = new CommonApi with JavaTrialsApi {
@@ -456,6 +458,12 @@ case class TrialsImplementation[Case](
   override def withLimit(
       limit: Int
   ): JavaTrials.SupplyToSyntax[Case] with Trials.SupplyToSyntax[Case] =
+    withLimit(limit, defaultComplexityWall)
+
+  override def withLimit(
+      limit: Int,
+      complexityWall: Int
+  ): JavaTrials.SupplyToSyntax[Case] with Trials.SupplyToSyntax[Case] =
     new JavaTrials.SupplyToSyntax[Case] with Trials.SupplyToSyntax[Case] {
 
       // Java-only API ...
@@ -467,7 +475,7 @@ case class TrialsImplementation[Case](
 
         val factoryShrinkage = 1
 
-        cases(limit, None, randomBehaviour, factoryShrinkage)
+        cases(limit, complexityWall, randomBehaviour, factoryShrinkage)
           .map(_._2)
           .asJava
       }
@@ -501,7 +509,7 @@ case class TrialsImplementation[Case](
 
             cases(
               limitWithExtraLeewayThatHasBeenObservedToFindBetterShrunkCases,
-              Some(numberOfDecisionStages),
+              numberOfDecisionStages,
               randomBehaviour,
               factoryShrinkage
             )
@@ -582,8 +590,8 @@ case class TrialsImplementation[Case](
 
         val factoryShrinkage = 1
 
-        cases(limit, None, randomBehaviour, factoryShrinkage).foreach {
-          case (decisionStages, caze) =>
+        cases(limit, complexityWall, randomBehaviour, factoryShrinkage)
+          .foreach { case (decisionStages, caze) =>
             try {
               consumer(caze)
             } catch {
@@ -597,13 +605,13 @@ case class TrialsImplementation[Case](
                   limit
                 )
             }
-        }
+          }
       }
     }
 
   private def cases(
       limit: Int,
-      overridingMaximumNumberOfDecisionStages: Option[Int],
+      complexityWall: Int,
       randomBehaviour: Random,
       factoryShrinkage: Long
   ): Iterator[(DecisionStages, Case)] = {
@@ -650,8 +658,6 @@ case class TrialsImplementation[Case](
     // in the interpreter for `GenerationOperation`, expressed as a closure over
     // `randomBehaviour`. The reified `FiltrationResult` values are also handled
     // by the interpreter too. Read 'em and weep!
-
-    val maximumNumberOfDecisionStages: Int = 100
 
     sealed trait Possibilities
 
@@ -728,16 +734,12 @@ case class TrialsImplementation[Case](
 
         private def liftUnitIfTheNumberOfDecisionStagesIsNotTooLarge[Case](
             state: State
-        ): StateUpdating[Unit] = {
-          val limit = overridingMaximumNumberOfDecisionStages
-            .getOrElse(maximumNumberOfDecisionStages)
-          if (state.complexity < limit)
-            StateT.pure(())
-          else
-            StateT.liftF[DeferredOption, State, Unit](
-              OptionT.none
-            )
-        }
+        ): StateUpdating[Unit] = if (state.complexity < complexityWall)
+          StateT.pure(())
+        else
+          StateT.liftF[DeferredOption, State, Unit](
+            OptionT.none
+          )
       }
 
     {
