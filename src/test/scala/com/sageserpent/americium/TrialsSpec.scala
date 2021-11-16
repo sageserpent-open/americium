@@ -72,7 +72,9 @@ object TrialsSpec {
     api.alternateWithWeights(1 -> api.only(0L), 10 -> api.longs).several
 
   def listTrials: Trials[List[Int]] =
-    api.integers.several
+    // FIXME: the need to do this shows that some kind of weighted distribution
+    // is a good idea.
+    api.alternateWithWeights(1 -> api.only(0), 10 -> api.integers).several
 
   def binaryTreeTrials: Trials[BinaryTree] = api.alternate(
     for {
@@ -87,22 +89,25 @@ object TrialsSpec {
       .map(Leaf.apply)
   )
 
-  def bushyTreeTrials: Trials[BushyTree] = api
-    .alternate(
+  def bushyTreeTrials: Trials[BushyTree] =
+    api.complexities.flatMap(complexity =>
       api
-        .choose(1 to 10)
-        .flatMap(positiveNumberOfBranches =>
-          bushyTreeTrials
-            .listsOfSize(positiveNumberOfBranches)
-            .map(Left.apply)
-        ),
-      // FIXME: the need to do this shows that some kind of weighted
-      // distribution is a good idea.
-      api
-        .alternateWithWeights(1 -> api.only(0), 10 -> api.integers)
-        .map(Right.apply)
+        .alternateWithWeights(
+          1 -> api
+            .choose(1 to 10)
+            .flatMap(positiveNumberOfBranches =>
+              bushyTreeTrials
+                .listsOfSize(positiveNumberOfBranches)
+                .map(Left.apply)
+            ),
+          (1 max complexity) -> api
+            // FIXME: the need to do this shows that some kind of weighted
+            // distribution is a good idea.
+            .alternateWithWeights(1 -> api.only(0), 10 -> api.integers)
+            .map(Right.apply)
+        )
+        .map(BushyTree.apply)
     )
-    .map(BushyTree.apply)
 }
 
 class TrialsSpec
@@ -720,48 +725,47 @@ class TrialsSpec
   "sized collection trials" should "yield cases even when the size is large" in
     forAll(
       Table(
-        "input",
-        1 to 10,
-        20 to 30 map (_.toString),
-        Seq(true, false),
-        1,
-        "3",
-        99,
-        Seq(12),
-        (_: Long).toString,
-        identity[Long] _,
-        listTrials
+        "input"                     -> "largeSize",
+        (1 to 10)                   -> 1000,
+        (20 to 30 map (_.toString)) -> 10000,
+        (Seq(true, false))          -> 30000,
+        1                           -> 1000,
+        "3"                         -> 10000,
+        99                          -> 30000,
+        Seq(12)                     -> 1000,
+        ((_: Long).toString)        -> 20000,
+        identity[Long] _            -> 1000,
+        listTrials                  -> 30000,
+        bushyTreeTrials             -> 2000
       )
-    ) { input =>
+    ) { (input, largeSize) =>
       withExpectations {
-        Seq(1000, 10000, 30000) foreach { largeSize =>
-          println(s"largeSize: $largeSize")
+        println(s"largeSize: $largeSize")
 
-          val sut: Trials[List[Any]] =
-            (input match {
-              case trials: Trials[_] => trials
-              case sequence: Seq[_]  => api.choose(sequence)
-              case factory: (Long => Any) =>
-                api.stream(factory)
-              case singleton => api.only(singleton)
-            }).lotsOfSize(largeSize)
+        val sut: Trials[List[Any]] =
+          (input match {
+            case trials: Trials[_] => trials
+            case sequence: Seq[_]  => api.choose(sequence)
+            case factory: (Long => Any) =>
+              api.stream(factory)
+            case singleton => api.only(singleton)
+          }).lotsOfSize(largeSize)
 
-          val mockConsumer = mockFunction[List[Any], Unit]
+        val mockConsumer = mockFunction[List[Any], Unit]
 
-          mockConsumer
-            .expects(where(largeSize == (_: List[Any]).size))
-            .atLeastOnce()
-            .onCall((caze: List[Any]) => println(caze))
+        mockConsumer
+          .expects(where(largeSize == (_: List[Any]).size))
+          .atLeastOnce()
+          .onCall((caze: List[Any]) => println(caze))
 
-          sut.withLimit(3).supplyTo(mockConsumer)
-        }
+        sut.withLimit(1).supplyTo(mockConsumer)
       }
     }
 
   "trials" should "yield repeatable cases" in
     forAll(
       Table(
-        "trails",
+        "trials",
         api.only(1),
         api.choose(1, false, 99),
         api.alternate(
@@ -791,7 +795,7 @@ class TrialsSpec
   they should "produce no more than the limiting number of cases" in
     forAll(
       Table(
-        "trails"                 -> "limit",
+        "trials"                 -> "limit",
         api.only(1)              -> 1,
         api.choose(1, false, 99) -> 3,
         api.alternate(
@@ -816,7 +820,7 @@ class TrialsSpec
   they should "yield repeatable exceptions" in
     forAll(
       Table(
-        "trails",
+        "trials",
         api.only(JackInABox(1)),
         api.choose(1, false, JackInABox(99)),
         api.alternate(
@@ -861,7 +865,7 @@ class TrialsSpec
 
   "an exceptional case" should "be reproduced via its recipe" in forAll(
     Table(
-      "trails",
+      "trials",
       api.only(JackInABox(1)),
       api.choose(1, false, JackInABox(99)),
       api.alternate(
@@ -984,7 +988,7 @@ class TrialsSpec
 
     forAll(
       Table[DescriptionTrialsAndCriterion[_]](
-        "trials -> exceptionCriterion",
+        "(description, trials, exceptionCriterion)",
         (
           // This first entry isn't expected to shrink the values, only the
           // length of the failing case.
@@ -1133,6 +1137,14 @@ class TrialsSpec
         (
           "Flattened binary tree with more than two leaves whose odd-indexed leaves contain zeroes and even-indexed leaves contain non-zero values that sum to a multiple of 31 greater than 31.",
           binaryTreeTrials map (_.flatten),
+          (integerVector: Vector[Int]) =>
+            2 < integerVector.size && 0 == integerVector.sum % 31 && 31 < integerVector.sum && (0 until integerVector.size forall (
+              index => 0 == index % 2 ^ 0 == integerVector(index)
+            ))
+        ),
+        (
+          "List with more than two elements whose odd-indexed elements contain zeroes and even-indexed elements contain non-zero values that sum to a multiple of 31 greater than 31.",
+          listTrials map (_.toVector),
           (integerVector: Vector[Int]) =>
             2 < integerVector.size && 0 == integerVector.sum % 31 && 31 < integerVector.sum && (0 until integerVector.size forall (
               index => 0 == index % 2 ^ 0 == integerVector(index)

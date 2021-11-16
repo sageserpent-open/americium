@@ -160,6 +160,9 @@ object TrialsImplementation {
             }
         )
 
+    override def complexities(): TrialsImplementation[JavaInteger] =
+      scalaApi.complexities.map(Int.box)
+
     override def stream[Case](
         factory: JavaFunction[JavaLong, Case]
     ): TrialsImplementation[Case] =
@@ -266,6 +269,12 @@ object TrialsImplementation {
     )(implicit
         factory: collection.Factory[Case, Sequence[Case]]
     ): Trials[Sequence[Case]] = sequenceOfTrials.sequence
+
+    override def complexities: TrialsImplementation[Int] =
+      new TrialsImplementation(NoteComplexity)
+
+    def resetComplexity(complexity: Int): TrialsImplementation[Unit] =
+      new TrialsImplementation(ResetComplexity(complexity))
 
     override def stream[Case](
         factory: Long => Case
@@ -1036,11 +1045,11 @@ case class TrialsImplementation[Case](
       size: Int,
       builderFactory: => Builder[Case, Container]
   ): TrialsImplementation[Container] =
-    new TrialsImplementation(NoteComplexity).flatMap(complexity => {
+    scalaApi.complexities.flatMap(complexity => {
       def addItems(
           numberOfItems: Int,
           partialResult: List[Case]
-      ): TrialsImplementation[Container] =
+      ): Trials[Container] =
         if (0 >= numberOfItems)
           scalaApi.only {
             val builder = builderFactory
@@ -1049,15 +1058,17 @@ case class TrialsImplementation[Case](
           }
         else
           flatMap(item =>
-            new TrialsImplementation(ResetComplexity(complexity)).flatMap(_ =>
-              addItems(
-                numberOfItems - 1,
-                item :: partialResult
-              ): Trials[Container]
-            ): Trials[Container]
+            (scalaApi
+              .resetComplexity(complexity): Trials[Unit])
+              .flatMap(_ =>
+                addItems(
+                  numberOfItems - 1,
+                  item :: partialResult
+                )
+              )
           )
 
-      addItems(size, Nil): Trials[Container]
+      addItems(size, Nil)
     })
 
   override def lotsOfSize[Container](size: Int)(implicit

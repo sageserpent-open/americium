@@ -50,6 +50,8 @@ trait TrialsApi {
       factory: Factory[Case, Sequence[Case]]
   ): Trials[Sequence[Case]]
 
+  def complexities: Trials[Int]
+
   def stream[Case](factory: Long => Case): Trials[Case]
 
   def bytes: Trials[Byte]
