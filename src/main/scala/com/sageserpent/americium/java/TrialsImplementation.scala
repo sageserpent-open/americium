@@ -1,6 +1,5 @@
 package com.sageserpent.americium.java
 
-import cats.collections.Dequeue
 import cats.data.{OptionT, State, StateT}
 import cats.free.Free
 import cats.free.Free.{liftF, pure}
@@ -8,6 +7,10 @@ import cats.implicits._
 import cats.{Eval, Traverse, ~>}
 import com.google.common.collect.{Ordering => _, _}
 import com.sageserpent.americium.Trials.RejectionByInlineFilter
+import com.sageserpent.americium.java.TrialsImplementation.DecisionStagesInReverseOrder.{
+  NonEmptyDecisionStages,
+  interned
+}
 import com.sageserpent.americium.java.tupleTrials.{
   Tuple2Trials => JavaTuple2Trials
 }
@@ -21,7 +24,6 @@ import com.sageserpent.americium.{Trials, TrialsApi}
 import io.circe.generic.auto._
 import io.circe.parser._
 import io.circe.syntax._
-import io.circe.{Decoder, Encoder}
 
 import _root_.java.lang.{
   Boolean => JavaBoolean,
@@ -54,8 +56,72 @@ import scala.util.Random
 object TrialsImplementation {
   val defaultComplexityWall = 100
 
-  type DecisionStages   = Dequeue[Decision]
+  object DecisionStagesInReverseOrder {
+    private final case class NonEmptyDecisionStages(
+        latestDecision: Decision,
+        previousDecisions: DecisionStagesInReverseOrder
+    )
+
+    final case object noDecisionStages extends DecisionStagesInReverseOrder {
+      protected override def appendInReverseOnTo(
+          partialResult: DecisionStages
+      ): DecisionStages = partialResult
+    }
+
+    final private case class InternedDecisionStages(index: Int)
+        extends DecisionStagesInReverseOrder {
+      protected override def appendInReverseOnTo(
+          partialResult: DecisionStages
+      ): DecisionStages =
+        Option(
+          synchronized {
+            nonEmptyToAndFromInternedDecisionStages.inverse().get(this)
+          }
+        ) match {
+          case Some(
+                NonEmptyDecisionStages(latestDecision, previousDecisions)
+              ) =>
+            previousDecisions.appendInReverseOnTo(
+              latestDecision :: partialResult
+            )
+        }
+    }
+
+    private val nonEmptyToAndFromInternedDecisionStages
+        : BiMap[NonEmptyDecisionStages, InternedDecisionStages] =
+      HashBiMap.create()
+
+    private def interned(
+        nonEmptyDecisionStages: NonEmptyDecisionStages
+    ): InternedDecisionStages =
+      Option(
+        synchronized {
+          nonEmptyToAndFromInternedDecisionStages.computeIfAbsent(
+            nonEmptyDecisionStages,
+            _ => {
+              val freshIndex = nonEmptyToAndFromInternedDecisionStages.size
+              InternedDecisionStages(freshIndex)
+            }
+          )
+        }
+      ).get
+  }
+
+  sealed trait DecisionStagesInReverseOrder {
+    def reverse: DecisionStages = appendInReverseOnTo(List.empty)
+
+    protected def appendInReverseOnTo(
+        partialResult: DecisionStages
+    ): DecisionStages
+
+    def addLatest(decision: Decision): DecisionStagesInReverseOrder = interned(
+      NonEmptyDecisionStages(decision, this)
+    )
+  }
+
+  type DecisionStages   = List[Decision]
   type Generation[Case] = Free[GenerationOperation, Case]
+
   val javaApi = new CommonApi with JavaTrialsApi {
     override def delay[Case](
         delayed: Supplier[JavaTrials[Case]]
@@ -319,13 +385,6 @@ object TrialsImplementation {
     }
   }
 
-  implicit val decisionStagesEncoder: Encoder[DecisionStages] =
-    implicitly[Encoder[List[Decision]]].contramap(_.toList)
-  implicit val decisionStagesDecoder: Decoder[DecisionStages] =
-    implicitly[Decoder[List[Decision]]].emap(list =>
-      Right(Dequeue.apply(list: _*))
-    )
-
   sealed trait Decision
 
   // Java and Scala API ...
@@ -412,8 +471,8 @@ case class TrialsImplementation[Case](
             case Choice(choicesByCumulativeFrequency) =>
               for {
                 decisionStages <- State.get[DecisionStages]
-                Some((ChoiceOf(decisionIndex), remainingDecisionStages)) =
-                  decisionStages.uncons
+                (ChoiceOf(decisionIndex) :: remainingDecisionStages) =
+                  decisionStages
                 _ <- State.set(remainingDecisionStages)
               } yield choicesByCumulativeFrequency
                 .minAfter(1 + decisionIndex)
@@ -423,8 +482,8 @@ case class TrialsImplementation[Case](
             case Factory(factory) =>
               for {
                 decisionStages <- State.get[DecisionStages]
-                Some((FactoryInputOf(input), remainingDecisionStages)) =
-                  decisionStages.uncons
+                (FactoryInputOf(input) :: remainingDecisionStages) =
+                  decisionStages
                 _ <- State.set(remainingDecisionStages)
               } yield factory(input)
 
@@ -515,7 +574,7 @@ case class TrialsImplementation[Case](
             )
               .foreach {
                 case (
-                      decisionStagesForPotentialShrunkCase,
+                      decisionStagesForPotentialShrunkCaseInReverseOrder,
                       potentialShrunkCase
                     ) =>
                   try {
@@ -523,6 +582,9 @@ case class TrialsImplementation[Case](
                   } catch {
                     case rejection: RejectionByInlineFilter => throw rejection
                     case throwableFromPotentialShrunkCase: Throwable =>
+                      val decisionStagesForPotentialShrunkCase =
+                        decisionStagesForPotentialShrunkCaseInReverseOrder.reverse
+
                       assert(
                         decisionStagesForPotentialShrunkCase.size <= numberOfDecisionStages
                       )
@@ -591,7 +653,7 @@ case class TrialsImplementation[Case](
         val factoryShrinkage = 1
 
         cases(limit, complexityWall, randomBehaviour, factoryShrinkage)
-          .foreach { case (decisionStages, caze) =>
+          .foreach { case (decisionStagesInReverseOrder, caze) =>
             try {
               consumer(caze)
             } catch {
@@ -600,7 +662,7 @@ case class TrialsImplementation[Case](
                 shrink(
                   caze,
                   throwable,
-                  decisionStages,
+                  decisionStagesInReverseOrder.reverse,
                   factoryShrinkage,
                   limit
                 )
@@ -614,7 +676,7 @@ case class TrialsImplementation[Case](
       complexityWall: Int,
       randomBehaviour: Random,
       factoryShrinkage: Long
-  ): Iterator[(DecisionStages, Case)] = {
+  ): Iterator[(DecisionStagesInReverseOrder, Case)] = {
     require(0 < factoryShrinkage)
 
     // This is used instead of a straight `Option[Case]` to avoid stack overflow
@@ -627,28 +689,26 @@ case class TrialsImplementation[Case](
     type DeferredOption[Case] = OptionT[Eval, Case]
 
     case class State(
-        decisionStages: DecisionStages,
+        decisionStages: DecisionStagesInReverseOrder,
         complexity: Int
     ) {
       def update(decision: ChoiceOf): State = copy(
-        decisionStages = decisionStages :+ decision,
+        decisionStages = decisionStages.addLatest(decision),
         complexity = 1 + complexity
       )
 
       def update(decision: FactoryInputOf): State = copy(
-        decisionStages = decisionStages :+ decision,
+        decisionStages = decisionStages.addLatest(decision),
         complexity = 1 + complexity
       )
     }
 
     object State {
       val initial = new State(
-        decisionStages = Dequeue.empty,
+        decisionStages = DecisionStagesInReverseOrder.noDecisionStages,
         complexity = 0
       )
     }
-
-    type DecisionIndicesAndMultiplicity = (DecisionStages, Int)
 
     type StateUpdating[Case] =
       StateT[DeferredOption, State, Case]
@@ -664,7 +724,7 @@ case class TrialsImplementation[Case](
     case class Choices(possibleIndices: LazyList[Int]) extends Possibilities
 
     val possibilitiesThatFollowSomeChoiceOfDecisionStages =
-      mutable.Map.empty[DecisionStages, Possibilities]
+      mutable.Map.empty[DecisionStagesInReverseOrder, Possibilities]
 
     def interpreter(depth: Int): GenerationOperation ~> StateUpdating =
       new (GenerationOperation ~> StateUpdating) {
@@ -754,39 +814,44 @@ case class TrialsImplementation[Case](
       var starvationCountdown: Int         = limit
       var backupOfStarvationCountdown      = 0
       var numberOfUniqueCasesProduced: Int = 0
-      val potentialDuplicates              = mutable.Set.empty[DecisionStages]
+      val potentialDuplicates = mutable.Set.empty[DecisionStagesInReverseOrder]
 
       def remainingGap = limit - numberOfUniqueCasesProduced
 
-      val coreIterator = new Iterator[Option[(DecisionStages, Case)]] {
-        override def hasNext: Boolean =
-          0 < remainingGap && 0 < starvationCountdown
+      val coreIterator =
+        new Iterator[Option[(DecisionStagesInReverseOrder, Case)]] {
+          override def hasNext: Boolean =
+            0 < remainingGap && 0 < starvationCountdown
 
-        override def next(): Option[(DecisionStages, Case)] =
-          generation
-            .foldMap(interpreter(depth = 0))
-            .run(State.initial)
-            .value
-            .value match {
-            case Some((State(decisionStages, _), caze))
-                if potentialDuplicates.add(decisionStages) =>
-              numberOfUniqueCasesProduced += 1
-              backupOfStarvationCountdown = starvationCountdown
-              starvationCountdown =
-                Math.round(Math.sqrt(starvationCountdown * remainingGap)).toInt
-              Some(decisionStages -> caze)
-            case _ =>
-              starvationCountdown -= 1
-              None
-          }
-      }.collect { case Some(caze) => caze }
+          override def next(): Option[(DecisionStagesInReverseOrder, Case)] =
+            generation
+              .foldMap(interpreter(depth = 0))
+              .run(State.initial)
+              .value
+              .value match {
+              case Some((State(decisionStages, _), caze))
+                  if potentialDuplicates.add(decisionStages) =>
+                numberOfUniqueCasesProduced += 1
+                backupOfStarvationCountdown = starvationCountdown
+                starvationCountdown = Math
+                  .round(Math.sqrt(starvationCountdown * remainingGap))
+                  .toInt
+                Some(decisionStages -> caze)
+              case _ =>
+                starvationCountdown -= 1
+                None
+            }
+        }.collect { case Some(caze) => caze }
 
-      new Iterator[(DecisionStages, Case)] {
+      new Iterator[(DecisionStagesInReverseOrder, Case)] {
         override def hasNext: Boolean = coreIterator.hasNext
 
-        override def next(): (DecisionStages, Case) = coreIterator.next()
+        override def next(): (DecisionStagesInReverseOrder, Case) =
+          coreIterator.next()
 
-        override def foreach[U](f: ((DecisionStages, Case)) => U): Unit = {
+        override def foreach[U](
+            f: ((DecisionStagesInReverseOrder, Case)) => U
+        ): Unit = {
           super.foreach { input =>
             try {
               f(input)
