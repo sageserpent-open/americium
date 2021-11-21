@@ -815,6 +815,32 @@ class TrialsSpec
       }
     }
 
+  they should "produce the limiting number of cases if feasible" in
+    forAll(
+      Table(
+        "trials"                 -> "limit",
+        api.only(1)              -> 1,
+        api.choose(1, false, 99) -> 3,
+        api.alternate(
+          api.choose(0 until 10 map (_.toString)),
+          api.choose(-10 until 0)
+        )                                                           -> 20,
+        implicitly[Trials.Factory[Either[Boolean, Boolean]]].trials -> 4,
+        api
+          .choose(1 to 3)
+          .flatMap(x => api.choose(1 to 10).map(x -> _))
+          .filter { case (x, y) => 0 == (x * y) % 3 } -> (1 * 7 + 2 * 3 + 1 * 3)
+      )
+    ) { (sut, limit) =>
+      withExpectations {
+        val mockConsumer = stubFunction[Any, Unit]
+
+        sut.withLimit(limit).supplyTo(mockConsumer)
+
+        mockConsumer.verify(*).repeat(limit)
+      }
+    }
+
   case class JackInABox[Caze](caze: Caze)
 
   they should "yield repeatable exceptions" in
