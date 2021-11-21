@@ -524,16 +524,13 @@ case class TrialsImplementation[Case](
         require(0 < factoryShrinkage)
 
         // This is used instead of a straight `Option[Case]` to avoid stack
-        // overflow
-        // when interpreting `this.generation`. We need to do this because a) we
-        // have to support recursively flat-mapped trials and b) even
-        // non-recursive
-        // trials can bring in a lot of nested flat-maps. Of course, in the
-        // recursive case we merely convert the possibility of infinite
-        // recursion
-        // into infinite looping through the `Eval` trampolining mechanism, so
-        // we
-        // still have to guard against that and terminate at some point.
+        // overflow when interpreting `this.generation`. We need to do this
+        // because a) we have to support recursively flat-mapped trials and b)
+        // even non-recursive trials can bring in a lot of nested flat-maps. Of
+        // course, in the recursive case we merely convert the possibility of
+        // infinite recursion into infinite looping through the `Eval`
+        // trampolining mechanism, so we still have to guard against that and
+        // terminate at some point.
         type DeferredOption[Case] = OptionT[Eval, Case]
 
         case class State(
@@ -563,12 +560,9 @@ case class TrialsImplementation[Case](
 
         // NASTY HACK: what follows is a hacked alternative to using the reader
         // monad whereby the injected context is *mutable*, but at least it's
-        // buried
-        // in the interpreter for `GenerationOperation`, expressed as a closure
-        // over
-        // `randomBehaviour`. The reified `FiltrationResult` values are also
-        // handled
-        // by the interpreter too. Read 'em and weep!
+        // buried in the interpreter for `GenerationOperation`, expressed as a
+        // closure over `randomBehaviour`. The reified `FiltrationResult` values
+        // are also handled by the interpreter too. Read 'em and weep!
 
         sealed trait Possibilities
 
@@ -658,15 +652,12 @@ case class TrialsImplementation[Case](
         {
           // NASTY HACK: what was previously a Java-style imperative iterator
           // implementation has, ahem, 'matured' into an overall imperative
-          // iterator
-          // forwarding to another with a `collect` to flatten out the `Option`
-          // part
-          // of the latter's output. Both co-operate by sharing mutable state
-          // used
-          // to determine when the overall iterator should stop yielding output.
-          // This in turn allows another hack, namely to intercept calls to
-          // `forEach` on the overall iterator so that it can monitor cases that
-          // don't pass inline filtration.
+          // iterator forwarding to another with a `collect` to flatten out the
+          // `Option` part of the latter's output. Both co-operate by sharing
+          // mutable state used to determine when the overall iterator should
+          // stop yielding output. This in turn allows another hack, namely to
+          // intercept calls to `forEach` on the overall iterator so that it can
+          // monitor cases that don't pass inline filtration.
           var starvationCountdown: Int         = limit
           var backupOfStarvationCountdown      = 0
           var numberOfUniqueCasesProduced: Int = 0
