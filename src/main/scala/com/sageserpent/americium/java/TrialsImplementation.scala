@@ -683,7 +683,7 @@ case class TrialsImplementation[Case](
                     numberOfUniqueCasesProduced += 1
                     backupOfStarvationCountdown = starvationCountdown
                     starvationCountdown = Math
-                      .round(Math.sqrt(starvationCountdown * remainingGap))
+                      .round(Math.sqrt(limit * remainingGap))
                       .toInt
                     Some(decisionStages -> caze)
                   case _ =>
