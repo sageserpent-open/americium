@@ -1,6 +1,5 @@
 package com.sageserpent.americium.java
 
-import cats.collections.Dequeue
 import cats.data.{OptionT, State, StateT}
 import cats.free.Free
 import cats.free.Free.{liftF, pure}
@@ -21,7 +20,6 @@ import com.sageserpent.americium.{Trials, TrialsApi}
 import io.circe.generic.auto._
 import io.circe.parser._
 import io.circe.syntax._
-import io.circe.{Decoder, Encoder}
 
 import _root_.java.lang.{
   Boolean => JavaBoolean,
@@ -52,8 +50,11 @@ import scala.jdk.CollectionConverters._
 import scala.util.Random
 
 object TrialsImplementation {
-  type DecisionStages   = Dequeue[Decision]
+  val defaultComplexityWall = 100
+
+  type DecisionStages   = List[Decision]
   type Generation[Case] = Free[GenerationOperation, Case]
+
   val javaApi = new CommonApi with JavaTrialsApi {
     override def delay[Case](
         delayed: Supplier[JavaTrials[Case]]
@@ -159,6 +160,9 @@ object TrialsImplementation {
               builder.build()
             }
         )
+
+    override def complexities(): TrialsImplementation[JavaInteger] =
+      scalaApi.complexities.map(Int.box)
 
     override def streamLegacy[Case](
         factory: JavaFunction[JavaLong, Case]
@@ -273,6 +277,12 @@ object TrialsImplementation {
         factory: collection.Factory[Case, Sequence[Case]]
     ): Trials[Sequence[Case]] = sequenceOfTrials.sequence
 
+    override def complexities: TrialsImplementation[Int] =
+      new TrialsImplementation(NoteComplexity)
+
+    def resetComplexity(complexity: Int): TrialsImplementation[Unit] =
+      new TrialsImplementation(ResetComplexity(complexity))
+
     override def streamLegacy[Case](
         factory: Long => Case
     ): TrialsImplementation[Case] = stream(
@@ -321,13 +331,6 @@ object TrialsImplementation {
       characters.several[String]
     }
   }
-
-  implicit val decisionStagesEncoder: Encoder[DecisionStages] =
-    implicitly[Encoder[List[Decision]]].contramap(_.toList)
-  implicit val decisionStagesDecoder: Decoder[DecisionStages] =
-    implicitly[Decoder[List[Decision]]].emap(list =>
-      Right(Dequeue.apply(list: _*))
-    )
 
   sealed trait Decision
 
@@ -380,6 +383,11 @@ object TrialsImplementation {
   case class FiltrationResult[Case](result: Option[Case])
       extends GenerationOperation[Case]
 
+  case object NoteComplexity extends GenerationOperation[Int]
+
+  case class ResetComplexity[Case](complexity: Int)
+      extends GenerationOperation[Unit]
+
   trait Builder[-Case, Container] {
     def +=(caze: Case): Unit
 
@@ -416,8 +424,8 @@ case class TrialsImplementation[Case](
             case Choice(choicesByCumulativeFrequency) =>
               for {
                 decisionStages <- State.get[DecisionStages]
-                Some((ChoiceOf(decisionIndex), remainingDecisionStages)) =
-                  decisionStages.uncons
+                (ChoiceOf(decisionIndex) :: remainingDecisionStages) =
+                  decisionStages
                 _ <- State.set(remainingDecisionStages)
               } yield choicesByCumulativeFrequency
                 .minAfter(1 + decisionIndex)
@@ -427,16 +435,22 @@ case class TrialsImplementation[Case](
             case Factory(factory) =>
               for {
                 decisionStages <- State.get[DecisionStages]
-                Some((FactoryInputOf(input), remainingDecisionStages)) =
-                  decisionStages.uncons
+                (FactoryInputOf(input) :: remainingDecisionStages) =
+                  decisionStages
                 _ <- State.set(remainingDecisionStages)
               } yield factory(input)
 
             // NOTE: pattern-match only on `Some`, as we are reproducing a case
             // that by dint of being reproduced, must have passed filtration the
             // first time around.
-            case FiltrationResult(Some(caze)) =>
-              caze.pure[DecisionIndicesContext]
+            case FiltrationResult(Some(result)) =>
+              result.pure[DecisionIndicesContext]
+
+            case NoteComplexity =>
+              0.pure[DecisionIndicesContext]
+
+            case ResetComplexity(_) =>
+              ().pure[DecisionIndicesContext]
           }
         }
       }
@@ -456,7 +470,270 @@ case class TrialsImplementation[Case](
   override def withLimit(
       limit: Int
   ): JavaTrials.SupplyToSyntax[Case] with Trials.SupplyToSyntax[Case] =
+    withLimit(limit, defaultComplexityWall)
+
+  override def withLimit(
+      limit: Int,
+      complexityWall: Int
+  ): JavaTrials.SupplyToSyntax[Case] with Trials.SupplyToSyntax[Case] =
     new JavaTrials.SupplyToSyntax[Case] with Trials.SupplyToSyntax[Case] {
+      final case class NonEmptyDecisionStages(
+          latestDecision: Decision,
+          previousDecisions: DecisionStagesInReverseOrder
+      )
+
+      final case object noDecisionStages extends DecisionStagesInReverseOrder {
+        override def appendInReverseOnTo(
+            partialResult: DecisionStages
+        ): DecisionStages = partialResult
+      }
+
+      final case class InternedDecisionStages(index: Int)
+          extends DecisionStagesInReverseOrder {
+        override def appendInReverseOnTo(
+            partialResult: DecisionStages
+        ): DecisionStages =
+          Option(
+            nonEmptyToAndFromInternedDecisionStages.inverse().get(this)
+          ) match {
+            case Some(
+                  NonEmptyDecisionStages(latestDecision, previousDecisions)
+                ) =>
+              previousDecisions.appendInReverseOnTo(
+                latestDecision :: partialResult
+              )
+          }
+      }
+
+      private val nonEmptyToAndFromInternedDecisionStages
+          : BiMap[NonEmptyDecisionStages, InternedDecisionStages] =
+        HashBiMap.create()
+
+      private def interned(
+          nonEmptyDecisionStages: NonEmptyDecisionStages
+      ): InternedDecisionStages =
+        Option(
+          nonEmptyToAndFromInternedDecisionStages.computeIfAbsent(
+            nonEmptyDecisionStages,
+            _ => {
+              val freshIndex = nonEmptyToAndFromInternedDecisionStages.size
+              InternedDecisionStages(freshIndex)
+            }
+          )
+        ).get
+
+      sealed trait DecisionStagesInReverseOrder {
+        def reverse: DecisionStages = appendInReverseOnTo(List.empty)
+
+        def appendInReverseOnTo(
+            partialResult: DecisionStages
+        ): DecisionStages
+
+        def addLatest(decision: Decision): DecisionStagesInReverseOrder =
+          interned(
+            NonEmptyDecisionStages(decision, this)
+          )
+      }
+
+      private def cases(
+          limit: Int,
+          complexityWall: Int,
+          randomBehaviour: Random,
+          factoryShrinkage: Long
+      ): Iterator[(DecisionStagesInReverseOrder, Case)] = {
+        require(0 < factoryShrinkage)
+
+        // This is used instead of a straight `Option[Case]` to avoid stack
+        // overflow when interpreting `this.generation`. We need to do this
+        // because a) we have to support recursively flat-mapped trials and b)
+        // even non-recursive trials can bring in a lot of nested flat-maps. Of
+        // course, in the recursive case we merely convert the possibility of
+        // infinite recursion into infinite looping through the `Eval`
+        // trampolining mechanism, so we still have to guard against that and
+        // terminate at some point.
+        type DeferredOption[Case] = OptionT[Eval, Case]
+
+        case class State(
+            decisionStages: DecisionStagesInReverseOrder,
+            complexity: Int
+        ) {
+          def update(decision: ChoiceOf): State = copy(
+            decisionStages = decisionStages.addLatest(decision),
+            complexity = 1 + complexity
+          )
+
+          def update(decision: FactoryInputOf): State = copy(
+            decisionStages = decisionStages.addLatest(decision),
+            complexity = 1 + complexity
+          )
+        }
+
+        object State {
+          val initial = new State(
+            decisionStages = noDecisionStages,
+            complexity = 0
+          )
+        }
+
+        type StateUpdating[Case] =
+          StateT[DeferredOption, State, Case]
+
+        // NASTY HACK: what follows is a hacked alternative to using the reader
+        // monad whereby the injected context is *mutable*, but at least it's
+        // buried in the interpreter for `GenerationOperation`, expressed as a
+        // closure over `randomBehaviour`. The reified `FiltrationResult` values
+        // are also handled by the interpreter too. Read 'em and weep!
+
+        sealed trait Possibilities
+
+        case class Choices(possibleIndices: LazyList[Int]) extends Possibilities
+
+        val possibilitiesThatFollowSomeChoiceOfDecisionStages =
+          mutable.Map.empty[DecisionStagesInReverseOrder, Possibilities]
+
+        def interpreter(depth: Int): GenerationOperation ~> StateUpdating =
+          new (GenerationOperation ~> StateUpdating) {
+            override def apply[Case](
+                generationOperation: GenerationOperation[Case]
+            ): StateUpdating[Case] =
+              generationOperation match {
+                case Choice(choicesByCumulativeFrequency) =>
+                  val numberOfChoices =
+                    choicesByCumulativeFrequency.keys.lastOption.getOrElse(0)
+                  if (0 < numberOfChoices)
+                    for {
+                      state <- StateT.get[DeferredOption, State]
+                      _ <- liftUnitIfTheNumberOfDecisionStagesIsNotTooLarge(
+                        state
+                      )
+                      index #:: remainingPossibleIndices =
+                        possibilitiesThatFollowSomeChoiceOfDecisionStages
+                          .get(
+                            state.decisionStages
+                          ) match {
+                          case Some(Choices(possibleIndices))
+                              if possibleIndices.nonEmpty =>
+                            possibleIndices
+                          case _ =>
+                            randomBehaviour
+                              .buildRandomSequenceOfDistinctIntegersFromZeroToOneLessThan(
+                                numberOfChoices
+                              )
+                        }
+                      _ <- StateT.set[DeferredOption, State](
+                        state.update(
+                          ChoiceOf(index)
+                        )
+                      )
+                    } yield {
+                      possibilitiesThatFollowSomeChoiceOfDecisionStages(
+                        state.decisionStages
+                      ) = Choices(remainingPossibleIndices)
+                      choicesByCumulativeFrequency.minAfter(1 + index).get._2
+                    }
+                  else StateT.liftF(OptionT.none)
+
+                case Factory(factory) =>
+                  for {
+                    state <- StateT.get[DeferredOption, State]
+                    _ <- liftUnitIfTheNumberOfDecisionStagesIsNotTooLarge(state)
+                    input = randomBehaviour.nextLong() / factoryShrinkage
+                    _ <- StateT.set[DeferredOption, State](
+                      state.update(FactoryInputOf(input))
+                    )
+                  } yield factory(input)
+
+                case FiltrationResult(result) =>
+                  StateT.liftF(OptionT.fromOption(result))
+
+                case NoteComplexity =>
+                  for {
+                    state <- StateT.get[DeferredOption, State]
+                  } yield state.complexity
+
+                case ResetComplexity(complexity) =>
+                  for {
+                    _ <- StateT.modify[DeferredOption, State](
+                      _.copy(complexity = complexity)
+                    )
+                  } yield ()
+              }
+
+            private def liftUnitIfTheNumberOfDecisionStagesIsNotTooLarge[Case](
+                state: State
+            ): StateUpdating[Unit] = if (state.complexity < complexityWall)
+              StateT.pure(())
+            else
+              StateT.liftF[DeferredOption, State, Unit](
+                OptionT.none
+              )
+          }
+
+        {
+          // NASTY HACK: what was previously a Java-style imperative iterator
+          // implementation has, ahem, 'matured' into an overall imperative
+          // iterator forwarding to another with a `collect` to flatten out the
+          // `Option` part of the latter's output. Both co-operate by sharing
+          // mutable state used to determine when the overall iterator should
+          // stop yielding output. This in turn allows another hack, namely to
+          // intercept calls to `forEach` on the overall iterator so that it can
+          // monitor cases that don't pass inline filtration.
+          var starvationCountdown: Int         = limit
+          var backupOfStarvationCountdown      = 0
+          var numberOfUniqueCasesProduced: Int = 0
+          val potentialDuplicates =
+            mutable.Set.empty[DecisionStagesInReverseOrder]
+
+          def remainingGap = limit - numberOfUniqueCasesProduced
+
+          val coreIterator =
+            new Iterator[Option[(DecisionStagesInReverseOrder, Case)]] {
+              override def hasNext: Boolean =
+                0 < remainingGap && 0 < starvationCountdown
+
+              override def next()
+                  : Option[(DecisionStagesInReverseOrder, Case)] =
+                generation
+                  .foldMap(interpreter(depth = 0))
+                  .run(State.initial)
+                  .value
+                  .value match {
+                  case Some((State(decisionStages, _), caze))
+                      if potentialDuplicates.add(decisionStages) =>
+                    numberOfUniqueCasesProduced += 1
+                    backupOfStarvationCountdown = starvationCountdown
+                    starvationCountdown = Math
+                      .round(Math.sqrt(limit * remainingGap))
+                      .toInt
+                    Some(decisionStages -> caze)
+                  case _ =>
+                    starvationCountdown -= 1
+                    None
+                }
+            }.collect { case Some(caze) => caze }
+
+          new Iterator[(DecisionStagesInReverseOrder, Case)] {
+            override def hasNext: Boolean = coreIterator.hasNext
+
+            override def next(): (DecisionStagesInReverseOrder, Case) =
+              coreIterator.next()
+
+            override def foreach[U](
+                f: ((DecisionStagesInReverseOrder, Case)) => U
+            ): Unit = {
+              super.foreach { input =>
+                try {
+                  f(input)
+                } catch {
+                  case _: RejectionByInlineFilter =>
+                    numberOfUniqueCasesProduced -= 1
+                    starvationCountdown = backupOfStarvationCountdown - 1
+                }
+              }
+            }
+          }
+        }
+      }
 
       // Java-only API ...
       override def supplyTo(consumer: Consumer[Case]): Unit =
@@ -467,7 +744,7 @@ case class TrialsImplementation[Case](
 
         val factoryShrinkage = 1
 
-        cases(limit, None, randomBehaviour, factoryShrinkage)
+        cases(limit, complexityWall, randomBehaviour, factoryShrinkage)
           .map(_._2)
           .asJava
       }
@@ -501,13 +778,13 @@ case class TrialsImplementation[Case](
 
             cases(
               limitWithExtraLeewayThatHasBeenObservedToFindBetterShrunkCases,
-              Some(numberOfDecisionStages),
+              numberOfDecisionStages,
               randomBehaviour,
               factoryShrinkage
             )
               .foreach {
                 case (
-                      decisionStagesForPotentialShrunkCase,
+                      decisionStagesForPotentialShrunkCaseInReverseOrder,
                       potentialShrunkCase
                     ) =>
                   try {
@@ -515,6 +792,9 @@ case class TrialsImplementation[Case](
                   } catch {
                     case rejection: RejectionByInlineFilter => throw rejection
                     case throwableFromPotentialShrunkCase: Throwable =>
+                      val decisionStagesForPotentialShrunkCase =
+                        decisionStagesForPotentialShrunkCaseInReverseOrder.reverse
+
                       assert(
                         decisionStagesForPotentialShrunkCase.size <= numberOfDecisionStages
                       )
@@ -582,8 +862,8 @@ case class TrialsImplementation[Case](
 
         val factoryShrinkage = 1
 
-        cases(limit, None, randomBehaviour, factoryShrinkage).foreach {
-          case (decisionStages, caze) =>
+        cases(limit, complexityWall, randomBehaviour, factoryShrinkage)
+          .foreach { case (decisionStagesInReverseOrder, caze) =>
             try {
               consumer(caze)
             } catch {
@@ -592,190 +872,14 @@ case class TrialsImplementation[Case](
                 shrink(
                   caze,
                   throwable,
-                  decisionStages,
+                  decisionStagesInReverseOrder.reverse,
                   factoryShrinkage,
                   limit
                 )
             }
-        }
+          }
       }
     }
-
-  private def cases(
-      limit: Int,
-      overridingMaximumNumberOfDecisionStages: Option[Int],
-      randomBehaviour: Random,
-      factoryShrinkage: Long
-  ): Iterator[(DecisionStages, Case)] = {
-    require(0 < factoryShrinkage)
-
-    type DeferredOption[Case] = OptionT[Eval, Case]
-
-    case class State(
-        decisionStages: DecisionStages
-    ) {
-      def update(decision: ChoiceOf): State = copy(
-        decisionStages = decisionStages :+ decision
-      )
-
-      def update(decision: FactoryInputOf): State = copy(
-        decisionStages = decisionStages :+ decision
-      )
-    }
-
-    object State {
-      val initial = new State(Dequeue.empty)
-    }
-
-    type DecisionIndicesAndMultiplicity = (DecisionStages, Int)
-
-    type StateUpdating[Case] =
-      StateT[DeferredOption, State, Case]
-
-    // NASTY HACK: what follows is a hacked alternative to using the reader
-    // monad whereby the injected context is *mutable*, but at least it's buried
-    // in the interpreter for `GenerationOperation`, expressed as a closure over
-    // `randomBehaviour`. The reified `FiltrationResult` values are also handled
-    // by the interpreter too. If it's any consolation, it means that
-    // flat-mapping is stack-safe - although I'm not entirely sure about
-    // alternation. Read 'em and weep!
-
-    val maximumNumberOfDecisionStages: Int = 100
-
-    sealed trait Possibilities
-
-    case class Choices(possibleIndices: LazyList[Int]) extends Possibilities
-
-    val possibilitiesThatFollowSomeChoiceOfDecisionStages =
-      mutable.Map.empty[DecisionStages, Possibilities]
-
-    def interpreter(depth: Int): GenerationOperation ~> StateUpdating =
-      new (GenerationOperation ~> StateUpdating) {
-        override def apply[Case](
-            generationOperation: GenerationOperation[Case]
-        ): StateUpdating[Case] =
-          generationOperation match {
-            case Choice(choicesByCumulativeFrequency) =>
-              val numberOfChoices =
-                choicesByCumulativeFrequency.keys.lastOption.getOrElse(0)
-              if (0 < numberOfChoices)
-                for {
-                  state <- StateT.get[DeferredOption, State]
-                  _ <- liftUnitIfTheNumberOfDecisionStagesIsNotTooLarge(state)
-                  index #:: remainingPossibleIndices =
-                    possibilitiesThatFollowSomeChoiceOfDecisionStages
-                      .get(
-                        state.decisionStages
-                      ) match {
-                      case Some(Choices(possibleIndices))
-                          if possibleIndices.nonEmpty =>
-                        possibleIndices
-                      case _ =>
-                        randomBehaviour
-                          .buildRandomSequenceOfDistinctIntegersFromZeroToOneLessThan(
-                            numberOfChoices
-                          )
-                    }
-                  _ <- StateT.set[DeferredOption, State](
-                    state.update(
-                      ChoiceOf(index)
-                    )
-                  )
-                } yield {
-                  possibilitiesThatFollowSomeChoiceOfDecisionStages(
-                    state.decisionStages
-                  ) = Choices(remainingPossibleIndices)
-                  choicesByCumulativeFrequency.minAfter(1 + index).get._2
-                }
-              else StateT.liftF(OptionT.none)
-
-            case Factory(factory) =>
-              for {
-                state <- StateT.get[DeferredOption, State]
-                _     <- liftUnitIfTheNumberOfDecisionStagesIsNotTooLarge(state)
-                input = randomBehaviour.nextLong() / factoryShrinkage
-                _ <- StateT.set[DeferredOption, State](
-                  state.update(FactoryInputOf(input))
-                )
-              } yield factory(input)
-
-            case FiltrationResult(result) =>
-              StateT.liftF(OptionT.fromOption(result))
-          }
-
-        private def liftUnitIfTheNumberOfDecisionStagesIsNotTooLarge[Case](
-            state: State
-        ): StateUpdating[Unit] = {
-          val numberOfDecisionStages = state.decisionStages.size
-          val limit = overridingMaximumNumberOfDecisionStages
-            .getOrElse(maximumNumberOfDecisionStages)
-          if (numberOfDecisionStages < limit)
-            ().pure[StateUpdating]
-          else
-            StateT.liftF[DeferredOption, State, Unit](
-              OptionT.none
-            )
-        }
-      }
-
-    {
-      // NASTY HACK: what was previously a Java-style imperative iterator
-      // implementation has, ahem, 'matured' into an overall imperative iterator
-      // forwarding to another with a `collect` to flatten out the `Option` part
-      // of the latter's output. Both co-operate by sharing mutable state used
-      // to determine when the overall iterator should stop yielding output.
-      // This in turn allows another hack, namely to intercept calls to
-      // `forEach` on the overall iterator so that it can monitor cases that
-      // don't pass inline filtration.
-      var starvationCountdown: Int         = limit
-      var backupOfStarvationCountdown      = 0
-      var numberOfUniqueCasesProduced: Int = 0
-      val potentialDuplicates              = mutable.Set.empty[DecisionStages]
-
-      def remainingGap = limit - numberOfUniqueCasesProduced
-
-      val coreIterator = new Iterator[Option[(DecisionStages, Case)]] {
-        override def hasNext: Boolean =
-          0 < remainingGap && 0 < starvationCountdown
-
-        override def next(): Option[(DecisionStages, Case)] =
-          generation
-            .foldMap(interpreter(depth = 0))
-            .run(State.initial)
-            .value
-            .value match {
-            case Some((State(decisionStages), caze))
-                if potentialDuplicates.add(decisionStages) =>
-              numberOfUniqueCasesProduced += 1
-              backupOfStarvationCountdown = starvationCountdown
-              starvationCountdown =
-                Math.round(Math.sqrt(starvationCountdown * remainingGap)).toInt
-              Some(decisionStages -> caze)
-            case _ =>
-              starvationCountdown -= 1
-              None
-          }
-      }.collect { case Some(caze) => caze }
-
-      new Iterator[(DecisionStages, Case)] {
-        override def hasNext: Boolean = coreIterator.hasNext
-
-        override def next(): (DecisionStages, Case) = coreIterator.next()
-
-        override def foreach[U](f: ((DecisionStages, Case)) => U): Unit = {
-          super.foreach { input =>
-            try {
-              f(input)
-            } catch {
-              case _: RejectionByInlineFilter =>
-                numberOfUniqueCasesProduced -= 1
-                starvationCountdown = backupOfStarvationCountdown - 1
-            }
-          }
-        }
-      }
-    }
-  }
 
   // Java-only API ...
   override def map[TransformedCase](
@@ -1022,23 +1126,32 @@ case class TrialsImplementation[Case](
   private def lotsOfSize[Container](
       size: Int,
       builderFactory: => Builder[Case, Container]
-  ): TrialsImplementation[Container] = {
-    def addItems(
-        numberOfItems: Int,
-        partialResult: List[Case]
-    ): TrialsImplementation[Container] =
-      if (0 >= numberOfItems) scalaApi.only {
-        val builder = builderFactory
-        partialResult.foreach(builder += _)
-        builder.result()
-      }
-      else
-        flatMap(item =>
-          addItems(numberOfItems - 1, item :: partialResult): Trials[Container]
-        )
+  ): TrialsImplementation[Container] =
+    scalaApi.complexities.flatMap(complexity => {
+      def addItems(
+          numberOfItems: Int,
+          partialResult: List[Case]
+      ): Trials[Container] =
+        if (0 >= numberOfItems)
+          scalaApi.only {
+            val builder = builderFactory
+            partialResult.foreach(builder += _)
+            builder.result()
+          }
+        else
+          flatMap(item =>
+            (scalaApi
+              .resetComplexity(complexity): Trials[Unit])
+              .flatMap(_ =>
+                addItems(
+                  numberOfItems - 1,
+                  item :: partialResult
+                )
+              )
+          )
 
-    addItems(size, Nil)
-  }
+      addItems(size, Nil)
+    })
 
   override def lotsOfSize[Container](size: Int)(implicit
       factory: collection.Factory[Case, Container]

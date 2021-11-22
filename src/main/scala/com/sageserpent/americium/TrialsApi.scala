@@ -51,6 +51,8 @@ trait TrialsApi {
       factory: Factory[Case, Sequence[Case]]
   ): Trials[Sequence[Case]]
 
+  def complexities: Trials[Int]
+
   def stream[Case](factory: CaseFactory[Case]): Trials[Case]
 
   def streamLegacy[Case](factory: Long => Case): Trials[Case]

@@ -77,6 +77,8 @@ public interface TrialsApi {
 
     <Case> Trials<ImmutableList<Case>> lists(List<Trials<Case>> listOfTrials);
 
+    Trials<Integer> complexities();
+
     <Case> Trials<Case> stream(CaseFactory<Case> caseFactory);
 
     /**

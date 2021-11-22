@@ -103,6 +103,8 @@ trait Trials[+Case] extends TrialsFactoring[Case] with GenerationSupport[Case] {
 
   def withLimit(limit: Int): SupplyToSyntax[Case]
 
+  def withLimit(limit: Int, complexityWall: Int): SupplyToSyntax[Case]
+
   def withRecipe(recipe: String): SupplyToSyntax[Case]
 
   def and[Case2](secondTrials: Trials[Case2]): Trials.Tuple2Trials[Case, Case2]

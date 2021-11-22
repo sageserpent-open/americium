@@ -48,10 +48,26 @@ public abstract class Trials<Case> implements TrialsFactoring<Case> {
      * Fluent syntax for configuring a limit to the number of cases
      * supplied to a consumer.
      *
-     * @param limit
+     * @param limit The maximum number of cases that can be supplied - note
+     *              that this is no guarantee that so many cases will be
+     *              supplied, it is simply a limit.
      * @return An instance of {@link SupplyToSyntax} with the limit configured.
      */
     public abstract Trials.SupplyToSyntax<Case> withLimit(final int limit);
+
+    /**
+     * Fluent syntax for configuring a limit to the number of cases
+     * supplied to a consumer.
+     *
+     * @param limit          The maximum number of cases that can be supplied
+     *                       - note that this is no guarantee that so many
+     *                       cases will be supplied, it is simply a limit.
+     * @param complexityWall <b>One past</b> the highest complexity that a
+     *                       case may achieve as it is synthesized.
+     * @return An instance of {@link SupplyToSyntax} with the limit configured.
+     */
+    public abstract Trials.SupplyToSyntax<Case> withLimit(
+            final int limit, final int complexityWall);
 
     /**
      * Reproduce a trial case using a recipe. This is intended to repeatedly
