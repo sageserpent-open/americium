@@ -795,7 +795,7 @@ case class TrialsImplementation[Case](
                         if (
                           !lessComplex && stillEnoughRoomToIncreaseShrinkageFactor
                         )
-                          2 * factoryShrinkage
+                          factoryShrinkage << 1
                         else factoryShrinkage
 
                       if (shouldPersevere) {
@@ -818,7 +818,7 @@ case class TrialsImplementation[Case](
             // shrunk cases this way.
 
             if (stillEnoughRoomToIncreaseShrinkageFactor) {
-              val increasedFactoryShrinkage = 2 * factoryShrinkage
+              val increasedFactoryShrinkage = factoryShrinkage << 1
 
               shrink(
                 caze,
