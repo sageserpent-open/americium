@@ -285,7 +285,8 @@ object TrialsImplementation {
     override def bytes: TrialsImplementation[Byte] =
       stream(input => (input >> (JavaLong.SIZE / JavaByte.SIZE - 1)).toByte)
 
-    override def integers: TrialsImplementation[Int] = stream(_.hashCode)
+    override def integers: TrialsImplementation[Int] =
+      stream(input => (input >> (JavaLong.SIZE / JavaInteger.SIZE - 1)).toByte)
 
     override def longs: TrialsImplementation[Long] = stream(identity)
 
