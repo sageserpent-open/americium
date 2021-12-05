@@ -299,7 +299,8 @@ object TrialsImplementation {
         (input >> (JavaLong.SIZE / JavaByte.SIZE - 1)).toByte
       )
 
-    override def integers: TrialsImplementation[Int] = streamLegacy(_.hashCode)
+    override def integers: TrialsImplementation[Int] =
+      longs.map(_ max Int.MinValue).map(_ min Int.MaxValue).map(_.toInt)
 
     override def longs: TrialsImplementation[Long] = streamLegacy(identity)
 
@@ -814,7 +815,7 @@ case class TrialsImplementation[Case](
                         if (
                           !lessComplex && stillEnoughRoomToIncreaseShrinkageFactor
                         )
-                          2 * factoryShrinkage
+                          factoryShrinkage << 1
                         else factoryShrinkage
 
                       if (shouldPersevere) {
@@ -837,7 +838,7 @@ case class TrialsImplementation[Case](
             // shrunk cases this way.
 
             if (stillEnoughRoomToIncreaseShrinkageFactor) {
-              val increasedFactoryShrinkage = 2 * factoryShrinkage
+              val increasedFactoryShrinkage = factoryShrinkage << 1
 
               shrink(
                 caze,
