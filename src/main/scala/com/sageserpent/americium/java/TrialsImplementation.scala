@@ -286,7 +286,7 @@ object TrialsImplementation {
       stream(input => (input >> (JavaLong.SIZE / JavaByte.SIZE - 1)).toByte)
 
     override def integers: TrialsImplementation[Int] =
-      stream(input => (input >> (JavaLong.SIZE / JavaInteger.SIZE - 1)).toByte)
+      longs.map(_ max Int.MinValue).map(_ min Int.MaxValue).map(_.toInt)
 
     override def longs: TrialsImplementation[Long] = stream(identity)
 
