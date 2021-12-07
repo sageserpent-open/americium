@@ -47,7 +47,7 @@ object TrialsSpec {
   val api: TrialsApi         = Trials.api
   val javaApi: JavaTrialsApi = JavaTrials.api
 
-  val limit: Int = 2000
+  val limit: Int = 3500
 
   def byteVectorTrials: Trials[Vector[Byte]] = {
     // FIXME: the need to do this shows that some kind of weighted distribution
@@ -74,7 +74,7 @@ object TrialsSpec {
   def listTrials: Trials[List[Int]] =
     // FIXME: the need to do this shows that some kind of weighted distribution
     // is a good idea.
-    api.alternateWithWeights(1 -> api.only(0), 10 -> api.integers).several
+    api.alternateWithWeights(5 -> api.only(0), 10 -> api.integers).several
 
   def binaryTreeTrials: Trials[BinaryTree] = api.alternate(
     for {
@@ -85,7 +85,7 @@ object TrialsSpec {
     // FIXME: the need to do this shows that some kind of weighted
     // distribution is a good idea.
     api
-      .alternateWithWeights(1 -> api.only(0), 10 -> api.integers)
+      .alternateWithWeights(5 -> api.only(0), 10 -> api.integers)
       .map(Leaf.apply)
   )
 

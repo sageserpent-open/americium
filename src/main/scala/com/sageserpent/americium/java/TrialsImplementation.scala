@@ -168,10 +168,10 @@ object TrialsImplementation {
         factory: JavaFunction[JavaLong, Case]
     ): TrialsImplementation[Case] = stream(
       new CaseFactory[Case] {
-        override def apply(input: Long): Case   = factory(input)
-        override val lowerBoundInput: Long      = Long.MinValue
-        override val upperBoundInput: Long      = Long.MaxValue
-        override val maximallyShrunkInput: Long = 0L
+        override def apply(input: Int): Case   = factory(input)
+        override val lowerBoundInput: Int      = Int.MinValue
+        override val upperBoundInput: Int      = Int.MaxValue
+        override val maximallyShrunkInput: Int = 0
       }
     )
 
@@ -287,29 +287,38 @@ object TrialsImplementation {
         factory: Long => Case
     ): TrialsImplementation[Case] = stream(
       new CaseFactory[Case] {
-        override def apply(input: Long): Case   = factory(input)
-        override val lowerBoundInput: Long      = Long.MinValue
-        override val upperBoundInput: Long      = Long.MaxValue
-        override val maximallyShrunkInput: Long = 0L
+        override def apply(input: Int): Case   = factory(input)
+        override val lowerBoundInput: Int      = Int.MinValue
+        override val upperBoundInput: Int      = Int.MaxValue
+        override val maximallyShrunkInput: Int = 0
       }
     )
 
     override def bytes: TrialsImplementation[Byte] =
       streamLegacy(input =>
-        (input >> (JavaLong.SIZE / JavaByte.SIZE - 1)).toByte
+        (input >> (JavaInteger.SIZE / JavaByte.SIZE - 1)).toByte
       )
 
     override def integers: TrialsImplementation[Int] =
-      longs.map(_ max Int.MinValue).map(_ min Int.MaxValue).map(_.toInt)
+      streamLegacy(_.toInt)
 
-    override def longs: TrialsImplementation[Long] = streamLegacy(identity)
+    // NASTY HACK...
+    override def longs: TrialsImplementation[Long] = streamLegacy { input =>
+      input match {
+        case Int.MinValue => Long.MinValue
+        case Int.MaxValue => Long.MaxValue
+        case _ =>
+          val magnitude = input.abs
+          magnitude / Int.MaxValue * Long.MaxValue + (Int.MaxValue - magnitude) * input / Int.MaxValue
+      }
+    }
 
     override def doubles: TrialsImplementation[Double] =
       streamLegacy { input =>
         val betweenZeroAndOne = new Random(input).nextDouble()
         Math.scalb(
           betweenZeroAndOne,
-          (input.toDouble * JavaDouble.MAX_EXPONENT / Long.MaxValue).toInt
+          (input.toDouble * JavaDouble.MAX_EXPONENT / Int.MaxValue).toInt
         )
       }
         .flatMap(zeroOrPositive =>
@@ -439,7 +448,7 @@ case class TrialsImplementation[Case](
                 (FactoryInputOf(input) :: remainingDecisionStages) =
                   decisionStages
                 _ <- State.set(remainingDecisionStages)
-              } yield factory(input)
+              } yield factory(input.toInt)
 
             // NOTE: pattern-match only on `Some`, as we are reproducing a case
             // that by dint of being reproduced, must have passed filtration the
@@ -540,9 +549,9 @@ case class TrialsImplementation[Case](
           limit: Int,
           complexityWall: Int,
           randomBehaviour: Random,
-          factoryShrinkage: Long
+          scale: BigDecimal
       ): Iterator[(DecisionStagesInReverseOrder, Case)] = {
-        require(0 < factoryShrinkage)
+        require(0 <= scale)
 
         // This is used instead of a straight `Option[Case]` to avoid stack
         // overflow when interpreting `this.generation`. We need to do this
@@ -638,11 +647,43 @@ case class TrialsImplementation[Case](
                   for {
                     state <- StateT.get[DeferredOption, State]
                     _ <- liftUnitIfTheNumberOfDecisionStagesIsNotTooLarge(state)
-                    input = randomBehaviour.nextLong() / factoryShrinkage
+                    input = {
+                      val upperBoundInput: BigDecimal =
+                        factory.upperBoundInput()
+                      val lowerBoundInput: BigDecimal =
+                        factory.lowerBoundInput()
+                      val maximallyShrunkInput: BigDecimal =
+                        factory.maximallyShrunkInput()
+
+                      val maximumScale: BigDecimal =
+                        (upperBoundInput - lowerBoundInput) / 2
+
+                      // TODO: the calling code needs to understand the scale
+                      // dictated by the factory, or perhaps it should just
+                      // specify the blend?
+                      // For now this only holds by coincidence...
+                      require(scale <= maximumScale)
+
+                      val blend: BigDecimal =
+                        scale / maximumScale
+
+                      val midPoint: BigDecimal =
+                        blend * (upperBoundInput + lowerBoundInput) / 2 + (1 - blend) * maximallyShrunkInput
+
+                      val sign = if (randomBehaviour.nextBoolean()) 1 else -1
+
+                      val delta: BigDecimal =
+                        sign * scale * randomBehaviour.nextDouble()
+
+                      (midPoint + delta)
+                        .setScale(0, BigDecimal.RoundingMode.HALF_EVEN)
+                        .rounded
+                        .toLong
+                    }
                     _ <- StateT.set[DeferredOption, State](
                       state.update(FactoryInputOf(input))
                     )
-                  } yield factory(input)
+                  } yield factory(input.toInt)
 
                 case FiltrationResult(result) =>
                   StateT.liftF(OptionT.fromOption(result))
@@ -743,9 +784,9 @@ case class TrialsImplementation[Case](
       override def asIterator(): JavaIterator[Case] = {
         val randomBehaviour = new Random(734874)
 
-        val factoryShrinkage = 1
+        val scale: BigDecimal = Int.MaxValue
 
-        cases(limit, complexityWall, randomBehaviour, factoryShrinkage)
+        cases(limit, complexityWall, randomBehaviour, scale)
           .map(_._2)
           .asJava
       }
@@ -759,7 +800,7 @@ case class TrialsImplementation[Case](
             caze: Case,
             throwable: Throwable,
             decisionStages: DecisionStages,
-            factoryShrinkage: Long,
+            scale: BigDecimal,
             limit: Int
         ): Unit = {
           val numberOfDecisionStages = decisionStages.size
@@ -774,14 +815,14 @@ case class TrialsImplementation[Case](
             val limitWithExtraLeewayThatHasBeenObservedToFindBetterShrunkCases =
               (100 * limit / 99) max limit
 
-            val stillEnoughRoomToIncreaseShrinkageFactor =
-              (Long.MaxValue >> 1) >= factoryShrinkage
+            val stillEnoughRoomToDecreaseScale =
+              scale >= 1
 
             cases(
               limitWithExtraLeewayThatHasBeenObservedToFindBetterShrunkCases,
               numberOfDecisionStages,
               randomBehaviour,
-              factoryShrinkage
+              scale
             )
               .foreach {
                 case (
@@ -806,24 +847,22 @@ case class TrialsImplementation[Case](
                       val shouldPersevere =
                         decisionStagesForPotentialShrunkCase.exists {
                           case FactoryInputOf(_)
-                              if stillEnoughRoomToIncreaseShrinkageFactor =>
+                              if stillEnoughRoomToDecreaseScale =>
                             true
                           case _ => false
                         } || lessComplex
 
-                      val factoryShrinkageForRecursion =
-                        if (
-                          !lessComplex && stillEnoughRoomToIncreaseShrinkageFactor
-                        )
-                          factoryShrinkage << 1
-                        else factoryShrinkage
+                      val scaleForRecursion =
+                        if (!lessComplex && stillEnoughRoomToDecreaseScale)
+                          scale / 2
+                        else scale
 
                       if (shouldPersevere) {
                         shrink(
                           potentialShrunkCase,
                           throwableFromPotentialShrunkCase,
                           decisionStagesForPotentialShrunkCase,
-                          factoryShrinkageForRecursion,
+                          scaleForRecursion,
                           limitWithExtraLeewayThatHasBeenObservedToFindBetterShrunkCases
                         )
                       }
@@ -837,14 +876,14 @@ case class TrialsImplementation[Case](
             // upper limit, and it does winkle out some really hard to find
             // shrunk cases this way.
 
-            if (stillEnoughRoomToIncreaseShrinkageFactor) {
-              val increasedFactoryShrinkage = factoryShrinkage << 1
+            if (stillEnoughRoomToDecreaseScale) {
+              val decreasedScale = scale / 2
 
               shrink(
                 caze,
                 throwable,
                 decisionStages,
-                increasedFactoryShrinkage,
+                decreasedScale,
                 limitWithExtraLeewayThatHasBeenObservedToFindBetterShrunkCases
               )
             }
@@ -861,9 +900,9 @@ case class TrialsImplementation[Case](
           }
         }
 
-        val factoryShrinkage = 1
+        val scale: BigDecimal = Int.MaxValue
 
-        cases(limit, complexityWall, randomBehaviour, factoryShrinkage)
+        cases(limit, complexityWall, randomBehaviour, scale)
           .foreach { case (decisionStagesInReverseOrder, caze) =>
             try {
               consumer(caze)
@@ -874,7 +913,7 @@ case class TrialsImplementation[Case](
                   caze,
                   throwable,
                   decisionStagesInReverseOrder.reverse,
-                  factoryShrinkage,
+                  scale,
                   limit
                 )
             }
