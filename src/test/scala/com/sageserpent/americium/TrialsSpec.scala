@@ -47,7 +47,7 @@ object TrialsSpec {
   val api: TrialsApi         = Trials.api
   val javaApi: JavaTrialsApi = JavaTrials.api
 
-  val limit: Int = 3500
+  val limit: Int = 350
 
   def byteVectorTrials: Trials[Vector[Byte]] = {
     // FIXME: the need to do this shows that some kind of weighted distribution
@@ -74,7 +74,7 @@ object TrialsSpec {
   def listTrials: Trials[List[Int]] =
     // FIXME: the need to do this shows that some kind of weighted distribution
     // is a good idea.
-    api.alternateWithWeights(5 -> api.only(0), 10 -> api.integers).several
+    api.alternateWithWeights(3 -> api.only(0), 10 -> api.integers).several
 
   def binaryTreeTrials: Trials[BinaryTree] = api.alternate(
     for {
@@ -85,7 +85,7 @@ object TrialsSpec {
     // FIXME: the need to do this shows that some kind of weighted
     // distribution is a good idea.
     api
-      .alternateWithWeights(5 -> api.only(0), 10 -> api.integers)
+      .alternateWithWeights(3 -> api.only(0), 10 -> api.integers)
       .map(Leaf.apply)
   )
 
@@ -718,6 +718,8 @@ class TrialsSpec
           mockConsumer.expects(product)
         )
 
+        val limit = 1500
+
         sut.withLimit(limit).supplyTo(mockConsumer)
       }
     }
@@ -952,15 +954,15 @@ class TrialsSpec
   }
 
   it should "be shrunk to a simple case" in {
-    type DescriptionTrialsAndCriterion[X] =
-      (String, Trials[Vector[X]], Vector[X] => Boolean)
+    type DescriptionTrialsCriterionAndLimit[X] =
+      (String, Trials[Vector[X]], Vector[X] => Boolean, Int)
 
     def testBodyInWildcardCapture[X](
-        trialsAndCriterion: DescriptionTrialsAndCriterion[X]
+        trialsAndCriterion: DescriptionTrialsCriterionAndLimit[X]
     ): Unit =
       withExpectations {
         trialsAndCriterion match {
-          case (description, sut, exceptionCriterion) =>
+          case (description, sut, exceptionCriterion, limit) =>
             val complainingConsumer = { caze: Vector[X] =>
               if (exceptionCriterion(caze))
                 throw ExceptionWithCasePayload(caze)
@@ -1013,7 +1015,7 @@ class TrialsSpec
       }
 
     forAll(
-      Table[DescriptionTrialsAndCriterion[_]](
+      Table[DescriptionTrialsCriterionAndLimit[_]](
         "(description, trials, exceptionCriterion)",
         (
           // This first entry isn't expected to shrink the values, only the
@@ -1021,130 +1023,152 @@ class TrialsSpec
           "Has more than one text item whose converted values sum to more than 7.",
           api.strings map (_.toVector) map (_.map(_.toInt)),
           (integerVector: Vector[Int]) =>
-            1 < integerVector.size && integerVector.sum > 7
+            1 < integerVector.size && integerVector.sum > 7,
+          limit
         ),
         (
           "Has more than one item and sums to more than 7.",
           doubleVectorTrials,
           (doubleVector: Vector[Double]) =>
-            1 < doubleVector.size && doubleVector.sum > 7
+            1 < doubleVector.size && doubleVector.sum > 7,
+          limit
         ),
         (
           "Has more than one item and sums to more than 7.",
           byteVectorTrials,
           (integerVector: Vector[Byte]) =>
-            1 < integerVector.size && integerVector.sum > 7
+            1 < integerVector.size && integerVector.sum > 7,
+          limit
         ),
         (
           "Has more than one item and sums to more than 7.",
           integerVectorTrials,
           (integerVector: Vector[Int]) =>
-            1 < integerVector.size && integerVector.sum > 7
+            1 < integerVector.size && integerVector.sum > 7,
+          limit
         ),
         (
           "Has more than one item, no zeroes and sums to more than 7.",
           integerVectorTrials,
           (integerVector: Vector[Int]) =>
             1 < integerVector.size && integerVector.sum > 7 && !integerVector
-              .contains(0)
+              .contains(0),
+          limit
         ),
         (
           "Has more than one item, at least one zero and sums to more than 7.",
           integerVectorTrials,
           (integerVector: Vector[Int]) =>
             1 < integerVector.size && integerVector.sum > 7 && integerVector
-              .contains(0)
+              .contains(0),
+          limit
         ),
         (
           "Has more than one item and sums to more than 7.",
           longVectorTrials,
           (longVector: Vector[Long]) =>
-            1 < longVector.size && longVector.sum > 7
+            1 < longVector.size && longVector.sum > 7,
+          limit
         ),
         (
           "Has more than one item, no zeroes and sums to more than 7.",
           longVectorTrials,
           (longVector: Vector[Long]) =>
-            1 < longVector.size && longVector.sum > 7 && !longVector.contains(0)
+            1 < longVector.size && longVector.sum > 7 && !longVector.contains(
+              0
+            ),
+          limit
         ),
         (
           "Has more than one item, at least one zero and sums to more than 7.",
           longVectorTrials,
           (longVector: Vector[Long]) =>
-            1 < longVector.size && longVector.sum > 7 && longVector.contains(0)
+            1 < longVector.size && longVector.sum > 7 && longVector.contains(0),
+          limit
         ),
         (
           "Has more than 7 items.",
           integerVectorTrials,
-          (integerVector: Vector[Int]) => integerVector.size > 7
+          (integerVector: Vector[Int]) => integerVector.size > 7,
+          limit
         ),
         (
           "Has more than one item, at least one non-zero and sums to a multiple of 7.",
           integerVectorTrials,
           (integerVector: Vector[Int]) =>
             1 < integerVector.size && 0 == integerVector.sum % 7 && integerVector
-              .exists(0 != _)
+              .exists(0 != _),
+          limit
         ),
         (
           "Has more than one item, no zeroes and sums to a multiple of 7.",
           integerVectorTrials,
           (integerVector: Vector[Int]) =>
             1 < integerVector.size && 0 == integerVector.sum % 7 && !integerVector
-              .contains(0)
+              .contains(0),
+          limit
         ),
         (
           "Has more than one item, at least one zero and sums to a multiple of 7.",
           integerVectorTrials,
           (integerVector: Vector[Int]) =>
             1 < integerVector.size && 0 == integerVector.sum % 7 && integerVector
-              .contains(0)
+              .contains(0),
+          limit
         ),
         (
           "Has more than one item and sums to a positive multiple of 7.",
           integerVectorTrials,
           (integerVector: Vector[Int]) =>
-            1 < integerVector.size && 0 == integerVector.sum % 7 && 0 < integerVector.sum
+            1 < integerVector.size && 0 == integerVector.sum % 7 && 0 < integerVector.sum,
+          limit
         ),
         (
           "Has more than one item, no zeroes and sums to a positive multiple of 7.",
           integerVectorTrials,
           (integerVector: Vector[Int]) =>
             1 < integerVector.size && 0 == integerVector.sum % 7 && 0 < integerVector.sum && !integerVector
-              .contains(0)
+              .contains(0),
+          limit
         ),
         (
           "Has more than one item, at least one non-zero and sums to a positive multiple of 7.",
           integerVectorTrials,
           (integerVector: Vector[Int]) =>
             1 < integerVector.size && 0 == integerVector.sum % 7 && 0 < integerVector.sum && integerVector
-              .exists(0 != _)
+              .exists(0 != _),
+          limit
         ),
         (
           "Flattened binary tree with more than one leaf that sums to a multiple of 19 greater than 19.",
           binaryTreeTrials map (_.flatten),
           (integerVector: Vector[Int]) =>
-            1 < integerVector.size && 0 == integerVector.sum % 19 && 19 < integerVector.sum
+            1 < integerVector.size && 0 == integerVector.sum % 19 && 19 < integerVector.sum,
+          limit
         ),
         (
           "Flattened binary tree with more than one leaf and no zeroes that sums to a multiple of 19 greater than 19.",
           binaryTreeTrials map (_.flatten),
           (integerVector: Vector[Int]) =>
             1 < integerVector.size && 0 == integerVector.sum % 19 && 19 < integerVector.sum && !integerVector
-              .contains(0)
+              .contains(0),
+          limit
         ),
         (
           "Flattened binary tree with more than one leaf and at least one zero that sums to a multiple of 19 greater than 19.",
           binaryTreeTrials map (_.flatten),
           (integerVector: Vector[Int]) =>
             1 < integerVector.size && 0 == integerVector.sum % 19 && 19 < integerVector.sum && integerVector
-              .contains(0)
+              .contains(0),
+          limit
         ),
         (
           "Has more than five items, at least one non-zero and sums to a multiple of 7.",
           integerVectorTrials,
           (integerVector: Vector[Int]) =>
             5 < integerVector.size && 0 == integerVector.sum % 7 && integerVector
-              .exists(0 != _)
+              .exists(0 != _),
+          limit
         ),
         (
           "Has more than two items and is not sorted in ascending order.",
@@ -1152,13 +1176,15 @@ class TrialsSpec
           (integerVector: Vector[Int]) =>
             2 < integerVector.size && integerVector
               .zip(integerVector.tail)
-              .exists { case (first, second) => first > second }
+              .exists { case (first, second) => first > second },
+          limit
         ),
         (
           "Has more than two items and no duplicates.",
           integerVectorTrials,
           (integerVector: Vector[Int]) =>
-            2 < integerVector.size && integerVector.distinct == integerVector
+            2 < integerVector.size && integerVector.distinct == integerVector,
+          limit
         ),
         (
           "Flattened binary tree with more than two leaves whose odd-indexed leaves contain zeroes and even-indexed leaves contain non-zero values that sum to a multiple of 31 greater than 31.",
@@ -1166,7 +1192,8 @@ class TrialsSpec
           (integerVector: Vector[Int]) =>
             2 < integerVector.size && 0 == integerVector.sum % 31 && 31 < integerVector.sum && (0 until integerVector.size forall (
               index => 0 == index % 2 ^ 0 == integerVector(index)
-            ))
+            )),
+          5000
         ),
         (
           "List with more than two elements whose odd-indexed elements contain zeroes and even-indexed elements contain non-zero values that sum to a multiple of 31 greater than 31.",
@@ -1174,7 +1201,8 @@ class TrialsSpec
           (integerVector: Vector[Int]) =>
             2 < integerVector.size && 0 == integerVector.sum % 31 && 31 < integerVector.sum && (0 until integerVector.size forall (
               index => 0 == index % 2 ^ 0 == integerVector(index)
-            ))
+            )),
+          5000
         )
       )
     ) { trialsAndCriterion =>
