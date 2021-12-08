@@ -52,6 +52,8 @@ import scala.util.Random
 object TrialsImplementation {
   val defaultComplexityWall = 100
 
+  val maximumShrinkageIndex = 40
+
   type DecisionStages   = List[Decision]
   type Generation[Case] = Free[GenerationOperation, Case]
 
@@ -549,9 +551,9 @@ case class TrialsImplementation[Case](
           limit: Int,
           complexityWall: Int,
           randomBehaviour: Random,
-          scale: BigDecimal
+          shrinkageIndex: Int
       ): Iterator[(DecisionStagesInReverseOrder, Case)] = {
-        require(0 <= scale)
+        require((0 to maximumShrinkageIndex).contains(shrinkageIndex))
 
         // This is used instead of a straight `Option[Case]` to avoid stack
         // overflow when interpreting `this.generation`. We need to do this
@@ -658,14 +660,11 @@ case class TrialsImplementation[Case](
                       val maximumScale: BigDecimal =
                         (upperBoundInput - lowerBoundInput) / 2
 
-                      // TODO: the calling code needs to understand the scale
-                      // dictated by the factory, or perhaps it should just
-                      // specify the blend?
-                      // For now this only holds by coincidence...
-                      require(scale <= maximumScale)
-
-                      val blend: BigDecimal =
-                        scale / maximumScale
+                      val scale: BigDecimal = maximumScale / Math.pow(
+                        (maximumScale / 2).toDouble,
+                        shrinkageIndex.toDouble / maximumShrinkageIndex
+                      )
+                      val blend: BigDecimal = scale / maximumScale
 
                       val midPoint: BigDecimal =
                         blend * (upperBoundInput + lowerBoundInput) / 2 + (1 - blend) * maximallyShrunkInput
@@ -784,9 +783,9 @@ case class TrialsImplementation[Case](
       override def asIterator(): JavaIterator[Case] = {
         val randomBehaviour = new Random(734874)
 
-        val scale: BigDecimal = Int.MaxValue
+        val shrinkageIndex: Int = 0
 
-        cases(limit, complexityWall, randomBehaviour, scale)
+        cases(limit, complexityWall, randomBehaviour, shrinkageIndex)
           .map(_._2)
           .asJava
       }
@@ -800,7 +799,7 @@ case class TrialsImplementation[Case](
             caze: Case,
             throwable: Throwable,
             decisionStages: DecisionStages,
-            scale: BigDecimal,
+            shrinkageIndex: Int,
             limit: Int
         ): Unit = {
           val numberOfDecisionStages = decisionStages.size
@@ -816,13 +815,13 @@ case class TrialsImplementation[Case](
               (100 * limit / 99) max limit
 
             val stillEnoughRoomToDecreaseScale =
-              scale >= 1
+              shrinkageIndex < maximumShrinkageIndex
 
             cases(
               limitWithExtraLeewayThatHasBeenObservedToFindBetterShrunkCases,
               numberOfDecisionStages,
               randomBehaviour,
-              scale
+              shrinkageIndex
             )
               .foreach {
                 case (
@@ -852,17 +851,17 @@ case class TrialsImplementation[Case](
                           case _ => false
                         } || lessComplex
 
-                      val scaleForRecursion =
+                      val shrinkageIndexForRecursion =
                         if (!lessComplex && stillEnoughRoomToDecreaseScale)
-                          scale / 2
-                        else scale
+                          1 + shrinkageIndex
+                        else shrinkageIndex
 
                       if (shouldPersevere) {
                         shrink(
                           potentialShrunkCase,
                           throwableFromPotentialShrunkCase,
                           decisionStagesForPotentialShrunkCase,
-                          scaleForRecursion,
+                          shrinkageIndexForRecursion,
                           limitWithExtraLeewayThatHasBeenObservedToFindBetterShrunkCases
                         )
                       }
@@ -877,13 +876,13 @@ case class TrialsImplementation[Case](
             // shrunk cases this way.
 
             if (stillEnoughRoomToDecreaseScale) {
-              val decreasedScale = scale / 2
+              val increasedShrinkageIndex = 1 + shrinkageIndex
 
               shrink(
                 caze,
                 throwable,
                 decisionStages,
-                decreasedScale,
+                increasedShrinkageIndex,
                 limitWithExtraLeewayThatHasBeenObservedToFindBetterShrunkCases
               )
             }
@@ -900,9 +899,9 @@ case class TrialsImplementation[Case](
           }
         }
 
-        val scale: BigDecimal = Int.MaxValue
+        val shrinkageIndex: Int = 0
 
-        cases(limit, complexityWall, randomBehaviour, scale)
+        cases(limit, complexityWall, randomBehaviour, shrinkageIndex)
           .foreach { case (decisionStagesInReverseOrder, caze) =>
             try {
               consumer(caze)
@@ -913,7 +912,7 @@ case class TrialsImplementation[Case](
                   caze,
                   throwable,
                   decisionStagesInReverseOrder.reverse,
-                  scale,
+                  shrinkageIndex,
                   limit
                 )
             }
