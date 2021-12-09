@@ -170,10 +170,10 @@ object TrialsImplementation {
         factory: JavaFunction[JavaLong, Case]
     ): TrialsImplementation[Case] = stream(
       new CaseFactory[Case] {
-        override def apply(input: Int): Case   = factory(input)
-        override val lowerBoundInput: Int      = Int.MinValue
-        override val upperBoundInput: Int      = Int.MaxValue
-        override val maximallyShrunkInput: Int = 0
+        override def apply(input: Long): Case   = factory(input)
+        override val lowerBoundInput: Long      = Long.MinValue
+        override val upperBoundInput: Long      = Long.MaxValue
+        override val maximallyShrunkInput: Long = 0L
       }
     )
 
@@ -289,38 +289,37 @@ object TrialsImplementation {
         factory: Long => Case
     ): TrialsImplementation[Case] = stream(
       new CaseFactory[Case] {
-        override def apply(input: Int): Case   = factory(input)
-        override val lowerBoundInput: Int      = Int.MinValue
-        override val upperBoundInput: Int      = Int.MaxValue
-        override val maximallyShrunkInput: Int = 0
+        override def apply(input: Long): Case   = factory(input)
+        override val lowerBoundInput: Long      = Long.MinValue
+        override val upperBoundInput: Long      = Long.MaxValue
+        override val maximallyShrunkInput: Long = 0L
       }
     )
 
     override def bytes: TrialsImplementation[Byte] =
-      streamLegacy(input =>
-        (input >> (JavaInteger.SIZE / JavaByte.SIZE - 1)).toByte
-      )
+      stream(new CaseFactory[Byte] {
+        override def apply(input: Long): Byte     = input.toByte
+        override def lowerBoundInput(): Long      = Byte.MinValue
+        override def upperBoundInput(): Long      = Byte.MaxValue
+        override def maximallyShrunkInput(): Long = 0
+      })
 
     override def integers: TrialsImplementation[Int] =
-      streamLegacy(_.toInt)
+      stream(new CaseFactory[Int] {
+        override def apply(input: Long): Int      = input.toInt
+        override def lowerBoundInput(): Long      = Int.MinValue
+        override def upperBoundInput(): Long      = Int.MaxValue
+        override def maximallyShrunkInput(): Long = 0
+      })
 
-    // NASTY HACK...
-    override def longs: TrialsImplementation[Long] = streamLegacy { input =>
-      input match {
-        case Int.MinValue => Long.MinValue
-        case Int.MaxValue => Long.MaxValue
-        case _ =>
-          val magnitude = input.abs
-          magnitude / Int.MaxValue * Long.MaxValue + (Int.MaxValue - magnitude) * input / Int.MaxValue
-      }
-    }
+    override def longs: TrialsImplementation[Long] = streamLegacy(identity)
 
     override def doubles: TrialsImplementation[Double] =
       streamLegacy { input =>
         val betweenZeroAndOne = new Random(input).nextDouble()
         Math.scalb(
           betweenZeroAndOne,
-          (input.toDouble * JavaDouble.MAX_EXPONENT / Int.MaxValue).toInt
+          (input.toDouble * JavaDouble.MAX_EXPONENT / Long.MaxValue).toInt
         )
       }
         .flatMap(zeroOrPositive =>
@@ -682,7 +681,7 @@ case class TrialsImplementation[Case](
                     _ <- StateT.set[DeferredOption, State](
                       state.update(FactoryInputOf(input))
                     )
-                  } yield factory(input.toInt)
+                  } yield factory(input)
 
                 case FiltrationResult(result) =>
                   StateT.liftF(OptionT.fromOption(result))

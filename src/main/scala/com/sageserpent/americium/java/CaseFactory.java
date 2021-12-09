@@ -8,11 +8,11 @@ public abstract class CaseFactory<Case> {
         Verify.verify(maximallyShrunkInput() <= upperBoundInput());
     }
 
-    public abstract Case apply(int input);
+    public abstract Case apply(long input);
 
-    public abstract int lowerBoundInput();
+    public abstract long lowerBoundInput();
 
-    public abstract int upperBoundInput();
+    public abstract long upperBoundInput();
 
-    public abstract int maximallyShrunkInput();
+    public abstract long maximallyShrunkInput();
 }
