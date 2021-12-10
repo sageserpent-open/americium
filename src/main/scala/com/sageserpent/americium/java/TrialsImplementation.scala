@@ -659,24 +659,26 @@ case class TrialsImplementation[Case](
                       val maximumScale: BigDecimal =
                         (upperBoundInput - lowerBoundInput) / 2
 
-                      val scale: BigDecimal = maximumScale / Math.pow(
-                        (maximumScale / 2).toDouble,
-                        shrinkageIndex.toDouble / maximumShrinkageIndex
-                      )
-                      val blend: BigDecimal = scale / maximumScale
+                      if (0 < maximumScale) {
+                        val scale: BigDecimal = maximumScale / Math.pow(
+                          (maximumScale / 2).toDouble,
+                          shrinkageIndex.toDouble / maximumShrinkageIndex
+                        )
+                        val blend: BigDecimal = scale / maximumScale
 
-                      val midPoint: BigDecimal =
-                        blend * (upperBoundInput + lowerBoundInput) / 2 + (1 - blend) * maximallyShrunkInput
+                        val midPoint: BigDecimal =
+                          blend * (upperBoundInput + lowerBoundInput) / 2 + (1 - blend) * maximallyShrunkInput
 
-                      val sign = if (randomBehaviour.nextBoolean()) 1 else -1
+                        val sign = if (randomBehaviour.nextBoolean()) 1 else -1
 
-                      val delta: BigDecimal =
-                        sign * scale * randomBehaviour.nextDouble()
+                        val delta: BigDecimal =
+                          sign * scale * randomBehaviour.nextDouble()
 
-                      (midPoint + delta)
-                        .setScale(0, BigDecimal.RoundingMode.HALF_EVEN)
-                        .rounded
-                        .toLong
+                        (midPoint + delta)
+                          .setScale(0, BigDecimal.RoundingMode.HALF_EVEN)
+                          .rounded
+                          .toLong
+                      } else { maximallyShrunkInput.toLong }
                     }
                     _ <- StateT.set[DeferredOption, State](
                       state.update(FactoryInputOf(input))
