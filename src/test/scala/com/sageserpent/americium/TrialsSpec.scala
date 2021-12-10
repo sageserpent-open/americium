@@ -365,104 +365,103 @@ class TrialsSpec
       }
     }
 
-  "a stream based on an isomorphism case factory" should "eventually cover all the inputs from the lower bound to the upper bound inclusive" in
-    forAll(
-      Table(
-        "isomorphism case factories",
-        new CaseFactory[String] {
-          override def apply(input: Long): String   = "Singleton"
-          override def lowerBoundInput(): Long      = 434
-          override def upperBoundInput(): Long      = 434
-          override def maximallyShrunkInput(): Long = 434
-        },
-        new CaseFactory[String] {
-          override def apply(input: Long): String   = "Singleton"
-          override def lowerBoundInput(): Long      = 0
-          override def upperBoundInput(): Long      = 0
-          override def maximallyShrunkInput(): Long = 0
-        },
-        new CaseFactory[Boolean] {
-          override def apply(input: Long): Boolean = input match {
-            case -1L => false
-            case 0L  => true
-          }
-          override def lowerBoundInput(): Long      = -1L
-          override def upperBoundInput(): Long      = 0L
-          override def maximallyShrunkInput(): Long = 0L
-        },
-        new CaseFactory[Boolean] {
-          override def apply(input: Long): Boolean = input match {
-            case 0L => false
-            case 1L => true
-          }
-          override def lowerBoundInput(): Long      = 0L
-          override def upperBoundInput(): Long      = 1L
-          override def maximallyShrunkInput(): Long = 0L
-        },
-        new CaseFactory[Boolean] {
-          override def apply(input: Long): Boolean = input match {
-            case -1L => true
-            case 0L  => false
-          }
-          override def lowerBoundInput(): Long      = -1L
-          override def upperBoundInput(): Long      = 0L
-          override def maximallyShrunkInput(): Long = -1L
-        },
-        new CaseFactory[Boolean] {
-          override def apply(input: Long): Boolean = input match {
-            case 0L => true
-            case 1L => false
-          }
-          override def lowerBoundInput(): Long      = 0L
-          override def upperBoundInput(): Long      = 1L
-          override def maximallyShrunkInput(): Long = 1L
-        },
-        new CaseFactory[Byte] {
-          override def apply(input: Long): Byte     = input.toByte
-          override def lowerBoundInput(): Long      = Byte.MinValue
-          override def upperBoundInput(): Long      = Byte.MaxValue
-          override def maximallyShrunkInput(): Long = 2
-        },
-        new CaseFactory[Byte] {
-          override def apply(input: Long): Byte     = input.toByte
-          override def lowerBoundInput(): Long      = Byte.MinValue
-          override def upperBoundInput(): Long      = Byte.MaxValue
-          override def maximallyShrunkInput(): Long = -3
-        },
-        new CaseFactory[Byte] {
-          override def apply(input: Long): Byte     = input.toByte
-          override def lowerBoundInput(): Long      = Byte.MinValue
-          override def upperBoundInput(): Long      = Byte.MaxValue
-          override def maximallyShrunkInput(): Long = 0
-        },
-        new CaseFactory[Byte] {
-          override def apply(input: Long): Byte     = input.toByte
-          override def lowerBoundInput(): Long      = -3
-          override def upperBoundInput(): Long      = Byte.MaxValue
-          override def maximallyShrunkInput(): Long = -3
-        },
-        new CaseFactory[Byte] {
-          override def apply(input: Long): Byte     = input.toByte
-          override def lowerBoundInput(): Long      = Byte.MinValue
-          override def upperBoundInput(): Long      = 5
-          override def maximallyShrunkInput(): Long = 5
-        },
-        new CaseFactory[Byte] {
-          override def apply(input: Long): Byte     = input.toByte
-          override def lowerBoundInput(): Long      = 0
-          override def upperBoundInput(): Long      = Byte.MaxValue
-          override def maximallyShrunkInput(): Long = Byte.MaxValue / 2
-        },
-        new CaseFactory[Byte] {
-          override def apply(input: Long): Byte     = input.toByte
-          override def lowerBoundInput(): Long      = Byte.MinValue
-          override def upperBoundInput(): Long      = Byte.MaxValue
-          override def maximallyShrunkInput(): Long = Byte.MinValue / 3
-        }
-      )
-    ) { isomorphismCaseFactory =>
-      withExpectations {
+  private val isomorphismCaseFactoryTable = Table(
+    "isomorphism case factories",
+    new CaseFactory[String] {
+      override def apply(input: Long): String   = "Singleton"
+      override def lowerBoundInput(): Long      = 434
+      override def upperBoundInput(): Long      = 434
+      override def maximallyShrunkInput(): Long = 434
+    },
+    new CaseFactory[String] {
+      override def apply(input: Long): String   = "Singleton"
+      override def lowerBoundInput(): Long      = 0
+      override def upperBoundInput(): Long      = 0
+      override def maximallyShrunkInput(): Long = 0
+    },
+    new CaseFactory[Boolean] {
+      override def apply(input: Long): Boolean = input match {
+        case -1L => false
+        case 0L  => true
+      }
+      override def lowerBoundInput(): Long      = -1L
+      override def upperBoundInput(): Long      = 0L
+      override def maximallyShrunkInput(): Long = 0L
+    },
+    new CaseFactory[Boolean] {
+      override def apply(input: Long): Boolean = input match {
+        case 0L => false
+        case 1L => true
+      }
+      override def lowerBoundInput(): Long      = 0L
+      override def upperBoundInput(): Long      = 1L
+      override def maximallyShrunkInput(): Long = 0L
+    },
+    new CaseFactory[Boolean] {
+      override def apply(input: Long): Boolean = input match {
+        case -1L => true
+        case 0L  => false
+      }
+      override def lowerBoundInput(): Long      = -1L
+      override def upperBoundInput(): Long      = 0L
+      override def maximallyShrunkInput(): Long = -1L
+    },
+    new CaseFactory[Boolean] {
+      override def apply(input: Long): Boolean = input match {
+        case 0L => true
+        case 1L => false
+      }
+      override def lowerBoundInput(): Long      = 0L
+      override def upperBoundInput(): Long      = 1L
+      override def maximallyShrunkInput(): Long = 1L
+    },
+    new CaseFactory[Byte] {
+      override def apply(input: Long): Byte     = input.toByte
+      override def lowerBoundInput(): Long      = Byte.MinValue
+      override def upperBoundInput(): Long      = Byte.MaxValue
+      override def maximallyShrunkInput(): Long = 2
+    },
+    new CaseFactory[Byte] {
+      override def apply(input: Long): Byte     = input.toByte
+      override def lowerBoundInput(): Long      = Byte.MinValue
+      override def upperBoundInput(): Long      = Byte.MaxValue
+      override def maximallyShrunkInput(): Long = -3
+    },
+    new CaseFactory[Byte] {
+      override def apply(input: Long): Byte     = input.toByte
+      override def lowerBoundInput(): Long      = Byte.MinValue
+      override def upperBoundInput(): Long      = Byte.MaxValue
+      override def maximallyShrunkInput(): Long = 0
+    },
+    new CaseFactory[Byte] {
+      override def apply(input: Long): Byte     = input.toByte
+      override def lowerBoundInput(): Long      = -3
+      override def upperBoundInput(): Long      = Byte.MaxValue
+      override def maximallyShrunkInput(): Long = -3
+    },
+    new CaseFactory[Byte] {
+      override def apply(input: Long): Byte     = input.toByte
+      override def lowerBoundInput(): Long      = Byte.MinValue
+      override def upperBoundInput(): Long      = 5
+      override def maximallyShrunkInput(): Long = 5
+    },
+    new CaseFactory[Byte] {
+      override def apply(input: Long): Byte     = input.toByte
+      override def lowerBoundInput(): Long      = 0
+      override def upperBoundInput(): Long      = Byte.MaxValue
+      override def maximallyShrunkInput(): Long = Byte.MaxValue / 2
+    },
+    new CaseFactory[Byte] {
+      override def apply(input: Long): Byte     = input.toByte
+      override def lowerBoundInput(): Long      = Byte.MinValue
+      override def upperBoundInput(): Long      = Byte.MaxValue
+      override def maximallyShrunkInput(): Long = Byte.MinValue / 3
+    }
+  )
 
+  "a stream based on an isomorphism case factory" should "eventually cover all the inputs from the lower bound to the upper bound inclusive" in
+    forAll(isomorphismCaseFactoryTable) { isomorphismCaseFactory =>
+      withExpectations {
         val sut: Trials[Any] = api.stream(isomorphismCaseFactory)
 
         val mockConsumer = stubFunction[Any, Unit]
@@ -476,6 +475,24 @@ class TrialsSpec
         rangeOfCases.foreach { expectedCase =>
           mockConsumer.verify(expectedCase).atLeastOnce()
         }
+      }
+    }
+
+  it should "result in the maximally shrunk case being reported when all cases fail" in
+    forAll(isomorphismCaseFactoryTable) { isomorphismCaseFactory =>
+      withExpectations {
+        val sut: Trials[Any] = api.stream(isomorphismCaseFactory)
+
+        val angryConsumer: Any => Unit =
+          _ => throw new RuntimeException("Disgusted, Tunbridge Wells!")
+
+        val exception = intercept[sut.TrialException] {
+          sut.withLimit(limit).supplyTo(angryConsumer)
+        }
+
+        exception.provokingCase shouldBe (isomorphismCaseFactory.apply(
+          isomorphismCaseFactory.maximallyShrunkInput()
+        ))
       }
     }
 
