@@ -77,8 +77,48 @@ public interface TrialsApi {
 
     <Case> Trials<ImmutableList<Case>> lists(List<Trials<Case>> listOfTrials);
 
+    /**
+     * This is for advanced usage, where there is a need to control how
+     * trials instances are formulated to avoid hitting a complexity wall, or
+     * alternatively to control the amount of potentially unbounded recursion
+     * when trials are recursively flatmapped. If you don't know what this
+     * means, you probably don't need this.
+     * <p>
+     * The notion of a complexity wall is described in {@link Trials#withLimit}
+     *
+     * @return The complexity associated with the trials context, taking into
+     * account any flatmapping this call is embedded in.
+     */
     Trials<Integer> complexities();
 
+    /**
+     * Produce a trials instance that stream cases from a factory.
+     * <p>
+     * This is used where we want to generate a supposedly potentially
+     * unbounded number of cases, although there is an implied upper limit
+     * based on the number of distinct long values in the factory's input
+     * domain.
+     *
+     * @param caseFactory Pure (in other words, stateless) function that
+     *                    produces a {@code Case} from a long value. Each
+     *                    call taking the same long value is expected to
+     *                    yield the same case. <p>Rather than {@code Function
+     *                    }, the type {@code CaseFactory} is used here - this
+     *                    allows the factory to declare its domain of valid
+     *                    inputs, as well as the input value in that domain
+     *                    that denotes a `maximally shrunk` case.<p>The
+     *                    factory is expected to be an injection, so it can
+     *                    be fed with any potential long value from that
+     *                    domain. It is not expected to be a surjection, so
+     *                    distinct long values may result in equivalent cases.
+     *                    <p>
+     *                    It is expected that long values closer to the
+     *                    maximally shrunk case yield smaller' cases, in
+     *                    whatever sense is appropriate to either the actual
+     *                    type of the cases or their specific use as encoded
+     *                    by the factory.
+     * @return The trials instance
+     */
     <Case> Trials<Case> stream(CaseFactory<Case> caseFactory);
 
     /**
@@ -90,21 +130,18 @@ public interface TrialsApi {
      *
      * @param factory Pure (in other words, stateless) function that produces
      *                a {@code Case} from a long value. Each call taking the
-     *                same long
-     *                value is expected to yield the same case. The factory is
-     *                expected to be an injection, so it can be fed with any
-     *                potential long value, negative, zero or positive. It is
-     *                not expected to be a surjection, even if there are at most
-     *                as many possible values of {@code Case} as there are long
-     *                values, so distinct long values may result in
-     *                equivalent cases.
+     *                same long value is expected to yield the same case. The
+     *                factory is expected to be an injection, so it can be
+     *                fed with any potential long value, negative, zero or
+     *                positive. It is not expected to be a surjection, even
+     *                if there are at most as many possible values of {@code
+     *                Case} as there are long values, so distinct long values
+     *                may result in equivalent cases.
      *                <p>
      *                It is expected that long values closer to zero yield
-     *                'smaller'
-     *                cases, in whatever sense is appropriate to either the
-     *                actual
-     *                type of the cases or their specific use as encoded by
-     *                the factory.
+     *                'smaller' cases, in whatever sense is appropriate to
+     *                either the actual type of the cases or their specific
+     *                use as encoded by the factory.
      * @return The trials instance
      */
     <Case> Trials<Case> streamLegacy(Function<Long, Case> factory);
