@@ -52,7 +52,7 @@ import scala.util.Random
 object TrialsImplementation {
   val defaultComplexityWall = 100
 
-  val maximumShrinkageIndex = 40
+  val maximumShrinkageIndex = 50
 
   type DecisionStages   = List[Decision]
   type Generation[Case] = Free[GenerationOperation, Case]
@@ -372,7 +372,17 @@ object TrialsImplementation {
     def stream[Case](
         caseFactory: CaseFactory[Case]
     ): TrialsImplementation[Case] = new TrialsImplementation(
-      Factory(caseFactory)
+      Factory(new CaseFactory[Case] {
+        override def apply(input: Long): Case = {
+          require(lowerBoundInput() <= input)
+          require(upperBoundInput() >= input)
+          caseFactory(input)
+        }
+        override def lowerBoundInput(): Long = caseFactory.lowerBoundInput()
+        override def upperBoundInput(): Long = caseFactory.upperBoundInput()
+        override def maximallyShrunkInput(): Long =
+          caseFactory.maximallyShrunkInput()
+      })
     )
   }
 
@@ -657,11 +667,16 @@ case class TrialsImplementation[Case](
                         factory.maximallyShrunkInput()
 
                       val maximumScale: BigDecimal =
-                        (upperBoundInput - lowerBoundInput) / 2
+                        upperBoundInput - lowerBoundInput
 
-                      if (0 < maximumScale) {
+                      if (
+                        maximumShrinkageIndex > shrinkageIndex && 0 < maximumScale
+                      ) {
+                        // Calibrate the scale to come out at around one at
+                        // maximum shrinkage, even though the guard clause above
+                        // handles maximum shrinkage explicitly.
                         val scale: BigDecimal = maximumScale / Math.pow(
-                          (maximumScale / 2).toDouble,
+                          maximumScale.toDouble,
                           shrinkageIndex.toDouble / maximumShrinkageIndex
                         )
                         val blend: BigDecimal = scale / maximumScale
@@ -672,7 +687,7 @@ case class TrialsImplementation[Case](
                         val sign = if (randomBehaviour.nextBoolean()) 1 else -1
 
                         val delta: BigDecimal =
-                          sign * scale * randomBehaviour.nextDouble()
+                          sign * scale * randomBehaviour.nextDouble() / 2
 
                         (midPoint + delta)
                           .setScale(0, BigDecimal.RoundingMode.HALF_EVEN)
@@ -865,14 +880,23 @@ case class TrialsImplementation[Case](
                           shrinkageIndexForRecursion,
                           limitWithExtraLeewayThatHasBeenObservedToFindBetterShrunkCases
                         )
+                      } else {
+                        throw new TrialException(
+                          throwableFromPotentialShrunkCase
+                        ) {
+                          override def provokingCase: Case = potentialShrunkCase
+
+                          override def recipe: String =
+                            decisionStagesForPotentialShrunkCase.asJson.spaces4
+                        }
                       }
                   }
               }
 
             // At this point, slogging through the potential shrunk cases failed
             // to find any failures; as a brute force approach, simply retry
-            // with an increased shrinkage factor - this will eventually
-            // terminate as the shrinkage factor isn't allowed to exceed its
+            // with an increased shrinkage index - this will eventually
+            // terminate as the shrinkage index isn't allowed to exceed its
             // upper limit, and it does winkle out some really hard to find
             // shrunk cases this way.
 

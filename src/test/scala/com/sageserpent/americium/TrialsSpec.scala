@@ -470,7 +470,7 @@ class TrialsSpec
 
         val rangeOfCases = isomorphismCaseFactory
           .lowerBoundInput() to isomorphismCaseFactory
-          .upperBoundInput() map (isomorphismCaseFactory.apply)
+          .upperBoundInput() map isomorphismCaseFactory.apply
 
         rangeOfCases.foreach { expectedCase =>
           mockConsumer.verify(expectedCase).atLeastOnce()
