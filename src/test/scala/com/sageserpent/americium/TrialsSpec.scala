@@ -1300,7 +1300,7 @@ class TrialsSpec
           (integerVector: Vector[Int]) =>
             5 < integerVector.size && 0 == integerVector.sum % 7 && integerVector
               .exists(0 != _),
-          limit
+          500
         ),
         (
           "Has more than two items and is not sorted in ascending order.",
