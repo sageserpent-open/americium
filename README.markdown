@@ -629,7 +629,7 @@ towards empty collections.
 
 Furthermore, the factory methods - `.doubles`, `.integers`, `.stream` etc also support shrinking - they have an internal
 parameter that controls the range of the generated values, so as shrinkage proceeds, the values get 'smaller' in some
-sense. For numeric values, that means tending towards zero from both positive and negative values.
+sense. For numeric values, that usually means tending towards zero from both positive and negative values.
 
 The `.strings` factory method shrinks in the same manner as for collections - the strings get shorter, tending to the
 empty string, although the characters range over the full UTF-16 set.
@@ -641,7 +641,7 @@ ranges of the internal parameter...
 ### Are the cases yielded by `.doubles`, `.integers`, `.stream` randomly distributed? ###
 
 Yes, and they should span pretty much the whole range of allowed values. As shrinkage kicks in, this range contracts to
-the 'mininal value' - zero for numeric values, but that can be customised when using `.stream`.
+the 'minimal value' - zero for numeric values, but that can be customised when using `.stream`. See the `CaseFactory` interface if you want to customise the range of allowed values and where the minimal value lies in that range, it doesn't have to sit in the middle.
 
 Hedgehog supports custom distributions and ranges, and Scalacheck has some heuristics for biasing its otherwise random
 distributions. Maybe there should be some support for this here, too...
@@ -652,6 +652,8 @@ No, but you do need to stop trivial infinite recursion. Thankfully that is simpl
 [TrialsSpec.scala](https://github.com/sageserpent-open/americium/blob/e69b9fb60cd90796d96ba1126a90f6c1ab2a7a1d/src/test/scala/com/sageserpent/americium/TrialsSpec.scala#L59)
 Either wrap the recursive calls in a following bind in a flatmap, this will cause them to be evaluated lazily, or if you
 need to lead with a recursive call, wrap it in a call to `.delay`. Both techniques are shown in that example.
+
+Actually, I oversimplified - sure, you won't need to stop lazily-evaluated infinite recursion, but it is possible to mess up a highly recursive trials instance so that it simply doesn't generate any data, due to what is called the 'complexity wall' kicking in. A potential case has an associated complexity, and if in the process of building up an individual case the complexity hits the wall, then this will discard that case from being formulated - this is how infinite recursion is prevented as a nice side benefit. However, one can write recursively formulated trials instances that are 'bushy' - there are several parallel paths of recursion at each step, and this tends to result in complete and utter failure to generate anything more than very simple cases. To see how this is worked around, take a look here: [TrialsSpec.scala](https://github.com/sageserpent-open/americium/blob/5ea1b3088adaaa0270a944ee1694950975b2b911/src/test/scala/com/sageserpent/americium/TrialsSpec.scala#L94).
 
 ### I can see a reference to Scalacheck in the project dependencies. So is this just a sham? ###
 
