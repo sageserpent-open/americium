@@ -61,7 +61,27 @@ trait TrialsApi {
 
   def integers: Trials[Int]
 
+  def integers(lowerBound: Int, upperBound: Int): Trials[Int]
+
+  def integers(
+      lowerBound: Int,
+      upperBound: Int,
+      shrinkageTarget: Int
+  ): Trials[Int]
+
+  def nonNegativeIntegers: Trials[Int]
+
   def longs: Trials[Long]
+
+  def longs(lowerBound: Long, upperBound: Long): Trials[Long]
+
+  def longs(
+      lowerBound: Long,
+      upperBound: Long,
+      shrinkageTarget: Long
+  ): Trials[Long]
+
+  def nonNegativeLongs: Trials[Long]
 
   def doubles: Trials[Double]
 

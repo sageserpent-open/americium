@@ -180,16 +180,48 @@ object TrialsImplementation {
     override def bytes(): JavaTrials[JavaByte] =
       scalaApi.bytes.map(Byte.box)
 
-    override def integers: TrialsImplementation[JavaInteger] =
+    override def integers(): TrialsImplementation[JavaInteger] =
       scalaApi.integers.map(Int.box)
 
-    override def longs: TrialsImplementation[JavaLong] =
+    override def integers(
+        lowerBound: Int,
+        upperBound: Int
+    ): TrialsImplementation[JavaInteger] =
+      scalaApi.integers(lowerBound, upperBound).map(Int.box)
+
+    override def integers(
+        lowerBound: Int,
+        upperBound: Int,
+        shrinkageTarget: Int
+    ): TrialsImplementation[JavaInteger] =
+      scalaApi.integers(lowerBound, upperBound, shrinkageTarget).map(Int.box)
+
+    override def nonNegativeIntegers(): TrialsImplementation[JavaInteger] =
+      scalaApi.nonNegativeIntegers.map(Int.box)
+
+    override def longs(): TrialsImplementation[JavaLong] =
       scalaApi.longs.map(Long.box)
 
-    override def doubles: TrialsImplementation[JavaDouble] =
+    override def longs(
+        lowerBound: Long,
+        upperBound: Long
+    ): TrialsImplementation[JavaLong] =
+      scalaApi.longs(lowerBound, upperBound).map(Long.box)
+
+    override def longs(
+        lowerBound: Long,
+        upperBound: Long,
+        shrinkageTarget: Long
+    ): TrialsImplementation[JavaLong] =
+      scalaApi.longs(lowerBound, upperBound, shrinkageTarget).map(Long.box)
+
+    override def nonNegativeLongs(): TrialsImplementation[JavaLong] =
+      scalaApi.nonNegativeLongs.map(Long.box)
+
+    override def doubles(): TrialsImplementation[JavaDouble] =
       scalaApi.doubles.map(Double.box)
 
-    override def booleans: TrialsImplementation[JavaBoolean] =
+    override def booleans(): TrialsImplementation[JavaBoolean] =
       scalaApi.booleans.map(Boolean.box)
 
     override def characters(): TrialsImplementation[JavaCharacter] =
@@ -301,7 +333,7 @@ object TrialsImplementation {
         override def apply(input: Long): Byte     = input.toByte
         override def lowerBoundInput(): Long      = Byte.MinValue
         override def upperBoundInput(): Long      = Byte.MaxValue
-        override def maximallyShrunkInput(): Long = 0
+        override def maximallyShrunkInput(): Long = 0L
       })
 
     override def integers: TrialsImplementation[Int] =
@@ -309,10 +341,78 @@ object TrialsImplementation {
         override def apply(input: Long): Int      = input.toInt
         override def lowerBoundInput(): Long      = Int.MinValue
         override def upperBoundInput(): Long      = Int.MaxValue
-        override def maximallyShrunkInput(): Long = 0
+        override def maximallyShrunkInput(): Long = 0L
+      })
+
+    override def integers(
+        lowerBound: Int,
+        upperBound: Int
+    ): TrialsImplementation[Int] =
+      stream(new CaseFactory[Int] {
+        override def apply(input: Long): Int = input.toInt
+        override def lowerBoundInput(): Long = lowerBound
+        override def upperBoundInput(): Long = upperBound
+        override def maximallyShrunkInput(): Long = if (0L > upperBound)
+          upperBound
+        else if (0L < lowerBound) lowerBound
+        else 0L
+      })
+
+    override def integers(
+        lowerBound: Int,
+        upperBound: Int,
+        shrinkageTarget: Int
+    ): TrialsImplementation[Int] =
+      stream(new CaseFactory[Int] {
+        override def apply(input: Long): Int      = input.toInt
+        override def lowerBoundInput(): Long      = lowerBound
+        override def upperBoundInput(): Long      = upperBound
+        override def maximallyShrunkInput(): Long = shrinkageTarget
+      })
+
+    override def nonNegativeIntegers: TrialsImplementation[Int] =
+      stream(new CaseFactory[Int] {
+        override def apply(input: Long): Int      = input.toInt
+        override def lowerBoundInput(): Long      = 0L
+        override def upperBoundInput(): Long      = Int.MaxValue
+        override def maximallyShrunkInput(): Long = 0L
       })
 
     override def longs: TrialsImplementation[Long] = streamLegacy(identity)
+
+    override def longs(
+        lowerBound: Long,
+        upperBound: Long
+    ): TrialsImplementation[Long] =
+      stream(new CaseFactory[Long] {
+        override def apply(input: Long): Long = input
+        override def lowerBoundInput(): Long  = lowerBound
+        override def upperBoundInput(): Long  = upperBound
+        override def maximallyShrunkInput(): Long = if (0L > upperBound)
+          upperBound
+        else if (0L < lowerBound) lowerBound
+        else 0L
+      })
+
+    override def longs(
+        lowerBound: Long,
+        upperBound: Long,
+        shrinkageTarget: Long
+    ): TrialsImplementation[Long] =
+      stream(new CaseFactory[Long] {
+        override def apply(input: Long): Long     = input
+        override def lowerBoundInput(): Long      = lowerBound
+        override def upperBoundInput(): Long      = upperBound
+        override def maximallyShrunkInput(): Long = shrinkageTarget
+      })
+
+    override def nonNegativeLongs: TrialsImplementation[Long] =
+      stream(new CaseFactory[Long] {
+        override def apply(input: Long): Long     = input
+        override def lowerBoundInput(): Long      = 0L
+        override def upperBoundInput(): Long      = Long.MaxValue
+        override def maximallyShrunkInput(): Long = 0L
+      })
 
     override def doubles: TrialsImplementation[Double] =
       streamLegacy { input =>

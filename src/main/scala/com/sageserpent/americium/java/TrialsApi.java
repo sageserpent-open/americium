@@ -150,7 +150,20 @@ public interface TrialsApi {
 
     Trials<Integer> integers();
 
+    Trials<Integer> integers(int lowerBound, int upperBound);
+
+    Trials<Integer> integers(int lowerBound, int upperBound,
+                             int shrinkageTarget);
+
+    Trials<Integer> nonNegativeIntegers();
+
     Trials<Long> longs();
+
+    Trials<Long> longs(long lowerBound, long upperBound);
+
+    Trials<Long> longs(long lowerBound, long upperBound, long shrinkageTarget);
+
+    Trials<Long> nonNegativeLongs();
 
     Trials<Double> doubles();
 
