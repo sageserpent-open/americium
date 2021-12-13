@@ -84,6 +84,20 @@ public abstract class Trials<Case> implements TrialsFactoring<Case> {
     public abstract <Case2> Trials.Tuple2Trials<Case, Case2> and(
             Trials<Case2> secondTrials);
 
+    /**
+     * Transform this to a trials of collection, where {@link Collection} is
+     * some kind of collection that can be built from elements of type
+     * {@link Case} by a {@link Builder}.
+     *
+     * @param builderFactory A supplier that should construct a *fresh*
+     *                       instance of a {@Builder}.
+     * @param <Collection>   Any kind of collection that can take an
+     *                       arbitrary number of elements of type {@Case}.
+     * @return A trials instance that yields collections.
+     */
+    public abstract <Collection> Trials<Collection> collections(
+            Supplier<Builder<Case, Collection>> builderFactory);
+
     public abstract Trials<ImmutableList<Case>> immutableLists();
 
     public abstract Trials<ImmutableSet<Case>> immutableSets();
@@ -97,6 +111,9 @@ public abstract class Trials<Case> implements TrialsFactoring<Case> {
     public abstract <Value> Trials<ImmutableSortedMap<Case, Value>> immutableSortedMaps(
             final Comparator<Case> elementComparator,
             final Trials<Value> values);
+
+    public abstract <Collection> Trials<Collection> collectionsOfSize(
+            final int size, Supplier<Builder<Case, Collection>> builderFactory);
 
     public abstract Trials<ImmutableList<Case>> immutableListsOfSize(
             final int size);

@@ -508,12 +508,6 @@ object TrialsImplementation {
 
   case class ResetComplexity[Case](complexity: Int)
       extends GenerationOperation[Unit]
-
-  trait Builder[-Case, Container] {
-    def +=(caze: Case): Unit
-
-    def result(): Container
-  }
 }
 
 case class TrialsImplementation[Case](
@@ -1068,15 +1062,22 @@ case class TrialsImplementation[Case](
       case _                                    => None
     })
 
+  override def collections[Collection](
+      builderFactory: Supplier[
+        Builder[Case, Collection]
+      ]
+  ): TrialsImplementation[Collection] =
+    several(builderFactory.get())
+
   override def immutableLists(): TrialsImplementation[ImmutableList[Case]] =
     several(new Builder[Case, ImmutableList[Case]] {
       private val underlyingBuilder = ImmutableList.builder[Case]()
 
-      override def +=(caze: Case): Unit = {
+      override def add(caze: Case): Unit = {
         underlyingBuilder.add(caze)
       }
 
-      override def result(): ImmutableList[Case] =
+      override def build(): ImmutableList[Case] =
         underlyingBuilder.build()
     })
 
@@ -1084,11 +1085,11 @@ case class TrialsImplementation[Case](
     several(new Builder[Case, ImmutableSet[Case]] {
       private val underlyingBuilder = ImmutableSet.builder[Case]()
 
-      override def +=(caze: Case): Unit = {
+      override def add(caze: Case): Unit = {
         underlyingBuilder.add(caze)
       }
 
-      override def result(): ImmutableSet[Case] =
+      override def build(): ImmutableSet[Case] =
         underlyingBuilder.build()
     })
 
@@ -1099,11 +1100,11 @@ case class TrialsImplementation[Case](
       private val underlyingBuilder: ImmutableSortedSet.Builder[Case] =
         new ImmutableSortedSet.Builder(elementComparator)
 
-      override def +=(caze: Case): Unit = {
+      override def add(caze: Case): Unit = {
         underlyingBuilder.add(caze)
       }
 
-      override def result(): ImmutableSortedSet[Case] =
+      override def build(): ImmutableSortedSet[Case] =
         underlyingBuilder.build()
     })
 
@@ -1127,6 +1128,14 @@ case class TrialsImplementation[Case](
       )
   }
 
+  override def collectionsOfSize[Collection](
+      size: Int,
+      builderFactory: Supplier[
+        Builder[Case, Collection]
+      ]
+  ): TrialsImplementation[Collection] =
+    lotsOfSize(size, builderFactory.get())
+
   override def immutableListsOfSize(
       size: Int
   ): TrialsImplementation[ImmutableList[Case]] = lotsOfSize(
@@ -1134,11 +1143,11 @@ case class TrialsImplementation[Case](
     new Builder[Case, ImmutableList[Case]] {
       private val underlyingBuilder = ImmutableList.builder[Case]()
 
-      override def +=(caze: Case): Unit = {
+      override def add(caze: Case): Unit = {
         underlyingBuilder.add(caze)
       }
 
-      override def result(): ImmutableList[Case] =
+      override def build(): ImmutableList[Case] =
         underlyingBuilder.build()
     }
   )
@@ -1223,32 +1232,32 @@ case class TrialsImplementation[Case](
       secondTrials: Trials[Case2]
   ): Trials.Tuple2Trials[Case, Case2] = new Tuple2Trials(this, secondTrials)
 
-  private def several[Container](
-      builderFactory: => Builder[Case, Container]
-  ): TrialsImplementation[Container] = {
-    def addItems(partialResult: List[Case]): TrialsImplementation[Container] =
+  private def several[Collection](
+      builderFactory: => Builder[Case, Collection]
+  ): TrialsImplementation[Collection] = {
+    def addItems(partialResult: List[Case]): TrialsImplementation[Collection] =
       scalaApi.alternate(
         scalaApi.only {
           val builder = builderFactory
-          partialResult.foreach(builder += _)
-          builder.result()
+          partialResult.foreach(builder add _)
+          builder.build()
         },
-        flatMap(item => addItems(item :: partialResult): Trials[Container])
+        flatMap(item => addItems(item :: partialResult): Trials[Collection])
       )
 
     addItems(Nil)
   }
 
-  override def several[Container](implicit
-      factory: scala.collection.Factory[Case, Container]
-  ): TrialsImplementation[Container] = several(new Builder[Case, Container] {
+  override def several[Collection](implicit
+      factory: scala.collection.Factory[Case, Collection]
+  ): TrialsImplementation[Collection] = several(new Builder[Case, Collection] {
     private val underlyingBuilder = factory.newBuilder
 
-    override def +=(caze: Case): Unit = {
+    override def add(caze: Case): Unit = {
       underlyingBuilder += caze
     }
 
-    override def result(): Container = underlyingBuilder.result()
+    override def build(): Collection = underlyingBuilder.result()
   })
 
   override def lists: TrialsImplementation[List[Case]] = several
@@ -1262,11 +1271,11 @@ case class TrialsImplementation[Case](
       val underlyingBuilder: mutable.Builder[Case, SortedSet[Case]] =
         SortedSet.newBuilder(ordering.asInstanceOf[Ordering[Case]])
 
-      override def +=(caze: Case): Unit = {
+      override def add(caze: Case): Unit = {
         underlyingBuilder += caze
       }
 
-      override def result(): SortedSet[_ <: Case] = underlyingBuilder.result()
+      override def build(): SortedSet[_ <: Case] = underlyingBuilder.result()
     }
   )
 
@@ -1287,20 +1296,20 @@ case class TrialsImplementation[Case](
       )
   }
 
-  private def lotsOfSize[Container](
+  private def lotsOfSize[Collection](
       size: Int,
-      builderFactory: => Builder[Case, Container]
-  ): TrialsImplementation[Container] =
+      builderFactory: => Builder[Case, Collection]
+  ): TrialsImplementation[Collection] =
     scalaApi.complexities.flatMap(complexity => {
       def addItems(
           numberOfItems: Int,
           partialResult: List[Case]
-      ): Trials[Container] =
+      ): Trials[Collection] =
         if (0 >= numberOfItems)
           scalaApi.only {
             val builder = builderFactory
-            partialResult.foreach(builder += _)
-            builder.result()
+            partialResult.foreach(builder add _)
+            builder.build()
           }
         else
           flatMap(item =>
@@ -1317,18 +1326,18 @@ case class TrialsImplementation[Case](
       addItems(size, Nil)
     })
 
-  override def lotsOfSize[Container](size: Int)(implicit
-      factory: collection.Factory[Case, Container]
-  ): TrialsImplementation[Container] = lotsOfSize(
+  override def lotsOfSize[Collection](size: Int)(implicit
+      factory: collection.Factory[Case, Collection]
+  ): TrialsImplementation[Collection] = lotsOfSize(
     size,
-    new Builder[Case, Container] {
+    new Builder[Case, Collection] {
       private val underlyingBuilder = factory.newBuilder
 
-      override def +=(caze: Case): Unit = {
+      override def add(caze: Case): Unit = {
         underlyingBuilder += caze
       }
 
-      override def result(): Container = underlyingBuilder.result()
+      override def build(): Collection = underlyingBuilder.result()
     }
   )
 
