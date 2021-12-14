@@ -930,87 +930,85 @@ case class TrialsImplementation[Case](
               val stillEnoughRoomToDecreaseScale =
                 shrinkageIndex < maximumShrinkageIndex
 
-              val outcomes
-                  : Iterator[EitherT[Eval, TrialException, Unit]] = cases(
-                limitWithExtraLeewayThatHasBeenObservedToFindBetterShrunkCases,
-                numberOfDecisionStages,
-                randomBehaviour,
-                shrinkageIndex
-              )
-                .map {
-                  case (
-                        decisionStagesForPotentialShrunkCaseInReverseOrder,
-                        potentialShrunkCase
-                      ) =>
-                    try {
-                      EitherT.rightT(consumer(potentialShrunkCase))
-                    } catch {
-                      case rejection: RejectionByInlineFilter => throw rejection
-                      case throwableFromPotentialShrunkCase: Throwable =>
-                        val decisionStagesForPotentialShrunkCase =
-                          decisionStagesForPotentialShrunkCaseInReverseOrder.reverse
+              val outcomes: LazyList[EitherT[Eval, TrialException, Unit]] =
+                LazyList
+                  .from(
+                    cases(
+                      limitWithExtraLeewayThatHasBeenObservedToFindBetterShrunkCases,
+                      numberOfDecisionStages,
+                      randomBehaviour,
+                      shrinkageIndex
+                    )
+                  )
+                  .map {
+                    case (
+                          decisionStagesForPotentialShrunkCaseInReverseOrder,
+                          potentialShrunkCase
+                        ) =>
+                      try {
+                        EitherT.rightT(consumer(potentialShrunkCase))
+                      } catch {
+                        case rejection: RejectionByInlineFilter =>
+                          throw rejection
+                        case throwableFromPotentialShrunkCase: Throwable =>
+                          val decisionStagesForPotentialShrunkCase =
+                            decisionStagesForPotentialShrunkCaseInReverseOrder.reverse
 
-                        assert(
-                          decisionStagesForPotentialShrunkCase.size <= numberOfDecisionStages
-                        )
-
-                        val lessComplex =
-                          decisionStagesForPotentialShrunkCase.size < numberOfDecisionStages
-
-                        val shouldPersevere =
-                          decisionStagesForPotentialShrunkCase.exists {
-                            case FactoryInputOf(_)
-                                if stillEnoughRoomToDecreaseScale =>
-                              true
-                            case _ => false
-                          } || lessComplex
-
-                        val shrinkageIndexForRecursion =
-                          if (!lessComplex && stillEnoughRoomToDecreaseScale)
-                            1 + shrinkageIndex
-                          else shrinkageIndex
-
-                        if (shouldPersevere) {
-                          EitherT
-                            .pure[Eval, TrialException](())
-                            .flatMap(_ =>
-                              shrink(
-                                potentialShrunkCase,
-                                throwableFromPotentialShrunkCase,
-                                decisionStagesForPotentialShrunkCase,
-                                shrinkageIndexForRecursion,
-                                limitWithExtraLeewayThatHasBeenObservedToFindBetterShrunkCases
-                              )
-                            )
-                        } else
-                          EitherT.leftT(
-                            new TrialException(
-                              throwableFromPotentialShrunkCase
-                            ) {
-                              override def provokingCase: Case =
-                                potentialShrunkCase
-
-                              override def recipe: String =
-                                decisionStagesForPotentialShrunkCase.asJson.spaces4
-                            }
+                          assert(
+                            decisionStagesForPotentialShrunkCase.size <= numberOfDecisionStages
                           )
-                    }
-                }
+
+                          val lessComplex =
+                            decisionStagesForPotentialShrunkCase.size < numberOfDecisionStages
+
+                          val shouldPersevere =
+                            decisionStagesForPotentialShrunkCase.exists {
+                              case FactoryInputOf(_)
+                                  if stillEnoughRoomToDecreaseScale =>
+                                true
+                              case _ => false
+                            } || lessComplex
+
+                          val shrinkageIndexForRecursion =
+                            if (!lessComplex && stillEnoughRoomToDecreaseScale)
+                              1 + shrinkageIndex
+                            else shrinkageIndex
+
+                          if (shouldPersevere) {
+                            shrink(
+                              potentialShrunkCase,
+                              throwableFromPotentialShrunkCase,
+                              decisionStagesForPotentialShrunkCase,
+                              shrinkageIndexForRecursion,
+                              limitWithExtraLeewayThatHasBeenObservedToFindBetterShrunkCases
+                            )
+                          } else
+                            EitherT.leftT(
+                              new TrialException(
+                                throwableFromPotentialShrunkCase
+                              ) {
+                                override def provokingCase: Case =
+                                  potentialShrunkCase
+
+                                override def recipe: String =
+                                  decisionStagesForPotentialShrunkCase.asJson.spaces4
+                              }
+                            )
+                      }
+                  }
 
               val potentialExceptionalOutcome
                   : EitherT[Eval, TrialException, Unit] = {
                 def yieldTheFirstExceptionalOutcomeIfPossible(
-                    potentials: LazyList[EitherT[Eval, TrialException, Unit]]
+                    outcomes: LazyList[EitherT[Eval, TrialException, Unit]]
                 ): EitherT[Eval, TrialException, Unit] =
-                  if (potentials.nonEmpty)
-                    potentials.head.flatMap(_ =>
-                      yieldTheFirstExceptionalOutcomeIfPossible(potentials.tail)
+                  if (outcomes.nonEmpty)
+                    outcomes.head.flatMap(_ =>
+                      yieldTheFirstExceptionalOutcomeIfPossible(outcomes.tail)
                     )
                   else EitherT.pure[Eval, TrialException](())
 
-                yieldTheFirstExceptionalOutcomeIfPossible(
-                  LazyList.from(outcomes)
-                )
+                yieldTheFirstExceptionalOutcomeIfPossible(outcomes)
               }
 
               potentialExceptionalOutcome.flatMap(_ =>
