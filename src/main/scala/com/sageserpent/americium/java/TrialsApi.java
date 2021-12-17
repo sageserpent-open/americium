@@ -17,7 +17,7 @@ public interface TrialsApi {
      * Produce a trials instance that chooses between several cases.
      *
      * @param firstChoice  Mandatory first choice, so there is at least one
-     *                     {@code Case}.
+     *                     {@link Case}.
      * @param secondChoice Mandatory second choice, so there is always some
      *                     element of choice.
      * @param otherChoices Optional further choices.
@@ -50,7 +50,7 @@ public interface TrialsApi {
      * @param firstAlternative  Mandatory first alternative, so there is at
      *                          least one {@link Trials}.
      * @param secondAlternative Mandatory second alternative, so there is
-     *                          always some element of choice.
+     *                          always some element of alternation.
      * @param otherAlternatives Optional further alternatives.
      * @return The {@link Trials} instance.
      * @apiNote The peculiar signature is to avoid ambiguity with the
@@ -84,7 +84,8 @@ public interface TrialsApi {
      * when trials are recursively flatmapped. If you don't know what this
      * means, you probably don't need this.
      * <p>
-     * The notion of a complexity wall is described in {@link Trials#withLimit}
+     * The notion of a complexity wall is described in
+     * {@link Trials#withLimit(int, int)}
      *
      * @return The complexity associated with the trials context, taking into
      * account any flatmapping this call is embedded in.
@@ -100,10 +101,10 @@ public interface TrialsApi {
      * domain.
      *
      * @param caseFactory Pure (in other words, stateless) function that
-     *                    produces a {@code Case} from a long value. Each
+     *                    produces a {@link Case} from a long value. Each
      *                    call taking the same long value is expected to
-     *                    yield the same case. <p>Rather than {@code Function
-     *                    }, the type {@code CaseFactory} is used here - this
+     *                    yield the same case. <p>Rather than {@link Function
+     *                    }, the type {@link CaseFactory} is used here - this
      *                    allows the factory to declare its domain of valid
      *                    inputs, as well as the input value in that domain
      *                    that denotes a `maximally shrunk` case.<p>The
@@ -113,10 +114,10 @@ public interface TrialsApi {
      *                    distinct long values may result in equivalent cases.
      *                    <p>
      *                    It is expected that long values closer to the
-     *                    maximally shrunk case yield smaller' cases, in
-     *                    whatever sense is appropriate to either the actual
-     *                    type of the cases or their specific use as encoded
-     *                    by the factory.
+     *                    case factory's maximally shrunk input yield
+     *                    smaller' cases, in whatever sense is appropriate to
+     *                    either the actual type of the cases or their
+     *                    specific use as implemented by the factory.
      * @return The trials instance
      */
     <Case> Trials<Case> stream(CaseFactory<Case> caseFactory);
