@@ -1,6 +1,7 @@
 package com.sageserpent.americium
 
 import cats.Traverse
+import com.sageserpent.americium.java.CaseFactory
 
 import _root_.java.time.Instant
 import scala.collection.Factory
@@ -50,11 +51,37 @@ trait TrialsApi {
       factory: Factory[Case, Sequence[Case]]
   ): Trials[Sequence[Case]]
 
-  def stream[Case](factory: Long => Case): Trials[Case]
+  def complexities: Trials[Int]
+
+  def stream[Case](factory: CaseFactory[Case]): Trials[Case]
+
+  def streamLegacy[Case](factory: Long => Case): Trials[Case]
+
+  def bytes: Trials[Byte]
 
   def integers: Trials[Int]
 
+  def integers(lowerBound: Int, upperBound: Int): Trials[Int]
+
+  def integers(
+      lowerBound: Int,
+      upperBound: Int,
+      shrinkageTarget: Int
+  ): Trials[Int]
+
+  def nonNegativeIntegers: Trials[Int]
+
   def longs: Trials[Long]
+
+  def longs(lowerBound: Long, upperBound: Long): Trials[Long]
+
+  def longs(
+      lowerBound: Long,
+      upperBound: Long,
+      shrinkageTarget: Long
+  ): Trials[Long]
+
+  def nonNegativeLongs: Trials[Long]
 
   def doubles: Trials[Double]
 

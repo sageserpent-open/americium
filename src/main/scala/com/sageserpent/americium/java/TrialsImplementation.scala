@@ -1,6 +1,5 @@
 package com.sageserpent.americium.java
 
-import cats.collections.Dequeue
 import cats.data.{OptionT, State, StateT}
 import cats.free.Free
 import cats.free.Free.{liftF, pure}
@@ -21,10 +20,10 @@ import com.sageserpent.americium.{Trials, TrialsApi}
 import io.circe.generic.auto._
 import io.circe.parser._
 import io.circe.syntax._
-import io.circe.{Decoder, Encoder}
 
 import _root_.java.lang.{
   Boolean => JavaBoolean,
+  Byte => JavaByte,
   Character => JavaCharacter,
   Double => JavaDouble,
   Integer => JavaInteger,
@@ -51,8 +50,13 @@ import scala.jdk.CollectionConverters._
 import scala.util.Random
 
 object TrialsImplementation {
-  type DecisionStages   = Dequeue[Decision]
+  val defaultComplexityWall = 100
+
+  val maximumShrinkageIndex = 50
+
+  type DecisionStages   = List[Decision]
   type Generation[Case] = Free[GenerationOperation, Case]
+
   val javaApi = new CommonApi with JavaTrialsApi {
     override def delay[Case](
         delayed: Supplier[JavaTrials[Case]]
@@ -159,21 +163,65 @@ object TrialsImplementation {
             }
         )
 
-    override def stream[Case](
-        factory: JavaFunction[JavaLong, Case]
-    ): TrialsImplementation[Case] =
-      scalaApi.stream(Long.box _ andThen factory.apply)
+    override def complexities(): TrialsImplementation[JavaInteger] =
+      scalaApi.complexities.map(Int.box)
 
-    override def integers: TrialsImplementation[JavaInteger] =
+    override def streamLegacy[Case](
+        factory: JavaFunction[JavaLong, Case]
+    ): TrialsImplementation[Case] = stream(
+      new CaseFactory[Case] {
+        override def apply(input: Long): Case   = factory(input)
+        override val lowerBoundInput: Long      = Long.MinValue
+        override val upperBoundInput: Long      = Long.MaxValue
+        override val maximallyShrunkInput: Long = 0L
+      }
+    )
+
+    override def bytes(): JavaTrials[JavaByte] =
+      scalaApi.bytes.map(Byte.box)
+
+    override def integers(): TrialsImplementation[JavaInteger] =
       scalaApi.integers.map(Int.box)
 
-    override def longs: TrialsImplementation[JavaLong] =
+    override def integers(
+        lowerBound: Int,
+        upperBound: Int
+    ): TrialsImplementation[JavaInteger] =
+      scalaApi.integers(lowerBound, upperBound).map(Int.box)
+
+    override def integers(
+        lowerBound: Int,
+        upperBound: Int,
+        shrinkageTarget: Int
+    ): TrialsImplementation[JavaInteger] =
+      scalaApi.integers(lowerBound, upperBound, shrinkageTarget).map(Int.box)
+
+    override def nonNegativeIntegers(): TrialsImplementation[JavaInteger] =
+      scalaApi.nonNegativeIntegers.map(Int.box)
+
+    override def longs(): TrialsImplementation[JavaLong] =
       scalaApi.longs.map(Long.box)
 
-    override def doubles: TrialsImplementation[JavaDouble] =
+    override def longs(
+        lowerBound: Long,
+        upperBound: Long
+    ): TrialsImplementation[JavaLong] =
+      scalaApi.longs(lowerBound, upperBound).map(Long.box)
+
+    override def longs(
+        lowerBound: Long,
+        upperBound: Long,
+        shrinkageTarget: Long
+    ): TrialsImplementation[JavaLong] =
+      scalaApi.longs(lowerBound, upperBound, shrinkageTarget).map(Long.box)
+
+    override def nonNegativeLongs(): TrialsImplementation[JavaLong] =
+      scalaApi.nonNegativeLongs.map(Long.box)
+
+    override def doubles(): TrialsImplementation[JavaDouble] =
       scalaApi.doubles.map(Double.box)
 
-    override def booleans: TrialsImplementation[JavaBoolean] =
+    override def booleans(): TrialsImplementation[JavaBoolean] =
       scalaApi.booleans.map(Boolean.box)
 
     override def characters(): TrialsImplementation[JavaCharacter] =
@@ -263,17 +311,111 @@ object TrialsImplementation {
         factory: collection.Factory[Case, Sequence[Case]]
     ): Trials[Sequence[Case]] = sequenceOfTrials.sequence
 
-    override def stream[Case](
+    override def complexities: TrialsImplementation[Int] =
+      new TrialsImplementation(NoteComplexity)
+
+    def resetComplexity(complexity: Int): TrialsImplementation[Unit] =
+      new TrialsImplementation(ResetComplexity(complexity))
+
+    override def streamLegacy[Case](
         factory: Long => Case
-    ): TrialsImplementation[Case] =
-      new TrialsImplementation(Factory(factory))
+    ): TrialsImplementation[Case] = stream(
+      new CaseFactory[Case] {
+        override def apply(input: Long): Case   = factory(input)
+        override val lowerBoundInput: Long      = Long.MinValue
+        override val upperBoundInput: Long      = Long.MaxValue
+        override val maximallyShrunkInput: Long = 0L
+      }
+    )
 
-    override def integers: TrialsImplementation[Int] = stream(_.hashCode)
+    override def bytes: TrialsImplementation[Byte] =
+      stream(new CaseFactory[Byte] {
+        override def apply(input: Long): Byte     = input.toByte
+        override def lowerBoundInput(): Long      = Byte.MinValue
+        override def upperBoundInput(): Long      = Byte.MaxValue
+        override def maximallyShrunkInput(): Long = 0L
+      })
 
-    override def longs: TrialsImplementation[Long] = stream(identity)
+    override def integers: TrialsImplementation[Int] =
+      stream(new CaseFactory[Int] {
+        override def apply(input: Long): Int      = input.toInt
+        override def lowerBoundInput(): Long      = Int.MinValue
+        override def upperBoundInput(): Long      = Int.MaxValue
+        override def maximallyShrunkInput(): Long = 0L
+      })
+
+    override def integers(
+        lowerBound: Int,
+        upperBound: Int
+    ): TrialsImplementation[Int] =
+      stream(new CaseFactory[Int] {
+        override def apply(input: Long): Int = input.toInt
+        override def lowerBoundInput(): Long = lowerBound
+        override def upperBoundInput(): Long = upperBound
+        override def maximallyShrunkInput(): Long = if (0L > upperBound)
+          upperBound
+        else if (0L < lowerBound) lowerBound
+        else 0L
+      })
+
+    override def integers(
+        lowerBound: Int,
+        upperBound: Int,
+        shrinkageTarget: Int
+    ): TrialsImplementation[Int] =
+      stream(new CaseFactory[Int] {
+        override def apply(input: Long): Int      = input.toInt
+        override def lowerBoundInput(): Long      = lowerBound
+        override def upperBoundInput(): Long      = upperBound
+        override def maximallyShrunkInput(): Long = shrinkageTarget
+      })
+
+    override def nonNegativeIntegers: TrialsImplementation[Int] =
+      stream(new CaseFactory[Int] {
+        override def apply(input: Long): Int      = input.toInt
+        override def lowerBoundInput(): Long      = 0L
+        override def upperBoundInput(): Long      = Int.MaxValue
+        override def maximallyShrunkInput(): Long = 0L
+      })
+
+    override def longs: TrialsImplementation[Long] = streamLegacy(identity)
+
+    override def longs(
+        lowerBound: Long,
+        upperBound: Long
+    ): TrialsImplementation[Long] =
+      stream(new CaseFactory[Long] {
+        override def apply(input: Long): Long = input
+        override def lowerBoundInput(): Long  = lowerBound
+        override def upperBoundInput(): Long  = upperBound
+        override def maximallyShrunkInput(): Long = if (0L > upperBound)
+          upperBound
+        else if (0L < lowerBound) lowerBound
+        else 0L
+      })
+
+    override def longs(
+        lowerBound: Long,
+        upperBound: Long,
+        shrinkageTarget: Long
+    ): TrialsImplementation[Long] =
+      stream(new CaseFactory[Long] {
+        override def apply(input: Long): Long     = input
+        override def lowerBoundInput(): Long      = lowerBound
+        override def upperBoundInput(): Long      = upperBound
+        override def maximallyShrunkInput(): Long = shrinkageTarget
+      })
+
+    override def nonNegativeLongs: TrialsImplementation[Long] =
+      stream(new CaseFactory[Long] {
+        override def apply(input: Long): Long     = input
+        override def lowerBoundInput(): Long      = 0L
+        override def upperBoundInput(): Long      = Long.MaxValue
+        override def maximallyShrunkInput(): Long = 0L
+      })
 
     override def doubles: TrialsImplementation[Double] =
-      stream { input =>
+      streamLegacy { input =>
         val betweenZeroAndOne = new Random(input).nextDouble()
         Math.scalb(
           betweenZeroAndOne,
@@ -301,13 +443,6 @@ object TrialsImplementation {
     }
   }
 
-  implicit val decisionStagesEncoder: Encoder[DecisionStages] =
-    implicitly[Encoder[List[Decision]]].contramap(_.toList)
-  implicit val decisionStagesDecoder: Decoder[DecisionStages] =
-    implicitly[Decoder[List[Decision]]].emap(list =>
-      Right(Dequeue.apply(list: _*))
-    )
-
   sealed trait Decision
 
   // Java and Scala API ...
@@ -333,6 +468,22 @@ object TrialsImplementation {
         otherChoices: Case*
     ): TrialsImplementation[Case] =
       scalaApi.choose(firstChoice +: secondChoice +: otherChoices)
+
+    def stream[Case](
+        caseFactory: CaseFactory[Case]
+    ): TrialsImplementation[Case] = new TrialsImplementation(
+      Factory(new CaseFactory[Case] {
+        override def apply(input: Long): Case = {
+          require(lowerBoundInput() <= input)
+          require(upperBoundInput() >= input)
+          caseFactory(input)
+        }
+        override def lowerBoundInput(): Long = caseFactory.lowerBoundInput()
+        override def upperBoundInput(): Long = caseFactory.upperBoundInput()
+        override def maximallyShrunkInput(): Long =
+          caseFactory.maximallyShrunkInput()
+      })
+    )
   }
 
   case class ChoiceOf(index: Int) extends Decision
@@ -344,7 +495,7 @@ object TrialsImplementation {
   case class Choice[Case](choicesByCumulativeFrequency: SortedMap[Int, Case])
       extends GenerationOperation[Case]
 
-  case class Factory[Case](factory: Long => Case)
+  case class Factory[Case](factory: CaseFactory[Case])
       extends GenerationOperation[Case]
 
   // NASTY HACK: as `Free` does not support `filter/withFilter`, reify
@@ -353,11 +504,10 @@ object TrialsImplementation {
   case class FiltrationResult[Case](result: Option[Case])
       extends GenerationOperation[Case]
 
-  trait Builder[-Case, Container] {
-    def +=(caze: Case): Unit
+  case object NoteComplexity extends GenerationOperation[Int]
 
-    def result(): Container
-  }
+  case class ResetComplexity[Case](complexity: Int)
+      extends GenerationOperation[Unit]
 }
 
 case class TrialsImplementation[Case](
@@ -389,8 +539,8 @@ case class TrialsImplementation[Case](
             case Choice(choicesByCumulativeFrequency) =>
               for {
                 decisionStages <- State.get[DecisionStages]
-                Some((ChoiceOf(decisionIndex), remainingDecisionStages)) =
-                  decisionStages.uncons
+                ChoiceOf(decisionIndex) :: remainingDecisionStages =
+                  decisionStages
                 _ <- State.set(remainingDecisionStages)
               } yield choicesByCumulativeFrequency
                 .minAfter(1 + decisionIndex)
@@ -400,16 +550,22 @@ case class TrialsImplementation[Case](
             case Factory(factory) =>
               for {
                 decisionStages <- State.get[DecisionStages]
-                Some((FactoryInputOf(input), remainingDecisionStages)) =
-                  decisionStages.uncons
+                FactoryInputOf(input) :: remainingDecisionStages =
+                  decisionStages
                 _ <- State.set(remainingDecisionStages)
-              } yield factory(input)
+              } yield factory(input.toInt)
 
             // NOTE: pattern-match only on `Some`, as we are reproducing a case
             // that by dint of being reproduced, must have passed filtration the
             // first time around.
-            case FiltrationResult(Some(caze)) =>
-              caze.pure[DecisionIndicesContext]
+            case FiltrationResult(Some(result)) =>
+              result.pure[DecisionIndicesContext]
+
+            case NoteComplexity =>
+              0.pure[DecisionIndicesContext]
+
+            case ResetComplexity(_) =>
+              ().pure[DecisionIndicesContext]
           }
         }
       }
@@ -429,7 +585,306 @@ case class TrialsImplementation[Case](
   override def withLimit(
       limit: Int
   ): JavaTrials.SupplyToSyntax[Case] with Trials.SupplyToSyntax[Case] =
+    withLimit(limit, defaultComplexityWall)
+
+  override def withLimit(
+      limit: Int,
+      complexityWall: Int
+  ): JavaTrials.SupplyToSyntax[Case] with Trials.SupplyToSyntax[Case] =
     new JavaTrials.SupplyToSyntax[Case] with Trials.SupplyToSyntax[Case] {
+      final case class NonEmptyDecisionStages(
+          latestDecision: Decision,
+          previousDecisions: DecisionStagesInReverseOrder
+      )
+
+      final case object noDecisionStages extends DecisionStagesInReverseOrder {
+        override def appendInReverseOnTo(
+            partialResult: DecisionStages
+        ): DecisionStages = partialResult
+      }
+
+      final case class InternedDecisionStages(index: Int)
+          extends DecisionStagesInReverseOrder {
+        override def appendInReverseOnTo(
+            partialResult: DecisionStages
+        ): DecisionStages =
+          Option(
+            nonEmptyToAndFromInternedDecisionStages.inverse().get(this)
+          ) match {
+            case Some(
+                  NonEmptyDecisionStages(latestDecision, previousDecisions)
+                ) =>
+              previousDecisions.appendInReverseOnTo(
+                latestDecision :: partialResult
+              )
+          }
+      }
+
+      private val nonEmptyToAndFromInternedDecisionStages
+          : BiMap[NonEmptyDecisionStages, InternedDecisionStages] =
+        HashBiMap.create()
+
+      private def interned(
+          nonEmptyDecisionStages: NonEmptyDecisionStages
+      ): InternedDecisionStages =
+        Option(
+          nonEmptyToAndFromInternedDecisionStages.computeIfAbsent(
+            nonEmptyDecisionStages,
+            _ => {
+              val freshIndex = nonEmptyToAndFromInternedDecisionStages.size
+              InternedDecisionStages(freshIndex)
+            }
+          )
+        ).get
+
+      sealed trait DecisionStagesInReverseOrder {
+        def reverse: DecisionStages = appendInReverseOnTo(List.empty)
+
+        def appendInReverseOnTo(
+            partialResult: DecisionStages
+        ): DecisionStages
+
+        def addLatest(decision: Decision): DecisionStagesInReverseOrder =
+          interned(
+            NonEmptyDecisionStages(decision, this)
+          )
+      }
+
+      private def cases(
+          limit: Int,
+          complexityWall: Int,
+          randomBehaviour: Random,
+          shrinkageIndex: Int
+      ): Iterator[(DecisionStagesInReverseOrder, Case)] = {
+        require((0 to maximumShrinkageIndex).contains(shrinkageIndex))
+
+        // This is used instead of a straight `Option[Case]` to avoid stack
+        // overflow when interpreting `this.generation`. We need to do this
+        // because a) we have to support recursively flat-mapped trials and b)
+        // even non-recursive trials can bring in a lot of nested flat-maps. Of
+        // course, in the recursive case we merely convert the possibility of
+        // infinite recursion into infinite looping through the `Eval`
+        // trampolining mechanism, so we still have to guard against that and
+        // terminate at some point.
+        type DeferredOption[Case] = OptionT[Eval, Case]
+
+        case class State(
+            decisionStages: DecisionStagesInReverseOrder,
+            complexity: Int
+        ) {
+          def update(decision: ChoiceOf): State = copy(
+            decisionStages = decisionStages.addLatest(decision),
+            complexity = 1 + complexity
+          )
+
+          def update(decision: FactoryInputOf): State = copy(
+            decisionStages = decisionStages.addLatest(decision),
+            complexity = 1 + complexity
+          )
+        }
+
+        object State {
+          val initial = new State(
+            decisionStages = noDecisionStages,
+            complexity = 0
+          )
+        }
+
+        type StateUpdating[Case] =
+          StateT[DeferredOption, State, Case]
+
+        // NASTY HACK: what follows is a hacked alternative to using the reader
+        // monad whereby the injected context is *mutable*, but at least it's
+        // buried in the interpreter for `GenerationOperation`, expressed as a
+        // closure over `randomBehaviour`. The reified `FiltrationResult` values
+        // are also handled by the interpreter too. Read 'em and weep!
+
+        sealed trait Possibilities
+
+        case class Choices(possibleIndices: LazyList[Int]) extends Possibilities
+
+        val possibilitiesThatFollowSomeChoiceOfDecisionStages =
+          mutable.Map.empty[DecisionStagesInReverseOrder, Possibilities]
+
+        def interpreter(depth: Int): GenerationOperation ~> StateUpdating =
+          new (GenerationOperation ~> StateUpdating) {
+            override def apply[Case](
+                generationOperation: GenerationOperation[Case]
+            ): StateUpdating[Case] =
+              generationOperation match {
+                case Choice(choicesByCumulativeFrequency) =>
+                  val numberOfChoices =
+                    choicesByCumulativeFrequency.keys.lastOption.getOrElse(0)
+                  if (0 < numberOfChoices)
+                    for {
+                      state <- StateT.get[DeferredOption, State]
+                      _ <- liftUnitIfTheNumberOfDecisionStagesIsNotTooLarge(
+                        state
+                      )
+                      index #:: remainingPossibleIndices =
+                        possibilitiesThatFollowSomeChoiceOfDecisionStages
+                          .get(
+                            state.decisionStages
+                          ) match {
+                          case Some(Choices(possibleIndices))
+                              if possibleIndices.nonEmpty =>
+                            possibleIndices
+                          case _ =>
+                            randomBehaviour
+                              .buildRandomSequenceOfDistinctIntegersFromZeroToOneLessThan(
+                                numberOfChoices
+                              )
+                        }
+                      _ <- StateT.set[DeferredOption, State](
+                        state.update(
+                          ChoiceOf(index)
+                        )
+                      )
+                    } yield {
+                      possibilitiesThatFollowSomeChoiceOfDecisionStages(
+                        state.decisionStages
+                      ) = Choices(remainingPossibleIndices)
+                      choicesByCumulativeFrequency.minAfter(1 + index).get._2
+                    }
+                  else StateT.liftF(OptionT.none)
+
+                case Factory(factory) =>
+                  for {
+                    state <- StateT.get[DeferredOption, State]
+                    _ <- liftUnitIfTheNumberOfDecisionStagesIsNotTooLarge(state)
+                    input = {
+                      val upperBoundInput: BigDecimal =
+                        factory.upperBoundInput()
+                      val lowerBoundInput: BigDecimal =
+                        factory.lowerBoundInput()
+                      val maximallyShrunkInput: BigDecimal =
+                        factory.maximallyShrunkInput()
+
+                      val maximumScale: BigDecimal =
+                        upperBoundInput - lowerBoundInput
+
+                      if (
+                        maximumShrinkageIndex > shrinkageIndex && 0 < maximumScale
+                      ) {
+                        // Calibrate the scale to come out at around one at
+                        // maximum shrinkage, even though the guard clause above
+                        // handles maximum shrinkage explicitly.
+                        val scale: BigDecimal = maximumScale / Math.pow(
+                          maximumScale.toDouble,
+                          shrinkageIndex.toDouble / maximumShrinkageIndex
+                        )
+                        val blend: BigDecimal = scale / maximumScale
+
+                        val midPoint: BigDecimal =
+                          blend * (upperBoundInput + lowerBoundInput) / 2 + (1 - blend) * maximallyShrunkInput
+
+                        val sign = if (randomBehaviour.nextBoolean()) 1 else -1
+
+                        val delta: BigDecimal =
+                          sign * scale * randomBehaviour.nextDouble() / 2
+
+                        (midPoint + delta)
+                          .setScale(0, BigDecimal.RoundingMode.HALF_EVEN)
+                          .rounded
+                          .toLong
+                      } else { maximallyShrunkInput.toLong }
+                    }
+                    _ <- StateT.set[DeferredOption, State](
+                      state.update(FactoryInputOf(input))
+                    )
+                  } yield factory(input)
+
+                case FiltrationResult(result) =>
+                  StateT.liftF(OptionT.fromOption(result))
+
+                case NoteComplexity =>
+                  for {
+                    state <- StateT.get[DeferredOption, State]
+                  } yield state.complexity
+
+                case ResetComplexity(complexity) =>
+                  for {
+                    _ <- StateT.modify[DeferredOption, State](
+                      _.copy(complexity = complexity)
+                    )
+                  } yield ()
+              }
+
+            private def liftUnitIfTheNumberOfDecisionStagesIsNotTooLarge[Case](
+                state: State
+            ): StateUpdating[Unit] = if (state.complexity < complexityWall)
+              StateT.pure(())
+            else
+              StateT.liftF[DeferredOption, State, Unit](
+                OptionT.none
+              )
+          }
+
+        {
+          // NASTY HACK: what was previously a Java-style imperative iterator
+          // implementation has, ahem, 'matured' into an overall imperative
+          // iterator forwarding to another with a `collect` to flatten out the
+          // `Option` part of the latter's output. Both co-operate by sharing
+          // mutable state used to determine when the overall iterator should
+          // stop yielding output. This in turn allows another hack, namely to
+          // intercept calls to `forEach` on the overall iterator so that it can
+          // monitor cases that don't pass inline filtration.
+          var starvationCountdown: Int         = limit
+          var backupOfStarvationCountdown      = 0
+          var numberOfUniqueCasesProduced: Int = 0
+          val potentialDuplicates =
+            mutable.Set.empty[DecisionStagesInReverseOrder]
+
+          def remainingGap = limit - numberOfUniqueCasesProduced
+
+          val coreIterator =
+            new Iterator[Option[(DecisionStagesInReverseOrder, Case)]] {
+              override def hasNext: Boolean =
+                0 < remainingGap && 0 < starvationCountdown
+
+              override def next()
+                  : Option[(DecisionStagesInReverseOrder, Case)] =
+                generation
+                  .foldMap(interpreter(depth = 0))
+                  .run(State.initial)
+                  .value
+                  .value match {
+                  case Some((State(decisionStages, _), caze))
+                      if potentialDuplicates.add(decisionStages) =>
+                    numberOfUniqueCasesProduced += 1
+                    backupOfStarvationCountdown = starvationCountdown
+                    starvationCountdown = Math
+                      .round(Math.sqrt(limit * remainingGap))
+                      .toInt
+                    Some(decisionStages -> caze)
+                  case _ =>
+                    starvationCountdown -= 1
+                    None
+                }
+            }.collect { case Some(caze) => caze }
+
+          new Iterator[(DecisionStagesInReverseOrder, Case)] {
+            override def hasNext: Boolean = coreIterator.hasNext
+
+            override def next(): (DecisionStagesInReverseOrder, Case) =
+              coreIterator.next()
+
+            override def foreach[U](
+                f: ((DecisionStagesInReverseOrder, Case)) => U
+            ): Unit = {
+              super.foreach { input =>
+                try {
+                  f(input)
+                } catch {
+                  case _: RejectionByInlineFilter =>
+                    numberOfUniqueCasesProduced -= 1
+                    starvationCountdown = backupOfStarvationCountdown - 1
+                }
+              }
+            }
+          }
+        }
+      }
 
       // Java-only API ...
       override def supplyTo(consumer: Consumer[Case]): Unit =
@@ -438,9 +893,9 @@ case class TrialsImplementation[Case](
       override def asIterator(): JavaIterator[Case] = {
         val randomBehaviour = new Random(734874)
 
-        val factoryShrinkage = 1
+        val shrinkageIndex: Int = 0
 
-        cases(limit, None, randomBehaviour, factoryShrinkage)
+        cases(limit, complexityWall, randomBehaviour, shrinkageIndex)
           .map(_._2)
           .asJava
       }
@@ -450,113 +905,156 @@ case class TrialsImplementation[Case](
 
         val randomBehaviour = new Random(734874)
 
+        // NOTE: prior to the commit when this comment was introduced, the
+        // `shrink` function returned an `EitherT[Eval, TrialException, Unit]`
+        // instead of throwing the final `TrialException`. That approach was
+        // certainly more flexible - it permits exploring multiple shrinkages
+        // and taking the best one, but for now we just go with the first shrunk
+        // case from the calling step we find that hasn't been beaten by a
+        // recursive call, and throw there and then.
         def shrink(
             caze: Case,
             throwable: Throwable,
             decisionStages: DecisionStages,
-            factoryShrinkage: Long,
+            shrinkageIndex: Int,
             limit: Int
-        ): Unit = {
-          val numberOfDecisionStages = decisionStages.size
+        ): Eval[Unit] = {
+          val potentialShrunkExceptionalOutcome: Eval[Unit] = {
+            val numberOfDecisionStages = decisionStages.size
 
-          if (0 < numberOfDecisionStages) {
-            // NOTE: there's some voodoo in choosing the exponential scaling
-            // factor - if it's too high, say 2, then the solutions are hardly
-            // shrunk at all. If it is unity, then the solutions are shrunk a
-            // bit but can be still involve overly 'large' values, in the sense
-            // that the factory input values are large. This needs finessing,
-            // but will do for now...
-            val limitWithExtraLeewayThatHasBeenObservedToFindBetterShrunkCases =
-              (100 * limit / 99) max limit
+            if (0 < numberOfDecisionStages) {
+              // NOTE: there's some voodoo in choosing the exponential scaling
+              // factor - if it's too high, say 2, then the solutions are hardly
+              // shrunk at all. If it is unity, then the solutions are shrunk a
+              // bit but can be still involve overly 'large' values, in the
+              // sense
+              // that the factory input values are large. This needs finessing,
+              // but will do for now...
+              val limitWithExtraLeewayThatHasBeenObservedToFindBetterShrunkCases =
+                (100 * limit / 99) max limit
 
-            val stillEnoughRoomToIncreaseShrinkageFactor =
-              (Long.MaxValue >> 1) >= factoryShrinkage
+              val stillEnoughRoomToDecreaseScale =
+                shrinkageIndex < maximumShrinkageIndex
 
-            cases(
-              limitWithExtraLeewayThatHasBeenObservedToFindBetterShrunkCases,
-              Some(numberOfDecisionStages),
-              randomBehaviour,
-              factoryShrinkage
-            )
-              .foreach {
-                case (
-                      decisionStagesForPotentialShrunkCase,
-                      potentialShrunkCase
-                    ) =>
-                  try {
-                    consumer(potentialShrunkCase)
-                  } catch {
-                    case rejection: RejectionByInlineFilter => throw rejection
-                    case throwableFromPotentialShrunkCase: Throwable =>
-                      assert(
-                        decisionStagesForPotentialShrunkCase.size <= numberOfDecisionStages
-                      )
+              val outcomes: LazyList[Eval[Unit]] =
+                LazyList
+                  .from(
+                    cases(
+                      limitWithExtraLeewayThatHasBeenObservedToFindBetterShrunkCases,
+                      numberOfDecisionStages,
+                      randomBehaviour,
+                      shrinkageIndex
+                    )
+                  )
+                  .map {
+                    case (
+                          decisionStagesForPotentialShrunkCaseInReverseOrder,
+                          potentialShrunkCase
+                        ) =>
+                      try {
+                        Eval.now(consumer(potentialShrunkCase))
+                      } catch {
+                        case rejection: RejectionByInlineFilter =>
+                          throw rejection
+                        case throwableFromPotentialShrunkCase: Throwable =>
+                          val decisionStagesForPotentialShrunkCase =
+                            decisionStagesForPotentialShrunkCaseInReverseOrder.reverse
 
-                      val lessComplex =
-                        decisionStagesForPotentialShrunkCase.size < numberOfDecisionStages
+                          assert(
+                            decisionStagesForPotentialShrunkCase.size <= numberOfDecisionStages
+                          )
 
-                      val shouldPersevere =
-                        decisionStagesForPotentialShrunkCase.exists {
-                          case FactoryInputOf(_)
-                              if stillEnoughRoomToIncreaseShrinkageFactor =>
-                            true
-                          case _ => false
-                        } || lessComplex
+                          val lessComplex =
+                            decisionStagesForPotentialShrunkCase.size < numberOfDecisionStages
 
-                      val factoryShrinkageForRecursion =
-                        if (
-                          !lessComplex && stillEnoughRoomToIncreaseShrinkageFactor
-                        )
-                          2 * factoryShrinkage
-                        else factoryShrinkage
+                          val shouldPersevere =
+                            decisionStagesForPotentialShrunkCase.exists {
+                              case FactoryInputOf(_)
+                                  if stillEnoughRoomToDecreaseScale =>
+                                true
+                              case _ => false
+                            } || lessComplex
 
-                      if (shouldPersevere) {
-                        shrink(
-                          potentialShrunkCase,
-                          throwableFromPotentialShrunkCase,
-                          decisionStagesForPotentialShrunkCase,
-                          factoryShrinkageForRecursion,
-                          limitWithExtraLeewayThatHasBeenObservedToFindBetterShrunkCases
-                        )
+                          val shrinkageIndexForRecursion =
+                            if (!lessComplex && stillEnoughRoomToDecreaseScale)
+                              1 + shrinkageIndex
+                            else shrinkageIndex
+
+                          if (shouldPersevere) {
+                            shrink(
+                              potentialShrunkCase,
+                              throwableFromPotentialShrunkCase,
+                              decisionStagesForPotentialShrunkCase,
+                              shrinkageIndexForRecursion,
+                              limitWithExtraLeewayThatHasBeenObservedToFindBetterShrunkCases
+                            )
+                          } else
+                            throw new TrialException(
+                              throwableFromPotentialShrunkCase
+                            ) {
+                              override def provokingCase: Case =
+                                potentialShrunkCase
+
+                              override def recipe: String =
+                                decisionStagesForPotentialShrunkCase.asJson.spaces4
+                            }
                       }
                   }
+
+              val potentialExceptionalOutcome: Eval[Unit] = {
+                def yieldTheFirstExceptionalOutcomeIfPossible(
+                    outcomes: LazyList[Eval[Unit]]
+                ): Eval[Unit] =
+                  if (outcomes.nonEmpty)
+                    outcomes.head.flatMap(_ =>
+                      yieldTheFirstExceptionalOutcomeIfPossible(outcomes.tail)
+                    )
+                  else Eval.now(())
+
+                yieldTheFirstExceptionalOutcomeIfPossible(outcomes)
               }
 
-            // At this point, slogging through the potential shrunk cases failed
-            // to find any failures; as a brute force approach, simply retry
-            // with an increased shrinkage factor - this will eventually
-            // terminate as the shrinkage factor isn't allowed to exceed its
-            // upper limit, and it does winkle out some really hard to find
-            // shrunk cases this way.
+              potentialExceptionalOutcome.flatMap(_ =>
+                // At this point, slogging through the potential shrunk cases
+                // failed to find any failures; as a brute force approach,
+                // simply retry with an increased shrinkage index - this will
+                // eventually terminate as the shrinkage index isn't allowed to
+                // exceed its upper limit, and it does winkle out some really
+                // hard to find shrunk cases this way.
+                if (stillEnoughRoomToDecreaseScale) {
+                  val increasedShrinkageIndex = 1 + shrinkageIndex
 
-            if (stillEnoughRoomToIncreaseShrinkageFactor) {
-              val increasedFactoryShrinkage = 2 * factoryShrinkage
-
-              shrink(
-                caze,
-                throwable,
-                decisionStages,
-                increasedFactoryShrinkage,
-                limitWithExtraLeewayThatHasBeenObservedToFindBetterShrunkCases
+                  shrink(
+                    caze,
+                    throwable,
+                    decisionStages,
+                    increasedShrinkageIndex,
+                    limitWithExtraLeewayThatHasBeenObservedToFindBetterShrunkCases
+                  )
+                } else
+                  Eval.now(())
               )
+            } else
+              Eval.now(())
+          }
+
+          potentialShrunkExceptionalOutcome.flatMap(_ =>
+            // At this point the recursion hasn't found a failing case, so we
+            // call it a day and go with the best we've got from further up the
+            // call chain...
+
+            throw new TrialException(throwable) {
+              override def provokingCase: Case = caze
+
+              override def recipe: String = decisionStages.asJson.spaces4
             }
-          }
-
-          // At this point the recursion hasn't found a failing case, so we call
-          // it a day and go with the best we've got from further up the call
-          // chain...
-
-          throw new TrialException(throwable) {
-            override def provokingCase: Case = caze
-
-            override def recipe: String = decisionStages.asJson.spaces4
-          }
+          )
         }
 
-        val factoryShrinkage = 1
+        val shrinkageIndex: Int = 0
 
-        cases(limit, None, randomBehaviour, factoryShrinkage).foreach {
-          case (decisionStages, caze) =>
+        cases(limit, complexityWall, randomBehaviour, shrinkageIndex)
+          .foreach { case (decisionStagesInReverseOrder, caze) =>
             try {
               consumer(caze)
             } catch {
@@ -565,190 +1063,14 @@ case class TrialsImplementation[Case](
                 shrink(
                   caze,
                   throwable,
-                  decisionStages,
-                  factoryShrinkage,
+                  decisionStagesInReverseOrder.reverse,
+                  shrinkageIndex,
                   limit
-                )
-            }
-        }
-      }
-    }
-
-  private def cases(
-      limit: Int,
-      overridingMaximumNumberOfDecisionStages: Option[Int],
-      randomBehaviour: Random,
-      factoryShrinkage: Long
-  ): Iterator[(DecisionStages, Case)] = {
-    require(0 < factoryShrinkage)
-
-    type DeferredOption[Case] = OptionT[Eval, Case]
-
-    case class State(
-        decisionStages: DecisionStages
-    ) {
-      def update(decision: ChoiceOf): State = copy(
-        decisionStages = decisionStages :+ decision
-      )
-
-      def update(decision: FactoryInputOf): State = copy(
-        decisionStages = decisionStages :+ decision
-      )
-    }
-
-    object State {
-      val initial = new State(Dequeue.empty)
-    }
-
-    type DecisionIndicesAndMultiplicity = (DecisionStages, Int)
-
-    type StateUpdating[Case] =
-      StateT[DeferredOption, State, Case]
-
-    // NASTY HACK: what follows is a hacked alternative to using the reader
-    // monad whereby the injected context is *mutable*, but at least it's buried
-    // in the interpreter for `GenerationOperation`, expressed as a closure over
-    // `randomBehaviour`. The reified `FiltrationResult` values are also handled
-    // by the interpreter too. If it's any consolation, it means that
-    // flat-mapping is stack-safe - although I'm not entirely sure about
-    // alternation. Read 'em and weep!
-
-    val maximumNumberOfDecisionStages: Int = 100
-
-    sealed trait Possibilities
-
-    case class Choices(possibleIndices: LazyList[Int]) extends Possibilities
-
-    val possibilitiesThatFollowSomeChoiceOfDecisionStages =
-      mutable.Map.empty[DecisionStages, Possibilities]
-
-    def interpreter(depth: Int): GenerationOperation ~> StateUpdating =
-      new (GenerationOperation ~> StateUpdating) {
-        override def apply[Case](
-            generationOperation: GenerationOperation[Case]
-        ): StateUpdating[Case] =
-          generationOperation match {
-            case Choice(choicesByCumulativeFrequency) =>
-              val numberOfChoices =
-                choicesByCumulativeFrequency.keys.lastOption.getOrElse(0)
-              if (0 < numberOfChoices)
-                for {
-                  state <- StateT.get[DeferredOption, State]
-                  _ <- liftUnitIfTheNumberOfDecisionStagesIsNotTooLarge(state)
-                  index #:: remainingPossibleIndices =
-                    possibilitiesThatFollowSomeChoiceOfDecisionStages
-                      .get(
-                        state.decisionStages
-                      ) match {
-                      case Some(Choices(possibleIndices))
-                          if possibleIndices.nonEmpty =>
-                        possibleIndices
-                      case _ =>
-                        randomBehaviour
-                          .buildRandomSequenceOfDistinctIntegersFromZeroToOneLessThan(
-                            numberOfChoices
-                          )
-                    }
-                  _ <- StateT.set[DeferredOption, State](
-                    state.update(
-                      ChoiceOf(index)
-                    )
-                  )
-                } yield {
-                  possibilitiesThatFollowSomeChoiceOfDecisionStages(
-                    state.decisionStages
-                  ) = Choices(remainingPossibleIndices)
-                  choicesByCumulativeFrequency.minAfter(1 + index).get._2
-                }
-              else StateT.liftF(OptionT.none)
-
-            case Factory(factory) =>
-              for {
-                state <- StateT.get[DeferredOption, State]
-                _     <- liftUnitIfTheNumberOfDecisionStagesIsNotTooLarge(state)
-                input = randomBehaviour.nextLong() / factoryShrinkage
-                _ <- StateT.set[DeferredOption, State](
-                  state.update(FactoryInputOf(input))
-                )
-              } yield factory(input)
-
-            case FiltrationResult(result) =>
-              StateT.liftF(OptionT.fromOption(result))
-          }
-
-        private def liftUnitIfTheNumberOfDecisionStagesIsNotTooLarge[Case](
-            state: State
-        ): StateUpdating[Unit] = {
-          val numberOfDecisionStages = state.decisionStages.size
-          val limit = overridingMaximumNumberOfDecisionStages
-            .getOrElse(maximumNumberOfDecisionStages)
-          if (numberOfDecisionStages < limit)
-            ().pure[StateUpdating]
-          else
-            StateT.liftF[DeferredOption, State, Unit](
-              OptionT.none
-            )
-        }
-      }
-
-    {
-      // NASTY HACK: what was previously a Java-style imperative iterator
-      // implementation has, ahem, 'matured' into an overall imperative iterator
-      // forwarding to another with a `collect` to flatten out the `Option` part
-      // of the latter's output. Both co-operate by sharing mutable state used
-      // to determine when the overall iterator should stop yielding output.
-      // This in turn allows another hack, namely to intercept calls to
-      // `forEach` on the overall iterator so that it can monitor cases that
-      // don't pass inline filtration.
-      var starvationCountdown: Int         = limit
-      var backupOfStarvationCountdown      = 0
-      var numberOfUniqueCasesProduced: Int = 0
-      val potentialDuplicates              = mutable.Set.empty[DecisionStages]
-
-      def remainingGap = limit - numberOfUniqueCasesProduced
-
-      val coreIterator = new Iterator[Option[(DecisionStages, Case)]] {
-        override def hasNext: Boolean =
-          0 < remainingGap && 0 < starvationCountdown
-
-        override def next(): Option[(DecisionStages, Case)] =
-          generation
-            .foldMap(interpreter(depth = 0))
-            .run(State.initial)
-            .value
-            .value match {
-            case Some((State(decisionStages), caze))
-                if potentialDuplicates.add(decisionStages) =>
-              numberOfUniqueCasesProduced += 1
-              backupOfStarvationCountdown = starvationCountdown
-              starvationCountdown =
-                Math.round(Math.sqrt(starvationCountdown * remainingGap)).toInt
-              Some(decisionStages -> caze)
-            case _ =>
-              starvationCountdown -= 1
-              None
-          }
-      }.collect { case Some(caze) => caze }
-
-      new Iterator[(DecisionStages, Case)] {
-        override def hasNext: Boolean = coreIterator.hasNext
-
-        override def next(): (DecisionStages, Case) = coreIterator.next()
-
-        override def foreach[U](f: ((DecisionStages, Case)) => U): Unit = {
-          super.foreach { input =>
-            try {
-              f(input)
-            } catch {
-              case _: RejectionByInlineFilter =>
-                numberOfUniqueCasesProduced -= 1
-                starvationCountdown = backupOfStarvationCountdown - 1
+                ).value // Evaluating the nominal `Unit` result will throw a `TrialsException`.
             }
           }
-        }
       }
     }
-  }
 
   // Java-only API ...
   override def map[TransformedCase](
@@ -773,15 +1095,22 @@ case class TrialsImplementation[Case](
       case _                                    => None
     })
 
+  override def collections[Collection](
+      builderFactory: Supplier[
+        Builder[Case, Collection]
+      ]
+  ): TrialsImplementation[Collection] =
+    several(builderFactory.get())
+
   override def immutableLists(): TrialsImplementation[ImmutableList[Case]] =
     several(new Builder[Case, ImmutableList[Case]] {
       private val underlyingBuilder = ImmutableList.builder[Case]()
 
-      override def +=(caze: Case): Unit = {
+      override def add(caze: Case): Unit = {
         underlyingBuilder.add(caze)
       }
 
-      override def result(): ImmutableList[Case] =
+      override def build(): ImmutableList[Case] =
         underlyingBuilder.build()
     })
 
@@ -789,11 +1118,11 @@ case class TrialsImplementation[Case](
     several(new Builder[Case, ImmutableSet[Case]] {
       private val underlyingBuilder = ImmutableSet.builder[Case]()
 
-      override def +=(caze: Case): Unit = {
+      override def add(caze: Case): Unit = {
         underlyingBuilder.add(caze)
       }
 
-      override def result(): ImmutableSet[Case] =
+      override def build(): ImmutableSet[Case] =
         underlyingBuilder.build()
     })
 
@@ -804,11 +1133,11 @@ case class TrialsImplementation[Case](
       private val underlyingBuilder: ImmutableSortedSet.Builder[Case] =
         new ImmutableSortedSet.Builder(elementComparator)
 
-      override def +=(caze: Case): Unit = {
+      override def add(caze: Case): Unit = {
         underlyingBuilder.add(caze)
       }
 
-      override def result(): ImmutableSortedSet[Case] =
+      override def build(): ImmutableSortedSet[Case] =
         underlyingBuilder.build()
     })
 
@@ -832,6 +1161,14 @@ case class TrialsImplementation[Case](
       )
   }
 
+  override def collectionsOfSize[Collection](
+      size: Int,
+      builderFactory: Supplier[
+        Builder[Case, Collection]
+      ]
+  ): TrialsImplementation[Collection] =
+    lotsOfSize(size, builderFactory.get())
+
   override def immutableListsOfSize(
       size: Int
   ): TrialsImplementation[ImmutableList[Case]] = lotsOfSize(
@@ -839,11 +1176,11 @@ case class TrialsImplementation[Case](
     new Builder[Case, ImmutableList[Case]] {
       private val underlyingBuilder = ImmutableList.builder[Case]()
 
-      override def +=(caze: Case): Unit = {
+      override def add(caze: Case): Unit = {
         underlyingBuilder.add(caze)
       }
 
-      override def result(): ImmutableList[Case] =
+      override def build(): ImmutableList[Case] =
         underlyingBuilder.build()
     }
   )
@@ -928,32 +1265,32 @@ case class TrialsImplementation[Case](
       secondTrials: Trials[Case2]
   ): Trials.Tuple2Trials[Case, Case2] = new Tuple2Trials(this, secondTrials)
 
-  private def several[Container](
-      builderFactory: => Builder[Case, Container]
-  ): TrialsImplementation[Container] = {
-    def addItems(partialResult: List[Case]): TrialsImplementation[Container] =
+  private def several[Collection](
+      builderFactory: => Builder[Case, Collection]
+  ): TrialsImplementation[Collection] = {
+    def addItems(partialResult: List[Case]): TrialsImplementation[Collection] =
       scalaApi.alternate(
         scalaApi.only {
           val builder = builderFactory
-          partialResult.foreach(builder += _)
-          builder.result()
+          partialResult.foreach(builder add _)
+          builder.build()
         },
-        flatMap(item => addItems(item :: partialResult): Trials[Container])
+        flatMap(item => addItems(item :: partialResult): Trials[Collection])
       )
 
     addItems(Nil)
   }
 
-  override def several[Container](implicit
-      factory: scala.collection.Factory[Case, Container]
-  ): TrialsImplementation[Container] = several(new Builder[Case, Container] {
+  override def several[Collection](implicit
+      factory: scala.collection.Factory[Case, Collection]
+  ): TrialsImplementation[Collection] = several(new Builder[Case, Collection] {
     private val underlyingBuilder = factory.newBuilder
 
-    override def +=(caze: Case): Unit = {
+    override def add(caze: Case): Unit = {
       underlyingBuilder += caze
     }
 
-    override def result(): Container = underlyingBuilder.result()
+    override def build(): Collection = underlyingBuilder.result()
   })
 
   override def lists: TrialsImplementation[List[Case]] = several
@@ -967,11 +1304,11 @@ case class TrialsImplementation[Case](
       val underlyingBuilder: mutable.Builder[Case, SortedSet[Case]] =
         SortedSet.newBuilder(ordering.asInstanceOf[Ordering[Case]])
 
-      override def +=(caze: Case): Unit = {
+      override def add(caze: Case): Unit = {
         underlyingBuilder += caze
       }
 
-      override def result(): SortedSet[_ <: Case] = underlyingBuilder.result()
+      override def build(): SortedSet[_ <: Case] = underlyingBuilder.result()
     }
   )
 
@@ -992,39 +1329,48 @@ case class TrialsImplementation[Case](
       )
   }
 
-  private def lotsOfSize[Container](
+  private def lotsOfSize[Collection](
       size: Int,
-      builderFactory: => Builder[Case, Container]
-  ): TrialsImplementation[Container] = {
-    def addItems(
-        numberOfItems: Int,
-        partialResult: List[Case]
-    ): TrialsImplementation[Container] =
-      if (0 >= numberOfItems) scalaApi.only {
-        val builder = builderFactory
-        partialResult.foreach(builder += _)
-        builder.result()
-      }
-      else
-        flatMap(item =>
-          addItems(numberOfItems - 1, item :: partialResult): Trials[Container]
-        )
+      builderFactory: => Builder[Case, Collection]
+  ): TrialsImplementation[Collection] =
+    scalaApi.complexities.flatMap(complexity => {
+      def addItems(
+          numberOfItems: Int,
+          partialResult: List[Case]
+      ): Trials[Collection] =
+        if (0 >= numberOfItems)
+          scalaApi.only {
+            val builder = builderFactory
+            partialResult.foreach(builder add _)
+            builder.build()
+          }
+        else
+          flatMap(item =>
+            (scalaApi
+              .resetComplexity(complexity): Trials[Unit])
+              .flatMap(_ =>
+                addItems(
+                  numberOfItems - 1,
+                  item :: partialResult
+                )
+              )
+          )
 
-    addItems(size, Nil)
-  }
+      addItems(size, Nil)
+    })
 
-  override def lotsOfSize[Container](size: Int)(implicit
-      factory: collection.Factory[Case, Container]
-  ): TrialsImplementation[Container] = lotsOfSize(
+  override def lotsOfSize[Collection](size: Int)(implicit
+      factory: collection.Factory[Case, Collection]
+  ): TrialsImplementation[Collection] = lotsOfSize(
     size,
-    new Builder[Case, Container] {
+    new Builder[Case, Collection] {
       private val underlyingBuilder = factory.newBuilder
 
-      override def +=(caze: Case): Unit = {
+      override def add(caze: Case): Unit = {
         underlyingBuilder += caze
       }
 
-      override def result(): Container = underlyingBuilder.result()
+      override def build(): Collection = underlyingBuilder.result()
     }
   )
 

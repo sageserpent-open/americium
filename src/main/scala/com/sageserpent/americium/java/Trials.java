@@ -48,18 +48,43 @@ public abstract class Trials<Case> implements TrialsFactoring<Case> {
      * Fluent syntax for configuring a limit to the number of cases
      * supplied to a consumer.
      *
-     * @param limit
+     * @param limit The maximum number of cases that can be supplied - note
+     *              that this is no guarantee that so many cases will be
+     *              supplied, it is simply a limit.
      * @return An instance of {@link SupplyToSyntax} with the limit configured.
      */
     public abstract Trials.SupplyToSyntax<Case> withLimit(final int limit);
 
     /**
+     * Fluent syntax for configuring a limit to the number of cases
+     * supplied to a consumer.
+     *
+     * @param limit          The maximum number of cases that can be supplied
+     *                       - note that this is no guarantee that so many
+     *                       cases will be supplied, it is simply a limit.
+     * @param complexityWall <b>One past</b> the highest complexity that a
+     *                       case may achieve as it is synthesized.
+     * @return An instance of {@link SupplyToSyntax} with the limit configured.
+     * @apiNote Complexity is something associated with the production of a
+     * {@link Case} when a {@link Trials} is supplied to some test consumer.
+     * It ranges from one up to (but not including) the {@code complexityWall
+     * } and captures some sense of the case being more elaborately
+     * constructed as it increases - as an example, the use of flatmapping to
+     * combine inputs from multiple trials instances drives the complexity up
+     * for each flatmap stage. In practice, this results in larger collection
+     * instances having greater complexity. Deeply recursive trials also
+     * result in high complexity.
+     */
+    public abstract Trials.SupplyToSyntax<Case> withLimit(
+            final int limit, final int complexityWall);
+
+    /**
      * Reproduce a trial case using a recipe. This is intended to repeatedly
      * run a test against a known failing case when debugging.
      *
-     * @param recipe This encodes a specific {@code Case} and will only be
-     *               understood by the
-     *               same *value* of {@link Trials} that was used to obtain it.
+     * @param recipe This encodes a specific {@link Case} and will only be
+     *               understood by the same *value* of {@link Trials} that
+     *               was used to obtain it.
      * @return An instance of {@link SupplyToSyntax} that supplies the
      * reproduced trial case.
      */
@@ -67,6 +92,20 @@ public abstract class Trials<Case> implements TrialsFactoring<Case> {
 
     public abstract <Case2> Trials.Tuple2Trials<Case, Case2> and(
             Trials<Case2> secondTrials);
+
+    /**
+     * Transform this to a trials of collection, where {@link Collection} is
+     * some kind of collection that can be built from elements of type
+     * {@link Case} by a {@link Builder}.
+     *
+     * @param builderFactory A {link @Supplier} that should construct a
+     *                       *fresh* instance of a {link @Builder}.
+     * @param <Collection>   Any kind of collection that can take an
+     *                       arbitrary number of elements of type {@Case}.
+     * @return A {@link Trials} instance that yields collections.
+     */
+    public abstract <Collection> Trials<Collection> collections(
+            Supplier<Builder<Case, Collection>> builderFactory);
 
     public abstract Trials<ImmutableList<Case>> immutableLists();
 
@@ -82,25 +121,41 @@ public abstract class Trials<Case> implements TrialsFactoring<Case> {
             final Comparator<Case> elementComparator,
             final Trials<Value> values);
 
+    /**
+     * Transform this to a trials of collection, where {@link Collection} is
+     * some kind of collection that can be built from elements of type
+     * {@link Case} by a {@link Builder}. The collection instances yielded
+     * by the result are all built from the specified number of elements.
+     *
+     * @param size           The number of elements of type {@Case} to build
+     *                       the collection instance from. Be aware that
+     *                       sets, maps and bounded size collection don't
+     *                       have to accept that many elements.
+     * @param builderFactory A {link @Supplier} that should construct a
+     *                       *fresh* instance of a {link @Builder}.
+     * @param <Collection>   Any kind of collection that can take an
+     *                       arbitrary number of elements of type {@Case}.
+     * @return A {@link Trials} instance that yields collections.
+     */
+    public abstract <Collection> Trials<Collection> collectionsOfSize(
+            final int size, Supplier<Builder<Case, Collection>> builderFactory);
+
     public abstract Trials<ImmutableList<Case>> immutableListsOfSize(
             final int size);
 
     public interface SupplyToSyntax<Case> {
         /**
          * Consume trial cases until either there are no more or an exception
-         * is thrown by {@code consumer}.
-         * If an exception is thrown, attempts will be made to shrink the
-         * trial case that caused the
-         * exception to a simpler case that throws an exception - the
-         * specific kind of exception isn't
-         * necessarily the same between the first exceptional case and the
-         * final simplified one. The exception
-         * from the simplified case (or the original exceptional case if it
-         * could not be simplified) is wrapped
-         * in an instance of {@link TrialException} which also contains the
-         * case that provoked the exception.
+         * is thrown by {@code consumer}. If an exception is thrown, attempts
+         * will be made to shrink the trial case that caused the exception to
+         * a simpler case that throws an exception - the specific kind of
+         * exception isn't necessarily the same between the first exceptional
+         * case and the final simplified one. The exception from the
+         * simplified case (or the original exceptional case if it could not
+         * be simplified) is wrapped in an instance of {@link TrialException}
+         * which also contains the {@link Case} that provoked the exception.
          *
-         * @param consumer An operation that consumes a {@code Case}, and may
+         * @param consumer An operation that consumes a {@link Case}, and may
          *                 throw an exception.
          * @note The limit applies to the count of the number of supplied
          * cases, regardless of whether some of these cases are

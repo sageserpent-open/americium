@@ -9,8 +9,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import java.math.BigDecimal;
-import java.util.Iterator;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Stream;
 
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -125,6 +124,25 @@ public class TrialsApiTests {
                 .withLimit(limit)
                 .supplyTo(System.out::println);
 
+        System.out.println("A sorted set of doubles via the generic method...");
+
+        doubleTrials
+                .collections(() -> new Builder<Double, SortedSet<Double>>() {
+                    final SortedSet<Double> sortedSet = new TreeSet<>();
+
+                    @Override
+                    public void add(Double caze) {
+                        sortedSet.add(caze);
+                    }
+
+                    @Override
+                    public SortedSet<Double> build() {
+                        return sortedSet;
+                    }
+                })
+                .withLimit(limit)
+                .supplyTo(System.out::println);
+
         System.out.println("A map of strings keyed by integers...");
 
         Trials<Integer> integersTrialsWithVariety = api.choose(1, 2, 3);
@@ -221,10 +239,43 @@ public class TrialsApiTests {
     }
 
     @ParameterizedTest
-    @ValueSource(ints = {0, 1, 2, 5, 10})
+    @ValueSource(ints = {0, 1, 2, 5, 10, 100000})
     void testDriveSizedListTrials(int numberOfElements) {
         final Trials<ImmutableList<Integer>> lists =
                 api.integers().immutableListsOfSize(numberOfElements);
+
+        lists.withLimit(100).supplyTo(list -> {
+            assertThat("The size of the list should be number of element " +
+                       "trials",
+                       list.size(),
+                       equalTo(numberOfElements));
+
+            System.out.println(list);
+        });
+    }
+
+    @ParameterizedTest
+    @ValueSource(ints = {0, 1, 2, 5, 10, 100000})
+    void testDriveSizedCollectionTrials(int numberOfElements) {
+        final Trials<List<Integer>> lists =
+                api
+                        .integers()
+                        .collectionsOfSize(numberOfElements,
+                                           () -> new Builder<Integer,
+                                                   List<Integer>>() {
+                                               final List<Integer> list =
+                                                       new LinkedList<>();
+
+                                               @Override
+                                               public void add(Integer caze) {
+                                                   list.add(caze);
+                                               }
+
+                                               @Override
+                                               public List<Integer> build() {
+                                                   return list;
+                                               }
+                                           });
 
         lists.withLimit(100).supplyTo(list -> {
             assertThat("The size of the list should be number of element " +
