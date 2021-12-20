@@ -5,7 +5,7 @@ lazy val jUnitVersion = "5.7.0"
 
 lazy val javaVersion = "1.8"
 
-lazy val scala2_13_Version = "2.13.6"
+lazy val scala2_13_Version = "2.13.7"
 
 lazy val settings = Seq(
   crossScalaVersions     := Seq(scala2_13_Version),
@@ -44,29 +44,29 @@ lazy val settings = Seq(
     pushChanges
   ),
   name         := "americium",
-  scalaVersion := "2.12.13",
+  scalaVersion := "2.12.15",
   scalacOptions += s"-target:jvm-$javaVersion",
   javacOptions ++= Seq("-source", javaVersion, "-target", javaVersion),
-  libraryDependencies += "com.propensive" %% "mercator"              % "0.3.0",
-  libraryDependencies += "com.propensive" %% "magnolia"              % "0.17.0",
-  libraryDependencies += "org.typelevel"  %% "cats-core"             % "2.6.1",
-  libraryDependencies += "org.typelevel"  %% "cats-free"             % "2.6.1",
-  libraryDependencies += "org.typelevel"  %% "cats-collections-core" % "0.9.3",
-  libraryDependencies += "io.circe"       %% "circe-core"            % "0.14.1",
-  libraryDependencies += "io.circe"       %% "circe-generic"         % "0.14.1",
-  libraryDependencies += "io.circe"       %% "circe-parser"          % "0.14.1",
+  libraryDependencies += "com.softwaremill.magnolia1_2" %% "magnolia" % "1.0.0-M7",
+  libraryDependencies += "org.scala-lang" % "scala-reflect" % scalaVersion.value,
+  libraryDependencies += "org.typelevel" %% "cats-core"             % "2.7.0",
+  libraryDependencies += "org.typelevel" %% "cats-free"             % "2.7.0",
+  libraryDependencies += "org.typelevel" %% "cats-collections-core" % "0.9.3",
+  libraryDependencies += "io.circe"      %% "circe-core"            % "0.14.1",
+  libraryDependencies += "io.circe"      %% "circe-generic"         % "0.14.1",
+  libraryDependencies += "io.circe"      %% "circe-parser"          % "0.14.1",
   libraryDependencies += "com.google.guava" % "guava"   % "30.1.1-jre",
   libraryDependencies += "com.oath.cyclops" % "cyclops" % "10.4.0",
-  libraryDependencies += "org.junit.jupiter" % "junit-jupiter-params" % "5.8.0",
-  libraryDependencies += "org.typelevel"  %% "cats-laws"  % "2.6.1"  % Test,
+  libraryDependencies += "org.junit.jupiter" % "junit-jupiter-params" % "5.8.2",
+  libraryDependencies += "org.typelevel"  %% "cats-laws"  % "2.7.0"  % Test,
   libraryDependencies += "org.scalatest"  %% "scalatest"  % "3.2.9"  % Test,
   libraryDependencies += "org.scalacheck" %% "scalacheck" % "1.15.4" % Test,
   libraryDependencies += "org.scalatestplus" %% "scalacheck-1-15" % "3.2.9.0" % Test,
   libraryDependencies += "org.scalamock" %% "scalamock" % "5.1.0" % Test,
   libraryDependencies += "net.aichler" % "jupiter-interface" % JupiterKeys.jupiterVersion.value % Test,
   libraryDependencies ++= Seq(
-    "org.junit.platform" % "junit-platform-runner" % "1.8.0" % Test,
-    "org.junit.jupiter"  % "junit-jupiter-engine"  % "5.8.0" % Test
+    "org.junit.platform" % "junit-platform-runner" % "1.8.2" % Test,
+    "org.junit.jupiter"  % "junit-jupiter-engine"  % "5.8.2" % Test
   ),
   libraryDependencies += "org.hamcrest" % "hamcrest" % "2.2" % Test
 )
