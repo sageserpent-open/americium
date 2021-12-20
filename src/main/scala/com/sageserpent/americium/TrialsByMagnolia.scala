@@ -1,7 +1,6 @@
 package com.sageserpent.americium
 
-import magnolia.{CaseClass, Magnolia, SealedTrait}
-import mercator.Monadic
+import magnolia1.{CaseClass, Magnolia, Monadic, SealedTrait}
 
 import scala.language.experimental.macros
 
@@ -9,7 +8,7 @@ trait TrialsByMagnolia {
 
   type Typeclass[Case] = Factory[Case]
 
-  def combine[Case](caseClass: CaseClass[Typeclass, Case]): Typeclass[Case] =
+  def join[Case](caseClass: CaseClass[Typeclass, Case]): Typeclass[Case] =
     lift(
       caseClass.constructMonadic(parameter =>
         Trials.api.delay(parameter.typeclass.trials)
@@ -21,7 +20,7 @@ trait TrialsByMagnolia {
   implicit val longFactory: Factory[Long]       = lift(Trials.api.longs)
   implicit val booleanFactory: Factory[Boolean] = lift(Trials.api.booleans)
 
-  def dispatch[Case](
+  def split[Case](
       sealedTrait: SealedTrait[Typeclass, Case]
   ): Typeclass[Case] = {
     val subtypeGenerators: Seq[Trials[Case]] =
