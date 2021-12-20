@@ -49,16 +49,16 @@ lazy val settings = Seq(
   libraryDependencies += "io.circe"      %% "circe-parser"          % "0.14.1",
   libraryDependencies += "com.google.guava" % "guava"   % "30.1.1-jre",
   libraryDependencies += "com.oath.cyclops" % "cyclops" % "10.4.0",
-  libraryDependencies += "org.junit.jupiter" % "junit-jupiter-params" % "5.8.0",
-  libraryDependencies += "org.typelevel"  %% "cats-laws"  % "2.6.1"  % Test,
+  libraryDependencies += "org.junit.jupiter" % "junit-jupiter-params" % "5.8.2",
+  libraryDependencies += "org.typelevel"  %% "cats-laws"  % "2.7.0"  % Test,
   libraryDependencies += "org.scalatest"  %% "scalatest"  % "3.2.9"  % Test,
   libraryDependencies += "org.scalacheck" %% "scalacheck" % "1.15.4" % Test,
   libraryDependencies += "org.scalatestplus" %% "scalacheck-1-15" % "3.2.9.0" % Test,
   libraryDependencies += "org.scalamock" %% "scalamock" % "5.1.0" % Test,
   libraryDependencies += "net.aichler" % "jupiter-interface" % JupiterKeys.jupiterVersion.value % Test,
   libraryDependencies ++= Seq(
-    "org.junit.platform" % "junit-platform-runner" % "1.8.0" % Test,
-    "org.junit.jupiter"  % "junit-jupiter-engine"  % "5.8.0" % Test
+    "org.junit.platform" % "junit-platform-runner" % "1.8.2" % Test,
+    "org.junit.jupiter"  % "junit-jupiter-engine"  % "5.8.2" % Test
   ),
   libraryDependencies += "org.hamcrest" % "hamcrest" % "2.2" % Test
 )
