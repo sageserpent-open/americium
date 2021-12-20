@@ -36,7 +36,7 @@ lazy val settings = Seq(
     pushChanges
   ),
   name         := "americium",
-  scalaVersion := "2.13.5",
+  scalaVersion := "2.13.7",
   scalacOptions += s"-target:jvm-$javaVersion",
   javacOptions ++= Seq("-source", javaVersion, "-target", javaVersion),
   libraryDependencies += "com.propensive" %% "mercator"              % "0.3.0",

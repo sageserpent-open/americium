@@ -1303,6 +1303,14 @@ class TrialsSpec
           500
         ),
         (
+          "Has more than five items and sums to a multiple of 7 less than -7.",
+          integerVectorTrials,
+          (integerVector: Vector[Int]) =>
+            5 < integerVector.size && 0 == integerVector.sum % 7 && -7 > integerVector.sum && integerVector
+              .exists(0 != _),
+          750
+        ),
+        (
           "Has more than two items and is not sorted in ascending order.",
           integerVectorTrials,
           (integerVector: Vector[Int]) =>
