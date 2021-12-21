@@ -14,6 +14,16 @@ import java.util.function.*;
 
 
 public abstract class Trials<Case> implements TrialsFactoring<Case> {
+    /**
+     * Start here: this yields a {@link TrialsApi} instance that is the
+     * gateway to creating various kinds of {@link Trials} instances via its
+     * factory methods.
+     *
+     * @return A stateless {@link TrialsApi} instance.
+     * @apiNote All the methods defined in {@link Trials} itself are either
+     * ways of transforming and building up more complex trials, or for
+     * putting them to work by running test code.
+     */
     public static TrialsApi api() {
         return (TrialsApi) TrialsImplementation.javaApi();
     }
@@ -31,6 +41,14 @@ public abstract class Trials<Case> implements TrialsFactoring<Case> {
         });
     }
 
+    /**
+     * This is just for implementation purposes, as the Java incarnation
+     * {@link Trials} is effectively a wrapper around the Scala incarnation
+     * {@link com.sageserpent.americium.Trials} - hence the reduced visibility.
+     *
+     * @return The Scala incarnation {@link com.sageserpent.americium.Trials}
+     * of this instance
+     */
     abstract com.sageserpent.americium.Trials<Case> scalaTrials();
 
     public abstract <TransformedCase> Trials<TransformedCase> map(
@@ -75,8 +93,8 @@ public abstract class Trials<Case> implements TrialsFactoring<Case> {
      * instances having greater complexity. Deeply recursive trials also
      * result in high complexity.
      */
-    public abstract Trials.SupplyToSyntax<Case> withLimit(
-            final int limit, final int complexityWall);
+    public abstract Trials.SupplyToSyntax<Case> withLimit(final int limit,
+                                                          final int complexityWall);
 
     /**
      * Reproduce a trial case using a recipe. This is intended to repeatedly
@@ -180,16 +198,14 @@ public abstract class Trials<Case> implements TrialsFactoring<Case> {
 
     public interface SupplyToSyntaxTuple4<Case1, Case2, Case3, Case4>
             extends SupplyToSyntax<Tuple4<Case1, Case2, Case3, Case4>> {
-        void supplyTo(
-                Consumer4<Case1, Case2, Case3, Case4> quadConsumer);
+        void supplyTo(Consumer4<Case1, Case2, Case3, Case4> quadConsumer);
     }
 
     public interface Tuple2Trials<Case1, Case2> {
         <Case3> Trials.Tuple3Trials<Case1, Case2, Case3> and(
                 Trials<Case3> thirdTrials);
 
-        Trials.SupplyToSyntaxTuple2<Case1, Case2> withLimit(
-                final int limit);
+        Trials.SupplyToSyntaxTuple2<Case1, Case2> withLimit(final int limit);
 
         Trials.SupplyToSyntaxTuple2<Case1, Case2> withRecipe(
                 final String recipe);
