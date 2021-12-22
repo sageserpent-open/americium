@@ -2,6 +2,7 @@ package com.sageserpent.americium.java;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import cyclops.data.Range;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -301,5 +302,53 @@ public class TrialsApiTests {
                                                     second,
                                                     third,
                                                     fourth));
+    }
+
+    private static final Trials<String> first =
+            stringsOfSize(1, 10, charactersInRange('a', 'z'));
+
+    private static final Trials<String> second =
+            stringsOfSize(0, 10, charactersInRange('0', '9'));
+
+    @Test
+    void copiedFromJqwik() {
+        first.and(second)
+             .withLimit(50)
+             .supplyTo((String first, String second) -> {
+                 final String concatenation = first + second;
+                 assertThat("Strings aren't allowed to be of length 4" +
+                            " or 5 characters" + " in this test.",
+                            4 > concatenation.length() ||
+                            5 < concatenation.length());
+             });
+    }
+
+    private static Trials<String> stringsOfSize(int minimumSize,
+                                                int maximumSize,
+                                                Trials<Character> characters) {
+        return api
+                .choose(Range.range(minimumSize, maximumSize))
+                .flatMap(size -> characters.collectionsOfSize(size,
+                                                              () -> new Builder<Character, String>() {
+                                                                  final StringBuffer
+                                                                          buffer =
+                                                                          new StringBuffer();
+
+                                                                  @Override
+                                                                  public void add(
+                                                                          Character caze) {
+                                                                      buffer.append(
+                                                                              caze);
+                                                                  }
+
+                                                                  @Override
+                                                                  public String build() {
+                                                                      return buffer.toString();
+                                                                  }
+                                                              }));
+    }
+
+    private static Trials<Character> charactersInRange(char from, char to) {
+        return api.integers(from, to).map(index -> (char) (int) index);
     }
 }
