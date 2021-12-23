@@ -654,7 +654,8 @@ case class TrialsImplementation[Case](
           limit: Int,
           complexityWall: Int,
           randomBehaviour: Random,
-          shrinkageIndex: Int
+          shrinkageIndex: Int,
+          panicMode: Boolean
       ): Iterator[(DecisionStagesInReverseOrder, Case)] = {
         require((0 to maximumShrinkageIndex).contains(shrinkageIndex))
 
@@ -850,15 +851,22 @@ case class TrialsImplementation[Case](
                   .value
                   .value match {
                   case Some((State(decisionStages, _), caze))
-                      if potentialDuplicates.add(decisionStages) =>
+                      if panicMode && decisionStages.reverse.size >= complexityWall =>
+                    numberOfUniqueCasesProduced += 1
+                    Some(decisionStages -> caze)
+                  case Some((State(decisionStages, _), caze))
+                      if !panicMode && potentialDuplicates.add(
+                        decisionStages
+                      ) =>
                     numberOfUniqueCasesProduced += 1
                     backupOfStarvationCountdown = starvationCountdown
                     starvationCountdown = Math
                       .round(Math.sqrt(limit * remainingGap))
                       .toInt
+
                     Some(decisionStages -> caze)
                   case _ =>
-                    starvationCountdown -= 1
+                    if (!panicMode) { starvationCountdown -= 1 }
                     None
                 }
             }.collect { case Some(caze) => caze }
@@ -895,7 +903,13 @@ case class TrialsImplementation[Case](
 
         val shrinkageIndex: Int = 0
 
-        cases(limit, complexityWall, randomBehaviour, shrinkageIndex)
+        cases(
+          limit,
+          complexityWall,
+          randomBehaviour,
+          shrinkageIndex,
+          panicMode = false
+        )
           .map(_._2)
           .asJava
       }
@@ -917,7 +931,8 @@ case class TrialsImplementation[Case](
             throwable: Throwable,
             decisionStages: DecisionStages,
             shrinkageIndex: Int,
-            limit: Int
+            limit: Int,
+            panicMode: Boolean
         ): Eval[Unit] = {
           val potentialShrunkExceptionalOutcome: Eval[Unit] = {
             val numberOfDecisionStages = decisionStages.size
@@ -943,7 +958,8 @@ case class TrialsImplementation[Case](
                       limitWithExtraLeewayThatHasBeenObservedToFindBetterShrunkCases,
                       numberOfDecisionStages,
                       randomBehaviour,
-                      shrinkageIndex
+                      shrinkageIndex,
+                      panicMode = panicMode
                     )
                   )
                   .map {
@@ -986,9 +1002,20 @@ case class TrialsImplementation[Case](
                               throwableFromPotentialShrunkCase,
                               decisionStagesForPotentialShrunkCase,
                               shrinkageIndexForRecursion,
-                              limitWithExtraLeewayThatHasBeenObservedToFindBetterShrunkCases
+                              limitWithExtraLeewayThatHasBeenObservedToFindBetterShrunkCases,
+                              panicMode = false
                             )
-                          } else
+                          } else if (panicMode)
+                            throw new TrialException(
+                              throwable
+                            ) {
+                              override def provokingCase: Case =
+                                caze
+
+                              override def recipe: String =
+                                decisionStages.asJson.spaces4
+                            }
+                          else
                             throw new TrialException(
                               throwableFromPotentialShrunkCase
                             ) {
@@ -1021,15 +1048,14 @@ case class TrialsImplementation[Case](
                 // eventually terminate as the shrinkage index isn't allowed to
                 // exceed its upper limit, and it does winkle out some really
                 // hard to find shrunk cases this way.
-                if (stillEnoughRoomToDecreaseScale) {
-                  val increasedShrinkageIndex = 1 + shrinkageIndex
-
+                if (!panicMode) {
                   shrink(
                     caze,
                     throwable,
                     decisionStages,
-                    increasedShrinkageIndex,
-                    limitWithExtraLeewayThatHasBeenObservedToFindBetterShrunkCases
+                    shrinkageIndex,
+                    limitWithExtraLeewayThatHasBeenObservedToFindBetterShrunkCases,
+                    panicMode = true
                   )
                 } else
                   Eval.now(())
@@ -1053,7 +1079,13 @@ case class TrialsImplementation[Case](
 
         val shrinkageIndex: Int = 0
 
-        cases(limit, complexityWall, randomBehaviour, shrinkageIndex)
+        cases(
+          limit,
+          complexityWall,
+          randomBehaviour,
+          shrinkageIndex,
+          panicMode = false
+        )
           .foreach { case (decisionStagesInReverseOrder, caze) =>
             try {
               consumer(caze)
@@ -1065,7 +1097,8 @@ case class TrialsImplementation[Case](
                   throwable,
                   decisionStagesInReverseOrder.reverse,
                   shrinkageIndex,
-                  limit
+                  limit,
+                  panicMode = false
                 ).value // Evaluating the nominal `Unit` result will throw a `TrialsException`.
             }
           }
