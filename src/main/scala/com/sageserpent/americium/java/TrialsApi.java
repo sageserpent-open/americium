@@ -117,12 +117,12 @@ public interface TrialsApi {
 
     /**
      * This is for advanced usage, where there is a need to control how
-     * trials instances are formulated to avoid hitting a complexity wall, or
-     * alternatively to control the amount of potentially unbounded recursion
-     * when trials are recursively flatmapped. If you don't know what this
-     * means, you probably don't need this.
+     * trials instances are formulated to avoid hitting the complexity limit,
+     * or alternatively to control the amount of potentially unbounded
+     * recursion when trials are recursively flat-mapped. If you don't know
+     * what this means, you probably don't need this.
      * <p>
-     * The notion of a complexity wall is described in
+     * The notion of a complexity limit is described in
      * {@link Trials#withLimit(int, int)}
      *
      * @return The complexity associated with the trials context, taking into
