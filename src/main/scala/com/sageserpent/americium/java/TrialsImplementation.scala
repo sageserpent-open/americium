@@ -850,27 +850,23 @@ case class TrialsImplementation[Case](
                   .run(State.initial)
                   .value
                   .value match {
-                  case Some((State(decisionStages, _), caze)) =>
+                  case Some((State(decisionStages, _), caze))
+                      if (potentialDuplicates.add(decisionStages)) => {
                     if (
                       !mustHitComplexityWall || decisionStages.reverse.size >= complexityWall
                     ) {
-                      if (potentialDuplicates.add(decisionStages)) {
-                        {
-                          numberOfUniqueCasesProduced += 1
-                          backupOfStarvationCountdown = starvationCountdown
-                          starvationCountdown = Math
-                            .round(Math.sqrt(limit * remainingGap))
-                            .toInt
-                        }
-
-                        Some(decisionStages -> caze)
-                      } else {
-                        { starvationCountdown -= 1 }
-
-                        None
+                      {
+                        numberOfUniqueCasesProduced += 1
+                        backupOfStarvationCountdown = starvationCountdown
+                        starvationCountdown = Math
+                          .round(Math.sqrt(limit * remainingGap))
+                          .toInt
                       }
+
+                      Some(decisionStages -> caze)
                     } else
                       None // NOTE: failing to reach or exceed the complexity wall does not increase the starvation count.
+                  }
                   case _ =>
                     { starvationCountdown -= 1 }
 
