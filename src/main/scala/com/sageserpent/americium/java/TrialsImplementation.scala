@@ -654,10 +654,12 @@ case class TrialsImplementation[Case](
           limit: Int,
           complexityLimit: Int,
           randomBehaviour: Random,
-          shrinkageIndex: Int,
+          shrinkageIndex: Option[Int],
           mustHitComplexityLimit: Boolean
       ): Iterator[(DecisionStagesInReverseOrder, Case)] = {
-        require((0 to maximumShrinkageIndex).contains(shrinkageIndex))
+        shrinkageIndex.foreach(index =>
+          require((0 to maximumShrinkageIndex).contains(index))
+        )
 
         // This is used instead of a straight `Option[Case]` to avoid stack
         // overflow when interpreting `this.generation`. We need to do this
@@ -765,15 +767,20 @@ case class TrialsImplementation[Case](
                         upperBoundInput - lowerBoundInput
 
                       if (
-                        maximumShrinkageIndex > shrinkageIndex && 0 < maximumScale
+                        shrinkageIndex.fold(true)(
+                          maximumShrinkageIndex > _
+                        ) && 0 < maximumScale
                       ) {
                         // Calibrate the scale to come out at around one at
                         // maximum shrinkage, even though the guard clause above
                         // handles maximum shrinkage explicitly.
-                        val scale: BigDecimal = maximumScale / Math.pow(
-                          maximumScale.toDouble,
-                          shrinkageIndex.toDouble / maximumShrinkageIndex
-                        )
+                        val scale: BigDecimal =
+                          shrinkageIndex.fold(maximumScale)(index =>
+                            maximumScale / Math.pow(
+                              maximumScale.toDouble,
+                              index.toDouble / maximumShrinkageIndex
+                            )
+                          )
                         val blend: BigDecimal = scale / maximumScale
 
                         val midPoint: BigDecimal =
@@ -803,12 +810,15 @@ case class TrialsImplementation[Case](
                     state <- StateT.get[DeferredOption, State]
                   } yield state.complexity
 
-                case ResetComplexity(complexity) =>
+                case ResetComplexity(complexity) if shrinkageIndex.isEmpty =>
                   for {
                     _ <- StateT.modify[DeferredOption, State](
                       _.copy(complexity = complexity)
                     )
                   } yield ()
+
+                case ResetComplexity(_) =>
+                  StateT.pure(())
               }
 
             private def liftUnitIfTheComplexityIsNotTooLarge[Case](
@@ -909,13 +919,11 @@ case class TrialsImplementation[Case](
       override def asIterator(): JavaIterator[Case] = {
         val randomBehaviour = new Random(734874)
 
-        val shrinkageIndex: Int = 0
-
         cases(
           limit,
           complexityLimit,
           randomBehaviour,
-          shrinkageIndex,
+          None,
           mustHitComplexityLimit = false
         )
           .map(_._2)
@@ -968,7 +976,7 @@ case class TrialsImplementation[Case](
                       limitWithExtraLeewayThatHasBeenObservedToFindBetterShrunkCases,
                       numberOfDecisionStages,
                       randomBehaviour,
-                      shrinkageIndex,
+                      Some(shrinkageIndex),
                       mustHitComplexityLimit =
                         0 < numberOfShrinksWithFixedComplexityIncludingThisOne
                     )
@@ -1085,13 +1093,11 @@ case class TrialsImplementation[Case](
           )
         }
 
-        val shrinkageIndex: Int = 0
-
         cases(
           limit,
           complexityLimit,
           randomBehaviour,
-          shrinkageIndex,
+          None,
           mustHitComplexityLimit = false
         )
           .foreach { case (decisionStagesInReverseOrder, caze) =>
@@ -1100,6 +1106,8 @@ case class TrialsImplementation[Case](
             } catch {
               case rejection: RejectionByInlineFilter => throw rejection
               case throwable: Throwable =>
+                val shrinkageIndex = 0
+
                 shrink(
                   caze,
                   throwable,
