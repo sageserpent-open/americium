@@ -331,7 +331,7 @@ public class TrialsApiTests {
                                                 int maximumSize,
                                                 Trials<Character> characters) {
         return api
-                .choose(Range.range(minimumSize, maximumSize))
+                .integers(minimumSize, maximumSize)
                 .flatMap(size -> characters.collectionsOfSize(size,
                                                               () -> new Builder<Character, String>() {
                                                                   final StringBuffer
