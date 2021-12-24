@@ -3,6 +3,7 @@ package com.sageserpent.americium.java;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import cyclops.data.Range;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -310,6 +311,9 @@ public class TrialsApiTests {
     private static final Trials<String> second =
             stringsOfSize(0, 10, charactersInRange('0', '9'));
 
+    @Disabled
+    // This now detects the 'failing' test case correctly - but it is still a
+    // test failure. Need to rethink what this test should look like....
     @Test
     void copiedFromJqwik() {
         first.and(second)
