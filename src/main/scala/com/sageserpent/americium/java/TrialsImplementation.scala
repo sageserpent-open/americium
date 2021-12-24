@@ -655,7 +655,7 @@ case class TrialsImplementation[Case](
           complexityWall: Int,
           randomBehaviour: Random,
           shrinkageIndex: Int,
-          panicMode: Boolean
+          mustHitComplexityWall: Boolean
       ): Iterator[(DecisionStagesInReverseOrder, Case)] = {
         require((0 to maximumShrinkageIndex).contains(shrinkageIndex))
 
@@ -836,10 +836,10 @@ case class TrialsImplementation[Case](
           val potentialDuplicates =
             mutable.Set.empty[DecisionStagesInReverseOrder]
 
-          def remainingGap = limit - numberOfUniqueCasesProduced
-
           val coreIterator =
             new Iterator[Option[(DecisionStagesInReverseOrder, Case)]] {
+              private def remainingGap = limit - numberOfUniqueCasesProduced
+
               override def hasNext: Boolean =
                 0 < remainingGap && 0 < starvationCountdown
 
@@ -850,23 +850,30 @@ case class TrialsImplementation[Case](
                   .run(State.initial)
                   .value
                   .value match {
-                  case Some((State(decisionStages, _), caze))
-                      if panicMode && decisionStages.reverse.size >= complexityWall =>
-                    numberOfUniqueCasesProduced += 1
-                    Some(decisionStages -> caze)
-                  case Some((State(decisionStages, _), caze))
-                      if !panicMode && potentialDuplicates.add(
-                        decisionStages
-                      ) =>
-                    numberOfUniqueCasesProduced += 1
-                    backupOfStarvationCountdown = starvationCountdown
-                    starvationCountdown = Math
-                      .round(Math.sqrt(limit * remainingGap))
-                      .toInt
+                  case Some((State(decisionStages, _), caze)) =>
+                    if (
+                      !mustHitComplexityWall || decisionStages.reverse.size >= complexityWall
+                    ) {
+                      if (potentialDuplicates.add(decisionStages)) {
+                        {
+                          numberOfUniqueCasesProduced += 1
+                          backupOfStarvationCountdown = starvationCountdown
+                          starvationCountdown = Math
+                            .round(Math.sqrt(limit * remainingGap))
+                            .toInt
+                        }
 
-                    Some(decisionStages -> caze)
+                        Some(decisionStages -> caze)
+                      } else {
+                        { starvationCountdown -= 1 }
+
+                        None
+                      }
+                    } else
+                      None // NOTE: failing to reach or exceed the complexity wall does not increase the starvation count.
                   case _ =>
-                    if (!panicMode) { starvationCountdown -= 1 }
+                    { starvationCountdown -= 1 }
+
                     None
                 }
             }.collect { case Some(caze) => caze }
@@ -908,7 +915,7 @@ case class TrialsImplementation[Case](
           complexityWall,
           randomBehaviour,
           shrinkageIndex,
-          panicMode = false
+          mustHitComplexityWall = false
         )
           .map(_._2)
           .asJava
@@ -932,8 +939,10 @@ case class TrialsImplementation[Case](
             decisionStages: DecisionStages,
             shrinkageIndex: Int,
             limit: Int,
-            panicMode: Boolean
+            numberOfShrinksWithFixedComplexityIncludingThisOne: Int
         ): Eval[Unit] = {
+          require(0 <= numberOfShrinksWithFixedComplexityIncludingThisOne)
+
           val potentialShrunkExceptionalOutcome: Eval[Unit] = {
             val numberOfDecisionStages = decisionStages.size
 
@@ -959,14 +968,15 @@ case class TrialsImplementation[Case](
                       numberOfDecisionStages,
                       randomBehaviour,
                       shrinkageIndex,
-                      panicMode = panicMode
+                      mustHitComplexityWall =
+                        0 < numberOfShrinksWithFixedComplexityIncludingThisOne
                     )
                   )
-                  .map {
+                  .collect {
                     case (
                           decisionStagesForPotentialShrunkCaseInReverseOrder,
                           potentialShrunkCase
-                        ) =>
+                        ) if caze != potentialShrunkCase =>
                       try {
                         Eval.now(consumer(potentialShrunkCase))
                       } catch {
@@ -983,39 +993,30 @@ case class TrialsImplementation[Case](
                           val lessComplex =
                             decisionStagesForPotentialShrunkCase.size < numberOfDecisionStages
 
-                          val shouldPersevere =
+                          val canStillShrinkInputs =
                             decisionStagesForPotentialShrunkCase.exists {
                               case FactoryInputOf(_)
                                   if stillEnoughRoomToDecreaseScale =>
                                 true
                               case _ => false
-                            } || lessComplex
+                            }
 
-                          val shrinkageIndexForRecursion =
-                            if (!lessComplex && stillEnoughRoomToDecreaseScale)
-                              1 + shrinkageIndex
-                            else shrinkageIndex
+                          if (lessComplex || canStillShrinkInputs) {
+                            val shrinkageIndexForRecursion =
+                              if (!lessComplex)
+                                1 + shrinkageIndex
+                              else shrinkageIndex
 
-                          if (shouldPersevere) {
                             shrink(
                               potentialShrunkCase,
                               throwableFromPotentialShrunkCase,
                               decisionStagesForPotentialShrunkCase,
                               shrinkageIndexForRecursion,
                               limitWithExtraLeewayThatHasBeenObservedToFindBetterShrunkCases,
-                              panicMode = false
+                              numberOfShrinksWithFixedComplexityIncludingThisOne =
+                                0
                             )
-                          } else if (panicMode)
-                            throw new TrialException(
-                              throwable
-                            ) {
-                              override def provokingCase: Case =
-                                caze
-
-                              override def recipe: String =
-                                decisionStages.asJson.spaces4
-                            }
-                          else
+                          } else
                             throw new TrialException(
                               throwableFromPotentialShrunkCase
                             ) {
@@ -1048,14 +1049,20 @@ case class TrialsImplementation[Case](
                 // eventually terminate as the shrinkage index isn't allowed to
                 // exceed its upper limit, and it does winkle out some really
                 // hard to find shrunk cases this way.
-                if (!panicMode) {
+                if (stillEnoughRoomToDecreaseScale) {
+                  // Become more impatient with the shrinkage as a run of
+                  // failing recursive attempts builds up.
+                  val increasedShrinkageIndex =
+                    maximumShrinkageIndex min (1 + numberOfShrinksWithFixedComplexityIncludingThisOne + shrinkageIndex)
+
                   shrink(
                     caze,
                     throwable,
                     decisionStages,
-                    shrinkageIndex,
+                    increasedShrinkageIndex,
                     limitWithExtraLeewayThatHasBeenObservedToFindBetterShrunkCases,
-                    panicMode = true
+                    numberOfShrinksWithFixedComplexityIncludingThisOne =
+                      1 + numberOfShrinksWithFixedComplexityIncludingThisOne
                   )
                 } else
                   Eval.now(())
@@ -1084,7 +1091,7 @@ case class TrialsImplementation[Case](
           complexityWall,
           randomBehaviour,
           shrinkageIndex,
-          panicMode = false
+          mustHitComplexityWall = false
         )
           .foreach { case (decisionStagesInReverseOrder, caze) =>
             try {
@@ -1098,7 +1105,7 @@ case class TrialsImplementation[Case](
                   decisionStagesInReverseOrder.reverse,
                   shrinkageIndex,
                   limit,
-                  panicMode = false
+                  numberOfShrinksWithFixedComplexityIncludingThisOne = 0
                 ).value // Evaluating the nominal `Unit` result will throw a `TrialsException`.
             }
           }
