@@ -77,24 +77,24 @@ public abstract class Trials<Case> implements TrialsFactoring<Case> {
      * Fluent syntax for configuring a limit to the number of cases
      * supplied to a consumer.
      *
-     * @param limit          The maximum number of cases that can be supplied
-     *                       - note that this is no guarantee that so many
-     *                       cases will be supplied, it is simply a limit.
-     * @param complexityWall <b>One past</b> the highest complexity that a
-     *                       case may achieve as it is synthesized.
+     * @param limit           The maximum number of cases that can be supplied
+     *                        - note that this is no guarantee that so many
+     *                        cases will be supplied, it is simply a limit.
+     * @param complexityLimit The highest complexity that a case may achieve
+     *                        as it is synthesized, it is an inclusive limit.
      * @return An instance of {@link SupplyToSyntax} with the limit configured.
      * @apiNote Complexity is something associated with the production of a
      * {@link Case} when a {@link Trials} is supplied to some test consumer.
-     * It ranges from one up to (but not including) the {@code complexityWall
-     * } and captures some sense of the case being more elaborately
-     * constructed as it increases - as an example, the use of flatmapping to
-     * combine inputs from multiple trials instances drives the complexity up
-     * for each flatmap stage. In practice, this results in larger collection
-     * instances having greater complexity. Deeply recursive trials also
-     * result in high complexity.
+     * It ranges from one up to (but not including) the {@code
+     * complexityLimit} and captures some sense of the case being more
+     * elaborately constructed as it increases - as an example, the use of
+     * flatmapping to combine inputs from multiple trials instances drives
+     * the complexity up for each flatmap stage. In practice, this results in
+     * larger collection instances having greater complexity. Deeply
+     * recursive trials also result in high complexity.
      */
     public abstract Trials.SupplyToSyntax<Case> withLimit(final int limit,
-                                                          final int complexityWall);
+                                                          final int complexityLimit);
 
     /**
      * Reproduce a trial case using a recipe. This is intended to repeatedly

@@ -50,7 +50,7 @@ import scala.jdk.CollectionConverters._
 import scala.util.Random
 
 object TrialsImplementation {
-  val defaultComplexityWall = 100
+  val defaultComplexityLimit = 100
 
   val maximumShrinkageIndex = 50
 
@@ -585,11 +585,11 @@ case class TrialsImplementation[Case](
   override def withLimit(
       limit: Int
   ): JavaTrials.SupplyToSyntax[Case] with Trials.SupplyToSyntax[Case] =
-    withLimit(limit, defaultComplexityWall)
+    withLimit(limit, defaultComplexityLimit)
 
   override def withLimit(
       limit: Int,
-      complexityWall: Int
+      complexityLimit: Int
   ): JavaTrials.SupplyToSyntax[Case] with Trials.SupplyToSyntax[Case] =
     new JavaTrials.SupplyToSyntax[Case] with Trials.SupplyToSyntax[Case] {
       final case class NonEmptyDecisionStages(
@@ -652,10 +652,10 @@ case class TrialsImplementation[Case](
 
       private def cases(
           limit: Int,
-          complexityWall: Int,
+          complexityLimit: Int,
           randomBehaviour: Random,
           shrinkageIndex: Int,
-          mustHitComplexityWall: Boolean
+          mustHitComplexityLimit: Boolean
       ): Iterator[(DecisionStagesInReverseOrder, Case)] = {
         require((0 to maximumShrinkageIndex).contains(shrinkageIndex))
 
@@ -719,7 +719,7 @@ case class TrialsImplementation[Case](
                   if (0 < numberOfChoices)
                     for {
                       state <- StateT.get[DeferredOption, State]
-                      _ <- liftUnitIfTheNumberOfDecisionStagesIsNotTooLarge(
+                      _ <- liftUnitIfTheComplexityIsNotTooLarge(
                         state
                       )
                       index #:: remainingPossibleIndices =
@@ -752,7 +752,7 @@ case class TrialsImplementation[Case](
                 case Factory(factory) =>
                   for {
                     state <- StateT.get[DeferredOption, State]
-                    _ <- liftUnitIfTheNumberOfDecisionStagesIsNotTooLarge(state)
+                    _     <- liftUnitIfTheComplexityIsNotTooLarge(state)
                     input = {
                       val upperBoundInput: BigDecimal =
                         factory.upperBoundInput()
@@ -811,14 +811,19 @@ case class TrialsImplementation[Case](
                   } yield ()
               }
 
-            private def liftUnitIfTheNumberOfDecisionStagesIsNotTooLarge[Case](
+            private def liftUnitIfTheComplexityIsNotTooLarge[Case](
                 state: State
-            ): StateUpdating[Unit] = if (state.complexity < complexityWall)
-              StateT.pure(())
-            else
-              StateT.liftF[DeferredOption, State, Unit](
-                OptionT.none
-              )
+            ): StateUpdating[Unit] = {
+              // NOTE: this is called *prior* to the complexity being
+              // potentially increased by one, hence the strong inequality
+              // below; `complexityLimit` *is* inclusive.
+              if (state.complexity < complexityLimit)
+                StateT.pure(())
+              else
+                StateT.liftF[DeferredOption, State, Unit](
+                  OptionT.none
+                )
+            }
           }
 
         {
@@ -853,7 +858,7 @@ case class TrialsImplementation[Case](
                   case Some((State(decisionStages, _), caze))
                       if (potentialDuplicates.add(decisionStages)) => {
                     if (
-                      !mustHitComplexityWall || decisionStages.reverse.size >= complexityWall
+                      !mustHitComplexityLimit || decisionStages.reverse.size >= complexityLimit
                     ) {
                       {
                         numberOfUniqueCasesProduced += 1
@@ -865,7 +870,7 @@ case class TrialsImplementation[Case](
 
                       Some(decisionStages -> caze)
                     } else
-                      None // NOTE: failing to reach or exceed the complexity wall does not increase the starvation count.
+                      None // NOTE: failing to reach or exceed the complexity limit does not increase the starvation count.
                   }
                   case _ =>
                     { starvationCountdown -= 1 }
@@ -908,10 +913,10 @@ case class TrialsImplementation[Case](
 
         cases(
           limit,
-          complexityWall,
+          complexityLimit,
           randomBehaviour,
           shrinkageIndex,
-          mustHitComplexityWall = false
+          mustHitComplexityLimit = false
         )
           .map(_._2)
           .asJava
@@ -964,7 +969,7 @@ case class TrialsImplementation[Case](
                       numberOfDecisionStages,
                       randomBehaviour,
                       shrinkageIndex,
-                      mustHitComplexityWall =
+                      mustHitComplexityLimit =
                         0 < numberOfShrinksWithFixedComplexityIncludingThisOne
                     )
                   )
@@ -1084,10 +1089,10 @@ case class TrialsImplementation[Case](
 
         cases(
           limit,
-          complexityWall,
+          complexityLimit,
           randomBehaviour,
           shrinkageIndex,
-          mustHitComplexityWall = false
+          mustHitComplexityLimit = false
         )
           .foreach { case (decisionStagesInReverseOrder, caze) =>
             try {
