@@ -1160,6 +1160,13 @@ class TrialsSpec
         ),
         (
           "Has either four or five characters.",
+          api.characters.several[Vector[Char]],
+          (characterVector: Vector[Char]) =>
+            4 to 5 contains characterVector.size,
+          limit
+        ),
+        (
+          "Has either four or five characters - pathological example.",
           api
             .integers(0, 10)
             .flatMap(api.characters.lotsOfSize[Vector[Char]](_)),
