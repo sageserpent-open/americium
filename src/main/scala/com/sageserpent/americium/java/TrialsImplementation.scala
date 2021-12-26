@@ -227,6 +227,19 @@ object TrialsImplementation {
     override def characters(): TrialsImplementation[JavaCharacter] =
       scalaApi.characters.map(Char.box)
 
+    override def characters(
+        lowerBound: Char,
+        upperBound: Char
+    ): TrialsImplementation[JavaCharacter] =
+      scalaApi.characters(lowerBound, upperBound).map(Char.box)
+
+    override def characters(
+        lowerBound: Char,
+        upperBound: Char,
+        shrinkageTarget: Char
+    ): TrialsImplementation[JavaCharacter] =
+      scalaApi.characters(lowerBound, upperBound, shrinkageTarget).map(Char.box)
+
     override def instants(): TrialsImplementation[Instant] =
       scalaApi.instants
 
@@ -433,7 +446,23 @@ object TrialsImplementation {
       choose(true, false)
 
     override def characters: TrialsImplementation[Char] =
-      choose(0 to 0xffff).map((_: Int).toChar)
+      choose(Char.MinValue to Char.MaxValue)
+
+    override def characters(
+        lowerBound: Char,
+        upperBound: Char
+    ): TrialsImplementation[Char] = choose(lowerBound to upperBound)
+
+    override def characters(
+        lowerBound: Char,
+        upperBound: Char,
+        shrinkageTarget: Char
+    ): TrialsImplementation[Char] = stream(new CaseFactory[Char] {
+      override def apply(input: Long): Char     = input.toChar
+      override def lowerBoundInput(): Long      = lowerBound.toLong
+      override def upperBoundInput(): Long      = upperBound.toLong
+      override def maximallyShrunkInput(): Long = shrinkageTarget.toLong
+    })
 
     override def instants: TrialsImplementation[Instant] =
       longs.map(Instant.ofEpochMilli)

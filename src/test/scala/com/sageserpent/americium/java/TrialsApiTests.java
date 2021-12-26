@@ -2,7 +2,6 @@ package com.sageserpent.americium.java;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import cyclops.data.Range;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -306,10 +305,10 @@ public class TrialsApiTests {
     }
 
     private static final Trials<String> first =
-            stringsOfSize(1, 10, charactersInRange('a', 'z'));
+            stringsOfSize(1, 10, api.characters('a', 'z', 'a'));
 
     private static final Trials<String> second =
-            stringsOfSize(0, 10, charactersInRange('0', '9'));
+            stringsOfSize(0, 10, api.characters('0', '9', '0'));
 
     @Disabled
     // This now detects the 'failing' test case correctly - but it is still a
@@ -350,9 +349,5 @@ public class TrialsApiTests {
                                                                       return buffer.toString();
                                                                   }
                                                               }));
-    }
-
-    private static Trials<Character> charactersInRange(char from, char to) {
-        return api.integers(from, to).map(index -> (char) (int) index);
     }
 }

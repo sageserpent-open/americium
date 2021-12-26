@@ -1174,6 +1174,15 @@ class TrialsSpec
             4 to 5 contains characterVector.size,
           limit
         ),
+        (
+          "Has either four or five characters - variation with shrinkable character range.",
+          api
+            .integers(4, 10)
+            .flatMap(api.characters('a', 'z', 'q').lotsOfSize[Vector[Char]](_)),
+          (characterVector: Vector[Char]) =>
+            4 to 5 contains characterVector.size,
+          limit
+        ),
 //        (
 //          "Has either four or five characters - pathologically slow example.",
 //          api

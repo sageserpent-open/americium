@@ -210,6 +210,11 @@ public interface TrialsApi {
 
     Trials<Character> characters();
 
+    Trials<Character> characters(char lowerBound, char upperBound);
+
+    Trials<Character> characters(char lowerBound, char upperBound,
+                                 char shrinkageTarget);
+
     Trials<Instant> instants();
 
     Trials<String> strings();
