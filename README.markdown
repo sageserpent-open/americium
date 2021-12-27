@@ -627,16 +627,24 @@ What *does* get shrunk is the complexity of the test cases - so if we have colle
 definition, then smaller collections are taken to be simpler, as are cases built with less recursion. Collections shrink
 towards empty collections.
 
-Furthermore, the factory methods - `.doubles`, `.integers`, `.stream` etc also support shrinking - they have an internal
-parameter that controls the range of the generated values, so as shrinkage proceeds, the values get 'smaller' in some
-sense. For numeric values, that usually means tending towards zero from both positive and negative values.
+Furthermore, the streaming factory methods - `.doubles`, `.integers`, `.stream` etc also support shrinking - they have
+an internal parameter that controls the range of the generated values, so as shrinkage proceeds, the values get '
+smaller' in some sense. For numeric values, that usually means tending towards zero from both positive and negative
+values.
 
 The `.strings` factory method shrinks in the same manner as for collections - the strings get shorter, tending to the
 empty string, although the characters range over the full UTF-16 set.
 
-This choice isn't written in stone - it would be possible to extend to shrinkage mechanism both to support shrinking
-over a finite set of choices according to their order of presentation to the api. One idea would be to implement custom
-ranges of the internal parameter...
+This choice isn't written in stone - rather than using `.choose`, use the streaming factory methods that allow custom
+ranges, either via overloads of `.integers`, `.longs` and `.characters` or directly in `.stream` using a `CaseFactory`.
+These also permit some other value to be the one that shrinkage tends to. See here for an
+example: [TrialsApiTests](https://github.com/sageserpent-open/americium/blob/6fdd3db7f07e398018de80ce8130a5582648a346/src/test/scala/com/sageserpent/americium/java/TrialsApiTests.java#L309)
+.
+
+That example also shows how strings can be built from the output of `.characters` in Java - use this example
+here: [TrialsSpec](https://github.com/sageserpent-open/americium/blob/6fdd3db7f07e398018de80ce8130a5582648a346/src/test/scala/com/sageserpent/americium/TrialsSpec.scala#L218)
+if you are writing in Scala. Note that when you do this, you have the ability to shrink your strings based on both
+length and the character values.
 
 ### Are the cases yielded by `.doubles`, `.integers`, `.stream` randomly distributed? ###
 
@@ -645,8 +653,12 @@ the 'minimal value' - zero for numeric values, but that can be customised when u
 interface if you want to customise the range of allowed values and where the minimal value lies in that range, it
 doesn't have to sit in the middle.
 
+As mentioned in the previous section, there are also some convenience overloads of `.integers`, `.longs`
+and `.characters` for this purpose too.
+
 Hedgehog supports custom distributions and ranges, and Scalacheck has some heuristics for biasing its otherwise random
-distributions. Maybe there should be some support for this here, too...
+distributions. You can implement this by supplying your own `CaseFactory` instance that skews the input values, and you
+can also move the input value for the maximally shrunk case to some favoured value, as shringkage will home in on it.
 
 ### If I write a recursive definition of a trials instance, do I need to protect against infinite recursion with a size parameter? ###
 
