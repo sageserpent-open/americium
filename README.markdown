@@ -607,7 +607,7 @@ of its repository to make its use-case more obvious.
 
 ### The introduction mentions Scalacheck Shapeless, do explain... ###
 
-This the automatic generation of trials for structured types, and is brought to us via the Mercator library - see it in
+This the automatic generation of trials for structured types, and is brought to us via the Magnolia library - see it in
 action here:
 [TrialsSpec.scala](https://github.com/sageserpent-open/americium/blob/e69b9fb60cd90796d96ba1126a90f6c1ab2a7a1d/src/test/scala/com/sageserpent/americium/TrialsSpec.scala#L1057)
 and here:
