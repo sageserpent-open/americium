@@ -658,7 +658,7 @@ and `.characters` for this purpose too.
 
 Hedgehog supports custom distributions and ranges, and Scalacheck has some heuristics for biasing its otherwise random
 distributions. You can implement this by supplying your own `CaseFactory` instance that skews the input values, and you
-can also move the input value for the maximally shrunk case to some favoured value, as shringkage will home in on it.
+can also move the input value for the maximally shrunk case to some favoured value, as shrinkage will home in on it.
 
 ### If I write a recursive definition of a trials instance, do I need to protect against infinite recursion with a size parameter? ###
 
