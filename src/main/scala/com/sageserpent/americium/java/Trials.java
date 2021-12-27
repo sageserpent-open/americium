@@ -13,7 +13,7 @@ import java.util.Optional;
 import java.util.function.*;
 
 
-public abstract class Trials<Case> implements TrialsFactoring<Case> {
+public interface Trials<Case> extends TrialsFactoring<Case> {
     /**
      * Start here: this yields a {@link TrialsApi} instance that is the
      * gateway to creating various kinds of {@link Trials} instances via its
@@ -24,17 +24,17 @@ public abstract class Trials<Case> implements TrialsFactoring<Case> {
      * ways of transforming and building up more complex trials, or for
      * putting them to work by running test code.
      */
-    public static TrialsApi api() {
+    static TrialsApi api() {
         return (TrialsApi) TrialsImplementation.javaApi();
     }
 
-    public static <Result> Result whenever(Boolean satisfiedPrecondition,
-                                           Supplier<Result> block) {
+    static <Result> Result whenever(Boolean satisfiedPrecondition,
+                                    Supplier<Result> block) {
         return com.sageserpent.americium.Trials.whenever(satisfiedPrecondition,
                                                          block::get);
     }
 
-    public static void whenever(Boolean satisfiedPrecondition, Runnable block) {
+    static void whenever(Boolean satisfiedPrecondition, Runnable block) {
         com.sageserpent.americium.Trials.whenever(satisfiedPrecondition, () -> {
             block.run();
             return null;
@@ -44,22 +44,23 @@ public abstract class Trials<Case> implements TrialsFactoring<Case> {
     /**
      * This is just for implementation purposes, as the Java incarnation
      * {@link Trials} is effectively a wrapper around the Scala incarnation
-     * {@link com.sageserpent.americium.Trials} - hence the reduced visibility.
+     * {@link com.sageserpent.americium.Trials}. Still, it's there if you
+     * want it...
      *
      * @return The Scala incarnation {@link com.sageserpent.americium.Trials}
      * of this instance
      */
-    abstract com.sageserpent.americium.Trials<Case> scalaTrials();
+    com.sageserpent.americium.Trials<Case> scalaTrials();
 
-    public abstract <TransformedCase> Trials<TransformedCase> map(
+    <TransformedCase> Trials<TransformedCase> map(
             final Function<Case, TransformedCase> transform);
 
-    public abstract <TransformedCase> Trials<TransformedCase> flatMap(
+    <TransformedCase> Trials<TransformedCase> flatMap(
             final Function<Case, Trials<TransformedCase>> step);
 
-    public abstract Trials<Case> filter(final Predicate<Case> predicate);
+    Trials<Case> filter(final Predicate<Case> predicate);
 
-    public abstract <TransformedCase> Trials<TransformedCase> mapFilter(
+    <TransformedCase> Trials<TransformedCase> mapFilter(
             final Function<Case, Optional<TransformedCase>> filteringTransform);
 
     /**
@@ -71,7 +72,7 @@ public abstract class Trials<Case> implements TrialsFactoring<Case> {
      *              supplied, it is simply a limit.
      * @return An instance of {@link SupplyToSyntax} with the limit configured.
      */
-    public abstract Trials.SupplyToSyntax<Case> withLimit(final int limit);
+    Trials.SupplyToSyntax<Case> withLimit(final int limit);
 
     /**
      * Fluent syntax for configuring a limit to the number of cases
@@ -93,8 +94,8 @@ public abstract class Trials<Case> implements TrialsFactoring<Case> {
      * larger collection instances having greater complexity. Deeply
      * recursive trials also result in high complexity.
      */
-    public abstract Trials.SupplyToSyntax<Case> withLimit(final int limit,
-                                                          final int complexityLimit);
+    Trials.SupplyToSyntax<Case> withLimit(final int limit,
+                                          final int complexityLimit);
 
     /**
      * Reproduce a trial case using a recipe. This is intended to repeatedly
@@ -106,9 +107,9 @@ public abstract class Trials<Case> implements TrialsFactoring<Case> {
      * @return An instance of {@link SupplyToSyntax} that supplies the
      * reproduced trial case.
      */
-    public abstract Trials.SupplyToSyntax<Case> withRecipe(final String recipe);
+    Trials.SupplyToSyntax<Case> withRecipe(final String recipe);
 
-    public abstract <Case2> Trials.Tuple2Trials<Case, Case2> and(
+    <Case2> Trials.Tuple2Trials<Case, Case2> and(
             Trials<Case2> secondTrials);
 
     /**
@@ -122,20 +123,20 @@ public abstract class Trials<Case> implements TrialsFactoring<Case> {
      *                       arbitrary number of elements of type {@Case}.
      * @return A {@link Trials} instance that yields collections.
      */
-    public abstract <Collection> Trials<Collection> collections(
+    <Collection> Trials<Collection> collections(
             Supplier<Builder<Case, Collection>> builderFactory);
 
-    public abstract Trials<ImmutableList<Case>> immutableLists();
+    Trials<ImmutableList<Case>> immutableLists();
 
-    public abstract Trials<ImmutableSet<Case>> immutableSets();
+    Trials<ImmutableSet<Case>> immutableSets();
 
-    public abstract Trials<ImmutableSortedSet<Case>> immutableSortedSets(
+    Trials<ImmutableSortedSet<Case>> immutableSortedSets(
             final Comparator<Case> elementComparator);
 
-    public abstract <Value> Trials<ImmutableMap<Case, Value>> immutableMaps(
+    <Value> Trials<ImmutableMap<Case, Value>> immutableMaps(
             final Trials<Value> values);
 
-    public abstract <Value> Trials<ImmutableSortedMap<Case, Value>> immutableSortedMaps(
+    <Value> Trials<ImmutableSortedMap<Case, Value>> immutableSortedMaps(
             final Comparator<Case> elementComparator,
             final Trials<Value> values);
 
@@ -155,13 +156,13 @@ public abstract class Trials<Case> implements TrialsFactoring<Case> {
      *                       arbitrary number of elements of type {@Case}.
      * @return A {@link Trials} instance that yields collections.
      */
-    public abstract <Collection> Trials<Collection> collectionsOfSize(
+    <Collection> Trials<Collection> collectionsOfSize(
             final int size, Supplier<Builder<Case, Collection>> builderFactory);
 
-    public abstract Trials<ImmutableList<Case>> immutableListsOfSize(
+    Trials<ImmutableList<Case>> immutableListsOfSize(
             final int size);
 
-    public interface SupplyToSyntax<Case> {
+    interface SupplyToSyntax<Case> {
         /**
          * Consume trial cases until either there are no more or an exception
          * is thrown by {@code consumer}. If an exception is thrown, attempts
@@ -186,22 +187,22 @@ public abstract class Trials<Case> implements TrialsFactoring<Case> {
         Iterator<Case> asIterator();
     }
 
-    public interface SupplyToSyntaxTuple2<Case1, Case2>
+    interface SupplyToSyntaxTuple2<Case1, Case2>
             extends SupplyToSyntax<Tuple2<Case1, Case2>> {
         void supplyTo(BiConsumer<Case1, Case2> biConsumer);
     }
 
-    public interface SupplyToSyntaxTuple3<Case1, Case2, Case3>
+    interface SupplyToSyntaxTuple3<Case1, Case2, Case3>
             extends SupplyToSyntax<Tuple3<Case1, Case2, Case3>> {
         void supplyTo(Consumer3<Case1, Case2, Case3> triConsumer);
     }
 
-    public interface SupplyToSyntaxTuple4<Case1, Case2, Case3, Case4>
+    interface SupplyToSyntaxTuple4<Case1, Case2, Case3, Case4>
             extends SupplyToSyntax<Tuple4<Case1, Case2, Case3, Case4>> {
         void supplyTo(Consumer4<Case1, Case2, Case3, Case4> quadConsumer);
     }
 
-    public interface Tuple2Trials<Case1, Case2> {
+    interface Tuple2Trials<Case1, Case2> {
         <Case3> Trials.Tuple3Trials<Case1, Case2, Case3> and(
                 Trials<Case3> thirdTrials);
 
@@ -211,7 +212,7 @@ public abstract class Trials<Case> implements TrialsFactoring<Case> {
                 final String recipe);
     }
 
-    public interface Tuple3Trials<Case1, Case2, Case3> {
+    interface Tuple3Trials<Case1, Case2, Case3> {
         <Case4> Trials.Tuple4Trials<Case1, Case2, Case3, Case4> and(
                 Trials<Case4> fourthTrials);
 
@@ -222,7 +223,7 @@ public abstract class Trials<Case> implements TrialsFactoring<Case> {
                 final String recipe);
     }
 
-    public interface Tuple4Trials<Case1, Case2, Case3, Case4> {
+    interface Tuple4Trials<Case1, Case2, Case3, Case4> {
         Trials.SupplyToSyntaxTuple4<Case1, Case2, Case3, Case4> withLimit(
                 final int limit);
 

@@ -547,7 +547,7 @@ case class TrialsImplementation[Case](
 
   import TrialsImplementation._
 
-  override private[americium] val scalaTrials = this
+  override val scalaTrials = this
 
   // Java and Scala API ...
   override def reproduce(recipe: String): Case =
