@@ -290,25 +290,30 @@ public class TrialsApiTests {
 
     @Test
     void testDriveCombinationsOfTrials() {
-        api
-                .integers()
-                .and(api.strings())
-                .and(api.booleans().immutableSets())
-                .and(api.characters().immutableListsOfSize(4))
-                .withLimit((100))
-                .supplyTo((first, second, third, fourth) ->
-                                  System.out.printf("%s, %s, %s, %s%n",
-                                                    first,
-                                                    second,
-                                                    third,
-                                                    fourth));
+        api.integers()
+           .and(api.strings())
+           .and(api.booleans().immutableSets())
+           .and(api.characters().immutableListsOfSize(4))
+           .withLimit((100))
+           .supplyTo((first, second, third, fourth) ->
+                             System.out.printf("%s, %s, %s, %s%n",
+                                               first,
+                                               second,
+                                               third,
+                                               fourth));
     }
 
     private static final Trials<String> first =
-            stringsOfSize(1, 10, api.characters('a', 'z', 'a'));
+            api.integers(1, 10)
+               .flatMap(size -> api
+                       .characters('a', 'z', 'a')
+                       .collectionsOfSize(size, Builder::stringBuilder));
 
     private static final Trials<String> second =
-            stringsOfSize(0, 10, api.characters('0', '9', '0'));
+            api.integers(0, 10)
+               .flatMap(size -> api
+                       .characters('0', '9', '0')
+                       .collectionsOfSize(size, Builder::stringBuilder));
 
     @Disabled
     // This now detects the 'failing' test case correctly - but it is still a
@@ -324,30 +329,5 @@ public class TrialsApiTests {
                             4 > concatenation.length() ||
                             5 < concatenation.length());
              });
-    }
-
-    private static Trials<String> stringsOfSize(int minimumSize,
-                                                int maximumSize,
-                                                Trials<Character> characters) {
-        return api
-                .integers(minimumSize, maximumSize)
-                .flatMap(size -> characters.collectionsOfSize(size,
-                                                              () -> new Builder<Character, String>() {
-                                                                  final StringBuffer
-                                                                          buffer =
-                                                                          new StringBuffer();
-
-                                                                  @Override
-                                                                  public void add(
-                                                                          Character caze) {
-                                                                      buffer.append(
-                                                                              caze);
-                                                                  }
-
-                                                                  @Override
-                                                                  public String build() {
-                                                                      return buffer.toString();
-                                                                  }
-                                                              }));
     }
 }

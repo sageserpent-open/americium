@@ -2,6 +2,7 @@ package com.sageserpent.americium
 
 import com.sageserpent.americium.Trials.RejectionByInlineFilter
 import com.sageserpent.americium.java.{
+  Builder,
   CaseFactory,
   Trials => JavaTrials,
   TrialsApi => JavaTrialsApi
@@ -212,6 +213,18 @@ class TrialsSpec
     api.strings
       .withLimit(limit)
       .supplyTo(println)
+
+    api
+      .characters('a', 'z', 'p')
+      .strings
+      .withLimit(limit)
+      .supplyTo(println)
+
+    api
+      .choose(0, 1, 2, 5)
+      .flatMap(size => api.characters('a', 'z').stringsOfSize(size))
+      .withLimit(limit)
+      .supplyTo(println)
   }
 
   "test driving the Java API" should "not produce smoke" in {
@@ -275,6 +288,22 @@ class TrialsSpec
       .supplyTo(println)
 
     javaApi.strings
+      .withLimit(limit)
+      .supplyTo(println)
+
+    javaApi
+      .characters('a', 'z', 'p')
+      .collections(Builder.stringBuilder _)
+      .withLimit(limit)
+      .supplyTo(println)
+
+    javaApi
+      .choose(0, 1, 2, 5)
+      .flatMap(size =>
+        javaApi
+          .characters('a', 'z')
+          .collectionsOfSize(size, Builder.stringBuilder _)
+      )
       .withLimit(limit)
       .supplyTo(println)
   }
@@ -859,7 +888,10 @@ class TrialsSpec
   "sized collection trials" should "yield cases even when the size is large" in
     forAll(
       Table(
-        "input"                     -> "largeSize",
+        "input" -> "largeSize",
+        // Slip in the empty and singleton cases too...
+        (0 to 5)                    -> 0,
+        listTrials                  -> 1,
         (1 to 10)                   -> 1000,
         (20 to 30 map (_.toString)) -> 10000,
         (Seq(true, false))          -> 30000,

@@ -19,6 +19,13 @@ object Trials extends TrialsByMagnolia {
   ): Result =
     if (satisfiedPrecondition) block else throw new RejectionByInlineFilter()
 
+  implicit class CharacterTrialsSyntax(val characterTrials: Trials[Char]) {
+    def strings(): Trials[String] = characterTrials.several
+
+    def stringsOfSize(size: Int): Trials[String] =
+      characterTrials.lotsOfSize(size)
+  }
+
   implicit val monadInstance: Monad[Trials] = new Monad[Trials]
     with StackSafeMonad[Trials] {
     override def pure[A](x: A): Trials[A] = api.only(x)
