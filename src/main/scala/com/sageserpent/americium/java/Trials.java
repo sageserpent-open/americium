@@ -25,7 +25,7 @@ public interface Trials<Case> extends TrialsFactoring<Case> {
      * putting them to work by running test code.
      */
     static TrialsApi api() {
-        return (TrialsApi) TrialsImplementation.javaApi();
+        return (TrialsApi) TrialsApiImplementation.javaApi();
     }
 
     static <Result> Result whenever(Boolean satisfiedPrecondition,

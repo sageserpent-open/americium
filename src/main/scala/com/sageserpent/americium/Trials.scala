@@ -3,14 +3,14 @@ package com.sageserpent.americium
 import cats._
 import com.sageserpent.americium.Trials.SupplyToSyntax
 import com.sageserpent.americium.java.TrialsImplementation.GenerationSupport
-import com.sageserpent.americium.java.{TrialsFactoring, TrialsImplementation}
+import com.sageserpent.americium.java.{TrialsApiImplementation, TrialsFactoring}
 
 import scala.collection.Factory
 import scala.collection.immutable.{SortedMap, SortedSet}
 import scala.language.implicitConversions
 
 object Trials extends TrialsByMagnolia {
-  def api: TrialsApi = TrialsImplementation.scalaApi
+  def api: TrialsApi = TrialsApiImplementation.scalaApi
 
   private[americium] class RejectionByInlineFilter extends RuntimeException
 
