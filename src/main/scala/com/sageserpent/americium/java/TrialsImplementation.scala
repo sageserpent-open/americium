@@ -244,12 +244,7 @@ case class TrialsImplementation[Case](
             decisionStages: DecisionStagesInReverseOrder,
             complexity: Int
         ) {
-          def update(decision: ChoiceOf): State = copy(
-            decisionStages = decisionStages.addLatest(decision),
-            complexity = 1 + complexity
-          )
-
-          def update(decision: FactoryInputOf): State = copy(
+          def update(decision: Decision): State = copy(
             decisionStages = decisionStages.addLatest(decision),
             complexity = 1 + complexity
           )
