@@ -241,18 +241,19 @@ case class TrialsImplementation[Case](
         type DeferredOption[Case] = OptionT[Eval, Case]
 
         case class State(
-            decisionStages: DecisionStagesInReverseOrder,
+            decisionStagesInReverseOrder: DecisionStagesInReverseOrder,
             complexity: Int
         ) {
           def update(decision: Decision): State = copy(
-            decisionStages = decisionStages.addLatest(decision),
+            decisionStagesInReverseOrder =
+              decisionStagesInReverseOrder.addLatest(decision),
             complexity = 1 + complexity
           )
         }
 
         object State {
           val initial = new State(
-            decisionStages = NoDecisionStages,
+            decisionStagesInReverseOrder = NoDecisionStages,
             complexity = 0
           )
         }
@@ -291,7 +292,7 @@ case class TrialsImplementation[Case](
                       index #:: remainingPossibleIndices =
                         possibilitiesThatFollowSomeChoiceOfDecisionStages
                           .get(
-                            state.decisionStages
+                            state.decisionStagesInReverseOrder
                           ) match {
                           case Some(Choices(possibleIndices))
                               if possibleIndices.nonEmpty =>
@@ -309,7 +310,7 @@ case class TrialsImplementation[Case](
                       )
                     } yield {
                       possibilitiesThatFollowSomeChoiceOfDecisionStages(
-                        state.decisionStages
+                        state.decisionStagesInReverseOrder
                       ) = Choices(remainingPossibleIndices)
                       choicesByCumulativeFrequency.minAfter(1 + index).get._2
                     }
@@ -430,7 +431,7 @@ case class TrialsImplementation[Case](
                   .value
                   .value match {
                   case Some((State(decisionStages, _), caze))
-                      if (potentialDuplicates.add(decisionStages)) => {
+                      if potentialDuplicates.add(decisionStages) => {
                     if (
                       !mustHitComplexityLimit || decisionStages.reverse.size >= complexityLimit
                     ) {
