@@ -31,6 +31,7 @@ import _root_.java.util.{
   Iterator => JavaIterator,
   Map => JavaMap
 }
+import scala.annotation.tailrec
 import scala.collection.immutable.{SortedMap, SortedSet}
 import scala.collection.mutable
 import scala.jdk.CollectionConverters._
@@ -169,28 +170,10 @@ case class TrialsImplementation[Case](
           previousDecisions: DecisionStagesInReverseOrder
       )
 
-      final case object noDecisionStages extends DecisionStagesInReverseOrder {
-        override def appendInReverseOnTo(
-            partialResult: DecisionStages
-        ): DecisionStages = partialResult
-      }
+      final case object NoDecisionStages extends DecisionStagesInReverseOrder
 
       final case class InternedDecisionStages(index: Int)
-          extends DecisionStagesInReverseOrder {
-        override def appendInReverseOnTo(
-            partialResult: DecisionStages
-        ): DecisionStages =
-          Option(
-            nonEmptyToAndFromInternedDecisionStages.inverse().get(this)
-          ) match {
-            case Some(
-                  NonEmptyDecisionStages(latestDecision, previousDecisions)
-                ) =>
-              previousDecisions.appendInReverseOnTo(
-                latestDecision :: partialResult
-              )
-          }
-      }
+          extends DecisionStagesInReverseOrder
 
       private val nonEmptyToAndFromInternedDecisionStages
           : BiMap[NonEmptyDecisionStages, InternedDecisionStages] =
@@ -212,9 +195,23 @@ case class TrialsImplementation[Case](
       sealed trait DecisionStagesInReverseOrder {
         def reverse: DecisionStages = appendInReverseOnTo(List.empty)
 
-        def appendInReverseOnTo(
+        @tailrec
+        final def appendInReverseOnTo(
             partialResult: DecisionStages
-        ): DecisionStages
+        ): DecisionStages = this match {
+          case NoDecisionStages => partialResult
+          case _: InternedDecisionStages =>
+            Option(
+              nonEmptyToAndFromInternedDecisionStages.inverse().get(this)
+            ) match {
+              case Some(
+                    NonEmptyDecisionStages(latestDecision, previousDecisions)
+                  ) =>
+                previousDecisions.appendInReverseOnTo(
+                  latestDecision :: partialResult
+                )
+            }
+        }
 
         def addLatest(decision: Decision): DecisionStagesInReverseOrder =
           interned(
@@ -260,7 +257,7 @@ case class TrialsImplementation[Case](
 
         object State {
           val initial = new State(
-            decisionStages = noDecisionStages,
+            decisionStages = NoDecisionStages,
             complexity = 0
           )
         }
