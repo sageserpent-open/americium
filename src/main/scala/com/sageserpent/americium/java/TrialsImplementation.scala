@@ -567,15 +567,7 @@ case class TrialsImplementation[Case](
                           val lessComplex =
                             decisionStagesForPotentialShrunkCase.size < numberOfDecisionStages
 
-                          val canStillShrinkInputs =
-                            decisionStagesForPotentialShrunkCase.exists {
-                              case FactoryInputOf(_)
-                                  if stillEnoughRoomToDecreaseScale =>
-                                true
-                              case _ => false
-                            }
-
-                          if (lessComplex || canStillShrinkInputs) {
+                          if (lessComplex || stillEnoughRoomToDecreaseScale) {
                             val shrinkageIndexForRecursion =
                               if (!lessComplex)
                                 1 + shrinkageIndex
