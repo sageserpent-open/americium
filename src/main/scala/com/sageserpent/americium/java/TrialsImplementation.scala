@@ -576,7 +576,7 @@ case class TrialsImplementation[Case](
           require(0 <= depth)
 
           // NASTY HACK....
-          if (50 <= depth) throw new TrialException(throwable) {
+          if (100 <= depth) throw new TrialException(throwable) {
             override def provokingCase: Case = caze
 
             override def recipe: String = decisionStages.asJson.spaces4
