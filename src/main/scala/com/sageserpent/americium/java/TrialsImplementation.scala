@@ -572,15 +572,17 @@ case class TrialsImplementation[Case](
                                 1 + shrinkageIndex
                               else shrinkageIndex
 
-                            shrink(
-                              potentialShrunkCase,
-                              throwableFromPotentialShrunkCase,
-                              decisionStagesForPotentialShrunkCase,
-                              shrinkageIndexForRecursion,
-                              limitWithExtraLeewayThatHasBeenObservedToFindBetterShrunkCases,
-                              numberOfShrinksWithFixedComplexityIncludingThisOne =
-                                0
-                            )
+                            Eval.defer {
+                              shrink(
+                                potentialShrunkCase,
+                                throwableFromPotentialShrunkCase,
+                                decisionStagesForPotentialShrunkCase,
+                                shrinkageIndexForRecursion,
+                                limitWithExtraLeewayThatHasBeenObservedToFindBetterShrunkCases,
+                                numberOfShrinksWithFixedComplexityIncludingThisOne =
+                                  0
+                              )
+                            }
                           } else
                             throw new TrialException(
                               throwableFromPotentialShrunkCase
