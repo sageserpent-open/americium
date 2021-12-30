@@ -525,9 +525,8 @@ case class TrialsImplementation[Case](
               // factor - if it's too high, say 2, then the solutions are hardly
               // shrunk at all. If it is unity, then the solutions are shrunk a
               // bit but can be still involve overly 'large' values, in the
-              // sense
-              // that the factory input values are large. This needs finessing,
-              // but will do for now...
+              // sense that the factory input values are large. This needs
+              // finessing, but will do for now...
               val limitWithExtraLeewayThatHasBeenObservedToFindBetterShrunkCases =
                 (100 * limit / 99) max limit
 
@@ -573,15 +572,17 @@ case class TrialsImplementation[Case](
                                 1 + shrinkageIndex
                               else shrinkageIndex
 
-                            shrink(
-                              potentialShrunkCase,
-                              throwableFromPotentialShrunkCase,
-                              decisionStagesForPotentialShrunkCase,
-                              shrinkageIndexForRecursion,
-                              limitWithExtraLeewayThatHasBeenObservedToFindBetterShrunkCases,
-                              numberOfShrinksWithFixedComplexityIncludingThisOne =
-                                0
-                            )
+                            Eval.defer {
+                              shrink(
+                                potentialShrunkCase,
+                                throwableFromPotentialShrunkCase,
+                                decisionStagesForPotentialShrunkCase,
+                                shrinkageIndexForRecursion,
+                                limitWithExtraLeewayThatHasBeenObservedToFindBetterShrunkCases,
+                                numberOfShrinksWithFixedComplexityIncludingThisOne =
+                                  0
+                              )
+                            }
                           } else
                             throw new TrialException(
                               throwableFromPotentialShrunkCase
