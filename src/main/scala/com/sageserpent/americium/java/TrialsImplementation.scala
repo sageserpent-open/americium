@@ -40,7 +40,9 @@ import scala.util.Random
 object TrialsImplementation {
   val defaultComplexityLimit = 100
 
-  val maximumShrinkageIndex = 50
+  val maximumScaleDeflationLevel = 50
+
+  val maximumNumberOfShrinkageAttempts = 100
 
   type DecisionStages   = List[Decision]
   type Generation[Case] = Free[GenerationOperation, Case]
@@ -223,11 +225,11 @@ case class TrialsImplementation[Case](
           limit: Int,
           complexityLimit: Int,
           randomBehaviour: Random,
-          shrinkageIndex: Option[Int],
-          mustHitComplexityLimit: Boolean
+          scaleDeflationLevel: Option[Int],
+          decisionStagesToGuideShrinkage: Option[DecisionStages]
       ): Iterator[(DecisionStagesInReverseOrder, Case)] = {
-        shrinkageIndex.foreach(index =>
-          require((0 to maximumShrinkageIndex).contains(index))
+        scaleDeflationLevel.foreach(level =>
+          require((0 to maximumScaleDeflationLevel).contains(level))
         )
 
         // This is used instead of a straight `Option[Case]` to avoid stack
@@ -241,10 +243,15 @@ case class TrialsImplementation[Case](
         type DeferredOption[Case] = OptionT[Eval, Case]
 
         case class State(
+            decisionStagesToGuideShrinkage: Option[DecisionStages],
             decisionStagesInReverseOrder: DecisionStagesInReverseOrder,
             complexity: Int
         ) {
-          def update(decision: Decision): State = copy(
+          def update(
+              remainingGuidance: Option[DecisionStages],
+              decision: Decision
+          ): State = copy(
+            decisionStagesToGuideShrinkage = remainingGuidance,
             decisionStagesInReverseOrder =
               decisionStagesInReverseOrder.addLatest(decision),
             complexity = 1 + complexity
@@ -253,6 +260,7 @@ case class TrialsImplementation[Case](
 
         object State {
           val initial = new State(
+            decisionStagesToGuideShrinkage = decisionStagesToGuideShrinkage,
             decisionStagesInReverseOrder = NoDecisionStages,
             complexity = 0
           )
@@ -284,88 +292,143 @@ case class TrialsImplementation[Case](
                   val numberOfChoices =
                     choicesByCumulativeFrequency.keys.lastOption.getOrElse(0)
                   if (0 < numberOfChoices)
-                    for {
-                      state <- StateT.get[DeferredOption, State]
-                      _ <- liftUnitIfTheComplexityIsNotTooLarge(
-                        state
-                      )
-                      index #:: remainingPossibleIndices =
-                        possibilitiesThatFollowSomeChoiceOfDecisionStages
-                          .get(
-                            state.decisionStagesInReverseOrder
-                          ) match {
-                          case Some(Choices(possibleIndices))
-                              if possibleIndices.nonEmpty =>
-                            possibleIndices
+                    StateT
+                      .get[DeferredOption, State]
+                      .flatMap(state =>
+                        state.decisionStagesToGuideShrinkage match {
+                          case Some(ChoiceOf(guideIndex) :: remainingGuidance)
+                              if guideIndex < numberOfChoices =>
+                            for {
+                              _ <- StateT
+                                .set[DeferredOption, State](
+                                  state.update(
+                                    Some(remainingGuidance),
+                                    ChoiceOf(guideIndex)
+                                  )
+                                )
+                            } yield choicesByCumulativeFrequency
+                              .minAfter(1 + guideIndex)
+                              .get
+                              ._2
                           case _ =>
-                            randomBehaviour
-                              .buildRandomSequenceOfDistinctIntegersFromZeroToOneLessThan(
-                                numberOfChoices
-                              )
+                            for {
+                              _ <- liftUnitIfTheComplexityIsNotTooLarge(state)
+                              index #:: remainingPossibleIndices =
+                                possibilitiesThatFollowSomeChoiceOfDecisionStages
+                                  .get(
+                                    state.decisionStagesInReverseOrder
+                                  ) match {
+                                  case Some(Choices(possibleIndices))
+                                      if possibleIndices.nonEmpty =>
+                                    possibleIndices
+                                  case _ =>
+                                    randomBehaviour
+                                      .buildRandomSequenceOfDistinctIntegersFromZeroToOneLessThan(
+                                        numberOfChoices
+                                      )
+                                }
+
+                              _ <- StateT
+                                .set[DeferredOption, State](
+                                  state.update(None, ChoiceOf(index))
+                                )
+                            } yield {
+                              possibilitiesThatFollowSomeChoiceOfDecisionStages(
+                                state.decisionStagesInReverseOrder
+                              ) = Choices(remainingPossibleIndices)
+                              choicesByCumulativeFrequency
+                                .minAfter(1 + index)
+                                .get
+                                ._2
+                            }
                         }
-                      _ <- StateT.set[DeferredOption, State](
-                        state.update(
-                          ChoiceOf(index)
-                        )
                       )
-                    } yield {
-                      possibilitiesThatFollowSomeChoiceOfDecisionStages(
-                        state.decisionStagesInReverseOrder
-                      ) = Choices(remainingPossibleIndices)
-                      choicesByCumulativeFrequency.minAfter(1 + index).get._2
-                    }
                   else StateT.liftF(OptionT.none)
 
                 case Factory(factory) =>
-                  for {
-                    state <- StateT.get[DeferredOption, State]
-                    _     <- liftUnitIfTheComplexityIsNotTooLarge(state)
-                    input = {
-                      val upperBoundInput: BigDecimal =
-                        factory.upperBoundInput()
-                      val lowerBoundInput: BigDecimal =
-                        factory.lowerBoundInput()
-                      val maximallyShrunkInput: BigDecimal =
-                        factory.maximallyShrunkInput()
-
-                      val maximumScale: BigDecimal =
-                        upperBoundInput - lowerBoundInput
-
-                      if (
-                        shrinkageIndex.fold(true)(
-                          maximumShrinkageIndex > _
-                        ) && 0 < maximumScale
-                      ) {
-                        // Calibrate the scale to come out at around one at
-                        // maximum shrinkage, even though the guard clause above
-                        // handles maximum shrinkage explicitly.
-                        val scale: BigDecimal =
-                          shrinkageIndex.fold(maximumScale)(index =>
-                            maximumScale / Math.pow(
-                              maximumScale.toDouble,
-                              index.toDouble / maximumShrinkageIndex
+                  StateT
+                    .get[DeferredOption, State]
+                    .flatMap(state =>
+                      state.decisionStagesToGuideShrinkage match {
+                        case Some(
+                              FactoryInputOf(guideIndex) :: remainingGuidance
                             )
-                          )
-                        val blend: BigDecimal = scale / maximumScale
+                            if factory
+                              .lowerBoundInput() <= guideIndex && factory
+                              .upperBoundInput() >= guideIndex =>
+                          val index = Math
+                            .round(
+                              factory.maximallyShrunkInput() + randomBehaviour
+                                .nextDouble() * (guideIndex - factory
+                                .maximallyShrunkInput())
+                            )
 
-                        val midPoint: BigDecimal =
-                          blend * (upperBoundInput + lowerBoundInput) / 2 + (1 - blend) * maximallyShrunkInput
+                          for {
+                            _ <- StateT.set[DeferredOption, State](
+                              state.update(
+                                Some(remainingGuidance),
+                                FactoryInputOf(index)
+                              )
+                            )
+                          } yield factory(index)
+                        case _ =>
+                          for {
+                            _ <- liftUnitIfTheComplexityIsNotTooLarge(state)
+                            input = {
+                              val upperBoundInput: BigDecimal =
+                                factory.upperBoundInput()
+                              val lowerBoundInput: BigDecimal =
+                                factory.lowerBoundInput()
+                              val maximallyShrunkInput: BigDecimal =
+                                factory.maximallyShrunkInput()
 
-                        val sign = if (randomBehaviour.nextBoolean()) 1 else -1
+                              val maximumScale: BigDecimal =
+                                upperBoundInput - lowerBoundInput
 
-                        val delta: BigDecimal =
-                          sign * scale * randomBehaviour.nextDouble() / 2
+                              if (
+                                scaleDeflationLevel.fold(true)(
+                                  maximumScaleDeflationLevel > _
+                                ) && 0 < maximumScale
+                              ) {
+                                // Calibrate the scale to come out at around one
+                                // at maximum shrinkage, even though the guard
+                                // clause above handles maximum shrinkage
+                                // explicitly.
+                                val scale: BigDecimal =
+                                  scaleDeflationLevel.fold(maximumScale)(
+                                    level =>
+                                      maximumScale / Math.pow(
+                                        maximumScale.toDouble,
+                                        level.toDouble / maximumScaleDeflationLevel
+                                      )
+                                  )
+                                val blend: BigDecimal = scale / maximumScale
 
-                        (midPoint + delta)
-                          .setScale(0, BigDecimal.RoundingMode.HALF_EVEN)
-                          .rounded
-                          .toLong
-                      } else { maximallyShrunkInput.toLong }
-                    }
-                    _ <- StateT.set[DeferredOption, State](
-                      state.update(FactoryInputOf(input))
+                                val midPoint: BigDecimal =
+                                  blend * (upperBoundInput + lowerBoundInput) / 2 + (1 - blend) * maximallyShrunkInput
+
+                                val sign =
+                                  if (randomBehaviour.nextBoolean()) 1 else -1
+
+                                val delta: BigDecimal =
+                                  sign * scale * randomBehaviour
+                                    .nextDouble() / 2
+
+                                (midPoint + delta)
+                                  .setScale(
+                                    0,
+                                    BigDecimal.RoundingMode.HALF_EVEN
+                                  )
+                                  .rounded
+                                  .toLong
+                              } else { maximallyShrunkInput.toLong }
+                            }
+                            _ <- StateT.set[DeferredOption, State](
+                              state.update(None, FactoryInputOf(input))
+                            )
+                          } yield factory(input)
+                      }
                     )
-                  } yield factory(input)
 
                 case FiltrationResult(result) =>
                   StateT.liftF(OptionT.fromOption(result))
@@ -375,7 +438,8 @@ case class TrialsImplementation[Case](
                     state <- StateT.get[DeferredOption, State]
                   } yield state.complexity
 
-                case ResetComplexity(complexity) if shrinkageIndex.isEmpty =>
+                case ResetComplexity(complexity)
+                    if scaleDeflationLevel.isEmpty =>
                   for {
                     _ <- StateT.modify[DeferredOption, State](
                       _.copy(complexity = complexity)
@@ -430,22 +494,17 @@ case class TrialsImplementation[Case](
                   .run(State.initial)
                   .value
                   .value match {
-                  case Some((State(decisionStages, _), caze))
+                  case Some((State(_, decisionStages, _), caze))
                       if potentialDuplicates.add(decisionStages) => {
-                    if (
-                      !mustHitComplexityLimit || decisionStages.reverse.size >= complexityLimit
-                    ) {
-                      {
-                        numberOfUniqueCasesProduced += 1
-                        backupOfStarvationCountdown = starvationCountdown
-                        starvationCountdown = Math
-                          .round(Math.sqrt(limit * remainingGap))
-                          .toInt
-                      }
+                    {
+                      numberOfUniqueCasesProduced += 1
+                      backupOfStarvationCountdown = starvationCountdown
+                      starvationCountdown = Math
+                        .round(Math.sqrt(limit * remainingGap))
+                        .toInt
+                    }
 
-                      Some(decisionStages -> caze)
-                    } else
-                      None // NOTE: failing to reach or exceed the complexity limit does not increase the starvation count.
+                    Some(decisionStages -> caze)
                   }
                   case _ =>
                     { starvationCountdown -= 1 }
@@ -489,7 +548,7 @@ case class TrialsImplementation[Case](
           complexityLimit,
           randomBehaviour,
           None,
-          mustHitComplexityLimit = false
+          decisionStagesToGuideShrinkage = None
         )
           .map(_._2)
           .asJava
@@ -511,11 +570,22 @@ case class TrialsImplementation[Case](
             caze: Case,
             throwable: Throwable,
             decisionStages: DecisionStages,
-            shrinkageIndex: Int,
+            shrinkageAttemptIndex: Int,
+            scaleDeflationLevel: Int,
             limit: Int,
-            numberOfShrinksWithFixedComplexityIncludingThisOne: Int
+            numberOfShrinksInPanicModeIncludingThisOne: Int
         ): Eval[Unit] = {
-          require(0 <= numberOfShrinksWithFixedComplexityIncludingThisOne)
+          require(0 <= numberOfShrinksInPanicModeIncludingThisOne)
+          require(0 <= shrinkageAttemptIndex)
+
+          if (maximumNumberOfShrinkageAttempts == shrinkageAttemptIndex)
+            throw new TrialException(throwable) {
+              override def provokingCase: Case = caze
+
+              override def recipe: String = decisionStages.asJson.spaces4
+            }
+
+          require(maximumNumberOfShrinkageAttempts > shrinkageAttemptIndex)
 
           val potentialShrunkExceptionalOutcome: Eval[Unit] = {
             val numberOfDecisionStages = decisionStages.size
@@ -530,9 +600,6 @@ case class TrialsImplementation[Case](
               val limitWithExtraLeewayThatHasBeenObservedToFindBetterShrunkCases =
                 (100 * limit / 99) max limit
 
-              val stillEnoughRoomToDecreaseScale =
-                shrinkageIndex < maximumShrinkageIndex
-
               val outcomes: LazyList[Eval[Unit]] =
                 LazyList
                   .from(
@@ -540,12 +607,34 @@ case class TrialsImplementation[Case](
                       limitWithExtraLeewayThatHasBeenObservedToFindBetterShrunkCases,
                       numberOfDecisionStages,
                       randomBehaviour,
-                      Some(shrinkageIndex),
-                      mustHitComplexityLimit =
-                        0 < numberOfShrinksWithFixedComplexityIncludingThisOne
+                      scaleDeflationLevel = Some(scaleDeflationLevel),
+                      decisionStagesToGuideShrinkage = Option.when(
+                        0 < numberOfShrinksInPanicModeIncludingThisOne
+                      )(decisionStages)
                     )
                   )
                   .collect {
+                    case (
+                          _,
+                          potentialShrunkCase
+                        )
+                        // NOTE: we have to make sure that the calling
+                        // invocation of `shrink` was also in panic more, as it
+                        // is legitimate for the first panic shrinkage to arrive
+                        // at the same result as a non-panic calling invocation,
+                        // and this does indeed occur for some non-trivial panic
+                        // mode shrinkage sequences at the start of panic mode.
+                        // Otherwise if we were already in panic mode in the
+                        // calling invocation, this is as sign that there is
+                        // nothing left to usefully shrink down, as otherwise
+                        // the failure won't be provoked at all.
+                        if 1 < numberOfShrinksInPanicModeIncludingThisOne && caze == potentialShrunkCase =>
+                      throw new TrialException(throwable) {
+                        override def provokingCase: Case = caze
+
+                        override def recipe: String =
+                          decisionStages.asJson.spaces4
+                      }
                     case (
                           decisionStagesForPotentialShrunkCaseInReverseOrder,
                           potentialShrunkCase
@@ -566,21 +655,28 @@ case class TrialsImplementation[Case](
                           val lessComplex =
                             decisionStagesForPotentialShrunkCase.size < numberOfDecisionStages
 
+                          val stillEnoughRoomToDecreaseScale =
+                            scaleDeflationLevel < maximumScaleDeflationLevel
+
                           if (lessComplex || stillEnoughRoomToDecreaseScale) {
-                            val shrinkageIndexForRecursion =
+                            val scaleDeflationLevelForRecursion =
                               if (!lessComplex)
-                                1 + shrinkageIndex
-                              else shrinkageIndex
+                                1 + scaleDeflationLevel
+                              else scaleDeflationLevel
 
                             Eval.defer {
                               shrink(
-                                potentialShrunkCase,
-                                throwableFromPotentialShrunkCase,
-                                decisionStagesForPotentialShrunkCase,
-                                shrinkageIndexForRecursion,
-                                limitWithExtraLeewayThatHasBeenObservedToFindBetterShrunkCases,
-                                numberOfShrinksWithFixedComplexityIncludingThisOne =
-                                  0
+                                caze = potentialShrunkCase,
+                                throwable = throwableFromPotentialShrunkCase,
+                                decisionStages =
+                                  decisionStagesForPotentialShrunkCase,
+                                shrinkageAttemptIndex =
+                                  1 + shrinkageAttemptIndex,
+                                scaleDeflationLevel =
+                                  scaleDeflationLevelForRecursion,
+                                limit =
+                                  limitWithExtraLeewayThatHasBeenObservedToFindBetterShrunkCases,
+                                numberOfShrinksInPanicModeIncludingThisOne = 0
                               )
                             }
                           } else
@@ -611,28 +707,19 @@ case class TrialsImplementation[Case](
 
               potentialExceptionalOutcome.flatMap(_ =>
                 // At this point, slogging through the potential shrunk cases
-                // failed to find any failures; as a brute force approach,
-                // simply retry with an increased shrinkage index - this will
-                // eventually terminate as the shrinkage index isn't allowed to
-                // exceed its upper limit, and it does winkle out some really
-                // hard to find shrunk cases this way.
-                if (stillEnoughRoomToDecreaseScale) {
-                  // Become more impatient with the shrinkage as a run of
-                  // failing recursive attempts builds up.
-                  val increasedShrinkageIndex =
-                    maximumShrinkageIndex min (1 + numberOfShrinksWithFixedComplexityIncludingThisOne + shrinkageIndex)
-
-                  shrink(
-                    caze,
-                    throwable,
-                    decisionStages,
-                    increasedShrinkageIndex,
+                // failed to find any failures; go into (or remain in) panic
+                // mode...
+                shrink(
+                  caze = caze,
+                  throwable = throwable,
+                  decisionStages = decisionStages,
+                  shrinkageAttemptIndex = 1 + shrinkageAttemptIndex,
+                  scaleDeflationLevel = scaleDeflationLevel,
+                  limit =
                     limitWithExtraLeewayThatHasBeenObservedToFindBetterShrunkCases,
-                    numberOfShrinksWithFixedComplexityIncludingThisOne =
-                      1 + numberOfShrinksWithFixedComplexityIncludingThisOne
-                  )
-                } else
-                  Eval.now(())
+                  numberOfShrinksInPanicModeIncludingThisOne =
+                    1 + numberOfShrinksInPanicModeIncludingThisOne
+                )
               )
             } else
               Eval.now(())
@@ -656,7 +743,7 @@ case class TrialsImplementation[Case](
           complexityLimit,
           randomBehaviour,
           None,
-          mustHitComplexityLimit = false
+          decisionStagesToGuideShrinkage = None
         )
           .foreach { case (decisionStagesInReverseOrder, caze) =>
             try {
@@ -664,15 +751,14 @@ case class TrialsImplementation[Case](
             } catch {
               case rejection: RejectionByInlineFilter => throw rejection
               case throwable: Throwable =>
-                val shrinkageIndex = 0
-
                 shrink(
-                  caze,
-                  throwable,
-                  decisionStagesInReverseOrder.reverse,
-                  shrinkageIndex,
-                  limit,
-                  numberOfShrinksWithFixedComplexityIncludingThisOne = 0
+                  caze = caze,
+                  throwable = throwable,
+                  decisionStages = decisionStagesInReverseOrder.reverse,
+                  shrinkageAttemptIndex = 0,
+                  scaleDeflationLevel = 0,
+                  limit = limit,
+                  numberOfShrinksInPanicModeIncludingThisOne = 0
                 ).value // Evaluating the nominal `Unit` result will throw a `TrialsException`.
             }
           }
