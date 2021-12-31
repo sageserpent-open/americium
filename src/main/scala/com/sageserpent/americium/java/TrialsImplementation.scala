@@ -360,7 +360,6 @@ case class TrialsImplementation[Case](
                                 .nextDouble() * (guideIndex - factory
                                 .maximallyShrunkInput())
                             )
-                            .toLong
 
                           for {
                             _ <- StateT.set[DeferredOption, State](
@@ -595,9 +594,6 @@ case class TrialsImplementation[Case](
               val limitWithExtraLeewayThatHasBeenObservedToFindBetterShrunkCases =
                 (100 * limit / 99) max limit
 
-              val stillEnoughRoomToDecreaseScale =
-                shrinkageIndex < maximumShrinkageIndex
-
               val outcomes: LazyList[Eval[Unit]] =
                 LazyList
                   .from(
@@ -631,6 +627,9 @@ case class TrialsImplementation[Case](
 
                           val lessComplex =
                             decisionStagesForPotentialShrunkCase.size < numberOfDecisionStages
+
+                          val stillEnoughRoomToDecreaseScale =
+                            shrinkageIndex < maximumShrinkageIndex
 
                           if (lessComplex || stillEnoughRoomToDecreaseScale) {
                             val shrinkageIndexForRecursion =
@@ -679,7 +678,8 @@ case class TrialsImplementation[Case](
 
               potentialExceptionalOutcome.flatMap(_ =>
                 // At this point, slogging through the potential shrunk cases
-                // failed to find any failures; as a brute force approach ...
+                // failed to find any failures; go into (or remain in) panic
+                // mode...
                 shrink(
                   caze = caze,
                   throwable = throwable,
