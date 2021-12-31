@@ -10,7 +10,7 @@ form, and something that pumps test cases into that code block as one or more ar
 
 At this point, the likes of QuickCheck, FsCheck, Scalacheck and VavrTest come to mind, amongst others. If you are
 working in Scala, then you'll probably be thinking of Scalacheck, maybe ZioTest, perhaps Hedgehog...? If in Java, then
-JUnit-QuickCheck, or possibly VavrTest?
+Jqwik, JUnit-QuickCheck, or possibly VavrTest?
 
 All great things - the author has had the benefit of using Scalacheck for several years on various Scala works, finding
 all kinds of obscure, knotty bugs that would otherwise lay hidden until the fateful day in production. Likewise VavrTest
@@ -469,7 +469,7 @@ class Cookbook extends AnyFlatSpec {
     65 -> "Oxygen",
     18 -> "Carbon",
     10 -> "Hydrogen",
-    3 -> "Nitrogen"
+    3  -> "Nitrogen"
   )
 
   /* ... or hard-wire in some single value. */
@@ -489,7 +489,7 @@ class Cookbook extends AnyFlatSpec {
   val zonedDateTimes: Trials[ZonedDateTime] =
     for {
       instant <- instants
-      zoneId <- zoneIds
+      zoneId  <- zoneIds
     } yield ZonedDateTime.ofInstant(instant, zoneId)
 
   /* Filter out what you don't want. */
@@ -721,3 +721,21 @@ outweighs the meagre joys of having the code look *just so*. Just wait until you
 The author uses IntelliJ's built-in Java formatter and the integration with Scalafmt.
 
 If you know of a better way of sharing reformatting settings / tooling, raise an issue.
+
+### The competition? ###
+
+In Scala, there is at least:
+
+1. Scalacheck
+2. ZioTest
+3. Hedgehog
+4. Scalaprops
+5. Nyaya
+
+In Java, there is at least:
+
+1. Jqwik
+2. JUnit-QuickCheck
+3. VavrTest
+
+
