@@ -40,7 +40,9 @@ import scala.util.Random
 object TrialsImplementation {
   val defaultComplexityLimit = 100
 
-  val maximumShrinkageIndex = 50
+  val maximumScaleDeflationLevel = 50
+
+  val maximumNumberOfShrinkageAttempts = 100
 
   type DecisionStages   = List[Decision]
   type Generation[Case] = Free[GenerationOperation, Case]
@@ -223,11 +225,11 @@ case class TrialsImplementation[Case](
           limit: Int,
           complexityLimit: Int,
           randomBehaviour: Random,
-          shrinkageIndex: Option[Int],
+          scaleDeflationLevel: Option[Int],
           decisionStagesToGuideShrinkage: Option[DecisionStages]
       ): Iterator[(DecisionStagesInReverseOrder, Case)] = {
-        shrinkageIndex.foreach(index =>
-          require((0 to maximumShrinkageIndex).contains(index))
+        scaleDeflationLevel.foreach(level =>
+          require((0 to maximumScaleDeflationLevel).contains(level))
         )
 
         // This is used instead of a straight `Option[Case]` to avoid stack
@@ -384,8 +386,8 @@ case class TrialsImplementation[Case](
                                 upperBoundInput - lowerBoundInput
 
                               if (
-                                shrinkageIndex.fold(true)(
-                                  maximumShrinkageIndex > _
+                                scaleDeflationLevel.fold(true)(
+                                  maximumScaleDeflationLevel > _
                                 ) && 0 < maximumScale
                               ) {
                                 // Calibrate the scale to come out at around one
@@ -393,11 +395,12 @@ case class TrialsImplementation[Case](
                                 // clause above handles maximum shrinkage
                                 // explicitly.
                                 val scale: BigDecimal =
-                                  shrinkageIndex.fold(maximumScale)(index =>
-                                    maximumScale / Math.pow(
-                                      maximumScale.toDouble,
-                                      index.toDouble / maximumShrinkageIndex
-                                    )
+                                  scaleDeflationLevel.fold(maximumScale)(
+                                    level =>
+                                      maximumScale / Math.pow(
+                                        maximumScale.toDouble,
+                                        level.toDouble / maximumScaleDeflationLevel
+                                      )
                                   )
                                 val blend: BigDecimal = scale / maximumScale
 
@@ -435,7 +438,8 @@ case class TrialsImplementation[Case](
                     state <- StateT.get[DeferredOption, State]
                   } yield state.complexity
 
-                case ResetComplexity(complexity) if shrinkageIndex.isEmpty =>
+                case ResetComplexity(complexity)
+                    if scaleDeflationLevel.isEmpty =>
                   for {
                     _ <- StateT.modify[DeferredOption, State](
                       _.copy(complexity = complexity)
@@ -566,20 +570,22 @@ case class TrialsImplementation[Case](
             caze: Case,
             throwable: Throwable,
             decisionStages: DecisionStages,
-            depth: Int,
-            shrinkageIndex: Int,
+            shrinkageAttemptIndex: Int,
+            scaleDeflationLevel: Int,
             limit: Int,
             numberOfShrinksInPanicModeIncludingThisOne: Int
         ): Eval[Unit] = {
           require(0 <= numberOfShrinksInPanicModeIncludingThisOne)
-          require(0 <= depth)
+          require(0 <= shrinkageAttemptIndex)
 
-          // NASTY HACK....
-          if (100 <= depth) throw new TrialException(throwable) {
-            override def provokingCase: Case = caze
+          if (maximumNumberOfShrinkageAttempts == shrinkageAttemptIndex)
+            throw new TrialException(throwable) {
+              override def provokingCase: Case = caze
 
-            override def recipe: String = decisionStages.asJson.spaces4
-          }
+              override def recipe: String = decisionStages.asJson.spaces4
+            }
+
+          require(maximumNumberOfShrinkageAttempts > shrinkageAttemptIndex)
 
           val potentialShrunkExceptionalOutcome: Eval[Unit] = {
             val numberOfDecisionStages = decisionStages.size
@@ -601,7 +607,7 @@ case class TrialsImplementation[Case](
                       limitWithExtraLeewayThatHasBeenObservedToFindBetterShrunkCases,
                       numberOfDecisionStages,
                       randomBehaviour,
-                      shrinkageIndex = Some(shrinkageIndex),
+                      scaleDeflationLevel = Some(scaleDeflationLevel),
                       decisionStagesToGuideShrinkage = Option.when(
                         0 < numberOfShrinksInPanicModeIncludingThisOne
                       )(decisionStages)
@@ -629,13 +635,13 @@ case class TrialsImplementation[Case](
                             decisionStagesForPotentialShrunkCase.size < numberOfDecisionStages
 
                           val stillEnoughRoomToDecreaseScale =
-                            shrinkageIndex < maximumShrinkageIndex
+                            scaleDeflationLevel < maximumScaleDeflationLevel
 
                           if (lessComplex || stillEnoughRoomToDecreaseScale) {
-                            val shrinkageIndexForRecursion =
+                            val scaleDeflationLevelForRecursion =
                               if (!lessComplex)
-                                1 + shrinkageIndex
-                              else shrinkageIndex
+                                1 + scaleDeflationLevel
+                              else scaleDeflationLevel
 
                             Eval.defer {
                               shrink(
@@ -643,8 +649,10 @@ case class TrialsImplementation[Case](
                                 throwable = throwableFromPotentialShrunkCase,
                                 decisionStages =
                                   decisionStagesForPotentialShrunkCase,
-                                depth = 1 + depth,
-                                shrinkageIndex = shrinkageIndexForRecursion,
+                                shrinkageAttemptIndex =
+                                  1 + shrinkageAttemptIndex,
+                                scaleDeflationLevel =
+                                  scaleDeflationLevelForRecursion,
                                 limit =
                                   limitWithExtraLeewayThatHasBeenObservedToFindBetterShrunkCases,
                                 numberOfShrinksInPanicModeIncludingThisOne = 0
@@ -684,8 +692,8 @@ case class TrialsImplementation[Case](
                   caze = caze,
                   throwable = throwable,
                   decisionStages = decisionStages,
-                  depth = 1 + depth,
-                  shrinkageIndex = shrinkageIndex,
+                  shrinkageAttemptIndex = 1 + shrinkageAttemptIndex,
+                  scaleDeflationLevel = scaleDeflationLevel,
                   limit =
                     limitWithExtraLeewayThatHasBeenObservedToFindBetterShrunkCases,
                   numberOfShrinksInPanicModeIncludingThisOne =
@@ -722,14 +730,12 @@ case class TrialsImplementation[Case](
             } catch {
               case rejection: RejectionByInlineFilter => throw rejection
               case throwable: Throwable =>
-                val shrinkageIndex = 0
-
                 shrink(
                   caze = caze,
                   throwable = throwable,
                   decisionStages = decisionStagesInReverseOrder.reverse,
-                  depth = 0,
-                  shrinkageIndex = shrinkageIndex,
+                  shrinkageAttemptIndex = 0,
+                  scaleDeflationLevel = 0,
                   limit = limit,
                   numberOfShrinksInPanicModeIncludingThisOne = 0
                 ).value // Evaluating the nominal `Unit` result will throw a `TrialsException`.
