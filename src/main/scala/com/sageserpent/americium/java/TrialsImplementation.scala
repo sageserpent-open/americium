@@ -615,6 +615,27 @@ case class TrialsImplementation[Case](
                   )
                   .collect {
                     case (
+                          _,
+                          potentialShrunkCase
+                        )
+                        // NOTE: we have to make sure that the calling
+                        // invocation of `shrink` was also in panic more, as it
+                        // is legitimate for the first panic shrinkage to arrive
+                        // at the same result as a non-panic calling invocation,
+                        // and this does indeed occur for some non-trivial panic
+                        // mode shrinkage sequences at the start of panic mode.
+                        // Otherwise if we were already in panic mode in the
+                        // calling invocation, this is as sign that there is
+                        // nothing left to usefully shrink down, as otherwise
+                        // the failure won't be provoked at all.
+                        if 1 < numberOfShrinksInPanicModeIncludingThisOne && caze == potentialShrunkCase =>
+                      throw new TrialException(throwable) {
+                        override def provokingCase: Case = caze
+
+                        override def recipe: String =
+                          decisionStages.asJson.spaces4
+                      }
+                    case (
                           decisionStagesForPotentialShrunkCaseInReverseOrder,
                           potentialShrunkCase
                         ) if caze != potentialShrunkCase =>

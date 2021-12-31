@@ -1215,15 +1215,15 @@ class TrialsSpec
             4 to 5 contains characterVector.size,
           limit
         ),
-//        (
-//          "Has either four or five characters - pathologically slow example.",
-//          api
-//            .integers(0, 10)
-//            .flatMap(api.characters.lotsOfSize[Vector[Char]](_)),
-//          (characterVector: Vector[Char]) =>
-//            4 to 5 contains characterVector.size,
-//          limit
-//        ),
+        (
+          "Has either four or five characters - this used to be a pathologically slow example.",
+          api
+            .integers(0, 10)
+            .flatMap(api.characters.lotsOfSize[Vector[Char]](_)),
+          (characterVector: Vector[Char]) =>
+            4 to 5 contains characterVector.size,
+          limit
+        ),
         (
           "Has more than one item and sums to more than 7.",
           doubleVectorTrials,
