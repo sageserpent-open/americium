@@ -1,16 +1,42 @@
 package com.sageserpent.americium
 
 import cats._
-import com.sageserpent.americium.Trials.SupplyToSyntax
+import com.sageserpent.americium.Trials.{
+  ShrinkageStop,
+  SupplyToSyntax,
+  noStopping
+}
+import com.sageserpent.americium.java.TrialsFactoring.{
+  defaultComplexityLimit,
+  defaultShrinkageAttemptsLimit
+}
 import com.sageserpent.americium.java.TrialsImplementation.GenerationSupport
 import com.sageserpent.americium.java.{TrialsApiImplementation, TrialsFactoring}
 
+import _root_.java.time.Instant
 import scala.collection.Factory
 import scala.collection.immutable.{SortedMap, SortedSet}
+import scala.concurrent.duration.{Duration, FiniteDuration}
+import scala.jdk.DurationConverters.ScalaDurationOps
 import scala.language.implicitConversions
 
 object Trials extends TrialsByMagnolia {
   def api: TrialsApi = TrialsApiImplementation.scalaApi
+
+  type ShrinkageStop = () => () => Boolean
+
+  val noStopping: ShrinkageStop = () => () => false
+
+  def timer(timeLimit: Duration): ShrinkageStop = () => {
+    val whenStarted = Instant.now()
+
+    () =>
+      timeLimit match {
+        case finiteDuration: FiniteDuration =>
+          !Instant.now().isBefore(whenStarted.plus(finiteDuration.toJava))
+        case _ => false
+      }
+  }
 
   private[americium] class RejectionByInlineFilter extends RuntimeException
 
@@ -108,9 +134,22 @@ trait Trials[+Case] extends TrialsFactoring[Case] with GenerationSupport[Case] {
       filteringTransform: Case => Option[TransformedCase]
   ): Trials[TransformedCase]
 
+  @deprecated(
+    "The overload with all of the following arguments defaulted will replace this."
+  )
   def withLimit(limit: Int): SupplyToSyntax[Case]
 
+  @deprecated(
+    "The overload with all of the following arguments defaulted will replace this."
+  )
   def withLimit(limit: Int, complexityLimit: Int): SupplyToSyntax[Case]
+
+  def withLimit(
+      casesLimit: Int,
+      complexityLimit: Int = defaultComplexityLimit,
+      shrinkageAttemptsLimit: Int = defaultShrinkageAttemptsLimit,
+      shrinkageStop: ShrinkageStop = noStopping
+  ): SupplyToSyntax[Case]
 
   def withRecipe(recipe: String): SupplyToSyntax[Case]
 

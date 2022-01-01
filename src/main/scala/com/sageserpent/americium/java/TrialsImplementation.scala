@@ -7,7 +7,7 @@ import cats.implicits._
 import cats.{Eval, ~>}
 import com.google.common.collect.{Ordering => _, _}
 import com.sageserpent.americium.Trials
-import com.sageserpent.americium.Trials.RejectionByInlineFilter
+import com.sageserpent.americium.Trials.{RejectionByInlineFilter, ShrinkageStop}
 import com.sageserpent.americium.java.TrialsApiImplementation.scalaApi
 import com.sageserpent.americium.java.tupleTrials.{
   Tuple2Trials => JavaTuple2Trials
@@ -38,11 +38,7 @@ import scala.jdk.CollectionConverters._
 import scala.util.Random
 
 object TrialsImplementation {
-  val defaultComplexityLimit = 100
-
   val maximumScaleDeflationLevel = 50
-
-  val maximumNumberOfShrinkageAttempts = 100
 
   type DecisionStages   = List[Decision]
   type Generation[Case] = Free[GenerationOperation, Case]
@@ -160,11 +156,19 @@ case class TrialsImplementation[Case](
   override def withLimit(
       limit: Int
   ): JavaTrials.SupplyToSyntax[Case] with Trials.SupplyToSyntax[Case] =
-    withLimit(limit, defaultComplexityLimit)
+    withLimit(casesLimit = limit)
 
   override def withLimit(
       limit: Int,
       complexityLimit: Int
+  ): JavaTrials.SupplyToSyntax[Case] with Trials.SupplyToSyntax[Case] =
+    withLimit(casesLimit = limit, complexityLimit = complexityLimit)
+
+  override def withLimit(
+      casesLimit: Int,
+      complexityLimit: Int,
+      shrinkageAttemptsLimit: Int,
+      shrinkageStop: ShrinkageStop
   ): JavaTrials.SupplyToSyntax[Case] with Trials.SupplyToSyntax[Case] =
     new JavaTrials.SupplyToSyntax[Case] with Trials.SupplyToSyntax[Case] {
       final case class NonEmptyDecisionStages(
@@ -544,7 +548,7 @@ case class TrialsImplementation[Case](
         val randomBehaviour = new Random(734874)
 
         cases(
-          limit,
+          casesLimit,
           complexityLimit,
           randomBehaviour,
           None,
@@ -572,20 +576,23 @@ case class TrialsImplementation[Case](
             decisionStages: DecisionStages,
             shrinkageAttemptIndex: Int,
             scaleDeflationLevel: Int,
-            limit: Int,
-            numberOfShrinksInPanicModeIncludingThisOne: Int
+            casesLimit: Int,
+            numberOfShrinksInPanicModeIncludingThisOne: Int,
+            externalStoppingCondition: () => Boolean
         ): Eval[Unit] = {
           require(0 <= numberOfShrinksInPanicModeIncludingThisOne)
           require(0 <= shrinkageAttemptIndex)
 
-          if (maximumNumberOfShrinkageAttempts == shrinkageAttemptIndex)
+          if (
+            shrinkageAttemptsLimit == shrinkageAttemptIndex || externalStoppingCondition()
+          )
             throw new TrialException(throwable) {
               override def provokingCase: Case = caze
 
               override def recipe: String = decisionStages.asJson.spaces4
             }
 
-          require(maximumNumberOfShrinkageAttempts > shrinkageAttemptIndex)
+          require(shrinkageAttemptsLimit > shrinkageAttemptIndex)
 
           val potentialShrunkExceptionalOutcome: Eval[Unit] = {
             val numberOfDecisionStages = decisionStages.size
@@ -598,7 +605,7 @@ case class TrialsImplementation[Case](
               // sense that the factory input values are large. This needs
               // finessing, but will do for now...
               val limitWithExtraLeewayThatHasBeenObservedToFindBetterShrunkCases =
-                (100 * limit / 99) max limit
+                (100 * casesLimit / 99) max casesLimit
 
               val outcomes: LazyList[Eval[Unit]] =
                 LazyList
@@ -674,9 +681,11 @@ case class TrialsImplementation[Case](
                                   1 + shrinkageAttemptIndex,
                                 scaleDeflationLevel =
                                   scaleDeflationLevelForRecursion,
-                                limit =
+                                casesLimit =
                                   limitWithExtraLeewayThatHasBeenObservedToFindBetterShrunkCases,
-                                numberOfShrinksInPanicModeIncludingThisOne = 0
+                                numberOfShrinksInPanicModeIncludingThisOne = 0,
+                                externalStoppingCondition =
+                                  externalStoppingCondition
                               )
                             }
                           } else
@@ -715,10 +724,11 @@ case class TrialsImplementation[Case](
                   decisionStages = decisionStages,
                   shrinkageAttemptIndex = 1 + shrinkageAttemptIndex,
                   scaleDeflationLevel = scaleDeflationLevel,
-                  limit =
+                  casesLimit =
                     limitWithExtraLeewayThatHasBeenObservedToFindBetterShrunkCases,
                   numberOfShrinksInPanicModeIncludingThisOne =
-                    1 + numberOfShrinksInPanicModeIncludingThisOne
+                    1 + numberOfShrinksInPanicModeIncludingThisOne,
+                  externalStoppingCondition = externalStoppingCondition
                 )
               )
             } else
@@ -739,7 +749,7 @@ case class TrialsImplementation[Case](
         }
 
         cases(
-          limit,
+          casesLimit,
           complexityLimit,
           randomBehaviour,
           None,
@@ -757,8 +767,9 @@ case class TrialsImplementation[Case](
                   decisionStages = decisionStagesInReverseOrder.reverse,
                   shrinkageAttemptIndex = 0,
                   scaleDeflationLevel = 0,
-                  limit = limit,
-                  numberOfShrinksInPanicModeIncludingThisOne = 0
+                  casesLimit = casesLimit,
+                  numberOfShrinksInPanicModeIncludingThisOne = 0,
+                  externalStoppingCondition = shrinkageStop()
                 ).value // Evaluating the nominal `Unit` result will throw a `TrialsException`.
             }
           }
@@ -950,9 +961,8 @@ case class TrialsImplementation[Case](
 
   override def and[Case2](
       secondTrials: JavaTrials[Case2]
-  ): JavaTrials.Tuple2Trials[Case, Case2] = {
+  ): JavaTrials.Tuple2Trials[Case, Case2] =
     new JavaTuple2Trials(this, secondTrials)
-  }
 
   override def and[Case2](
       secondTrials: Trials[Case2]
