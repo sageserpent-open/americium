@@ -1416,6 +1416,63 @@ class TrialsSpec
     }
   }
 
+  it should "have its shrinkage stopped by a stopping condition" in {
+    class FailureCounter {
+      var numberOfFailures: Int = 0
+
+      def failIfOdd(caze: Long): Unit = {
+        if (1 == caze % 2) {
+          numberOfFailures += 1
+          throw ExceptionWithCasePayload(caze)
+        }
+      }
+    }
+
+    val failureCounterWithNoStoppingCondition = new FailureCounter
+
+    val sut = api.longs
+
+    val shrunkCase = intercept[sut.TrialException](
+      sut
+        .withLimit(limit, shrinkageStop = Trials.noStopping)
+        .supplyTo(failureCounterWithNoStoppingCondition.failIfOdd)
+    ).getCause match {
+      case exception: ExceptionWithCasePayload[Long] => exception.caze
+    }
+
+    val halfTheFailuresSeen =
+      failureCounterWithNoStoppingCondition.numberOfFailures / 2
+
+    // This might fail, but not due to what we are testing for, so it is
+    // expressed as a self-check of the test logic.
+    assume(0 < halfTheFailuresSeen)
+
+    def shrinkageStop(): () => Boolean = {
+      var countDown = halfTheFailuresSeen
+
+      () =>
+        if (0 == countDown) true
+        else {
+          countDown -= 1
+          false
+        }
+    }
+
+    val failureCounterWithStoppingCondition = new FailureCounter
+
+    val shrunkCaseWithStoppage = intercept[sut.TrialException](
+      sut
+        .withLimit(limit, shrinkageStop = shrinkageStop)
+        .supplyTo(failureCounterWithStoppingCondition.failIfOdd)
+    ).getCause match {
+      case exception: ExceptionWithCasePayload[Long] => exception.caze
+    }
+
+    shrunkCaseWithStoppage should be > shrunkCase
+
+    failureCounterWithStoppingCondition.numberOfFailures should be < failureCounterWithNoStoppingCondition.numberOfFailures
+  }
+
   "test driving a trials for a recursive data structure" should "not produce smoke" in {
     listTrials
       .withLimit(limit)
