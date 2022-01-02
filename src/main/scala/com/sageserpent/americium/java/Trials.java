@@ -71,7 +71,11 @@ public interface Trials<Case> extends TrialsFactoring<Case> {
      *              that this is no guarantee that so many cases will be
      *              supplied, it is simply a limit.
      * @return An instance of {@link SupplyToSyntax} with the limit configured.
+     * @deprecated The overload
+     * {@link Trials#withLimit(int, int, int, ShrinkageStop)} with all the
+     * arguments following the first defaulted will replace this.
      */
+    @Deprecated
     Trials.SupplyToSyntax<Case> withLimit(final int limit);
 
     /**
@@ -93,9 +97,23 @@ public interface Trials<Case> extends TrialsFactoring<Case> {
      * the complexity up for each flatmap stage. In practice, this results in
      * larger collection instances having greater complexity. Deeply
      * recursive trials also result in high complexity.
+     * @deprecated The overload
+     * {@link Trials#withLimit(int, int, int, ShrinkageStop)} with all the
+     * arguments following the first defaulted will replace this.
      */
+    @Deprecated
     Trials.SupplyToSyntax<Case> withLimit(final int limit,
                                           final int complexityLimit);
+
+    @FunctionalInterface
+    interface ShrinkageStop<Case> {
+        Predicate<Case> build();
+    }
+
+    Trials.SupplyToSyntax<Case> withLimit(final int casesLimit,
+                                          final int complexityLimit,
+                                          final int shrinkageAttemptsLimit,
+                                          final ShrinkageStop<? super Case> shrinkageStop);
 
     /**
      * Reproduce a trial case using a recipe. This is intended to repeatedly
