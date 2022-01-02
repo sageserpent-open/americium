@@ -971,7 +971,7 @@ class TrialsSpec
       mockConsumer
     }
 
-    sut.withLimit(1, shrinkageStop = explodingStoppage).supplyTo { _ => }
+    sut.withLimits(1, shrinkageStop = explodingStoppage).supplyTo { _ => }
   }
 
   they should "produce no more than the limiting number of cases" in
@@ -1454,7 +1454,7 @@ class TrialsSpec
 
     val shrunkCase = intercept[sut.TrialException](
       sut
-        .withLimit(limit, shrinkageStop = Trials.noStopping)
+        .withLimits(limit, shrinkageStop = Trials.noStopping)
         .supplyTo(failureCounterWithNoStoppingCondition.consume)
     ).getCause match {
       case exception: ExceptionWithCasePayload[Long] => exception.caze
@@ -1485,7 +1485,7 @@ class TrialsSpec
 
     val shrunkCaseWithStoppage = intercept[sut.TrialException](
       sut
-        .withLimit(limit, shrinkageStop = shrinkageStop)
+        .withLimits(limit, shrinkageStop = shrinkageStop)
         .supplyTo(failureCounterWithStoppingCondition.consume _)
     ).getCause match {
       case exception: ExceptionWithCasePayload[Long] => exception.caze
@@ -1499,7 +1499,7 @@ class TrialsSpec
 
     val shrunkCaseWithoutAnyShrinkage = intercept[sut.TrialException](
       sut
-        .withLimit(limit, shrinkageStop = noShrinking)
+        .withLimits(limit, shrinkageStop = noShrinking)
         .supplyTo(failureCounterWithoutAnyShrinkage.consume _)
     ).getCause match {
       case exception: ExceptionWithCasePayload[Long] => exception.caze

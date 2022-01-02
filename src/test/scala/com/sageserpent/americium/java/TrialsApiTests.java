@@ -13,9 +13,12 @@ import java.math.BigDecimal;
 import java.util.*;
 import java.util.stream.Stream;
 
+import static org.hamcrest.CoreMatchers.allOf;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.lessThanOrEqualTo;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class TrialsApiTests {
     private final static TrialsApi api = Trials.api();
@@ -329,5 +332,49 @@ public class TrialsApiTests {
                             4 > concatenation.length() ||
                             5 < concatenation.length());
              });
+    }
+
+    @Test
+    void testAdditionalLimits() {
+        final int bestPossibleShrinkage = 1;
+
+        {
+            final TrialsFactoring.TrialException trialException =
+                    assertThrows(TrialsFactoring.TrialException.class, () -> api
+                            .integers()
+                            .withLimits(100, Trials.AdditionalLimits.defaults)
+                            .supplyTo(caze -> {
+                                if (1 == caze % 2) {
+                                    throw new RuntimeException();
+                                }
+                            }));
+
+            assertThat(trialException.provokingCase(),
+                       equalTo(bestPossibleShrinkage));
+        }
+
+        {
+            final int upperBoundOfFinalShrunkCase = 50;
+
+            final TrialsFactoring.TrialException trialException =
+                    assertThrows(TrialsFactoring.TrialException.class, () -> api
+                            .integers()
+                            .withLimits(100,
+                                        Trials.AdditionalLimits
+                                                .<Integer>builder()
+                                                .shrinkageStop(() -> caze ->
+                                                        upperBoundOfFinalShrunkCase >=
+                                                        caze)
+                                                .build())
+                            .supplyTo(caze -> {
+                                if (1 == caze % 2) {
+                                    throw new RuntimeException();
+                                }
+                            }));
+
+            assertThat((int) trialException.provokingCase(),
+                       allOf(lessThanOrEqualTo(upperBoundOfFinalShrunkCase),
+                             greaterThan(bestPossibleShrinkage)));
+        }
     }
 }

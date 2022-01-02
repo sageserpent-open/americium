@@ -72,7 +72,7 @@ public interface Trials<Case> extends TrialsFactoring<Case> {
      *              supplied, it is simply a limit.
      * @return An instance of {@link SupplyToSyntax} with the limit configured.
      * @deprecated The overload
-     * {@link Trials#withLimit(int, int, int, ShrinkageStop)} with all the
+     * {@link Trials#withLimits(int, AdditionalLimits)} with all the
      * arguments following the first defaulted will replace this.
      */
     @Deprecated
@@ -98,7 +98,7 @@ public interface Trials<Case> extends TrialsFactoring<Case> {
      * larger collection instances having greater complexity. Deeply
      * recursive trials also result in high complexity.
      * @deprecated The overload
-     * {@link Trials#withLimit(int, int, int, ShrinkageStop)} with all the
+     * {@link Trials#withLimits(int, AdditionalLimits)} with all the
      * arguments following the first defaulted will replace this.
      */
     @Deprecated
@@ -110,10 +110,30 @@ public interface Trials<Case> extends TrialsFactoring<Case> {
         Predicate<Case> build();
     }
 
-    Trials.SupplyToSyntax<Case> withLimit(final int casesLimit,
-                                          final int complexityLimit,
-                                          final int shrinkageAttemptsLimit,
-                                          final ShrinkageStop<? super Case> shrinkageStop);
+    ShrinkageStop<Object> noStopping = () -> (unused -> false);
+
+    ShrinkageStop<Object> noShrinking = () -> (unused -> true);
+
+    @lombok.Builder
+    @lombok.EqualsAndHashCode
+    class AdditionalLimits<Case> {
+        public static AdditionalLimits<Object> defaults =
+                AdditionalLimits.builder().build();
+
+        @lombok.Builder.Default
+        final int complexityLimit = TrialsFactoring.defaultComplexityLimit();
+
+        @lombok.Builder.Default
+        final int shrinkageAttemptsLimit =
+                TrialsFactoring.defaultShrinkageAttemptsLimit();
+
+        @lombok.Builder.Default
+        final ShrinkageStop<? super Case> shrinkageStop = noStopping;
+    }
+
+    Trials.SupplyToSyntax<Case> withLimits(final int casesLimit,
+                                           final AdditionalLimits<?
+                                                   super Case> additionalLimits);
 
     /**
      * Reproduce a trial case using a recipe. This is intended to repeatedly

@@ -8,9 +8,6 @@ import cats.{Eval, ~>}
 import com.google.common.collect.{Ordering => _, _}
 import com.sageserpent.americium.Trials
 import com.sageserpent.americium.Trials.{RejectionByInlineFilter, ShrinkageStop}
-import com.sageserpent.americium.java.Trials.{
-  ShrinkageStop => JavaShrinkageStop
-}
 import com.sageserpent.americium.java.TrialsApiImplementation.scalaApi
 import com.sageserpent.americium.java.tupleTrials.{
   Tuple2Trials => JavaTuple2Trials
@@ -159,32 +156,30 @@ case class TrialsImplementation[Case](
   override def withLimit(
       limit: Int
   ): JavaTrials.SupplyToSyntax[Case] with Trials.SupplyToSyntax[Case] =
-    withLimit(casesLimit = limit)
+    withLimits(casesLimit = limit)
 
   override def withLimit(
       limit: Int,
       complexityLimit: Int
   ): JavaTrials.SupplyToSyntax[Case] with Trials.SupplyToSyntax[Case] =
-    withLimit(casesLimit = limit, complexityLimit = complexityLimit)
+    withLimits(casesLimit = limit, complexityLimit = complexityLimit)
 
-  def withLimit(
+  def withLimits(
       casesLimit: Int,
-      complexityLimit: Int,
-      shrinkageAttemptsLimit: Int,
-      shrinkageStop: JavaShrinkageStop[_ >: Case]
+      additionalLimits: JavaTrials.AdditionalLimits[_ >: Case]
   ): JavaTrials.SupplyToSyntax[Case] with Trials.SupplyToSyntax[Case] =
-    withLimit(
+    withLimits(
       casesLimit = casesLimit,
-      complexityLimit = complexityLimit,
-      shrinkageAttemptsLimit = shrinkageAttemptsLimit,
+      complexityLimit = additionalLimits.complexityLimit,
+      shrinkageAttemptsLimit = additionalLimits.shrinkageAttemptsLimit,
       shrinkageStop = { () =>
-        val predicate = shrinkageStop.build()
+        val predicate = additionalLimits.shrinkageStop.build()
 
         predicate.test _
       }
     )
 
-  override def withLimit(
+  override def withLimits(
       casesLimit: Int,
       complexityLimit: Int,
       shrinkageAttemptsLimit: Int,

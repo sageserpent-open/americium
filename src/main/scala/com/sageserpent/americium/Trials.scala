@@ -146,7 +146,7 @@ trait Trials[+Case] extends TrialsFactoring[Case] with GenerationSupport[Case] {
   )
   def withLimit(limit: Int, complexityLimit: Int): SupplyToSyntax[Case]
 
-  def withLimit(
+  def withLimits(
       casesLimit: Int,
       complexityLimit: Int = defaultComplexityLimit,
       shrinkageAttemptsLimit: Int = defaultShrinkageAttemptsLimit,
