@@ -116,8 +116,8 @@ public interface Trials<Case> extends TrialsFactoring<Case> {
 
     @lombok.Builder
     @lombok.EqualsAndHashCode
-    class AdditionalLimits<Case> {
-        public static AdditionalLimits<Object> defaults =
+    class AdditionalLimits {
+        public static AdditionalLimits defaults =
                 AdditionalLimits.builder().build();
 
         @lombok.Builder.Default
@@ -126,14 +126,14 @@ public interface Trials<Case> extends TrialsFactoring<Case> {
         @lombok.Builder.Default
         final int shrinkageAttemptsLimit =
                 TrialsFactoring.defaultShrinkageAttemptsLimit();
-
-        @lombok.Builder.Default
-        final ShrinkageStop<? super Case> shrinkageStop = noStopping;
     }
 
     Trials.SupplyToSyntax<Case> withLimits(final int casesLimit,
-                                           final AdditionalLimits<?
-                                                   super Case> additionalLimits);
+                                           final AdditionalLimits additionalLimits);
+
+    Trials.SupplyToSyntax<Case> withLimits(final int casesLimit,
+                                           final AdditionalLimits additionalLimits,
+                                           final ShrinkageStop<? super Case> shrinkageStop);
 
     /**
      * Reproduce a trial case using a recipe. This is intended to repeatedly

@@ -166,14 +166,30 @@ case class TrialsImplementation[Case](
 
   def withLimits(
       casesLimit: Int,
-      additionalLimits: JavaTrials.AdditionalLimits[_ >: Case]
+      additionalLimits: JavaTrials.AdditionalLimits
   ): JavaTrials.SupplyToSyntax[Case] with Trials.SupplyToSyntax[Case] =
     withLimits(
       casesLimit = casesLimit,
       complexityLimit = additionalLimits.complexityLimit,
       shrinkageAttemptsLimit = additionalLimits.shrinkageAttemptsLimit,
       shrinkageStop = { () =>
-        val predicate = additionalLimits.shrinkageStop.build()
+        val predicate: Predicate[_ >: Case] = JavaTrials.noStopping.build()
+
+        predicate.test _
+      }
+    )
+
+  def withLimits(
+      casesLimit: Int,
+      additionalLimits: JavaTrials.AdditionalLimits,
+      shrinkageStop: JavaTrials.ShrinkageStop[_ >: Case]
+  ): JavaTrials.SupplyToSyntax[Case] with Trials.SupplyToSyntax[Case] =
+    withLimits(
+      casesLimit = casesLimit,
+      complexityLimit = additionalLimits.complexityLimit,
+      shrinkageAttemptsLimit = additionalLimits.shrinkageAttemptsLimit,
+      shrinkageStop = { () =>
+        val predicate = shrinkageStop.build()
 
         predicate.test _
       }

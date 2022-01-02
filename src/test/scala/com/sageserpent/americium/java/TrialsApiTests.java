@@ -361,11 +361,11 @@ public class TrialsApiTests {
                             .integers()
                             .withLimits(100,
                                         Trials.AdditionalLimits
-                                                .<Integer>builder()
-                                                .shrinkageStop(() -> caze ->
-                                                        upperBoundOfFinalShrunkCase >=
-                                                        caze)
-                                                .build())
+                                                .builder()
+                                                .build(),
+                                        () -> caze ->
+                                                upperBoundOfFinalShrunkCase >=
+                                                caze)
                             .supplyTo(caze -> {
                                 if (1 == caze % 2) {
                                     throw new RuntimeException();
