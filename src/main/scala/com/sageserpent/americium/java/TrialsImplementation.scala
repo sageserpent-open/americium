@@ -168,7 +168,7 @@ case class TrialsImplementation[Case](
       casesLimit: Int,
       complexityLimit: Int,
       shrinkageAttemptsLimit: Int,
-      shrinkageStop: ShrinkageStop
+      shrinkageStop: ShrinkageStop[_ >: Case]
   ): JavaTrials.SupplyToSyntax[Case] with Trials.SupplyToSyntax[Case] =
     new JavaTrials.SupplyToSyntax[Case] with Trials.SupplyToSyntax[Case] {
       final case class NonEmptyDecisionStages(
@@ -578,13 +578,15 @@ case class TrialsImplementation[Case](
             scaleDeflationLevel: Int,
             casesLimit: Int,
             numberOfShrinksInPanicModeIncludingThisOne: Int,
-            externalStoppingCondition: () => Boolean
+            externalStoppingCondition: Case => Boolean
         ): Eval[Unit] = {
           require(0 <= numberOfShrinksInPanicModeIncludingThisOne)
           require(0 <= shrinkageAttemptIndex)
 
           if (
-            shrinkageAttemptsLimit == shrinkageAttemptIndex || externalStoppingCondition()
+            shrinkageAttemptsLimit == shrinkageAttemptIndex || externalStoppingCondition(
+              caze
+            )
           )
             throw new TrialException(throwable) {
               override def provokingCase: Case = caze

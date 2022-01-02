@@ -23,14 +23,16 @@ import scala.language.implicitConversions
 object Trials extends TrialsByMagnolia {
   def api: TrialsApi = TrialsApiImplementation.scalaApi
 
-  type ShrinkageStop = () => () => Boolean
+  type ShrinkageStop[Case] = () => Case => Boolean
 
-  val noStopping: ShrinkageStop = () => () => false
+  val noStopping: ShrinkageStop[Any] = () => _ => false
 
-  def timer(timeLimit: Duration): ShrinkageStop = () => {
+  val noShrinking: ShrinkageStop[Any] = () => _ => true
+
+  def timer(timeLimit: Duration): ShrinkageStop[Any] = () => {
     val whenStarted = Instant.now()
 
-    () =>
+    _ =>
       timeLimit match {
         case finiteDuration: FiniteDuration =>
           !Instant.now().isBefore(whenStarted.plus(finiteDuration.toJava))
@@ -148,7 +150,7 @@ trait Trials[+Case] extends TrialsFactoring[Case] with GenerationSupport[Case] {
       casesLimit: Int,
       complexityLimit: Int = defaultComplexityLimit,
       shrinkageAttemptsLimit: Int = defaultShrinkageAttemptsLimit,
-      shrinkageStop: ShrinkageStop = noStopping
+      shrinkageStop: ShrinkageStop[_ >: Case] = noStopping
   ): SupplyToSyntax[Case]
 
   def withRecipe(recipe: String): SupplyToSyntax[Case]

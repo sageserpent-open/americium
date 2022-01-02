@@ -1,6 +1,6 @@
 package com.sageserpent.americium
 
-import com.sageserpent.americium.Trials.RejectionByInlineFilter
+import com.sageserpent.americium.Trials.{RejectionByInlineFilter, noShrinking}
 import com.sageserpent.americium.java.{
   Builder,
   CaseFactory,
@@ -958,6 +958,22 @@ class TrialsSpec
       }
     }
 
+  they should "not invoke stoppage if no failure is found" in {
+    val sut = api.only(())
+
+    def explodingStoppage(): Any => Boolean = {
+      val mockConsumer = mockFunction[Any, Boolean]
+
+      mockConsumer
+        .expects(*)
+        .onCall((_: Any) => fail("The stoppage should not have been invoked."))
+
+      mockConsumer
+    }
+
+    sut.withLimit(1, shrinkageStop = explodingStoppage).supplyTo { _ => }
+  }
+
   they should "produce no more than the limiting number of cases" in
     forAll(
       Table(
@@ -1417,11 +1433,15 @@ class TrialsSpec
   }
 
   it should "have its shrinkage stopped by a stopping condition" in {
+    def shouldProvokeFailure(caze: Long): Boolean = {
+      1 == caze % 2
+    }
+
     class FailureCounter {
       var numberOfFailures: Int = 0
 
-      def failIfOdd(caze: Long): Unit = {
-        if (1 == caze % 2) {
+      def consume(caze: Long): Unit = {
+        if (shouldProvokeFailure(caze)) {
           numberOfFailures += 1
           throw ExceptionWithCasePayload(caze)
         }
@@ -1435,7 +1455,7 @@ class TrialsSpec
     val shrunkCase = intercept[sut.TrialException](
       sut
         .withLimit(limit, shrinkageStop = Trials.noStopping)
-        .supplyTo(failureCounterWithNoStoppingCondition.failIfOdd)
+        .supplyTo(failureCounterWithNoStoppingCondition.consume)
     ).getCause match {
       case exception: ExceptionWithCasePayload[Long] => exception.caze
     }
@@ -1447,10 +1467,13 @@ class TrialsSpec
     // expressed as a self-check of the test logic.
     assume(0 < halfTheFailuresSeen)
 
-    def shrinkageStop(): () => Boolean = {
+    def shrinkageStop(): Long => Boolean = {
       var countDown = halfTheFailuresSeen
 
-      () =>
+      (caze: Long) =>
+        shouldProvokeFailure(caze) should be(true)
+        caze should be > shrunkCase
+
         if (0 == countDown) true
         else {
           countDown -= 1
@@ -1463,14 +1486,28 @@ class TrialsSpec
     val shrunkCaseWithStoppage = intercept[sut.TrialException](
       sut
         .withLimit(limit, shrinkageStop = shrinkageStop)
-        .supplyTo(failureCounterWithStoppingCondition.failIfOdd)
+        .supplyTo(failureCounterWithStoppingCondition.consume _)
     ).getCause match {
       case exception: ExceptionWithCasePayload[Long] => exception.caze
     }
 
     shrunkCaseWithStoppage should be > shrunkCase
 
-    failureCounterWithStoppingCondition.numberOfFailures should be < failureCounterWithNoStoppingCondition.numberOfFailures
+    failureCounterWithStoppingCondition.numberOfFailures should (be > 1 and be < failureCounterWithNoStoppingCondition.numberOfFailures)
+
+    val failureCounterWithoutAnyShrinkage = new FailureCounter
+
+    val shrunkCaseWithoutAnyShrinkage = intercept[sut.TrialException](
+      sut
+        .withLimit(limit, shrinkageStop = noShrinking)
+        .supplyTo(failureCounterWithoutAnyShrinkage.consume _)
+    ).getCause match {
+      case exception: ExceptionWithCasePayload[Long] => exception.caze
+    }
+
+    shrunkCaseWithoutAnyShrinkage should be > shrunkCaseWithStoppage
+
+    failureCounterWithoutAnyShrinkage.numberOfFailures should be(1)
   }
 
   "test driving a trials for a recursive data structure" should "not produce smoke" in {
