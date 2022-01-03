@@ -8,12 +8,15 @@ import cats.{Eval, ~>}
 import com.google.common.collect.{Ordering => _, _}
 import com.sageserpent.americium.Trials
 import com.sageserpent.americium.Trials.{RejectionByInlineFilter, ShrinkageStop}
-import com.sageserpent.americium.java.Trials.OptionalLimits
 import com.sageserpent.americium.java.TrialsApiImplementation.scalaApi
+import com.sageserpent.americium.java.TrialsScaffolding.OptionalLimits
 import com.sageserpent.americium.java.tupleTrials.{
   Tuple2Trials => JavaTuple2Trials
 }
-import com.sageserpent.americium.java.{Trials => JavaTrials}
+import com.sageserpent.americium.java.{
+  Trials => JavaTrials,
+  TrialsScaffolding => JavaTrialsScaffolding
+}
 import com.sageserpent.americium.randomEnrichment.RichRandom
 import com.sageserpent.americium.tupleTrials.Tuple2Trials
 import io.circe.generic.auto._
@@ -156,25 +159,29 @@ case class TrialsImplementation[Case](
 
   override def withLimit(
       limit: Int
-  ): JavaTrials.SupplyToSyntax[Case] with Trials.SupplyToSyntax[Case] =
+  ): JavaTrialsScaffolding.SupplyToSyntax[Case]
+    with Trials.SupplyToSyntax[Case] =
     withLimits(casesLimit = limit)
 
   override def withLimit(
       limit: Int,
       complexityLimit: Int
-  ): JavaTrials.SupplyToSyntax[Case] with Trials.SupplyToSyntax[Case] =
+  ): JavaTrialsScaffolding.SupplyToSyntax[Case]
+    with Trials.SupplyToSyntax[Case] =
     withLimits(casesLimit = limit, complexityLimit = complexityLimit)
 
   def withLimits(
       casesLimit: Int,
       additionalLimits: OptionalLimits
-  ): JavaTrials.SupplyToSyntax[Case] with Trials.SupplyToSyntax[Case] =
+  ): JavaTrialsScaffolding.SupplyToSyntax[Case]
+    with Trials.SupplyToSyntax[Case] =
     withLimits(
       casesLimit = casesLimit,
       complexityLimit = additionalLimits.complexity,
       shrinkageAttemptsLimit = additionalLimits.shrinkageAttempts,
       shrinkageStop = { () =>
-        val predicate: Predicate[_ >: Case] = JavaTrials.noStopping.build()
+        val predicate: Predicate[_ >: Case] =
+          JavaTrialsScaffolding.noStopping.build()
 
         predicate.test _
       }
@@ -183,8 +190,9 @@ case class TrialsImplementation[Case](
   def withLimits(
       casesLimit: Int,
       additionalLimits: OptionalLimits,
-      shrinkageStop: JavaTrials.ShrinkageStop[_ >: Case]
-  ): JavaTrials.SupplyToSyntax[Case] with Trials.SupplyToSyntax[Case] =
+      shrinkageStop: JavaTrialsScaffolding.ShrinkageStop[_ >: Case]
+  ): JavaTrialsScaffolding.SupplyToSyntax[Case]
+    with Trials.SupplyToSyntax[Case] =
     withLimits(
       casesLimit = casesLimit,
       complexityLimit = additionalLimits.complexity,
@@ -201,8 +209,10 @@ case class TrialsImplementation[Case](
       complexityLimit: Int,
       shrinkageAttemptsLimit: Int,
       shrinkageStop: ShrinkageStop[_ >: Case]
-  ): JavaTrials.SupplyToSyntax[Case] with Trials.SupplyToSyntax[Case] =
-    new JavaTrials.SupplyToSyntax[Case] with Trials.SupplyToSyntax[Case] {
+  ): JavaTrialsScaffolding.SupplyToSyntax[Case]
+    with Trials.SupplyToSyntax[Case] =
+    new JavaTrialsScaffolding.SupplyToSyntax[Case]
+      with Trials.SupplyToSyntax[Case] {
       final case class NonEmptyDecisionStages(
           latestDecision: Decision,
           previousDecisions: DecisionStagesInReverseOrder
@@ -964,8 +974,10 @@ case class TrialsImplementation[Case](
 
   def withRecipe(
       recipe: String
-  ): JavaTrials.SupplyToSyntax[Case] with Trials.SupplyToSyntax[Case] =
-    new JavaTrials.SupplyToSyntax[Case] with Trials.SupplyToSyntax[Case] {
+  ): JavaTrialsScaffolding.SupplyToSyntax[Case]
+    with Trials.SupplyToSyntax[Case] =
+    new JavaTrialsScaffolding.SupplyToSyntax[Case]
+      with Trials.SupplyToSyntax[Case] {
       // Java-only API ...
       override def supplyTo(consumer: Consumer[Case]): Unit =
         supplyTo(consumer.accept)
@@ -995,7 +1007,7 @@ case class TrialsImplementation[Case](
 
   override def and[Case2](
       secondTrials: JavaTrials[Case2]
-  ): JavaTrials.Tuple2Trials[Case, Case2] =
+  ): JavaTrialsScaffolding.Tuple2Trials[Case, Case2] =
     new JavaTuple2Trials(this, secondTrials)
 
   override def and[Case2](
