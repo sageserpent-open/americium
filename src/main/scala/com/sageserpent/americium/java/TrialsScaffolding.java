@@ -129,11 +129,6 @@ public interface TrialsScaffolding<Case,
                 extends SupplyToSyntax<Tuple2<Case1, Case2>> {
             void supplyTo(BiConsumer<Case1, Case2> biConsumer);
         }
-
-        SupplyToSyntaxTuple2<Case1, Case2> withLimit(final int limit);
-
-        SupplyToSyntaxTuple2<Case1, Case2> withRecipe(
-                final String recipe);
     }
 
     interface Tuple3Trials<Case1, Case2, Case3> extends
@@ -146,12 +141,6 @@ public interface TrialsScaffolding<Case,
                 extends SupplyToSyntax<Tuple3<Case1, Case2, Case3>> {
             void supplyTo(Consumer3<Case1, Case2, Case3> triConsumer);
         }
-
-        SupplyToSyntaxTuple3<Case1, Case2, Case3> withLimit(
-                final int limit);
-
-        SupplyToSyntaxTuple3<Case1, Case2, Case3> withRecipe(
-                final String recipe);
     }
 
     interface Tuple4Trials<Case1, Case2, Case3, Case4> extends
@@ -162,11 +151,5 @@ public interface TrialsScaffolding<Case,
                 extends SupplyToSyntax<Tuple4<Case1, Case2, Case3, Case4>> {
             void supplyTo(Consumer4<Case1, Case2, Case3, Case4> quadConsumer);
         }
-
-        SupplyToSyntaxTuple4<Case1, Case2, Case3, Case4> withLimit(
-                final int limit);
-
-        SupplyToSyntaxTuple4<Case1, Case2, Case3, Case4> withRecipe(
-                final String recipe);
     }
 }

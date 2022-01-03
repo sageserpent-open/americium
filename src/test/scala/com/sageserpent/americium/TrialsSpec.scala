@@ -1,6 +1,7 @@
 package com.sageserpent.americium
 
-import com.sageserpent.americium.Trials.{RejectionByInlineFilter, noShrinking}
+import com.sageserpent.americium.Trials.RejectionByInlineFilter
+import com.sageserpent.americium.TrialsScaffolding.noShrinking
 import com.sageserpent.americium.java.{
   Builder,
   CaseFactory,
@@ -1454,7 +1455,7 @@ class TrialsSpec
 
     val shrunkCase = intercept[sut.TrialException](
       sut
-        .withLimits(limit, shrinkageStop = Trials.noStopping)
+        .withLimits(limit, shrinkageStop = TrialsScaffolding.noStopping)
         .supplyTo(failureCounterWithNoStoppingCondition.consume)
     ).getCause match {
       case exception: ExceptionWithCasePayload[Long] => exception.caze
