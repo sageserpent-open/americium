@@ -342,7 +342,7 @@ public class TrialsApiTests {
             final TrialsFactoring.TrialException trialException =
                     assertThrows(TrialsFactoring.TrialException.class, () -> api
                             .integers()
-                            .withLimits(100, Trials.AdditionalLimits.defaults)
+                            .withLimits(100, Trials.OptionalLimits.defaults)
                             .supplyTo(caze -> {
                                 if (1 == caze % 2) {
                                     throw new RuntimeException();
@@ -360,9 +360,7 @@ public class TrialsApiTests {
                     assertThrows(TrialsFactoring.TrialException.class, () -> api
                             .integers()
                             .withLimits(100,
-                                        Trials.AdditionalLimits
-                                                .builder()
-                                                .build(),
+                                        Trials.OptionalLimits.defaults,
                                         () -> caze ->
                                                 upperBoundOfFinalShrunkCase >=
                                                 caze)
@@ -375,6 +373,27 @@ public class TrialsApiTests {
             assertThat((int) trialException.provokingCase(),
                        allOf(lessThanOrEqualTo(upperBoundOfFinalShrunkCase),
                              greaterThan(bestPossibleShrinkage)));
+        }
+
+        {
+            final int upperBoundOfFinalShrunkCase = 50;
+
+            final TrialsFactoring.TrialException trialException =
+                    assertThrows(TrialsFactoring.TrialException.class, () -> api
+                            .integers()
+                            .withLimits(100,
+                                        Trials.OptionalLimits
+                                                .builder()
+                                                .shrinkageAttempts(0)
+                                                .build())
+                            .supplyTo(caze -> {
+                                if (1 == caze % 2) {
+                                    throw new RuntimeException();
+                                }
+                            }));
+
+            assertThat((int) trialException.provokingCase(),
+                       greaterThan(upperBoundOfFinalShrunkCase));
         }
     }
 }

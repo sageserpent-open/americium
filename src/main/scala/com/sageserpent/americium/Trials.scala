@@ -137,12 +137,12 @@ trait Trials[+Case] extends TrialsFactoring[Case] with GenerationSupport[Case] {
   ): Trials[TransformedCase]
 
   @deprecated(
-    "The overload with all the arguments following the first defaulted will replace this."
+    "Use `withLimits` instead."
   )
   def withLimit(limit: Int): SupplyToSyntax[Case]
 
   @deprecated(
-    "The overload with all the arguments following the first defaulted will replace this."
+    "Use `withLimits` instead."
   )
   def withLimit(limit: Int, complexityLimit: Int): SupplyToSyntax[Case]
 
