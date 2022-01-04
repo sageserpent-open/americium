@@ -469,7 +469,7 @@ class Cookbook extends AnyFlatSpec {
     65 -> "Oxygen",
     18 -> "Carbon",
     10 -> "Hydrogen",
-    3  -> "Nitrogen"
+    3 -> "Nitrogen"
   )
 
   /* ... or hard-wire in some single value. */
@@ -489,7 +489,7 @@ class Cookbook extends AnyFlatSpec {
   val zonedDateTimes: Trials[ZonedDateTime] =
     for {
       instant <- instants
-      zoneId  <- zoneIds
+      zoneId <- zoneIds
     } yield ZonedDateTime.ofInstant(instant, zoneId)
 
   /* Filter out what you don't want. */
@@ -710,6 +710,52 @@ It's easy:
 [Scala example](https://github.com/sageserpent-open/americium/blob/afe7fca4215bfa00879b553aa7805bb5f8cf2d64/src/test/scala/com/sageserpent/americium/RichSeqSpec.scala#L50)
 .
 
+### Where are the controls? ###
+
+Not down the sofa nestling betwixt the cushions - instead, they are to found between `Trials` and `.supplyTo` and are
+called `.withLimit` (two overloads) and `.withLimits` (also two overloads).
+
+The drill is to build your `Trials` instance to produce the right type of cases with any invariants you want, then to
+call one of `.withLimit(s)` on it, thus configuring how the trials will supply cases to a following call of `.supplyTo`.
+
+So the pattern is:
+
+`<trials>.withLimit(s)(<configuration>).supplyTo(<test consumer>)`
+
+For the simplest approach,
+use [`.withLimit`](https://github.com/sageserpent-open/americium/blob/9b78c966f38773af3214adab524374af89cdd14b/src/main/scala/com/sageserpent/americium/java/TrialsScaffolding.java#L28)
+and pass in the maximum number of cases you would like to have supplied to your test consumer.
+
+In Scala, full bells and whistles is provided
+by [`.withLimits`](https://github.com/sageserpent-open/americium/blob/9b78c966f38773af3214adab524374af89cdd14b/src/main/scala/com/sageserpent/americium/TrialsScaffolding.scala#L91)
+.
+
+This allows a maximum number of cases, the maximum complexity, the maximum number of shrinkage attempts and a 'shrinkage
+stop' to be configured. Other than the mandatory maximum number of cases, all other items are optional.
+
+In Java, the equivalent is provided by a combination
+of [`.withLimits`](https://github.com/sageserpent-open/americium/blob/9b78c966f38773af3214adab524374af89cdd14b/src/main/scala/com/sageserpent/americium/java/TrialsScaffolding.java#L141)
+and [`OptionalLimits`](https://github.com/sageserpent-open/americium/blob/9b78c966f38773af3214adab524374af89cdd14b/src/main/scala/com/sageserpent/americium/java/TrialsScaffolding.java#L83)
+.
+
+Setting the maximum number of shrinkage attempts to zero disables shrinkage altogether - so the original failing case is
+yielded.
+
+The shrinkage stop is a way for the user to control shrinkage externally via a callback style interface. Essentially
+a [`ShrinkageStop`](https://github.com/sageserpent-open/americium/blob/9b78c966f38773af3214adab524374af89cdd14b/src/main/scala/com/sageserpent/americium/java/TrialsScaffolding.java#L65)
+is a factory for a stateful predicate that you supply that could, say:
+
+1. Monitor the number of invocations - thus counting the number of successful shrinkages.
+2. Check heap usage.
+3. Check against a timeout since the start of shrinkage.
+4. Check the quality of the best shrunk case so far.
+
+When it returns true, the shrinkage process is terminated early with the best shrunk case seen so far, regardless of
+whether the maximum number of shrinkage attempts has been reached or not. In fact, there is a difference between
+configuring the maximum number of shrinkage attempts and counting the shrinkages - the former includes a panic mode
+where the shrinkage mechanism has not yet managed to shrink further on a previous failing case, but is still retrying,
+whereas the shrinkage stop predicate is only invoked with freshly shrunk cases where progress has been made.
+
 ### Why is there a file 'IntelliJCodeStyle.xml' in the project? ###
 
 The author has a real problem with pull requests that consist of a wholesale reformatting of sources that also harbour
@@ -735,7 +781,6 @@ In Scala, there is at least:
 In Java, there is at least:
 
 1. Jqwik
-2. JUnit-QuickCheck
-3. VavrTest
-
-
+2. QuickTheories
+3. JUnit-QuickCheck
+4. VavrTest
