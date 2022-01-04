@@ -52,8 +52,25 @@ public interface TrialsScaffolding<Case,
     SupplySyntaxType withLimit(final int limit,
                                final int complexityLimit);
 
+    /**
+     * Allows the shrinkage process to be terminated externally by a stateful
+     * predicate supplied by the user. That predicate is free to use a timer,
+     * counts, consult the heap usage, or examine the best shrunken case seen
+     * so far.
+     *
+     * @param <Case> The type or supertype of the cases yielded by a trials
+     *               instance.
+     */
     @FunctionalInterface
     interface ShrinkageStop<Case> {
+        /**
+         * @return A predicate that examines both state captured by the
+         * instance of {@link ShrinkageStop} and the case passed to it. When
+         * the predicate holds, the shrinkage is terminated.
+         * @apiNote Building the predicate is expected to set up or capture
+         * any state required by it, such as a freshly started timer or count
+         * set to zero.
+         */
         Predicate<Case> build();
     }
 
@@ -67,17 +84,60 @@ public interface TrialsScaffolding<Case,
         public static OptionalLimits defaults =
                 OptionalLimits.builder().build();
 
+        /**
+         * The maximum permitted complexity when generating a case.
+         *
+         * @apiNote Complexity is something associated with the production of
+         * a {@link Case} when a {@link Trials} is supplied to some test
+         * consumer. It ranges from one up to (but not including) the {@code
+         * complexityLimit} and captures some sense of the case being more
+         * elaborately constructed as it increases - as an example, the use
+         * of flatmapping to combine inputs from multiple trials instances
+         * drives the complexity up for each flatmap stage. In practice, this
+         * results in larger collection instances having greater complexity.
+         * Deeply recursive trials also result in high complexity.
+         */
         @lombok.Builder.Default
         final int complexity = TrialsFactoring.defaultComplexityLimit();
 
+        /**
+         * The maximum number of shrinkage attempts when shrinking a case.
+         * Setting this to zero disables shrinkage and will thus yield the
+         * original failing case.
+         */
         @lombok.Builder.Default
         final int shrinkageAttempts =
                 TrialsFactoring.defaultShrinkageAttemptsLimit();
     }
 
+    /**
+     * Fluent syntax for configuring a limit to the number of cases supplied
+     * to a consumer.
+     *
+     * @param casesLimit     The maximum number of cases that can be supplied
+     *                       - note that this is no guarantee that so many
+     *                       cases will be supplied, it is simply a limit.
+     * @param optionalLimits Optional limits used to configure other aspects
+     *                       of supplying and shrinkage.
+     * @return An instance of {@link SupplyToSyntax} with the limit configured.
+     */
     SupplySyntaxType withLimits(final int casesLimit,
                                 final OptionalLimits optionalLimits);
 
+    /**
+     * Fluent syntax for configuring a limit to the number of cases supplied
+     * to a consumer.
+     *
+     * @param casesLimit     The maximum number of cases that can be supplied
+     *                       - note that this is no guarantee that so many
+     *                       cases will be supplied, it is simply a limit.
+     * @param optionalLimits Optional limits used to configure other aspects
+     *                       of supplying and shrinkage.
+     * @param shrinkageStop  Allows external control of the shrinkage process
+     *                       in addition to what is configured by the {@code
+     *                       optionalLimits}. See also {@link ShrinkageStop}.
+     * @return An instance of {@link SupplyToSyntax} with the limit configured.
+     */
     SupplySyntaxType withLimits(final int casesLimit,
                                 final OptionalLimits optionalLimits,
                                 final ShrinkageStop<? super Case> shrinkageStop);
