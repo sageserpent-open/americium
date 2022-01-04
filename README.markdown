@@ -768,6 +768,12 @@ The author uses IntelliJ's built-in Java formatter and the integration with Scal
 
 If you know of a better way of sharing reformatting settings / tooling, raise an issue.
 
+### Where is the Scaladoc? ###
+
+Sorry, while the API has been in development the author has concentrated on keeping the Javadoc up to date. Hopefully
+the Java and Scala APIs are similar enough to translate what is in the Javadoc that isn't captured in the Scala method
+names and signatures. Someday, but until then pull requests are welcome...
+
 ### The competition? ###
 
 In Scala, there is at least:
