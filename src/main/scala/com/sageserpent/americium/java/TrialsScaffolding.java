@@ -39,13 +39,13 @@ public interface TrialsScaffolding<Case,
      * @return An instance of {@link SupplyToSyntax} with the limit configured.
      * @apiNote Complexity is something associated with the production of a
      * {@link Case} when a {@link Trials} is supplied to some test consumer.
-     * It ranges from one up to (but not including) the {@code
-     * complexityLimit} and captures some sense of the case being more
-     * elaborately constructed as it increases - as an example, the use of
-     * flatmapping to combine inputs from multiple trials instances drives
-     * the complexity up for each flatmap stage. In practice, this results in
-     * larger collection instances having greater complexity. Deeply
-     * recursive trials also result in high complexity.
+     * It ranges from one up to (and including) the {@code complexityLimit}
+     * and captures some sense of the case being more elaborately constructed
+     * as it increases - as an example, the use of flatmapping to combine
+     * inputs from multiple trials instances drives the complexity up for
+     * each flatmap stage. In practice, this results in larger collection
+     * instances having greater complexity. Deeply recursive trials also
+     * result in high complexity.
      * @deprecated Use {@link Trials#withLimits(int, OptionalLimits)} instead.
      */
     @Deprecated
@@ -89,7 +89,7 @@ public interface TrialsScaffolding<Case,
          *
          * @apiNote Complexity is something associated with the production of
          * a {@link Case} when a {@link Trials} is supplied to some test
-         * consumer. It ranges from one up to (but not including) the {@code
+         * consumer. It ranges from one up to (and including) the {@code
          * complexityLimit} and captures some sense of the case being more
          * elaborately constructed as it increases - as an example, the use
          * of flatmapping to combine inputs from multiple trials instances
