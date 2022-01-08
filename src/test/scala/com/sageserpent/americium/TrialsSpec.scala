@@ -1,7 +1,10 @@
 package com.sageserpent.americium
 
 import com.sageserpent.americium.Trials.RejectionByInlineFilter
+import com.sageserpent.americium.TrialsScaffolding.noShrinking
 import com.sageserpent.americium.java.{
+  Builder,
+  CaseFactory,
   Trials => JavaTrials,
   TrialsApi => JavaTrialsApi
 }
@@ -35,40 +38,79 @@ object TrialsSpec {
       leftSubtree.flatten ++ rightSubtree.flatten
   }
 
+  final case class BushyTree(growth: Either[List[BushyTree], Int]) {
+    growth.fold(branches => require(branches.nonEmpty), _ => ())
+
+    def flatten: Vector[Int] = growth.fold(
+      branches => branches.map(_.flatten).reduce(_ ++ _),
+      leafValue => Vector(leafValue)
+    )
+  }
+
   val api: TrialsApi         = Trials.api
   val javaApi: JavaTrialsApi = JavaTrials.api
 
-  val limit: Int = 2000
+  val limit: Int = 350
+
+  def byteVectorTrials: Trials[Vector[Byte]] = {
+    // FIXME: the need to do this shows that some kind of weighted distribution
+    // is a good idea.
+    api.alternateWithWeights(1 -> api.only(0.toByte), 10 -> api.bytes).several
+  }
 
   def integerVectorTrials: Trials[Vector[Int]] = {
-    // FIXME: the need to do this shows that some kind of weighted distribution is a good idea.
+    // FIXME: the need to do this shows that some kind of weighted distribution
+    // is a good idea.
     api.alternateWithWeights(1 -> api.only(0), 10 -> api.integers).several
   }
 
   def doubleVectorTrials: Trials[Vector[Double]] =
-    // FIXME: the need to do this shows that some kind of weighted distribution is a good idea.
+    // FIXME: the need to do this shows that some kind of weighted distribution
+    // is a good idea.
     api.alternateWithWeights(1 -> api.only(0.0), 10 -> api.doubles).several
 
   def longVectorTrials: Trials[Vector[Long]] =
-    // FIXME: the need to do this shows that some kind of weighted distribution is a good idea.
+    // FIXME: the need to do this shows that some kind of weighted distribution
+    // is a good idea.
     api.alternateWithWeights(1 -> api.only(0L), 10 -> api.longs).several
 
   def listTrials: Trials[List[Int]] =
-    api.integers.several
+    // FIXME: the need to do this shows that some kind of weighted distribution
+    // is a good idea.
+    api.alternateWithWeights(3 -> api.only(0), 10 -> api.integers).several
 
-  def binaryTreeTrials: Trials[BinaryTree] =
-    api.alternate(
-      for {
-        leftSubtree  <- api.delay(binaryTreeTrials)
-        flag         <- api.booleans
-        rightSubtree <- binaryTreeTrials
-      } yield Branch(leftSubtree, flag, rightSubtree),
-      // FIXME: the need to do this shows that some kind of weighted distribution is a good idea.
+  def binaryTreeTrials: Trials[BinaryTree] = api.alternate(
+    for {
+      leftSubtree  <- api.delay(binaryTreeTrials)
+      flag         <- api.booleans
+      rightSubtree <- binaryTreeTrials
+    } yield Branch(leftSubtree, flag, rightSubtree),
+    // FIXME: the need to do this shows that some kind of weighted
+    // distribution is a good idea.
+    api
+      .alternateWithWeights(3 -> api.only(0), 10 -> api.integers)
+      .map(Leaf.apply)
+  )
+
+  def bushyTreeTrials: Trials[BushyTree] =
+    api.complexities.flatMap(complexity =>
       api
-        .alternateWithWeights(1 -> api.only(0), 10 -> api.integers)
-        .map(Leaf.apply)
+        .alternateWithWeights(
+          1 -> api
+            .choose(1 to 10)
+            .flatMap(positiveNumberOfBranches =>
+              bushyTreeTrials
+                .listsOfSize(positiveNumberOfBranches)
+                .map(Left.apply)
+            ),
+          (1 max complexity) -> api
+            // FIXME: the need to do this shows that some kind of weighted
+            // distribution is a good idea.
+            .alternateWithWeights(1 -> api.only(0), 10 -> api.integers)
+            .map(Right.apply)
+        )
+        .map(BushyTree.apply)
     )
-
 }
 
 class TrialsSpec
@@ -114,7 +156,11 @@ class TrialsSpec
       .supplyTo(println)
 
     api
-      .stream(_.toString)
+      .streamLegacy(_.toString)
+      .withLimit(limit)
+      .supplyTo(println)
+
+    api.bytes
       .withLimit(limit)
       .supplyTo(println)
 
@@ -168,6 +214,18 @@ class TrialsSpec
     api.strings
       .withLimit(limit)
       .supplyTo(println)
+
+    api
+      .characters('a', 'z', 'p')
+      .strings
+      .withLimit(limit)
+      .supplyTo(println)
+
+    api
+      .choose(0, 1, 2, 5)
+      .flatMap(size => api.characters('a', 'z').stringsOfSize(size))
+      .withLimit(limit)
+      .supplyTo(println)
   }
 
   "test driving the Java API" should "not produce smoke" in {
@@ -198,7 +256,11 @@ class TrialsSpec
       .supplyTo(println)
 
     javaApi
-      .stream(_.toString)
+      .streamLegacy(_.toString)
+      .withLimit(limit)
+      .supplyTo(println)
+
+    javaApi.bytes
       .withLimit(limit)
       .supplyTo(println)
 
@@ -227,6 +289,22 @@ class TrialsSpec
       .supplyTo(println)
 
     javaApi.strings
+      .withLimit(limit)
+      .supplyTo(println)
+
+    javaApi
+      .characters('a', 'z', 'p')
+      .collections(Builder.stringBuilder _)
+      .withLimit(limit)
+      .supplyTo(println)
+
+    javaApi
+      .choose(0, 1, 2, 5)
+      .flatMap(size =>
+        javaApi
+          .characters('a', 'z')
+          .collectionsOfSize(size, Builder.stringBuilder _)
+      )
       .withLimit(limit)
       .supplyTo(println)
   }
@@ -314,6 +392,137 @@ class TrialsSpec
         weightedChoices.foreach { case (weight, possibleChoice) =>
           mockConsumer.verify(possibleChoice).repeat(weight)
         }
+      }
+    }
+
+  private val isomorphismCaseFactoryTable = Table(
+    "isomorphism case factories",
+    new CaseFactory[String] {
+      override def apply(input: Long): String   = "Singleton"
+      override def lowerBoundInput(): Long      = 434
+      override def upperBoundInput(): Long      = 434
+      override def maximallyShrunkInput(): Long = 434
+    },
+    new CaseFactory[String] {
+      override def apply(input: Long): String   = "Singleton"
+      override def lowerBoundInput(): Long      = 0
+      override def upperBoundInput(): Long      = 0
+      override def maximallyShrunkInput(): Long = 0
+    },
+    new CaseFactory[Boolean] {
+      override def apply(input: Long): Boolean = input match {
+        case -1L => false
+        case 0L  => true
+      }
+      override def lowerBoundInput(): Long      = -1L
+      override def upperBoundInput(): Long      = 0L
+      override def maximallyShrunkInput(): Long = 0L
+    },
+    new CaseFactory[Boolean] {
+      override def apply(input: Long): Boolean = input match {
+        case 0L => false
+        case 1L => true
+      }
+      override def lowerBoundInput(): Long      = 0L
+      override def upperBoundInput(): Long      = 1L
+      override def maximallyShrunkInput(): Long = 0L
+    },
+    new CaseFactory[Boolean] {
+      override def apply(input: Long): Boolean = input match {
+        case -1L => true
+        case 0L  => false
+      }
+      override def lowerBoundInput(): Long      = -1L
+      override def upperBoundInput(): Long      = 0L
+      override def maximallyShrunkInput(): Long = -1L
+    },
+    new CaseFactory[Boolean] {
+      override def apply(input: Long): Boolean = input match {
+        case 0L => true
+        case 1L => false
+      }
+      override def lowerBoundInput(): Long      = 0L
+      override def upperBoundInput(): Long      = 1L
+      override def maximallyShrunkInput(): Long = 1L
+    },
+    new CaseFactory[Byte] {
+      override def apply(input: Long): Byte     = input.toByte
+      override def lowerBoundInput(): Long      = Byte.MinValue
+      override def upperBoundInput(): Long      = Byte.MaxValue
+      override def maximallyShrunkInput(): Long = 2
+    },
+    new CaseFactory[Byte] {
+      override def apply(input: Long): Byte     = input.toByte
+      override def lowerBoundInput(): Long      = Byte.MinValue
+      override def upperBoundInput(): Long      = Byte.MaxValue
+      override def maximallyShrunkInput(): Long = -3
+    },
+    new CaseFactory[Byte] {
+      override def apply(input: Long): Byte     = input.toByte
+      override def lowerBoundInput(): Long      = Byte.MinValue
+      override def upperBoundInput(): Long      = Byte.MaxValue
+      override def maximallyShrunkInput(): Long = 0
+    },
+    new CaseFactory[Byte] {
+      override def apply(input: Long): Byte     = input.toByte
+      override def lowerBoundInput(): Long      = -3
+      override def upperBoundInput(): Long      = Byte.MaxValue
+      override def maximallyShrunkInput(): Long = -3
+    },
+    new CaseFactory[Byte] {
+      override def apply(input: Long): Byte     = input.toByte
+      override def lowerBoundInput(): Long      = Byte.MinValue
+      override def upperBoundInput(): Long      = 5
+      override def maximallyShrunkInput(): Long = 5
+    },
+    new CaseFactory[Byte] {
+      override def apply(input: Long): Byte     = input.toByte
+      override def lowerBoundInput(): Long      = 0
+      override def upperBoundInput(): Long      = Byte.MaxValue
+      override def maximallyShrunkInput(): Long = Byte.MaxValue / 2
+    },
+    new CaseFactory[Byte] {
+      override def apply(input: Long): Byte     = input.toByte
+      override def lowerBoundInput(): Long      = Byte.MinValue
+      override def upperBoundInput(): Long      = Byte.MaxValue
+      override def maximallyShrunkInput(): Long = Byte.MinValue / 3
+    }
+  )
+
+  "a stream based on an isomorphism case factory" should "eventually cover all the inputs from the lower bound to the upper bound inclusive" in
+    forAll(isomorphismCaseFactoryTable) { isomorphismCaseFactory =>
+      withExpectations {
+        val sut: Trials[Any] = api.stream(isomorphismCaseFactory)
+
+        val mockConsumer = stubFunction[Any, Unit]
+
+        sut.withLimit(limit).supplyTo(mockConsumer)
+
+        val rangeOfCases = isomorphismCaseFactory
+          .lowerBoundInput() to isomorphismCaseFactory
+          .upperBoundInput() map isomorphismCaseFactory.apply
+
+        rangeOfCases.foreach { expectedCase =>
+          mockConsumer.verify(expectedCase).atLeastOnce()
+        }
+      }
+    }
+
+  it should "result in the maximally shrunk case being reported when all cases fail" in
+    forAll(isomorphismCaseFactoryTable) { isomorphismCaseFactory =>
+      withExpectations {
+        val sut: Trials[Any] = api.stream(isomorphismCaseFactory)
+
+        val angryConsumer: Any => Unit =
+          _ => throw new RuntimeException("Disgusted, Tunbridge Wells!")
+
+        val exception = intercept[sut.TrialException] {
+          sut.withLimit(limit).supplyTo(angryConsumer)
+        }
+
+        exception.provokingCase shouldBe (isomorphismCaseFactory.apply(
+          isomorphismCaseFactory.maximallyShrunkInput()
+        ))
       }
     }
 
@@ -467,7 +676,7 @@ class TrialsSpec
           api.alternateWithWeights(
             weightedAlternatives.zip(alternativeInvariantIds) map {
               case ((weight, factory: (Long => Any)), invariantId) =>
-                weight -> api.stream(factory).map(_ -> invariantId)
+                weight -> api.streamLegacy(factory).map(_ -> invariantId)
             }
           )
 
@@ -486,7 +695,7 @@ class TrialsSpec
 
         val totalNumberOfCalls = invariantIdCounts.values.sum
 
-        val weights = weightedAlternatives.map(_._1)
+        val weights = weightedAlternatives.keys
 
         val totalWeight = weights.sum
 
@@ -528,13 +737,17 @@ class TrialsSpec
           api.alternate(alternatives map {
             case sequence: Seq[_] => api.choose(sequence)
             case factory: (Long => Any) =>
-              api.stream(factory)
+              api.streamLegacy(factory)
             case singleton => api.only(singleton)
           } zip alternativeInvariantIds map {
-            // Set up a unique invariant on each alternative - it should supply pairs,
-            // each of which has the same id component that denotes the alternative. As
-            // the id is unique, the implementation of `Trials.alternative` cannot fake
-            // the id values - so they must come from the alternatives somehow. Furthermore,
+            // Set up a unique invariant on each alternative - it should supply
+            // pairs,
+            // each of which has the same id component that denotes the
+            // alternative. As
+            // the id is unique, the implementation of `Trials.alternative`
+            // cannot fake
+            // the id values - so they must come from the alternatives somehow.
+            // Furthermore,
             // the pair should satisfy a predicate on its hash.
             case (trials, invariantId) =>
               trials.map(_ -> invariantId).filter(predicateOnHash)
@@ -581,14 +794,16 @@ class TrialsSpec
           (input match {
             case sequence: Seq[_] => api.choose(sequence)
             case factory: (Long => Any) =>
-              api.stream(factory)
+              api.streamLegacy(factory)
             case singleton => api.only(singleton)
           }).map(
             _ ->
               // Set up an invariant - it should supply pairs, each of which has
               // the same id component. As the id is unique, the implementation
-              // of `Trials.several` cannot fake the id values - so they must come
-              // from the base trials somehow. Furthermore, the pair should satisfy
+              // of `Trials.several` cannot fake the id values - so they must
+              // come
+              // from the base trials somehow. Furthermore, the pair should
+              // satisfy
               // a predicate on its hash.
               invariantId
           ).filter(predicateOnHash)
@@ -634,7 +849,7 @@ class TrialsSpec
           (input match {
             case sequence: Seq[_] => api.choose(sequence)
             case factory: (Long => Any) =>
-              api.stream(factory)
+              api.streamLegacy(factory)
             case singleton => api.only(singleton)
           }).several[List[_]]
             .filter(cartesianProductSizeLimitation)
@@ -665,23 +880,68 @@ class TrialsSpec
           mockConsumer.expects(product)
         )
 
+        val limit = 1500
+
         sut.withLimit(limit).supplyTo(mockConsumer)
+      }
+    }
+
+  "sized collection trials" should "yield cases even when the size is large" in
+    forAll(
+      Table(
+        "input" -> "largeSize",
+        // Slip in the empty and singleton cases too...
+        (0 to 5)                    -> 0,
+        listTrials                  -> 1,
+        (1 to 10)                   -> 1000,
+        (20 to 30 map (_.toString)) -> 10000,
+        (Seq(true, false))          -> 30000,
+        1                           -> 1000,
+        "3"                         -> 10000,
+        99                          -> 30000,
+        Seq(12)                     -> 1000,
+        ((_: Long).toString)        -> 20000,
+        identity[Long] _            -> 1000,
+        listTrials                  -> 30000,
+        bushyTreeTrials             -> 2000
+      )
+    ) { (input, largeSize) =>
+      withExpectations {
+        println(s"largeSize: $largeSize")
+
+        val sut: Trials[List[Any]] =
+          (input match {
+            case trials: Trials[_] => trials
+            case sequence: Seq[_]  => api.choose(sequence)
+            case factory: (Long => Any) =>
+              api.streamLegacy(factory)
+            case singleton => api.only(singleton)
+          }).lotsOfSize(largeSize)
+
+        val mockConsumer = mockFunction[List[Any], Unit]
+
+        mockConsumer
+          .expects(where(largeSize == (_: List[Any]).size))
+          .atLeastOnce()
+          .onCall((caze: List[Any]) => println(caze))
+
+        sut.withLimit(1).supplyTo(mockConsumer)
       }
     }
 
   "trials" should "yield repeatable cases" in
     forAll(
       Table(
-        "trails",
+        "trials",
         api.only(1),
         api.choose(1, false, 99),
         api.alternate(
           api.choose(0 until 10 map (_.toString)),
           api.choose(-10 until 0)
         ),
-        api.stream(_ * 1.46),
+        api.streamLegacy(_ * 1.46),
         api.alternate(
-          api.stream(_ * 1.46),
+          api.streamLegacy(_ * 1.46),
           api.choose(0 until 10 map (_.toString)),
           api.choose(-10 until 0)
         ),
@@ -699,17 +959,33 @@ class TrialsSpec
       }
     }
 
+  they should "not invoke stoppage if no failure is found" in {
+    val sut = api.only(())
+
+    def explodingStoppage(): Any => Boolean = {
+      val mockConsumer = mockFunction[Any, Boolean]
+
+      mockConsumer
+        .expects(*)
+        .onCall((_: Any) => fail("The stoppage should not have been invoked."))
+
+      mockConsumer
+    }
+
+    sut.withLimits(1, shrinkageStop = explodingStoppage).supplyTo { _ => }
+  }
+
   they should "produce no more than the limiting number of cases" in
     forAll(
       Table(
-        "trails"                 -> "limit",
+        "trials"                 -> "limit",
         api.only(1)              -> 1,
         api.choose(1, false, 99) -> 3,
         api.alternate(
           api.choose(0 until 10 map (_.toString)),
           api.choose(-10 until 0)
         )                                                    -> 4,
-        api.stream(identity)                                 -> 200,
+        api.streamLegacy(identity)                           -> 200,
         implicitly[Trials.Factory[Either[Long, Int]]].trials -> 500
       )
     ) { (sut, limit) =>
@@ -722,12 +998,38 @@ class TrialsSpec
       }
     }
 
+  they should "produce the limiting number of cases if feasible" in
+    forAll(
+      Table(
+        "trials"                 -> "limit",
+        api.only(1)              -> 1,
+        api.choose(1, false, 99) -> 3,
+        api.alternate(
+          api.choose(0 until 10 map (_.toString)),
+          api.choose(-10 until 0)
+        )                                                           -> 20,
+        implicitly[Trials.Factory[Either[Boolean, Boolean]]].trials -> 4,
+        api
+          .choose(1 to 3)
+          .flatMap(x => api.choose(1 to 10).map(x -> _))
+          .filter { case (x, y) => 0 == (x * y) % 3 } -> (1 * 7 + 2 * 3 + 1 * 3)
+      )
+    ) { (sut, limit) =>
+      withExpectations {
+        val mockConsumer = stubFunction[Any, Unit]
+
+        sut.withLimit(limit).supplyTo(mockConsumer)
+
+        mockConsumer.verify(*).repeat(limit)
+      }
+    }
+
   case class JackInABox[Caze](caze: Caze)
 
   they should "yield repeatable exceptions" in
     forAll(
       Table(
-        "trails",
+        "trials",
         api.only(JackInABox(1)),
         api.choose(1, false, JackInABox(99)),
         api.alternate(
@@ -735,14 +1037,14 @@ class TrialsSpec
           api.choose(0 until 10 map (_.toString) map JackInABox.apply),
           api.choose(-10 until 0)
         ),
-        api.stream({
+        api.streamLegacy({
           case value if 0 == value % 3 => JackInABox(value)
           case value => value
         }),
         api.alternate(
           api.only(true),
           api.choose(-10 until 0),
-          api.stream(JackInABox.apply)
+          api.streamLegacy(JackInABox.apply)
         ),
         implicitly[Trials.Factory[Option[Int]]].trials.map {
           case None        => JackInABox(())
@@ -772,7 +1074,7 @@ class TrialsSpec
 
   "an exceptional case" should "be reproduced via its recipe" in forAll(
     Table(
-      "trails",
+      "trials",
       api.only(JackInABox(1)),
       api.choose(1, false, JackInABox(99)),
       api.alternate(
@@ -793,13 +1095,13 @@ class TrialsSpec
         ),
         api.choose(-10 until 0)
       ),
-      api.stream({
+      api.streamLegacy({
         case value if 0 == value % 3 => JackInABox(value)
         case value => value
       }),
       api.alternate(
         api.only(true),
-        api.stream({
+        api.streamLegacy({
           case value if 0 == value % 3 => JackInABox(value)
           case value => value
         }),
@@ -833,15 +1135,15 @@ class TrialsSpec
   }
 
   it should "be shrunk to a simple case" in {
-    type DescriptionTrialsAndCriterion[X] =
-      (String, Trials[Vector[X]], Vector[X] => Boolean)
+    type DescriptionTrialsCriterionAndLimit[X] =
+      (String, Trials[Vector[X]], Vector[X] => Boolean, Int)
 
     def testBodyInWildcardCapture[X](
-        trialsAndCriterion: DescriptionTrialsAndCriterion[X]
-    ) =
+        trialsAndCriterion: DescriptionTrialsCriterionAndLimit[X]
+    ): Unit =
       withExpectations {
         trialsAndCriterion match {
-          case (description, sut, exceptionCriterion) =>
+          case (description, sut, exceptionCriterion, limit) =>
             val complainingConsumer = { caze: Vector[X] =>
               if (exceptionCriterion(caze))
                 throw ExceptionWithCasePayload(caze)
@@ -894,135 +1196,202 @@ class TrialsSpec
       }
 
     forAll(
-      Table[DescriptionTrialsAndCriterion[_]](
-        "trials -> exceptionCriterion",
+      Table[DescriptionTrialsCriterionAndLimit[_]](
+        "(description, trials, exceptionCriterion)",
         (
-          // This first entry isn't expected to shrink the values, only the length of the failing case.
+          // This first entry isn't expected to shrink the values, only the
+          // length of the failing case.
           "Has more than one text item whose converted values sum to more than 7.",
           api.strings map (_.toVector) map (_.map(_.toInt)),
           (integerVector: Vector[Int]) =>
-            1 < integerVector.size && integerVector.sum > 7
+            1 < integerVector.size && integerVector.sum > 7,
+          limit
+        ),
+        (
+          "Has either four or five characters.",
+          api.characters.several[Vector[Char]],
+          (characterVector: Vector[Char]) =>
+            4 to 5 contains characterVector.size,
+          limit
+        ),
+        (
+          "Has either four or five characters - variation.",
+          api
+            .integers(4, 10)
+            .flatMap(api.characters.lotsOfSize[Vector[Char]](_)),
+          (characterVector: Vector[Char]) =>
+            4 to 5 contains characterVector.size,
+          limit
+        ),
+        (
+          "Has either four or five characters - variation with shrinkable character range.",
+          api
+            .integers(4, 10)
+            .flatMap(api.characters('a', 'z', 'q').lotsOfSize[Vector[Char]](_)),
+          (characterVector: Vector[Char]) =>
+            4 to 5 contains characterVector.size,
+          limit
+        ),
+        (
+          "Has either four or five characters - this used to be a pathologically slow example.",
+          api
+            .integers(0, 10)
+            .flatMap(api.characters.lotsOfSize[Vector[Char]](_)),
+          (characterVector: Vector[Char]) =>
+            4 to 5 contains characterVector.size,
+          limit
         ),
         (
           "Has more than one item and sums to more than 7.",
           doubleVectorTrials,
           (doubleVector: Vector[Double]) =>
-            1 < doubleVector.size && doubleVector.sum > 7
+            1 < doubleVector.size && doubleVector.sum > 7,
+          limit
+        ),
+        (
+          "Has more than one item and sums to more than 7.",
+          byteVectorTrials,
+          (integerVector: Vector[Byte]) =>
+            1 < integerVector.size && integerVector.sum > 7,
+          limit
         ),
         (
           "Has more than one item and sums to more than 7.",
           integerVectorTrials,
           (integerVector: Vector[Int]) =>
-            1 < integerVector.size && integerVector.sum > 7
+            1 < integerVector.size && integerVector.sum > 7,
+          limit
         ),
         (
           "Has more than one item, no zeroes and sums to more than 7.",
           integerVectorTrials,
           (integerVector: Vector[Int]) =>
-            1 < integerVector.size && integerVector.sum > 7 && integerVector
-              .forall(0 != _)
+            1 < integerVector.size && integerVector.sum > 7 && !integerVector
+              .contains(0),
+          limit
         ),
         (
           "Has more than one item, at least one zero and sums to more than 7.",
           integerVectorTrials,
           (integerVector: Vector[Int]) =>
             1 < integerVector.size && integerVector.sum > 7 && integerVector
-              .exists(0 == _)
+              .contains(0),
+          limit
         ),
         (
           "Has more than one item and sums to more than 7.",
           longVectorTrials,
           (longVector: Vector[Long]) =>
-            1 < longVector.size && longVector.sum > 7
+            1 < longVector.size && longVector.sum > 7,
+          limit
         ),
         (
           "Has more than one item, no zeroes and sums to more than 7.",
           longVectorTrials,
           (longVector: Vector[Long]) =>
-            1 < longVector.size && longVector.sum > 7 && longVector.forall(
-              0 != _
-            )
+            1 < longVector.size && longVector.sum > 7 && !longVector.contains(
+              0
+            ),
+          limit
         ),
         (
           "Has more than one item, at least one zero and sums to more than 7.",
           longVectorTrials,
           (longVector: Vector[Long]) =>
-            1 < longVector.size && longVector.sum > 7 && longVector.exists(
-              0 == _
-            )
+            1 < longVector.size && longVector.sum > 7 && longVector.contains(0),
+          limit
         ),
         (
           "Has more than 7 items.",
           integerVectorTrials,
-          (integerVector: Vector[Int]) => integerVector.size > 7
+          (integerVector: Vector[Int]) => integerVector.size > 7,
+          limit
         ),
         (
           "Has more than one item, at least one non-zero and sums to a multiple of 7.",
           integerVectorTrials,
           (integerVector: Vector[Int]) =>
             1 < integerVector.size && 0 == integerVector.sum % 7 && integerVector
-              .exists(0 != _)
+              .exists(0 != _),
+          limit
         ),
         (
           "Has more than one item, no zeroes and sums to a multiple of 7.",
           integerVectorTrials,
           (integerVector: Vector[Int]) =>
-            1 < integerVector.size && 0 == integerVector.sum % 7 && integerVector
-              .forall(0 != _)
+            1 < integerVector.size && 0 == integerVector.sum % 7 && !integerVector
+              .contains(0),
+          limit
         ),
         (
           "Has more than one item, at least one zero and sums to a multiple of 7.",
           integerVectorTrials,
           (integerVector: Vector[Int]) =>
             1 < integerVector.size && 0 == integerVector.sum % 7 && integerVector
-              .exists(0 == _)
+              .contains(0),
+          limit
         ),
         (
           "Has more than one item and sums to a positive multiple of 7.",
           integerVectorTrials,
           (integerVector: Vector[Int]) =>
-            1 < integerVector.size && 0 == integerVector.sum % 7 && 0 < integerVector.sum
+            1 < integerVector.size && 0 == integerVector.sum % 7 && 0 < integerVector.sum,
+          limit
         ),
         (
           "Has more than one item, no zeroes and sums to a positive multiple of 7.",
           integerVectorTrials,
           (integerVector: Vector[Int]) =>
-            1 < integerVector.size && 0 == integerVector.sum % 7 && 0 < integerVector.sum && integerVector
-              .forall(0 != _)
+            1 < integerVector.size && 0 == integerVector.sum % 7 && 0 < integerVector.sum && !integerVector
+              .contains(0),
+          limit
         ),
         (
           "Has more than one item, at least one non-zero and sums to a positive multiple of 7.",
           integerVectorTrials,
           (integerVector: Vector[Int]) =>
             1 < integerVector.size && 0 == integerVector.sum % 7 && 0 < integerVector.sum && integerVector
-              .exists(0 != _)
+              .exists(0 != _),
+          limit
         ),
         (
-          "Flattened binary tree with a non-leaf node that sums to a multiple of 19 greater than 19.",
+          "Flattened binary tree with more than one leaf that sums to a multiple of 19 greater than 19.",
           binaryTreeTrials map (_.flatten),
           (integerVector: Vector[Int]) =>
-            1 < integerVector.size && 0 == integerVector.sum % 19 && 19 < integerVector.sum
+            1 < integerVector.size && 0 == integerVector.sum % 19 && 19 < integerVector.sum,
+          limit
         ),
         (
-          "Flattened binary tree with a non-leaf node and no zeroes that sums to a multiple of 19 greater than 19.",
+          "Flattened binary tree with more than one leaf and no zeroes that sums to a multiple of 19 greater than 19.",
+          binaryTreeTrials map (_.flatten),
+          (integerVector: Vector[Int]) =>
+            1 < integerVector.size && 0 == integerVector.sum % 19 && 19 < integerVector.sum && !integerVector
+              .contains(0),
+          limit
+        ),
+        (
+          "Flattened binary tree with more than one leaf and at least one zero that sums to a multiple of 19 greater than 19.",
           binaryTreeTrials map (_.flatten),
           (integerVector: Vector[Int]) =>
             1 < integerVector.size && 0 == integerVector.sum % 19 && 19 < integerVector.sum && integerVector
-              .forall(0 != _)
-        ),
-        (
-          "Flattened binary tree with a non-leaf node and at least one zero that sums to a multiple of 19 greater than 19.",
-          binaryTreeTrials map (_.flatten),
-          (integerVector: Vector[Int]) =>
-            1 < integerVector.size && 0 == integerVector.sum % 19 && 19 < integerVector.sum && integerVector
-              .exists(0 == _)
+              .contains(0),
+          limit
         ),
         (
           "Has more than five items, at least one non-zero and sums to a multiple of 7.",
           integerVectorTrials,
           (integerVector: Vector[Int]) =>
             5 < integerVector.size && 0 == integerVector.sum % 7 && integerVector
-              .exists(0 != _)
+              .exists(0 != _),
+          500
+        ),
+        (
+          "Has more than five items and sums to a multiple of 7 less than -7.",
+          integerVectorTrials,
+          (integerVector: Vector[Int]) =>
+            5 < integerVector.size && 0 == integerVector.sum % 7 && -7 > integerVector.sum && integerVector
+              .exists(0 != _),
+          750
         ),
         (
           "Has more than two items and is not sorted in ascending order.",
@@ -1030,18 +1399,116 @@ class TrialsSpec
           (integerVector: Vector[Int]) =>
             2 < integerVector.size && integerVector
               .zip(integerVector.tail)
-              .exists { case (first, second) => first > second }
+              .exists { case (first, second) => first > second },
+          limit
         ),
         (
           "Has more than two items and no duplicates.",
           integerVectorTrials,
           (integerVector: Vector[Int]) =>
-            2 < integerVector.size && integerVector.distinct == integerVector
+            2 < integerVector.size && integerVector.distinct == integerVector,
+          limit
+        ),
+        (
+          "Flattened binary tree with more than two leaves whose odd-indexed leaves contain zeroes and even-indexed leaves contain non-zero values that sum to a multiple of 31 greater than 31.",
+          binaryTreeTrials map (_.flatten),
+          (integerVector: Vector[Int]) =>
+            2 < integerVector.size && 0 == integerVector.sum % 31 && 31 < integerVector.sum && (0 until integerVector.size forall (
+              index => 0 == index % 2 ^ 0 == integerVector(index)
+            )),
+          5000
+        ),
+        (
+          "List with more than two elements whose odd-indexed elements contain zeroes and even-indexed elements contain non-zero values that sum to a multiple of 31 greater than 31.",
+          listTrials map (_.toVector),
+          (integerVector: Vector[Int]) =>
+            2 < integerVector.size && 0 == integerVector.sum % 31 && 31 < integerVector.sum && (0 until integerVector.size forall (
+              index => 0 == index % 2 ^ 0 == integerVector(index)
+            )),
+          5000
         )
       )
     ) { trialsAndCriterion =>
       testBodyInWildcardCapture(trialsAndCriterion)
     }
+  }
+
+  it should "have its shrinkage stopped by a stopping condition" in {
+    def shouldProvokeFailure(caze: Long): Boolean = {
+      1 == caze % 2
+    }
+
+    class FailureCounter {
+      var numberOfFailures: Int = 0
+
+      def consume(caze: Long): Unit = {
+        if (shouldProvokeFailure(caze)) {
+          numberOfFailures += 1
+          throw ExceptionWithCasePayload(caze)
+        }
+      }
+    }
+
+    val failureCounterWithNoStoppingCondition = new FailureCounter
+
+    val sut = api.longs
+
+    val shrunkCase = intercept[sut.TrialException](
+      sut
+        .withLimits(limit, shrinkageStop = TrialsScaffolding.noStopping)
+        .supplyTo(failureCounterWithNoStoppingCondition.consume)
+    ).getCause match {
+      case exception: ExceptionWithCasePayload[Long] => exception.caze
+    }
+
+    val halfTheFailuresSeen =
+      failureCounterWithNoStoppingCondition.numberOfFailures / 2
+
+    // This might fail, but not due to what we are testing for, so it is
+    // expressed as a self-check of the test logic.
+    assume(0 < halfTheFailuresSeen)
+
+    def shrinkageStop(): Long => Boolean = {
+      var countDown = halfTheFailuresSeen
+
+      (caze: Long) =>
+        shouldProvokeFailure(caze) should be(true)
+        caze should be > shrunkCase
+
+        if (0 == countDown) true
+        else {
+          countDown -= 1
+          false
+        }
+    }
+
+    val failureCounterWithStoppingCondition = new FailureCounter
+
+    val shrunkCaseWithStoppage = intercept[sut.TrialException](
+      sut
+        .withLimits(limit, shrinkageStop = shrinkageStop)
+        .supplyTo(failureCounterWithStoppingCondition.consume _)
+    ).getCause match {
+      case exception: ExceptionWithCasePayload[Long] => exception.caze
+    }
+
+    shrunkCaseWithStoppage should be > shrunkCase
+
+    failureCounterWithStoppingCondition.numberOfFailures should (be > 1 and be < failureCounterWithNoStoppingCondition.numberOfFailures)
+
+    val failureCounterWithoutAnyShrinkage = new FailureCounter
+
+    val shrunkCaseWithoutAnyShrinkage = intercept[sut.TrialException](
+      sut
+        .withLimits(limit, shrinkageStop = noShrinking)
+        .supplyTo(failureCounterWithoutAnyShrinkage.consume _)
+    ).getCause match {
+      case exception: ExceptionWithCasePayload[Long] => exception.caze
+    }
+
+    shrunkCaseWithoutAnyShrinkage should be > shrunkCaseWithStoppage
+
+    failureCounterWithoutAnyShrinkage.numberOfFailures should be(1)
   }
 
   "test driving a trials for a recursive data structure" should "not produce smoke" in {
@@ -1050,6 +1517,10 @@ class TrialsSpec
       .supplyTo(println)
 
     binaryTreeTrials
+      .withLimit(limit)
+      .supplyTo(println)
+
+    bushyTreeTrials
       .withLimit(limit)
       .supplyTo(println)
   }
@@ -1076,19 +1547,19 @@ class TrialsSpec
 
   "inlined filtration" should "execute the controlled block if and only if the precondition holds" in {
     assertThrows[RejectionByInlineFilter] {
-      Trials.whenever(false) {
+      Trials.whenever(satisfiedPrecondition = false) {
         fail(
           "If the precondition doesn't hold, the block should not be executed."
         )
       }
     }
 
-    Trials.whenever(true) {
+    Trials.whenever(satisfiedPrecondition = true) {
       succeed
     }
   }
 
-  val oddHash = 1 == (_: Any).hashCode % 2
+  private val oddHash = 1 == (_: Any).hashCode % 2
 
   it should "cover all the cases that would be covered by an explicit filtration over finite possibilities" in forAll(
     Table(
@@ -1107,7 +1578,8 @@ class TrialsSpec
     withExpectations {
       val mockConsumer = mockFunction[Int, Unit]
 
-      // Whatever cases are supplied by a monadic filtration set the expectations...
+      // Whatever cases are supplied by a monadic filtration set the
+      // expectations...
       trials
         .filter(oddHash)
         .withLimit(limit)
@@ -1152,7 +1624,8 @@ class TrialsSpec
 
       val mockConsumer = mockFunction[Int, Unit]
 
-      // ... now let's see if we receive *exactly* the same number of cases when we filter inline.
+      // ... now let's see if we receive *exactly* the same number of cases when
+      // we filter inline.
 
       mockConsumer
         .expects(*)

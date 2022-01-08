@@ -13,7 +13,7 @@ class BuildingComplexTrials extends AnyFlatSpec with Matchers {
       result <- values.listsOfSize(size)
     } yield result
 
-  def vainAttemptToDisproveHavingMoreThanTwoAdjacentDuplicates(
+  private def vainAttemptToDisproveHavingMoreThanTwoAdjacentDuplicates(
       list: List[Int]
   ) = {
     import com.sageserpent.americium.seqEnrichment._
@@ -22,7 +22,7 @@ class BuildingComplexTrials extends AnyFlatSpec with Matchers {
 
     println(groupsOfAdjacentDuplicates)
 
-    assert(groupsOfAdjacentDuplicates.find(_.size > 2).isEmpty)
+    assert(!groupsOfAdjacentDuplicates.exists(_.size > 2))
   }
 
   // We expect this test to fail because our assumptions are wrong...

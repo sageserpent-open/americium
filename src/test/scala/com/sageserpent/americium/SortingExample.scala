@@ -19,9 +19,10 @@ class SortingExample extends AnyFlatSpec with Matchers {
     }
 
   // We're going to sort a list of associations (key-value pairs) by the key...
-  val ordering = Ordering.by[(Int, Int), Int](_._1)
+  val ordering: Ordering[(Int, Int)] = Ordering.by[(Int, Int), Int](_._1)
 
-  // Build up a trials instance for key value pairs by flat-mapping from simpler trials instances for the keys and values...
+  // Build up a trials instance for key value pairs by flat-mapping from simpler
+  // trials instances for the keys and values...
   val keyValuePairs: Trials[(Int, Int)] = for {
     key <- api.choose(
       0 to 100
@@ -38,10 +39,11 @@ class SortingExample extends AnyFlatSpec with Matchers {
     associationLists
       .filter(
         _.nonEmpty
-      )               // Filter out the empty case as we can't assert sensibly on it.
+      ) // Filter out the empty case as we can't assert sensibly on it.
       .withLimit(200) // Only check up to 200 cases inclusive.
       .supplyTo { nonEmptyAssocationList: List[(Int, Int)] =>
-        // This is a parameterised test, using `nonEmptyAssociationList` as the test case parameter...
+        // This is a parameterised test, using `nonEmptyAssociationList` as the
+        // test case parameter...
         val sortedResult = notSoStableSort(nonEmptyAssocationList)(ordering)
 
         // Using Scalatest assertions here...
