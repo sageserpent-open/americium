@@ -1,7 +1,9 @@
 package com.sageserpent.americium
 
 import com.sageserpent.americium.Trials.RejectionByInlineFilter
+import com.sageserpent.americium.TrialsScaffolding.noShrinking
 import com.sageserpent.americium.java.{
+  Builder,
   CaseFactory,
   Trials => JavaTrials,
   TrialsApi => JavaTrialsApi
@@ -212,6 +214,18 @@ class TrialsSpec
     api.strings
       .withLimit(limit)
       .supplyTo(println)
+
+    api
+      .characters('a', 'z', 'p')
+      .strings
+      .withLimit(limit)
+      .supplyTo(println)
+
+    api
+      .choose(0, 1, 2, 5)
+      .flatMap(size => api.characters('a', 'z').stringsOfSize(size))
+      .withLimit(limit)
+      .supplyTo(println)
   }
 
   "test driving the Java API" should "not produce smoke" in {
@@ -275,6 +289,22 @@ class TrialsSpec
       .supplyTo(println)
 
     javaApi.strings
+      .withLimit(limit)
+      .supplyTo(println)
+
+    javaApi
+      .characters('a', 'z', 'p')
+      .collections(Builder.stringBuilder _)
+      .withLimit(limit)
+      .supplyTo(println)
+
+    javaApi
+      .choose(0, 1, 2, 5)
+      .flatMap(size =>
+        javaApi
+          .characters('a', 'z')
+          .collectionsOfSize(size, Builder.stringBuilder _)
+      )
       .withLimit(limit)
       .supplyTo(println)
   }
@@ -859,7 +889,10 @@ class TrialsSpec
   "sized collection trials" should "yield cases even when the size is large" in
     forAll(
       Table(
-        "input"                     -> "largeSize",
+        "input" -> "largeSize",
+        // Slip in the empty and singleton cases too...
+        (0 to 5)                    -> 0,
+        listTrials                  -> 1,
         (1 to 10)                   -> 1000,
         (20 to 30 map (_.toString)) -> 10000,
         (Seq(true, false))          -> 30000,
@@ -925,6 +958,22 @@ class TrialsSpec
         sut.withLimit(limit).supplyTo(mockConsumer)
       }
     }
+
+  they should "not invoke stoppage if no failure is found" in {
+    val sut = api.only(())
+
+    def explodingStoppage(): Any => Boolean = {
+      val mockConsumer = mockFunction[Any, Boolean]
+
+      mockConsumer
+        .expects(*)
+        .onCall((_: Any) => fail("The stoppage should not have been invoked."))
+
+      mockConsumer
+    }
+
+    sut.withLimits(1, shrinkageStop = explodingStoppage).supplyTo { _ => }
+  }
 
   they should "produce no more than the limiting number of cases" in
     forAll(
@@ -1159,6 +1208,40 @@ class TrialsSpec
           limit
         ),
         (
+          "Has either four or five characters.",
+          api.characters.several[Vector[Char]],
+          (characterVector: Vector[Char]) =>
+            4 to 5 contains characterVector.size,
+          limit
+        ),
+        (
+          "Has either four or five characters - variation.",
+          api
+            .integers(4, 10)
+            .flatMap(api.characters.lotsOfSize[Vector[Char]](_)),
+          (characterVector: Vector[Char]) =>
+            4 to 5 contains characterVector.size,
+          limit
+        ),
+        (
+          "Has either four or five characters - variation with shrinkable character range.",
+          api
+            .integers(4, 10)
+            .flatMap(api.characters('a', 'z', 'q').lotsOfSize[Vector[Char]](_)),
+          (characterVector: Vector[Char]) =>
+            4 to 5 contains characterVector.size,
+          limit
+        ),
+        (
+          "Has either four or five characters - this used to be a pathologically slow example.",
+          api
+            .integers(0, 10)
+            .flatMap(api.characters.lotsOfSize[Vector[Char]](_)),
+          (characterVector: Vector[Char]) =>
+            4 to 5 contains characterVector.size,
+          limit
+        ),
+        (
           "Has more than one item and sums to more than 7.",
           doubleVectorTrials,
           (doubleVector: Vector[Double]) =>
@@ -1348,6 +1431,84 @@ class TrialsSpec
     ) { trialsAndCriterion =>
       testBodyInWildcardCapture(trialsAndCriterion)
     }
+  }
+
+  it should "have its shrinkage stopped by a stopping condition" in {
+    def shouldProvokeFailure(caze: Long): Boolean = {
+      1 == caze % 2
+    }
+
+    class FailureCounter {
+      var numberOfFailures: Int = 0
+
+      def consume(caze: Long): Unit = {
+        if (shouldProvokeFailure(caze)) {
+          numberOfFailures += 1
+          throw ExceptionWithCasePayload(caze)
+        }
+      }
+    }
+
+    val failureCounterWithNoStoppingCondition = new FailureCounter
+
+    val sut = api.longs
+
+    val shrunkCase = intercept[sut.TrialException](
+      sut
+        .withLimits(limit, shrinkageStop = TrialsScaffolding.noStopping)
+        .supplyTo(failureCounterWithNoStoppingCondition.consume)
+    ).getCause match {
+      case exception: ExceptionWithCasePayload[Long] => exception.caze
+    }
+
+    val halfTheFailuresSeen =
+      failureCounterWithNoStoppingCondition.numberOfFailures / 2
+
+    // This might fail, but not due to what we are testing for, so it is
+    // expressed as a self-check of the test logic.
+    assume(0 < halfTheFailuresSeen)
+
+    def shrinkageStop(): Long => Boolean = {
+      var countDown = halfTheFailuresSeen
+
+      (caze: Long) =>
+        shouldProvokeFailure(caze) should be(true)
+        caze should be > shrunkCase
+
+        if (0 == countDown) true
+        else {
+          countDown -= 1
+          false
+        }
+    }
+
+    val failureCounterWithStoppingCondition = new FailureCounter
+
+    val shrunkCaseWithStoppage = intercept[sut.TrialException](
+      sut
+        .withLimits(limit, shrinkageStop = shrinkageStop)
+        .supplyTo(failureCounterWithStoppingCondition.consume _)
+    ).getCause match {
+      case exception: ExceptionWithCasePayload[Long] => exception.caze
+    }
+
+    shrunkCaseWithStoppage should be > shrunkCase
+
+    failureCounterWithStoppingCondition.numberOfFailures should (be > 1 and be < failureCounterWithNoStoppingCondition.numberOfFailures)
+
+    val failureCounterWithoutAnyShrinkage = new FailureCounter
+
+    val shrunkCaseWithoutAnyShrinkage = intercept[sut.TrialException](
+      sut
+        .withLimits(limit, shrinkageStop = noShrinking)
+        .supplyTo(failureCounterWithoutAnyShrinkage.consume _)
+    ).getCause match {
+      case exception: ExceptionWithCasePayload[Long] => exception.caze
+    }
+
+    shrunkCaseWithoutAnyShrinkage should be > shrunkCaseWithStoppage
+
+    failureCounterWithoutAnyShrinkage.numberOfFailures should be(1)
   }
 
   "test driving a trials for a recursive data structure" should "not produce smoke" in {

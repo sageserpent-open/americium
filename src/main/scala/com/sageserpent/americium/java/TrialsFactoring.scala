@@ -1,5 +1,11 @@
 package com.sageserpent.americium.java
 
+object TrialsFactoring {
+  val defaultComplexityLimit = 100
+
+  val defaultShrinkageAttemptsLimit = 100
+}
+
 trait TrialsFactoring[+Case] {
   // Scala and Java API ...
 

@@ -1,4 +1,4 @@
-resolvers += Resolver.jcenterRepo
+addDependencyTreePlugin
 
 addSbtPlugin("net.aichler"    % "sbt-jupiter-interface" % "0.9.1")
 addSbtPlugin("org.scalameta"  % "sbt-scalafmt"          % "2.4.2")

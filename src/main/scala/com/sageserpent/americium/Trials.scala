@@ -1,16 +1,16 @@
 package com.sageserpent.americium
 
 import cats._
-import com.sageserpent.americium.Trials.SupplyToSyntax
+import com.sageserpent.americium.TrialsScaffolding.Tuple2Trials
+import com.sageserpent.americium.java.TrialsApiImplementation
 import com.sageserpent.americium.java.TrialsImplementation.GenerationSupport
-import com.sageserpent.americium.java.{TrialsFactoring, TrialsImplementation}
 
 import scala.collection.Factory
 import scala.collection.immutable.{SortedMap, SortedSet}
 import scala.language.implicitConversions
 
 object Trials extends TrialsByMagnolia {
-  def api: TrialsApi = TrialsImplementation.scalaApi
+  def api: TrialsApi = TrialsApiImplementation.scalaApi
 
   private[americium] class RejectionByInlineFilter extends RuntimeException
 
@@ -18,6 +18,13 @@ object Trials extends TrialsByMagnolia {
       block: => Result
   ): Result =
     if (satisfiedPrecondition) block else throw new RejectionByInlineFilter()
+
+  implicit class CharacterTrialsSyntax(val characterTrials: Trials[Char]) {
+    def strings(): Trials[String] = characterTrials.several
+
+    def stringsOfSize(size: Int): Trials[String] =
+      characterTrials.lotsOfSize(size)
+  }
 
   implicit val monadInstance: Monad[Trials] = new Monad[Trials]
     with StackSafeMonad[Trials] {
@@ -35,58 +42,13 @@ object Trials extends TrialsByMagnolia {
           f: A => Option[B]
       ): Trials[B] = fa.mapFilter(f)
     }
-
-  trait SupplyToSyntax[+Case] {
-    def supplyTo(consumer: Case => Unit): Unit
-  }
-
-  trait SupplyToSyntaxTuple2[+Case1, +Case2]
-      extends SupplyToSyntax[(Case1, Case2)] {
-    def supplyTo(consumer: (Case1, Case2) => Unit): Unit
-  }
-
-  trait SupplyToSyntaxTuple3[+Case1, +Case2, +Case3]
-      extends SupplyToSyntax[(Case1, Case2, Case3)] {
-    def supplyTo(consumer: (Case1, Case2, Case3) => Unit): Unit
-  }
-
-  trait SupplyToSyntaxTuple4[+Case1, +Case2, +Case3, +Case4]
-      extends SupplyToSyntax[(Case1, Case2, Case3, Case4)] {
-    def supplyTo(consumer: (Case1, Case2, Case3, Case4) => Unit): Unit
-  }
-
-  trait Tuple2Trials[+Case1, +Case2] {
-    def and[Case3](
-        thirdTrials: Trials[Case3]
-    ): Tuple3Trials[Case1, Case2, Case3]
-
-    def withLimit(limit: Int): SupplyToSyntaxTuple2[Case1, Case2]
-
-    def withRecipe(recipe: String): SupplyToSyntaxTuple2[Case1, Case2]
-  }
-
-  trait Tuple3Trials[+Case1, +Case2, +Case3] {
-    def and[Case4](
-        fourthTrials: Trials[Case4]
-    ): Tuple4Trials[Case1, Case2, Case3, Case4]
-
-    def withLimit(limit: Int): SupplyToSyntaxTuple3[Case1, Case2, Case3]
-
-    def withRecipe(recipe: String): SupplyToSyntaxTuple3[Case1, Case2, Case3]
-  }
-
-  trait Tuple4Trials[+Case1, +Case2, +Case3, +Case4] {
-    def withLimit(
-        limit: Int
-    ): SupplyToSyntaxTuple4[Case1, Case2, Case3, Case4]
-
-    def withRecipe(
-        recipe: String
-    ): SupplyToSyntaxTuple4[Case1, Case2, Case3, Case4]
-  }
 }
 
-trait Trials[+Case] extends TrialsFactoring[Case] with GenerationSupport[Case] {
+trait Trials[+Case]
+    extends TrialsScaffolding[Case]
+    with GenerationSupport[Case] {
+  override type SupplySyntaxType <: TrialsScaffolding.SupplyToSyntax[Case]
+
   def map[TransformedCase](
       transform: Case => TransformedCase
   ): Trials[TransformedCase]
@@ -101,13 +63,7 @@ trait Trials[+Case] extends TrialsFactoring[Case] with GenerationSupport[Case] {
       filteringTransform: Case => Option[TransformedCase]
   ): Trials[TransformedCase]
 
-  def withLimit(limit: Int): SupplyToSyntax[Case]
-
-  def withLimit(limit: Int, complexityWall: Int): SupplyToSyntax[Case]
-
-  def withRecipe(recipe: String): SupplyToSyntax[Case]
-
-  def and[Case2](secondTrials: Trials[Case2]): Trials.Tuple2Trials[Case, Case2]
+  def and[Case2](secondTrials: Trials[Case2]): Tuple2Trials[Case, Case2]
 
   def several[Container](implicit
       factory: Factory[Case, Container]

@@ -10,7 +10,7 @@ form, and something that pumps test cases into that code block as one or more ar
 
 At this point, the likes of QuickCheck, FsCheck, Scalacheck and VavrTest come to mind, amongst others. If you are
 working in Scala, then you'll probably be thinking of Scalacheck, maybe ZioTest, perhaps Hedgehog...? If in Java, then
-JUnit-QuickCheck, or possibly VavrTest?
+Jqwik, JUnit-QuickCheck, or possibly VavrTest?
 
 All great things - the author has had the benefit of using Scalacheck for several years on various Scala works, finding
 all kinds of obscure, knotty bugs that would otherwise lay hidden until the fateful day in production. Likewise VavrTest
@@ -607,7 +607,7 @@ of its repository to make its use-case more obvious.
 
 ### The introduction mentions Scalacheck Shapeless, do explain... ###
 
-This the automatic generation of trials for structured types, and is brought to us via the Mercator library - see it in
+This the automatic generation of trials for structured types, and is brought to us via the Magnolia library - see it in
 action here:
 [TrialsSpec.scala](https://github.com/sageserpent-open/americium/blob/e69b9fb60cd90796d96ba1126a90f6c1ab2a7a1d/src/test/scala/com/sageserpent/americium/TrialsSpec.scala#L1057)
 and here:
@@ -627,24 +627,38 @@ What *does* get shrunk is the complexity of the test cases - so if we have colle
 definition, then smaller collections are taken to be simpler, as are cases built with less recursion. Collections shrink
 towards empty collections.
 
-Furthermore, the factory methods - `.doubles`, `.integers`, `.stream` etc also support shrinking - they have an internal
-parameter that controls the range of the generated values, so as shrinkage proceeds, the values get 'smaller' in some
-sense. For numeric values, that usually means tending towards zero from both positive and negative values.
+Furthermore, the streaming factory methods - `.doubles`, `.integers`, `.stream` etc also support shrinking - they have
+an internal parameter that controls the range of the generated values, so as shrinkage proceeds, the values get '
+smaller' in some sense. For numeric values, that usually means tending towards zero from both positive and negative
+values.
 
 The `.strings` factory method shrinks in the same manner as for collections - the strings get shorter, tending to the
 empty string, although the characters range over the full UTF-16 set.
 
-This choice isn't written in stone - it would be possible to extend to shrinkage mechanism both to support shrinking
-over a finite set of choices according to their order of presentation to the api. One idea would be to implement custom
-ranges of the internal parameter...
+This choice isn't written in stone - rather than using `.choose`, use the streaming factory methods that allow custom
+ranges, either via overloads of `.integers`, `.longs` and `.characters` or directly in `.stream` using a `CaseFactory`.
+These also permit some other value to be the one that shrinkage tends to. See here for an
+example: [TrialsApiTests](https://github.com/sageserpent-open/americium/blob/6fdd3db7f07e398018de80ce8130a5582648a346/src/test/scala/com/sageserpent/americium/java/TrialsApiTests.java#L309)
+.
+
+That example also shows how strings can be built from the output of `.characters` in Java - use this example
+here: [TrialsSpec](https://github.com/sageserpent-open/americium/blob/6fdd3db7f07e398018de80ce8130a5582648a346/src/test/scala/com/sageserpent/americium/TrialsSpec.scala#L218)
+if you are writing in Scala. Note that when you do this, you have the ability to shrink your strings based on both
+length and the character values.
 
 ### Are the cases yielded by `.doubles`, `.integers`, `.stream` randomly distributed? ###
 
 Yes, and they should span pretty much the whole range of allowed values. As shrinkage kicks in, this range contracts to
-the 'minimal value' - zero for numeric values, but that can be customised when using `.stream`. See the `CaseFactory` interface if you want to customise the range of allowed values and where the minimal value lies in that range, it doesn't have to sit in the middle.
+the 'minimal value' - zero for numeric values, but that can be customised when using `.stream`. See the `CaseFactory`
+interface if you want to customise the range of allowed values and where the minimal value lies in that range, it
+doesn't have to sit in the middle.
+
+As mentioned in the previous section, there are also some convenience overloads of `.integers`, `.longs`
+and `.characters` for this purpose too.
 
 Hedgehog supports custom distributions and ranges, and Scalacheck has some heuristics for biasing its otherwise random
-distributions. Maybe there should be some support for this here, too...
+distributions. You can implement this by supplying your own `CaseFactory` instance that skews the input values, and you
+can also move the input value for the maximally shrunk case to some favoured value, as shrinkage will home in on it.
 
 ### If I write a recursive definition of a trials instance, do I need to protect against infinite recursion with a size parameter? ###
 
@@ -653,7 +667,15 @@ No, but you do need to stop trivial infinite recursion. Thankfully that is simpl
 Either wrap the recursive calls in a following bind in a flatmap, this will cause them to be evaluated lazily, or if you
 need to lead with a recursive call, wrap it in a call to `.delay`. Both techniques are shown in that example.
 
-Actually, I oversimplified - sure, you won't need to stop lazily-evaluated infinite recursion, but it is possible to mess up a highly recursive trials instance so that it simply doesn't generate any data, due to what is called the 'complexity wall' kicking in. A potential case has an associated complexity, and if in the process of building up an individual case the complexity hits the wall, then this will discard that case from being formulated - this is how infinite recursion is prevented as a nice side benefit. However, one can write recursively formulated trials instances that are 'bushy' - there are several parallel paths of recursion at each step, and this tends to result in complete and utter failure to generate anything more than very simple cases. To see how this is worked around, take a look here: [TrialsSpec.scala](https://github.com/sageserpent-open/americium/blob/5ea1b3088adaaa0270a944ee1694950975b2b911/src/test/scala/com/sageserpent/americium/TrialsSpec.scala#L94).
+Actually, I oversimplified - sure, you won't need to stop lazily-evaluated infinite recursion, but it is possible to
+mess up a highly recursive trials instance so that it simply doesn't generate any data, due to what is called the '
+complexity limit' kicking in. A potential case has an associated complexity, and if in the process of building up an
+individual case the complexity exceeds the limit, then this will discard that case from being formulated - this is how
+infinite recursion is prevented as a nice side benefit. However, one can write recursively formulated trials instances
+that are 'bushy' - there are several parallel paths of recursion at each step, and this tends to result in complete and
+utter failure to generate anything more than very simple cases. To see how this is worked around, take a look
+here: [TrialsSpec.scala](https://github.com/sageserpent-open/americium/blob/5ea1b3088adaaa0270a944ee1694950975b2b911/src/test/scala/com/sageserpent/americium/TrialsSpec.scala#L94)
+.
 
 ### I can see a reference to Scalacheck in the project dependencies. So is this just a sham? ###
 
@@ -688,6 +710,52 @@ It's easy:
 [Scala example](https://github.com/sageserpent-open/americium/blob/afe7fca4215bfa00879b553aa7805bb5f8cf2d64/src/test/scala/com/sageserpent/americium/RichSeqSpec.scala#L50)
 .
 
+### Where are the controls? ###
+
+Not down the sofa nestling betwixt the cushions - instead, they are to found between `Trials` and `.supplyTo` and are
+called `.withLimit` (two overloads) and `.withLimits` (also two overloads).
+
+The drill is to build your `Trials` instance to produce the right type of cases with any invariants you want, then to
+call one of `.withLimit(s)` on it, thus configuring how the trials will supply cases to a following call of `.supplyTo`.
+
+So the pattern is:
+
+`<trials>.withLimit(s)(<configuration>).supplyTo(<test consumer>)`
+
+For the simplest approach,
+use [`.withLimit`](https://github.com/sageserpent-open/americium/blob/9b78c966f38773af3214adab524374af89cdd14b/src/main/scala/com/sageserpent/americium/java/TrialsScaffolding.java#L28)
+and pass in the maximum number of cases you would like to have supplied to your test consumer.
+
+In Scala, full bells and whistles is provided
+by [`.withLimits`](https://github.com/sageserpent-open/americium/blob/9b78c966f38773af3214adab524374af89cdd14b/src/main/scala/com/sageserpent/americium/TrialsScaffolding.scala#L91)
+.
+
+This allows a maximum number of cases, the maximum complexity, the maximum number of shrinkage attempts and a 'shrinkage
+stop' to be configured. Other than the mandatory maximum number of cases, all other items are optional.
+
+In Java, the equivalent is provided by a combination
+of [`.withLimits`](https://github.com/sageserpent-open/americium/blob/9b78c966f38773af3214adab524374af89cdd14b/src/main/scala/com/sageserpent/americium/java/TrialsScaffolding.java#L141)
+and [`OptionalLimits`](https://github.com/sageserpent-open/americium/blob/9b78c966f38773af3214adab524374af89cdd14b/src/main/scala/com/sageserpent/americium/java/TrialsScaffolding.java#L83)
+.
+
+Setting the maximum number of shrinkage attempts to zero disables shrinkage altogether - so the original failing case is
+yielded.
+
+The shrinkage stop is a way for the user to control shrinkage externally via a callback style interface. Essentially
+a [`ShrinkageStop`](https://github.com/sageserpent-open/americium/blob/9b78c966f38773af3214adab524374af89cdd14b/src/main/scala/com/sageserpent/americium/java/TrialsScaffolding.java#L65)
+is a factory for a stateful predicate that you supply that could, say:
+
+1. Monitor the number of invocations - thus counting the number of successful shrinkages.
+2. Check heap usage.
+3. Check against a timeout since the start of shrinkage.
+4. Check the quality of the best shrunk case so far.
+
+When it returns true, the shrinkage process is terminated early with the best shrunk case seen so far, regardless of
+whether the maximum number of shrinkage attempts has been reached or not. In fact, there is a difference between
+configuring the maximum number of shrinkage attempts and counting the shrinkages - the former includes a panic mode
+where the shrinkage mechanism has not yet managed to shrink further on a previous failing case, but is still retrying,
+whereas the shrinkage stop predicate is only invoked with freshly shrunk cases where progress has been made.
+
 ### Why is there a file 'IntelliJCodeStyle.xml' in the project? ###
 
 The author has a real problem with pull requests that consist of a wholesale reformatting of sources that also harbour
@@ -699,3 +767,26 @@ outweighs the meagre joys of having the code look *just so*. Just wait until you
 The author uses IntelliJ's built-in Java formatter and the integration with Scalafmt.
 
 If you know of a better way of sharing reformatting settings / tooling, raise an issue.
+
+### Where is the Scaladoc? ###
+
+Sorry, while the API has been in development the author has concentrated on keeping the Javadoc up to date. Hopefully
+the Java and Scala APIs are similar enough to translate what is in the Javadoc that isn't captured in the Scala method
+names and signatures. Someday, but until then pull requests are welcome...
+
+### The competition? ###
+
+In Scala, there is at least:
+
+1. Scalacheck
+2. ZioTest
+3. Hedgehog
+4. Scalaprops
+5. Nyaya
+
+In Java, there is at least:
+
+1. Jqwik
+2. QuickTheories
+3. JUnit-QuickCheck
+4. VavrTest

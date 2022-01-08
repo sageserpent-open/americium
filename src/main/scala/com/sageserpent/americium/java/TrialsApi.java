@@ -9,8 +9,32 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 public interface TrialsApi {
+    /**
+     * Helper to break direct recursion when implementing a recursively
+     * defined trials. You need this when your definition either doesn't have
+     * a flatmap, or the first argument (the 'left hand side') of a flatmap is
+     * where the recursion takes place. You won't need this very often, if at
+     * all.
+     *
+     * @param delayed Some definition of a trials instance that is typically
+     *                a recursive step - so you don't want it to execute
+     *                there and then to avoid infinite recursion.
+     * @param <Case>
+     * @return A safe form of the {@code delayed} trials instance that won't
+     * immediately execute, but will yield the same {@code Case} instances.
+     */
     <Case> Trials<Case> delay(Supplier<Trials<Case>> delayed);
 
+    /**
+     * Make a {@link Trials} instance that only ever yields one instance of
+     * {@code Case}. Typically used with alternation to mix in some important
+     * special case with say, a bunch of streamed cases, and also used as a
+     * base case for recursively-defined trials.
+     *
+     * @param onlyCase
+     * @param <Case>
+     * @return A {@link Trials} instance that only ever yields {@code onlyCase}.
+     */
     <Case> Trials<Case> only(Case onlyCase);
 
     /**
@@ -75,16 +99,30 @@ public interface TrialsApi {
     <Case> Trials<Case> alternateWithWeights(
             Map.Entry<Integer, Trials<Case>>[] alternatives);
 
+    /**
+     * Combine a list of trials instances into a single trials instance that
+     * yields lists, where those lists all have the size given by the number
+     * of trials, and the element in each position in the list is provided by
+     * the trials instance in the corresponding position in {@code
+     * listOfTrials}.
+     *
+     * @param listOfTrials Several trials that act as sources for the
+     *                     elements of lists yielded by the resulting
+     *                     {@Trials} instance.
+     * @param <Case>       The type of the list elements yielded by the
+     *                     resulting {@Trials} instance.
+     * @return A {@link Trials} instance that yields lists of the same size.
+     */
     <Case> Trials<ImmutableList<Case>> lists(List<Trials<Case>> listOfTrials);
 
     /**
      * This is for advanced usage, where there is a need to control how
-     * trials instances are formulated to avoid hitting a complexity wall, or
-     * alternatively to control the amount of potentially unbounded recursion
-     * when trials are recursively flatmapped. If you don't know what this
-     * means, you probably don't need this.
+     * trials instances are formulated to avoid hitting the complexity limit,
+     * or alternatively to control the amount of potentially unbounded
+     * recursion when trials are recursively flat-mapped. If you don't know
+     * what this means, you probably don't need this.
      * <p>
-     * The notion of a complexity wall is described in
+     * The notion of a complexity limit is described in
      * {@link Trials#withLimit(int, int)}
      *
      * @return The complexity associated with the trials context, taking into
@@ -171,6 +209,11 @@ public interface TrialsApi {
     Trials<Boolean> booleans();
 
     Trials<Character> characters();
+
+    Trials<Character> characters(char lowerBound, char upperBound);
+
+    Trials<Character> characters(char lowerBound, char upperBound,
+                                 char shrinkageTarget);
 
     Trials<Instant> instants();
 

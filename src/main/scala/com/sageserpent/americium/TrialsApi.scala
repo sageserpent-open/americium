@@ -89,6 +89,14 @@ trait TrialsApi {
 
   def characters: Trials[Char]
 
+  def characters(lowerBound: Char, upperBound: Char): Trials[Char]
+
+  def characters(
+      lowerBound: Char,
+      upperBound: Char,
+      shrinkageTarget: Char
+  ): Trials[Char]
+
   def instants: Trials[Instant]
 
   def strings: Trials[String]

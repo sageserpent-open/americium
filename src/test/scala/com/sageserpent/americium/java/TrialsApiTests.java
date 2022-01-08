@@ -2,6 +2,7 @@ package com.sageserpent.americium.java;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -12,9 +13,12 @@ import java.math.BigDecimal;
 import java.util.*;
 import java.util.stream.Stream;
 
+import static org.hamcrest.CoreMatchers.allOf;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.lessThanOrEqualTo;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class TrialsApiTests {
     private final static TrialsApi api = Trials.api();
@@ -289,17 +293,107 @@ public class TrialsApiTests {
 
     @Test
     void testDriveCombinationsOfTrials() {
-        api
-                .integers()
-                .and(api.strings())
-                .and(api.booleans().immutableSets())
-                .and(api.characters().immutableListsOfSize(4))
-                .withLimit((100))
-                .supplyTo((first, second, third, fourth) ->
-                                  System.out.printf("%s, %s, %s, %s%n",
-                                                    first,
-                                                    second,
-                                                    third,
-                                                    fourth));
+        api.integers()
+           .and(api.strings())
+           .and(api.booleans().immutableSets())
+           .and(api.characters().immutableListsOfSize(4))
+           .withLimit((100))
+           .supplyTo((first, second, third, fourth) ->
+                             System.out.printf("%s, %s, %s, %s%n",
+                                               first,
+                                               second,
+                                               third,
+                                               fourth));
+    }
+
+    private static final Trials<String> first =
+            api.integers(1, 10)
+               .flatMap(size -> api
+                       .characters('a', 'z', 'a')
+                       .collectionsOfSize(size, Builder::stringBuilder));
+
+    private static final Trials<String> second =
+            api.integers(0, 10)
+               .flatMap(size -> api
+                       .characters('0', '9', '0')
+                       .collectionsOfSize(size, Builder::stringBuilder));
+
+    @Disabled
+    // This now detects the 'failing' test case correctly - but it is still a
+    // test failure. Need to rethink what this test should look like....
+    @Test
+    void copiedFromJqwik() {
+        first.and(second)
+             .withLimit(50)
+             .supplyTo((String first, String second) -> {
+                 final String concatenation = first + second;
+                 assertThat("Strings aren't allowed to be of length 4" +
+                            " or 5 characters" + " in this test.",
+                            4 > concatenation.length() ||
+                            5 < concatenation.length());
+             });
+    }
+
+    @Test
+    void testAdditionalLimits() {
+        final int bestPossibleShrinkage = 1;
+
+        {
+            final TrialsFactoring.TrialException trialException =
+                    assertThrows(TrialsFactoring.TrialException.class, () -> api
+                            .integers()
+                            .withLimits(100, Trials.OptionalLimits.defaults)
+                            .supplyTo(caze -> {
+                                if (1 == caze % 2) {
+                                    throw new RuntimeException();
+                                }
+                            }));
+
+            assertThat(trialException.provokingCase(),
+                       equalTo(bestPossibleShrinkage));
+        }
+
+        {
+            final int upperBoundOfFinalShrunkCase = 50;
+
+            final TrialsFactoring.TrialException trialException =
+                    assertThrows(TrialsFactoring.TrialException.class, () -> api
+                            .integers()
+                            .withLimits(100,
+                                        Trials.OptionalLimits.defaults,
+                                        () -> caze ->
+                                                upperBoundOfFinalShrunkCase >=
+                                                caze)
+                            .supplyTo(caze -> {
+                                if (1 == caze % 2) {
+                                    throw new RuntimeException();
+                                }
+                            }));
+
+            assertThat((int) trialException.provokingCase(),
+                       allOf(lessThanOrEqualTo(upperBoundOfFinalShrunkCase),
+                             greaterThan(bestPossibleShrinkage)));
+        }
+
+        {
+            final int upperBoundOfFinalShrunkCase = 50;
+
+            final TrialsFactoring.TrialException trialException =
+                    assertThrows(TrialsFactoring.TrialException.class, () -> api
+                            .integers()
+                            .withLimits(100,
+                                        Trials.OptionalLimits
+                                                .builder()
+                                                .shrinkageAttempts(0)
+                                                .build())
+                            .supplyTo(caze -> {
+                                if (1 == caze % 2) {
+                                    throw new RuntimeException();
+                                }
+                            }));
+
+            assertThat((int) trialException.provokingCase(),
+                       greaterThan(upperBoundOfFinalShrunkCase));
+        }
     }
 }
