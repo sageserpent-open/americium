@@ -327,7 +327,7 @@ class TrialsSpec
 
       val mockConsumer: Any => Unit = mock(classOf[Any => Unit])
 
-      when(mockConsumer(dataCase)).thenThrow(problem)
+      doThrow(problem).when(mockConsumer).apply(dataCase)
 
       val exception = intercept[sut.TrialException] {
         sut.withLimit(limit).supplyTo(mockConsumer)
@@ -662,16 +662,15 @@ class TrialsSpec
 
       val invariantIdCounts = mutable.Map.empty[UUID, Int]
 
-      when(mockConsumer(any()))
-        .thenAnswer(invocation =>
-          invocation.getArgument[(Any, UUID)](0) match {
-            case (_, invariantId) =>
-              invariantIdCounts.updateWith(invariantId) {
-                case count @ Some(_) => count.map(1 + _)
-                case None            => Some(1)
-              }: Unit
-          }
-        )
+      doAnswer(invocation =>
+        invocation.getArgument[(Any, UUID)](0) match {
+          case (_, invariantId) =>
+            invariantIdCounts.updateWith(invariantId) {
+              case count @ Some(_) => count.map(1 + _)
+              case None            => Some(1)
+            }: Unit
+        }
+      ).when(mockConsumer).apply(any())
 
       sut.withLimit(limit).supplyTo(mockConsumer)
 
@@ -738,13 +737,15 @@ class TrialsSpec
 
       sut.withLimit(limit).supplyTo(mockConsumer)
 
-      when(mockConsumer(argThat { identifiedCase: (Any, UUID) =>
-        alternativeInvariantIds.contains(
-          identifiedCase._2
-        ) && predicateOnHash(
-          identifiedCase
-        )
-      })).thenReturn(())
+      doReturn(())
+        .when(mockConsumer)
+        .apply(argThat { identifiedCase: (Any, UUID) =>
+          alternativeInvariantIds.contains(
+            identifiedCase._2
+          ) && predicateOnHash(
+            identifiedCase
+          )
+        })
     }
 
   "collection trials" should "yield cases whose elements satisfy the same invariants as the values yielded by the base element trials" in
@@ -895,8 +896,9 @@ class TrialsSpec
 
       val mockConsumer: List[Any] => Unit = mock(classOf[List[Any] => Unit])
 
-      when(mockConsumer(argThat(largeSize == (_: List[Any]).size)))
-        .thenAnswer(invocation => println(invocation.getArgument(0)))
+      doAnswer(invocation => println(invocation.getArgument(0)))
+        .when(mockConsumer)
+        .apply(argThat(largeSize == (_: List[Any]).size))
 
       sut.withLimit(1).supplyTo(mockConsumer)
     }
@@ -926,7 +928,7 @@ class TrialsSpec
       sut
         .withLimit(limit)
         .supplyTo(expectedCase =>
-          when(mockConsumer(expectedCase)).thenReturn(())
+          doReturn(()).when(mockConsumer).apply(expectedCase)
         )
 
       // ... now let's see if we see the same cases.
@@ -939,9 +941,9 @@ class TrialsSpec
     def explodingStoppage(): Any => Boolean = {
       val mockPredicate: Any => Boolean = mock(classOf[Any => Boolean])
 
-      when(mockPredicate(any())).thenAnswer(invocation =>
-        fail("The stoppage should not have been invoked.")
-      )
+      doAnswer(_ => fail("The stoppage should not have been invoked."))
+        .when(mockPredicate)
+        .apply(any())
 
       mockPredicate
     }
