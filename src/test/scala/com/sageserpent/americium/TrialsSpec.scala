@@ -8,8 +8,9 @@ import com.sageserpent.americium.java.{
   Trials => JavaTrials,
   TrialsApi => JavaTrialsApi
 }
-import org.scalamock.function.StubFunction1
-import org.scalamock.scalatest.MockFactory
+import org.mockito.ArgumentMatchers.{any, argThat}
+import org.mockito.Mockito
+import org.mockito.Mockito._
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.prop.TableDrivenPropertyChecks
@@ -116,11 +117,9 @@ object TrialsSpec {
 class TrialsSpec
     extends AnyFlatSpec
     with Matchers
-    with MockFactory
     with TableDrivenPropertyChecks {
   import TrialsSpec._
 
-  autoVerify = false
   type TypeRequirementsToProtectCodeInStringsFromUnusedImportOptimisation =
     (JavaTrials[_], JavaFunction[_, _], Predicate[_])
 
@@ -311,35 +310,31 @@ class TrialsSpec
 
   "only one case" should "yield just one trial" in
     forAll(Table("case", 1, "foo", 2.3, List(false, 0, true))) { dataCase =>
-      withExpectations {
-        val sut = api.only(dataCase)
+      val sut = api.only(dataCase)
 
-        val mockConsumer: StubFunction1[Any, Unit] = stubFunction[Any, Unit]
+      val mockConsumer: Any => Unit = mock(classOf[Any => Unit])
 
-        sut.withLimit(limit).supplyTo(mockConsumer)
+      sut.withLimit(limit).supplyTo(mockConsumer)
 
-        mockConsumer.verify(dataCase)
-      }
+      verify(mockConsumer).apply(dataCase)
     }
 
   "only one case that provokes an exception" should "result in an exception that references it" in
     forAll(Table("case", 1, "foo", 2.3, Seq(false, 0, true))) { dataCase =>
-      withExpectations {
-        val sut = api.only(dataCase)
+      val sut = api.only(dataCase)
 
-        val problem = new RuntimeException("Test problem")
+      val problem = new RuntimeException("Test problem")
 
-        val mockConsumer = stubFunction[Any, Unit]
+      val mockConsumer: Any => Unit = mock(classOf[Any => Unit])
 
-        mockConsumer.when(dataCase).throwing(problem)
+      when(mockConsumer(dataCase)).thenThrow(problem)
 
-        val exception = intercept[sut.TrialException] {
-          sut.withLimit(limit).supplyTo(mockConsumer)
-        }
-
-        exception.getCause should be(problem)
-        exception.provokingCase should be(dataCase)
+      val exception = intercept[sut.TrialException] {
+        sut.withLimit(limit).supplyTo(mockConsumer)
       }
+
+      exception.getCause should be(problem)
+      exception.provokingCase should be(dataCase)
     }
 
   "a choice" should "yield all and only the cases given to it" in
@@ -353,17 +348,15 @@ class TrialsSpec
         Seq(4.3)
       )
     ) { possibleChoices =>
-      withExpectations {
-        val sut: Trials[Any] = api.choose(possibleChoices)
+      val sut: Trials[Any] = api.choose(possibleChoices)
 
-        val mockConsumer = stubFunction[Any, Unit]
+      val mockConsumer: Any => Unit = mock(classOf[Any => Unit])
 
-        sut.withLimit(limit).supplyTo(mockConsumer)
+      sut.withLimit(limit).supplyTo(mockConsumer)
 
-        possibleChoices.foreach(possibleChoice =>
-          mockConsumer.verify(possibleChoice)
-        )
-      }
+      possibleChoices.foreach(possibleChoice =>
+        verify(mockConsumer).apply(possibleChoice)
+      )
     }
 
   it should "yield all and only the cases given to it in the given weights" in
@@ -377,21 +370,17 @@ class TrialsSpec
         Seq(4.3)
       )
     ) { possibleChoices =>
-      withExpectations {
-        val weightedChoices =
-          possibleChoices.map(choice =>
-            1 + choice.hashCode().abs % 10 -> choice
-          )
+      val weightedChoices =
+        possibleChoices.map(choice => 1 + choice.hashCode().abs % 10 -> choice)
 
-        val sut: Trials[Any] = api.chooseWithWeights(weightedChoices)
+      val sut: Trials[Any] = api.chooseWithWeights(weightedChoices)
 
-        val mockConsumer = stubFunction[Any, Unit]
+      val mockConsumer: Any => Unit = mock(classOf[Any => Unit])
 
-        sut.withLimit(limit).supplyTo(mockConsumer)
+      sut.withLimit(limit).supplyTo(mockConsumer)
 
-        weightedChoices.foreach { case (weight, possibleChoice) =>
-          mockConsumer.verify(possibleChoice).repeat(weight)
-        }
+      weightedChoices.foreach { case (weight, possibleChoice) =>
+        verify(mockConsumer, times(weight)).apply(possibleChoice)
       }
     }
 
@@ -491,39 +480,35 @@ class TrialsSpec
 
   "a stream based on an isomorphism case factory" should "eventually cover all the inputs from the lower bound to the upper bound inclusive" in
     forAll(isomorphismCaseFactoryTable) { isomorphismCaseFactory =>
-      withExpectations {
-        val sut: Trials[Any] = api.stream(isomorphismCaseFactory)
+      val sut: Trials[Any] = api.stream(isomorphismCaseFactory)
 
-        val mockConsumer = stubFunction[Any, Unit]
+      val mockConsumer: Any => Unit = mock(classOf[Any => Unit])
 
-        sut.withLimit(limit).supplyTo(mockConsumer)
+      sut.withLimit(limit).supplyTo(mockConsumer)
 
-        val rangeOfCases = isomorphismCaseFactory
-          .lowerBoundInput() to isomorphismCaseFactory
-          .upperBoundInput() map isomorphismCaseFactory.apply
+      val rangeOfCases = isomorphismCaseFactory
+        .lowerBoundInput() to isomorphismCaseFactory
+        .upperBoundInput() map isomorphismCaseFactory.apply
 
-        rangeOfCases.foreach { expectedCase =>
-          mockConsumer.verify(expectedCase).atLeastOnce()
-        }
+      rangeOfCases.foreach { expectedCase =>
+        verify(mockConsumer, atLeastOnce()).apply(expectedCase)
       }
     }
 
   it should "result in the maximally shrunk case being reported when all cases fail" in
     forAll(isomorphismCaseFactoryTable) { isomorphismCaseFactory =>
-      withExpectations {
-        val sut: Trials[Any] = api.stream(isomorphismCaseFactory)
+      val sut: Trials[Any] = api.stream(isomorphismCaseFactory)
 
-        val angryConsumer: Any => Unit =
-          _ => throw new RuntimeException("Disgusted, Tunbridge Wells!")
+      val angryConsumer: Any => Unit =
+        _ => throw new RuntimeException("Disgusted, Tunbridge Wells!")
 
-        val exception = intercept[sut.TrialException] {
-          sut.withLimit(limit).supplyTo(angryConsumer)
-        }
-
-        exception.provokingCase shouldBe (isomorphismCaseFactory.apply(
-          isomorphismCaseFactory.maximallyShrunkInput()
-        ))
+      val exception = intercept[sut.TrialException] {
+        sut.withLimit(limit).supplyTo(angryConsumer)
       }
+
+      exception.provokingCase shouldBe (isomorphismCaseFactory.apply(
+        isomorphismCaseFactory.maximallyShrunkInput()
+      ))
     }
 
   case class ExceptionWithCasePayload[Case](caze: Case) extends RuntimeException
@@ -533,35 +518,32 @@ class TrialsSpec
 
     def testBodyInWildcardCapture[X](
         choicesAndCriterion: ChoicesAndCriterion[X]
-    ) =
-      withExpectations {
-        choicesAndCriterion match {
-          case (possibleChoices, exceptionCriterion) =>
-            val sut = api.choose(possibleChoices)
+    ) = choicesAndCriterion match {
+      case (possibleChoices, exceptionCriterion) =>
+        val sut = api.choose(possibleChoices)
 
-            val complainingConsumer = { caze: X =>
-              if (exceptionCriterion(caze))
-                throw ExceptionWithCasePayload(caze)
-            }
-
-            val exception = intercept[sut.TrialException] {
-              sut.withLimit(limit).supplyTo(complainingConsumer)
-            }
-
-            val underlyingException = exception.getCause
-
-            underlyingException shouldBe a[ExceptionWithCasePayload[_]]
-
-            underlyingException match {
-              case exceptionWithCasePayload: ExceptionWithCasePayload[_] =>
-                exception.provokingCase should be(exceptionWithCasePayload.caze)
-
-                exactly(1, possibleChoices) should be(
-                  exceptionWithCasePayload.caze
-                )
-            }
+        val complainingConsumer = { caze: X =>
+          if (exceptionCriterion(caze))
+            throw ExceptionWithCasePayload(caze)
         }
-      }
+
+        val exception = intercept[sut.TrialException] {
+          sut.withLimit(limit).supplyTo(complainingConsumer)
+        }
+
+        val underlyingException = exception.getCause
+
+        underlyingException shouldBe a[ExceptionWithCasePayload[_]]
+
+        underlyingException match {
+          case exceptionWithCasePayload: ExceptionWithCasePayload[_] =>
+            exception.provokingCase should be(exceptionWithCasePayload.caze)
+
+            exactly(1, possibleChoices) should be(
+              exceptionWithCasePayload.caze
+            )
+        }
+    }
 
     forAll(
       Table[ChoicesAndCriterion[_]](
@@ -590,26 +572,24 @@ class TrialsSpec
         Seq(Seq(0), 1 to 10, 13, -3 to -1)
       )
     ) { alternatives =>
-      withExpectations {
-        val sut: Trials[Any] =
-          api.alternate(alternatives map {
-            case sequence: Seq[_] => api.choose(sequence)
-            case singleton        => api.only(singleton)
-          })
+      val sut: Trials[Any] =
+        api.alternate(alternatives map {
+          case sequence: Seq[_] => api.choose(sequence)
+          case singleton        => api.only(singleton)
+        })
 
-        val mockConsumer = stubFunction[Any, Unit]
+      val mockConsumer: Any => Unit = mock(classOf[Any => Unit])
 
-        sut.withLimit(limit).supplyTo(mockConsumer)
+      sut.withLimit(limit).supplyTo(mockConsumer)
 
-        alternatives
-          .foreach {
-            case several: Seq[_] =>
-              several.foreach(possibleChoice =>
-                mockConsumer.verify(possibleChoice)
-              )
-            case singleton => mockConsumer.verify(singleton)
-          }
-      }
+      alternatives
+        .foreach {
+          case several: Seq[_] =>
+            several.foreach(possibleChoice =>
+              verify(mockConsumer).apply(possibleChoice)
+            )
+          case singleton => verify(mockConsumer).apply(singleton)
+        }
     }
 
   it should "yield all and only the cases that would be yielded by its alternatives in the given weights" in
@@ -626,30 +606,28 @@ class TrialsSpec
         Seq(Seq(0), 1 to 10, 13, -3 to -1)
       )
     ) { alternatives =>
-      withExpectations {
-        val weightedAlternatives =
-          alternatives.map(choice => 1 + choice.hashCode().abs % 10 -> choice)
+      val weightedAlternatives =
+        alternatives.map(choice => 1 + choice.hashCode().abs % 10 -> choice)
 
-        val sut: Trials[Any] =
-          api.alternateWithWeights(weightedAlternatives map {
-            case (weight, sequence: Seq[_]) => weight -> api.choose(sequence)
-            case (weight, singleton)        => weight -> api.only(singleton)
-          })
+      val sut: Trials[Any] =
+        api.alternateWithWeights(weightedAlternatives map {
+          case (weight, sequence: Seq[_]) => weight -> api.choose(sequence)
+          case (weight, singleton)        => weight -> api.only(singleton)
+        })
 
-        val mockConsumer = stubFunction[Any, Unit]
+      val mockConsumer: Any => Unit = mock(classOf[Any => Unit])
 
-        sut.withLimit(limit).supplyTo(mockConsumer)
+      sut.withLimit(limit).supplyTo(mockConsumer)
 
-        weightedAlternatives
-          .foreach {
-            case (weight, several: Seq[_]) =>
-              several.foreach(possibleChoice =>
-                mockConsumer.verify(possibleChoice).repeat(weight)
-              )
-            case (weight, singleton) =>
-              mockConsumer.verify(singleton).repeat(weight)
-          }
-      }
+      weightedAlternatives
+        .foreach {
+          case (weight, several: Seq[_]) =>
+            several.foreach(possibleChoice =>
+              verify(mockConsumer, times(weight)).apply(possibleChoice)
+            )
+          case (weight, singleton) =>
+            verify(mockConsumer, times(weight)).apply(singleton)
+        }
     }
 
   "an alternation over streams" should "yield the cases that would be yielded by its alternatives in proportion to the given weights" in
@@ -662,51 +640,54 @@ class TrialsSpec
         Seq((_: Long).toString, identity[Long] _, (_: Long) * 2, (_: Long) * 2)
       )
     ) { alternatives =>
-      withExpectations {
-        val alternativeInvariantIds = Vector.fill(alternatives.size) {
-          UUID.randomUUID()
-        }
+      val alternativeInvariantIds = Vector.fill(alternatives.size) {
+        UUID.randomUUID()
+      }
 
-        val weightedAlternatives =
-          alternatives
-            .map(choice => 1 + choice.hashCode().abs % 10 -> choice)
-            .toMap
+      val weightedAlternatives =
+        alternatives
+          .map(choice => 1 + choice.hashCode().abs % 10 -> choice)
+          .toMap
 
-        val sut: Trials[(Any, UUID)] =
-          api.alternateWithWeights(
-            weightedAlternatives.zip(alternativeInvariantIds) map {
-              case ((weight, factory: (Long => Any)), invariantId) =>
-                weight -> api.streamLegacy(factory).map(_ -> invariantId)
-            }
-          )
-
-        val mockConsumer = mockFunction[(Any, UUID), Unit]
-
-        val invariantIdCounts = mutable.Map.empty[UUID, Int]
-
-        mockConsumer.stubs(*) onCall ({ case (_, invariantId) =>
-          invariantIdCounts.updateWith(invariantId) {
-            case count @ Some(_) => count.map(1 + _)
-            case None            => Some(1)
+      val sut: Trials[(Any, UUID)] =
+        api.alternateWithWeights(
+          weightedAlternatives.zip(alternativeInvariantIds) map {
+            case ((weight, factory: (Long => Any)), invariantId) =>
+              weight -> api.streamLegacy(factory).map(_ -> invariantId)
           }
-        }: ((Any, UUID)) => Unit)
+        )
 
-        sut.withLimit(limit).supplyTo(mockConsumer)
+      val mockConsumer: ((Any, UUID)) => Unit =
+        mock(classOf[((Any, UUID)) => Unit])
 
-        val totalNumberOfCalls = invariantIdCounts.values.sum
+      val invariantIdCounts = mutable.Map.empty[UUID, Int]
 
-        val weights = weightedAlternatives.keys
+      when(mockConsumer(any()))
+        .thenAnswer(invocation =>
+          invocation.getArgument[(Any, UUID)](0) match {
+            case (_, invariantId) =>
+              invariantIdCounts.updateWith(invariantId) {
+                case count @ Some(_) => count.map(1 + _)
+                case None            => Some(1)
+              }: Unit
+          }
+        )
 
-        val totalWeight = weights.sum
+      sut.withLimit(limit).supplyTo(mockConsumer)
 
-        alternativeInvariantIds.zip(weights).foreach {
-          case (invariantId, weight) =>
-            val expectedCallCount =
-              Math
-                .round((totalNumberOfCalls.toDouble * weight) / totalWeight)
-                .toInt
-            invariantIdCounts(invariantId) should be(expectedCallCount +- 10)
-        }
+      val totalNumberOfCalls = invariantIdCounts.values.sum
+
+      val weights = weightedAlternatives.keys
+
+      val totalWeight = weights.sum
+
+      alternativeInvariantIds.zip(weights).foreach {
+        case (invariantId, weight) =>
+          val expectedCallCount =
+            Math
+              .round((totalNumberOfCalls.toDouble * weight) / totalWeight)
+              .toInt
+          invariantIdCounts(invariantId) should be(expectedCallCount +- 10)
       }
     }
 
@@ -726,47 +707,44 @@ class TrialsSpec
         Seq(Seq(0), 1 to 10, 13, identity[Long] _, -3 to -1)
       )
     ) { alternatives =>
-      withExpectations {
-        val alternativeInvariantIds = Vector.fill(alternatives.size) {
-          UUID.randomUUID()
-        }
-
-        def predicateOnHash(caze: Any) = 0 == caze.hashCode() % 3
-
-        val sut: Trials[(Any, UUID)] =
-          api.alternate(alternatives map {
-            case sequence: Seq[_] => api.choose(sequence)
-            case factory: (Long => Any) =>
-              api.streamLegacy(factory)
-            case singleton => api.only(singleton)
-          } zip alternativeInvariantIds map {
-            // Set up a unique invariant on each alternative - it should supply
-            // pairs,
-            // each of which has the same id component that denotes the
-            // alternative. As
-            // the id is unique, the implementation of `Trials.alternative`
-            // cannot fake
-            // the id values - so they must come from the alternatives somehow.
-            // Furthermore,
-            // the pair should satisfy a predicate on its hash.
-            case (trials, invariantId) =>
-              trials.map(_ -> invariantId).filter(predicateOnHash)
-          })
-
-        val mockConsumer = mockFunction[(Any, UUID), Unit]
-
-        mockConsumer
-          .expects(where { identifiedCase: (Any, UUID) =>
-            alternativeInvariantIds.contains(
-              identifiedCase._2
-            ) && predicateOnHash(
-              identifiedCase
-            )
-          })
-          .anyNumberOfTimes()
-
-        sut.withLimit(limit).supplyTo(mockConsumer)
+      val alternativeInvariantIds = Vector.fill(alternatives.size) {
+        UUID.randomUUID()
       }
+
+      def predicateOnHash(caze: Any) = 0 == caze.hashCode() % 3
+
+      val sut: Trials[(Any, UUID)] =
+        api.alternate(alternatives map {
+          case sequence: Seq[_] => api.choose(sequence)
+          case factory: (Long => Any) =>
+            api.streamLegacy(factory)
+          case singleton => api.only(singleton)
+        } zip alternativeInvariantIds map {
+          // Set up a unique invariant on each alternative - it should supply
+          // pairs,
+          // each of which has the same id component that denotes the
+          // alternative. As
+          // the id is unique, the implementation of `Trials.alternative`
+          // cannot fake
+          // the id values - so they must come from the alternatives somehow.
+          // Furthermore,
+          // the pair should satisfy a predicate on its hash.
+          case (trials, invariantId) =>
+            trials.map(_ -> invariantId).filter(predicateOnHash)
+        })
+
+      val mockConsumer: ((Any, UUID)) => Unit =
+        mock(classOf[((Any, UUID)) => Unit])
+
+      sut.withLimit(limit).supplyTo(mockConsumer)
+
+      when(mockConsumer(argThat { identifiedCase: (Any, UUID) =>
+        alternativeInvariantIds.contains(
+          identifiedCase._2
+        ) && predicateOnHash(
+          identifiedCase
+        )
+      })).thenReturn(())
     }
 
   "collection trials" should "yield cases whose elements satisfy the same invariants as the values yielded by the base element trials" in
@@ -785,44 +763,44 @@ class TrialsSpec
         identity[Long] _
       )
     ) { input =>
-      withExpectations {
-        val invariantId = UUID.randomUUID()
+      val invariantId = UUID.randomUUID()
 
-        def predicateOnHash(caze: Any) = 0 == caze.hashCode() % 3
+      def predicateOnHash(caze: Any) = 0 == caze.hashCode() % 3
 
-        val sut: Trials[List[(Any, UUID)]] =
-          (input match {
-            case sequence: Seq[_] => api.choose(sequence)
-            case factory: (Long => Any) =>
-              api.streamLegacy(factory)
-            case singleton => api.only(singleton)
-          }).map(
-            _ ->
-              // Set up an invariant - it should supply pairs, each of which has
-              // the same id component. As the id is unique, the implementation
-              // of `Trials.several` cannot fake the id values - so they must
-              // come
-              // from the base trials somehow. Furthermore, the pair should
-              // satisfy
-              // a predicate on its hash.
-              invariantId
-          ).filter(predicateOnHash)
-            .several
+      val sut: Trials[List[(Any, UUID)]] =
+        (input match {
+          case sequence: Seq[_] => api.choose(sequence)
+          case factory: (Long => Any) =>
+            api.streamLegacy(factory)
+          case singleton => api.only(singleton)
+        }).map(
+          _ ->
+            // Set up an invariant - it should supply pairs, each of which has
+            // the same id component. As the id is unique, the implementation
+            // of `Trials.several` cannot fake the id values - so they must
+            // come
+            // from the base trials somehow. Furthermore, the pair should
+            // satisfy
+            // a predicate on its hash.
+            invariantId
+        ).filter(predicateOnHash)
+          .several
 
-        val mockConsumer = mockFunction[List[(Any, UUID)], Unit]
+      val mockConsumer: (List[(Any, UUID)]) => Unit =
+        mock(classOf[List[(Any, UUID)] => Unit])
 
-        mockConsumer
-          .expects(where {
-            (_: List[(Any, UUID)]).forall(identifiedCase =>
-              invariantId == identifiedCase._2 && predicateOnHash(
-                identifiedCase
-              )
-            )
-          })
-          .anyNumberOfTimes()
+      sut.withLimit(limit).supplyTo(mockConsumer)
 
-        sut.withLimit(limit).supplyTo(mockConsumer)
-      }
+      verify(
+        mockConsumer,
+        atLeastOnce()
+      ).apply(argThat {
+        (_: List[(Any, UUID)]).forall(identifiedCase =>
+          invariantId == identifiedCase._2 && predicateOnHash(
+            identifiedCase
+          )
+        )
+      })
     }
 
   they should "yield members of the Cartesian product when the base elements trials are finite choices" in
@@ -839,51 +817,49 @@ class TrialsSpec
         Seq.empty
       )
     ) { input =>
-      withExpectations {
-        val maximumLengthOfACartesianProductMember = 3
+      val maximumLengthOfACartesianProductMember = 3
 
-        def cartesianProductSizeLimitation(caze: List[Any]) =
-          maximumLengthOfACartesianProductMember >= caze.size
+      def cartesianProductSizeLimitation(caze: List[Any]) =
+        maximumLengthOfACartesianProductMember >= caze.size
 
-        val sut: Trials[List[Any]] =
-          (input match {
-            case sequence: Seq[_] => api.choose(sequence)
-            case factory: (Long => Any) =>
-              api.streamLegacy(factory)
-            case singleton => api.only(singleton)
-          }).several[List[_]]
-            .filter(cartesianProductSizeLimitation)
+      val sut: Trials[List[Any]] =
+        (input match {
+          case sequence: Seq[_] => api.choose(sequence)
+          case factory: (Long => Any) =>
+            api.streamLegacy(factory)
+          case singleton => api.only(singleton)
+        }).several[List[_]]
+          .filter(cartesianProductSizeLimitation)
 
-        val mockConsumer = mockFunction[Any, Unit]
+      val mockConsumer: Any => Unit = mock(classOf[Any => Unit])
 
-        val elements = input match {
-          case sequence: Seq[Any] =>
-            sequence.toSet
-          case singleton => Set(singleton)
-        }
+      val elements = input match {
+        case sequence: Seq[Any] =>
+          sequence.toSet
+        case singleton => Set(singleton)
+      }
 
-        val cartesianProductMembers: Set[List[Any]] = if (elements.nonEmpty) {
-          def cartesianProduct(
-              subProducts: LazyList[List[Any]]
-          ): LazyList[List[Any]] = subProducts.lazyAppendedAll(
-            cartesianProduct(
-              subProducts.flatMap(subProduct => elements.map(_ :: subProduct))
-            )
+      val cartesianProductMembers: Set[List[Any]] = if (elements.nonEmpty) {
+        def cartesianProduct(
+            subProducts: LazyList[List[Any]]
+        ): LazyList[List[Any]] = subProducts.lazyAppendedAll(
+          cartesianProduct(
+            subProducts.flatMap(subProduct => elements.map(_ :: subProduct))
           )
-
-          cartesianProduct(LazyList(Nil))
-            .takeWhile(cartesianProductSizeLimitation)
-            .toSet
-        } else Set(Nil)
-
-        cartesianProductMembers.foreach(product =>
-          mockConsumer.expects(product)
         )
 
-        val limit = 1500
+        cartesianProduct(LazyList(Nil))
+          .takeWhile(cartesianProductSizeLimitation)
+          .toSet
+      } else Set(Nil)
 
-        sut.withLimit(limit).supplyTo(mockConsumer)
-      }
+      val limit = 1500
+
+      sut.withLimit(limit).supplyTo(mockConsumer)
+
+      cartesianProductMembers.foreach(product =>
+        verify(mockConsumer).apply(product)
+      )
     }
 
   "sized collection trials" should "yield cases even when the size is large" in
@@ -906,27 +882,23 @@ class TrialsSpec
         bushyTreeTrials             -> 2000
       )
     ) { (input, largeSize) =>
-      withExpectations {
-        println(s"largeSize: $largeSize")
+      println(s"largeSize: $largeSize")
 
-        val sut: Trials[List[Any]] =
-          (input match {
-            case trials: Trials[_] => trials
-            case sequence: Seq[_]  => api.choose(sequence)
-            case factory: (Long => Any) =>
-              api.streamLegacy(factory)
-            case singleton => api.only(singleton)
-          }).lotsOfSize(largeSize)
+      val sut: Trials[List[Any]] =
+        (input match {
+          case trials: Trials[_] => trials
+          case sequence: Seq[_]  => api.choose(sequence)
+          case factory: (Long => Any) =>
+            api.streamLegacy(factory)
+          case singleton => api.only(singleton)
+        }).lotsOfSize(largeSize)
 
-        val mockConsumer = mockFunction[List[Any], Unit]
+      val mockConsumer: List[Any] => Unit = mock(classOf[List[Any] => Unit])
 
-        mockConsumer
-          .expects(where(largeSize == (_: List[Any]).size))
-          .atLeastOnce()
-          .onCall((caze: List[Any]) => println(caze))
+      when(mockConsumer(argThat(largeSize == (_: List[Any]).size)))
+        .thenAnswer(invocation => println(invocation.getArgument(0)))
 
-        sut.withLimit(1).supplyTo(mockConsumer)
-      }
+      sut.withLimit(1).supplyTo(mockConsumer)
     }
 
   "trials" should "yield repeatable cases" in
@@ -948,28 +920,30 @@ class TrialsSpec
         implicitly[Trials.Factory[Option[Int]]].trials
       )
     ) { sut =>
-      withExpectations {
-        val mockConsumer = mockFunction[Any, Unit]
+      val mockConsumer: Any => Unit = mock(classOf[Any => Unit])
 
-        // Whatever cases are supplied set the expectations...
-        sut.withLimit(limit).supplyTo(mockConsumer.expects(_: Any): Unit)
+      // Whatever cases are supplied set the expectations...
+      sut
+        .withLimit(limit)
+        .supplyTo(expectedCase =>
+          when(mockConsumer(expectedCase)).thenReturn(())
+        )
 
-        // ... now let's see if we see the same cases.
-        sut.withLimit(limit).supplyTo(mockConsumer)
-      }
+      // ... now let's see if we see the same cases.
+      sut.withLimit(limit).supplyTo(mockConsumer)
     }
 
   they should "not invoke stoppage if no failure is found" in {
     val sut = api.only(())
 
     def explodingStoppage(): Any => Boolean = {
-      val mockConsumer = mockFunction[Any, Boolean]
+      val mockPredicate: Any => Boolean = mock(classOf[Any => Boolean])
 
-      mockConsumer
-        .expects(*)
-        .onCall((_: Any) => fail("The stoppage should not have been invoked."))
+      when(mockPredicate(any())).thenAnswer(invocation =>
+        fail("The stoppage should not have been invoked.")
+      )
 
-      mockConsumer
+      mockPredicate
     }
 
     sut.withLimits(1, shrinkageStop = explodingStoppage).supplyTo { _ => }
@@ -989,13 +963,11 @@ class TrialsSpec
         implicitly[Trials.Factory[Either[Long, Int]]].trials -> 500
       )
     ) { (sut, limit) =>
-      withExpectations {
-        val mockConsumer = stubFunction[Any, Unit]
+      val mockConsumer: Any => Unit = mock(classOf[Any => Unit])
 
-        sut.withLimit(limit).supplyTo(mockConsumer)
+      sut.withLimit(limit).supplyTo(mockConsumer)
 
-        mockConsumer.verify(*).repeat(1 to limit)
-      }
+      verify(mockConsumer, Mockito.atMost(limit)).apply(any())
     }
 
   they should "produce the limiting number of cases if feasible" in
@@ -1015,13 +987,11 @@ class TrialsSpec
           .filter { case (x, y) => 0 == (x * y) % 3 } -> (1 * 7 + 2 * 3 + 1 * 3)
       )
     ) { (sut, limit) =>
-      withExpectations {
-        val mockConsumer = stubFunction[Any, Unit]
+      val mockConsumer: Any => Unit = mock(classOf[Any => Unit])
 
-        sut.withLimit(limit).supplyTo(mockConsumer)
+      sut.withLimit(limit).supplyTo(mockConsumer)
 
-        mockConsumer.verify(*).repeat(limit)
-      }
+      verify(mockConsumer, times(limit)).apply(any())
     }
 
   case class JackInABox[Caze](caze: Caze)
@@ -1052,24 +1022,22 @@ class TrialsSpec
         }
       )
     ) { sut =>
-      withExpectations {
-        val surprisedConsumer: Any => Unit = {
-          case JackInABox(caze) => throw ExceptionWithCasePayload(caze)
-          case _                =>
-        }
-
-        val exception = Try {
-          sut.withLimit(limit).supplyTo(surprisedConsumer)
-        }.failed.get
-          .asInstanceOf[sut.TrialException]
-
-        val exceptionFromSecondAttempt = Try {
-          sut.withLimit(limit).supplyTo(surprisedConsumer)
-        }.failed.get
-          .asInstanceOf[sut.TrialException]
-
-        exceptionFromSecondAttempt.provokingCase shouldBe exception.provokingCase
+      val surprisedConsumer: Any => Unit = {
+        case JackInABox(caze) => throw ExceptionWithCasePayload(caze)
+        case _                =>
       }
+
+      val exception = Try {
+        sut.withLimit(limit).supplyTo(surprisedConsumer)
+      }.failed.get
+        .asInstanceOf[sut.TrialException]
+
+      val exceptionFromSecondAttempt = Try {
+        sut.withLimit(limit).supplyTo(surprisedConsumer)
+      }.failed.get
+        .asInstanceOf[sut.TrialException]
+
+      exceptionFromSecondAttempt.provokingCase shouldBe exception.provokingCase
     }
 
   "an exceptional case" should "be reproduced via its recipe" in forAll(
@@ -1113,25 +1081,23 @@ class TrialsSpec
       }
     )
   ) { sut =>
-    withExpectations {
-      val surprisedConsumer: Any => Unit = {
-        case JackInABox(caze) => throw ExceptionWithCasePayload(caze)
-        case _                =>
-      }
-
-      val exception = Try {
-        sut.withLimit(limit).supplyTo(surprisedConsumer)
-      }.failed.get
-        .asInstanceOf[sut.TrialException]
-
-      val exceptionRecreatedViaRecipe = Try {
-        sut.withRecipe(exception.recipe).supplyTo(surprisedConsumer)
-      }.failed.get
-        .asInstanceOf[sut.TrialException]
-
-      exceptionRecreatedViaRecipe.provokingCase shouldBe exception.provokingCase
-      exceptionRecreatedViaRecipe.recipe shouldBe exception.recipe
+    val surprisedConsumer: Any => Unit = {
+      case JackInABox(caze) => throw ExceptionWithCasePayload(caze)
+      case _                =>
     }
+
+    val exception = Try {
+      sut.withLimit(limit).supplyTo(surprisedConsumer)
+    }.failed.get
+      .asInstanceOf[sut.TrialException]
+
+    val exceptionRecreatedViaRecipe = Try {
+      sut.withRecipe(exception.recipe).supplyTo(surprisedConsumer)
+    }.failed.get
+      .asInstanceOf[sut.TrialException]
+
+    exceptionRecreatedViaRecipe.provokingCase shouldBe exception.provokingCase
+    exceptionRecreatedViaRecipe.recipe shouldBe exception.recipe
   }
 
   it should "be shrunk to a simple case" in {
@@ -1140,60 +1106,57 @@ class TrialsSpec
 
     def testBodyInWildcardCapture[X](
         trialsAndCriterion: DescriptionTrialsCriterionAndLimit[X]
-    ): Unit =
-      withExpectations {
-        trialsAndCriterion match {
-          case (description, sut, exceptionCriterion, limit) =>
-            val complainingConsumer = { caze: Vector[X] =>
-              if (exceptionCriterion(caze))
-                throw ExceptionWithCasePayload(caze)
+    ): Unit = trialsAndCriterion match {
+      case (description, sut, exceptionCriterion, limit) =>
+        val complainingConsumer = { caze: Vector[X] =>
+          if (exceptionCriterion(caze))
+            throw ExceptionWithCasePayload(caze)
+        }
+
+        val exception = intercept[sut.TrialException] {
+          sut.withLimit(limit).supplyTo(complainingConsumer)
+        }
+
+        val underlyingException = exception.getCause
+
+        underlyingException shouldBe a[ExceptionWithCasePayload[_]]
+
+        underlyingException match {
+          case exceptionWithCasePayload: ExceptionWithCasePayload[
+                Vector[X]
+              ] =>
+            val provokingCase = exception.provokingCase
+
+            println(s"Provoking case for '$description': $provokingCase")
+
+            provokingCase should be(exceptionWithCasePayload.caze)
+
+            val sizeOfProvokingCase = provokingCase.size
+
+            try sut
+              .filter(_ != provokingCase)
+              .withLimit(limit)
+              .supplyTo(complainingConsumer)
+            catch {
+              case exceptionFromFilteredTrials: Throwable =>
+                exceptionFromFilteredTrials.getCause match {
+                  case exceptionWithAtLeastAsLargeCasePayload: ExceptionWithCasePayload[
+                        Vector[X]
+                      ] =>
+                    exceptionWithAtLeastAsLargeCasePayload.caze.size should be >= sizeOfProvokingCase
+                }
             }
 
-            val exception = intercept[sut.TrialException] {
-              sut.withLimit(limit).supplyTo(complainingConsumer)
-            }
+            0 until sizeOfProvokingCase foreach { excisionIndex =>
+              val smallerCase =
+                provokingCase.patch(excisionIndex, Vector.empty, 1)
 
-            val underlyingException = exception.getCause
-
-            underlyingException shouldBe a[ExceptionWithCasePayload[_]]
-
-            underlyingException match {
-              case exceptionWithCasePayload: ExceptionWithCasePayload[
-                    Vector[X]
-                  ] =>
-                val provokingCase = exception.provokingCase
-
-                println(s"Provoking case for '$description': $provokingCase")
-
-                provokingCase should be(exceptionWithCasePayload.caze)
-
-                val sizeOfProvokingCase = provokingCase.size
-
-                try sut
-                  .filter(_ != provokingCase)
-                  .withLimit(limit)
-                  .supplyTo(complainingConsumer)
-                catch {
-                  case exceptionFromFilteredTrials: Throwable =>
-                    exceptionFromFilteredTrials.getCause match {
-                      case exceptionWithAtLeastAsLargeCasePayload: ExceptionWithCasePayload[
-                            Vector[X]
-                          ] =>
-                        exceptionWithAtLeastAsLargeCasePayload.caze.size should be >= sizeOfProvokingCase
-                    }
-                }
-
-                0 until sizeOfProvokingCase foreach { excisionIndex =>
-                  val smallerCase =
-                    provokingCase.patch(excisionIndex, Vector.empty, 1)
-
-                  noException should be thrownBy complainingConsumer(
-                    smallerCase
-                  )
-                }
+              noException should be thrownBy complainingConsumer(
+                smallerCase
+              )
             }
         }
-      }
+    }
 
     forAll(
       Table[DescriptionTrialsCriterionAndLimit[_]](
@@ -1575,25 +1538,25 @@ class TrialsSpec
       api.choose(0 until 20).flatMap(x => api.choose(1, 3).map(x * _))
     )
   ) { trials =>
-    withExpectations {
-      val mockConsumer = mockFunction[Int, Unit]
+    val mockConsumer: Int => Unit = mock(classOf[Int => Unit])
 
-      // Whatever cases are supplied by a monadic filtration set the
-      // expectations...
-      trials
-        .filter(oddHash)
-        .withLimit(limit)
-        .supplyTo(mockConsumer.expects(_: Int): Unit)
+    // Whatever cases are supplied by a monadic filtration set the
+    // expectations...
+    trials
+      .filter(oddHash)
+      .withLimit(limit)
+      .supplyTo(expectedCase =>
+        doNothing().when(mockConsumer).apply(expectedCase)
+      )
 
-      // ... now let's see if we see the same cases when we filter inline.
-      trials
-        .withLimit(limit)
-        .supplyTo(caze =>
-          Trials.whenever(oddHash(caze)) {
-            mockConsumer(caze)
-          }
-        )
-    }
+    // ... now let's see if we see the same cases when we filter inline.
+    trials
+      .withLimit(limit)
+      .supplyTo(caze =>
+        Trials.whenever(oddHash(caze)) {
+          mockConsumer(caze)
+        }
+      )
   }
 
   it should "cover the same number of cases that would be covered by an explicit filtration over infinite possibilities" in forAll(
@@ -1608,37 +1571,35 @@ class TrialsSpec
       api.integers.flatMap(x => api.choose(1, 3).map(x * _))
     )
   ) { trials =>
-    withExpectations {
-      // Count the cases supplied by a monadic filtration...
+    // Count the cases supplied by a monadic filtration...
 
-      val numberOfCasesViaMonadicFiltration = {
-        var count = 0
-
-        trials
-          .filter(oddHash)
-          .withLimit(limit)
-          .supplyTo { _ => count = 1 + count }
-
-        count
-      }
-
-      val mockConsumer = mockFunction[Int, Unit]
-
-      // ... now let's see if we receive *exactly* the same number of cases when
-      // we filter inline.
-
-      mockConsumer
-        .expects(*)
-        .repeat(numberOfCasesViaMonadicFiltration): Unit
+    val numberOfCasesViaMonadicFiltration = {
+      var count = 0
 
       trials
+        .filter(oddHash)
         .withLimit(limit)
-        .supplyTo(caze =>
-          Trials.whenever(oddHash(caze)) {
-            mockConsumer(caze)
-          }
-        )
+        .supplyTo { _ => count = 1 + count }
+
+      count
     }
+
+    val mockConsumer: Int => Unit = mock(classOf[Int => Unit])
+
+    // ... now let's see if we receive *exactly* the same number of cases when
+    // we filter inline.
+
+    trials
+      .withLimit(limit)
+      .supplyTo(caze =>
+        Trials.whenever(oddHash(caze)) {
+          mockConsumer(caze)
+        }
+      )
+
+    verify(mockConsumer, times(numberOfCasesViaMonadicFiltration)).apply(
+      any()
+    )
   }
 
   "mapping using a Java function" should "compile" in {
