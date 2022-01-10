@@ -62,7 +62,7 @@ lazy val settings = Seq(
   libraryDependencies += "org.scalatest"  %% "scalatest"  % "3.2.9"  % Test,
   libraryDependencies += "org.scalacheck" %% "scalacheck" % "1.15.4" % Test,
   libraryDependencies += "org.scalatestplus" %% "scalacheck-1-15" % "3.2.9.0" % Test,
-  libraryDependencies += "org.scalamock" %% "scalamock" % "5.1.0" % Test,
+  libraryDependencies += "org.mockito" % "mockito-core" % "4.2.0" % Test,
   libraryDependencies += "net.aichler" % "jupiter-interface" % JupiterKeys.jupiterVersion.value % Test,
   libraryDependencies ++= Seq(
     "org.junit.platform" % "junit-platform-runner" % "1.8.2" % Test,
