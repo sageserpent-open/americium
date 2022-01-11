@@ -14,7 +14,8 @@ import com.sageserpent.americium.java.tupleTrials.{
 }
 import com.sageserpent.americium.java.{
   Trials => JavaTrials,
-  TrialsScaffolding => JavaTrialsScaffolding
+  TrialsScaffolding => JavaTrialsScaffolding,
+  TrialsSkeletalImplementation => JavaTrialsSkeletalImplementation
 }
 import com.sageserpent.americium.randomEnrichment.RichRandom
 import com.sageserpent.americium.tupleTrials.Tuple2Trials
@@ -23,18 +24,8 @@ import io.circe.generic.auto._
 import io.circe.parser._
 import io.circe.syntax._
 
-import _root_.java.util.function.{
-  Consumer,
-  Predicate,
-  Supplier,
-  Function => JavaFunction
-}
-import _root_.java.util.{
-  Optional,
-  Comparator => JavaComparator,
-  Iterator => JavaIterator,
-  Map => JavaMap
-}
+import _root_.java.util.function.{Consumer, Predicate, Function => JavaFunction}
+import _root_.java.util.{Optional, Iterator => JavaIterator}
 import scala.annotation.tailrec
 import scala.collection.immutable.{SortedMap, SortedSet}
 import scala.collection.mutable
@@ -87,7 +78,7 @@ object TrialsImplementation {
 
 case class TrialsImplementation[Case](
     override val generation: TrialsImplementation.Generation[_ <: Case]
-) extends JavaTrials[Case]
+) extends JavaTrialsSkeletalImplementation[Case]
     with Trials[Case] {
   thisTrialsImplementation =>
 
@@ -845,96 +836,6 @@ case class TrialsImplementation[Case](
       case _                                    => None
     })
 
-  override def collections[Collection](
-      builderFactory: Supplier[
-        Builder[Case, Collection]
-      ]
-  ): TrialsImplementation[Collection] =
-    several(builderFactory.get())
-
-  override def immutableLists(): TrialsImplementation[ImmutableList[Case]] =
-    several(new Builder[Case, ImmutableList[Case]] {
-      private val underlyingBuilder = ImmutableList.builder[Case]()
-
-      override def add(caze: Case): Unit = {
-        underlyingBuilder.add(caze)
-      }
-
-      override def build(): ImmutableList[Case] =
-        underlyingBuilder.build()
-    })
-
-  override def immutableSets(): TrialsImplementation[ImmutableSet[Case]] =
-    several(new Builder[Case, ImmutableSet[Case]] {
-      private val underlyingBuilder = ImmutableSet.builder[Case]()
-
-      override def add(caze: Case): Unit = {
-        underlyingBuilder.add(caze)
-      }
-
-      override def build(): ImmutableSet[Case] =
-        underlyingBuilder.build()
-    })
-
-  override def immutableSortedSets(
-      elementComparator: JavaComparator[Case]
-  ): TrialsImplementation[ImmutableSortedSet[Case]] =
-    several(new Builder[Case, ImmutableSortedSet[Case]] {
-      private val underlyingBuilder: ImmutableSortedSet.Builder[Case] =
-        new ImmutableSortedSet.Builder(elementComparator)
-
-      override def add(caze: Case): Unit = {
-        underlyingBuilder.add(caze)
-      }
-
-      override def build(): ImmutableSortedSet[Case] =
-        underlyingBuilder.build()
-    })
-
-  override def immutableMaps[Value](
-      values: JavaTrials[Value]
-  ): TrialsImplementation[ImmutableMap[Case, Value]] = {
-    flatMap(key => values.map(key -> _))
-      .several[Map[Case, Value]]
-      .map[JavaMap[Case, Value]](_.asJava)
-      .map[ImmutableMap[Case, Value]](ImmutableMap.copyOf(_))
-  }
-  override def immutableSortedMaps[Value](
-      elementComparator: JavaComparator[Case],
-      values: JavaTrials[Value]
-  ): TrialsImplementation[ImmutableSortedMap[Case, Value]] = {
-    flatMap(key => values.map(key -> _))
-      .several[Map[Case, Value]]
-      .map[JavaMap[Case, Value]](_.asJava)
-      .map[ImmutableSortedMap[Case, Value]](
-        ImmutableSortedMap.copyOf(_, elementComparator)
-      )
-  }
-
-  override def collectionsOfSize[Collection](
-      size: Int,
-      builderFactory: Supplier[
-        Builder[Case, Collection]
-      ]
-  ): TrialsImplementation[Collection] =
-    lotsOfSize(size, builderFactory.get())
-
-  override def immutableListsOfSize(
-      size: Int
-  ): TrialsImplementation[ImmutableList[Case]] = lotsOfSize(
-    size,
-    new Builder[Case, ImmutableList[Case]] {
-      private val underlyingBuilder = ImmutableList.builder[Case]()
-
-      override def add(caze: Case): Unit = {
-        underlyingBuilder.add(caze)
-      }
-
-      override def build(): ImmutableList[Case] =
-        underlyingBuilder.build()
-    }
-  )
-
   // Scala-only API ...
   override def map[TransformedCase](
       transform: Case => TransformedCase
@@ -1017,7 +918,7 @@ case class TrialsImplementation[Case](
   ): TrialsScaffolding.Tuple2Trials[Case, Case2] =
     new Tuple2Trials(this, secondTrials)
 
-  private def several[Collection](
+  protected override def several[Collection](
       builderFactory: => Builder[Case, Collection]
   ): TrialsImplementation[Collection] = {
     def addItems(partialResult: List[Case]): TrialsImplementation[Collection] =
@@ -1081,7 +982,7 @@ case class TrialsImplementation[Case](
       )
   }
 
-  private def lotsOfSize[Collection](
+  protected override def lotsOfSize[Collection](
       size: Int,
       builderFactory: => Builder[Case, Collection]
   ): TrialsImplementation[Collection] =
