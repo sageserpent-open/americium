@@ -23,7 +23,8 @@ import com.sageserpent.americium.randomEnrichment.RichRandom
 import com.sageserpent.americium.tupleTrials.{Tuple2Trials => ScalaTuple2Trials}
 import com.sageserpent.americium.{
   Trials => ScalaTrials,
-  TrialsScaffolding => ScalaTrialsScaffolding
+  TrialsScaffolding => ScalaTrialsScaffolding,
+  TrialsSkeletalImplementation => ScalaTrialsSkeletalImplementation
 }
 import io.circe.generic.auto._
 import io.circe.parser._
@@ -32,7 +33,7 @@ import io.circe.syntax._
 import _root_.java.util.function.{Consumer, Predicate, Function => JavaFunction}
 import _root_.java.util.{Optional, Iterator => JavaIterator}
 import scala.annotation.tailrec
-import scala.collection.immutable.{SortedMap, SortedSet}
+import scala.collection.immutable.SortedMap
 import scala.collection.mutable
 import scala.jdk.CollectionConverters._
 import scala.util.Random
@@ -84,7 +85,7 @@ object TrialsImplementation {
 case class TrialsImplementation[Case](
     override val generation: TrialsImplementation.Generation[_ <: Case]
 ) extends JavaTrialsSkeletalImplementation[Case]
-    with ScalaTrials[Case] {
+    with ScalaTrialsSkeletalImplementation[Case] {
   thisTrialsImplementation =>
 
   override type SupplySyntaxType = ScalaTrialsScaffolding.SupplyToSyntax[Case]
@@ -953,42 +954,6 @@ case class TrialsImplementation[Case](
     override def build(): Collection = underlyingBuilder.result()
   })
 
-  override def lists: TrialsImplementation[List[Case]] = several
-
-  override def sets: TrialsImplementation[Set[_ <: Case]] = several
-
-  override def sortedSets(implicit
-      ordering: Ordering[_ >: Case]
-  ): TrialsImplementation[SortedSet[_ <: Case]] = several(
-    new Builder[Case, SortedSet[_ <: Case]] {
-      val underlyingBuilder: mutable.Builder[Case, SortedSet[Case]] =
-        SortedSet.newBuilder(ordering.asInstanceOf[Ordering[Case]])
-
-      override def add(caze: Case): Unit = {
-        underlyingBuilder += caze
-      }
-
-      override def build(): SortedSet[_ <: Case] = underlyingBuilder.result()
-    }
-  )
-
-  override def maps[Value](
-      values: ScalaTrials[Value]
-  ): TrialsImplementation[Map[Case, Value]] =
-    flatMap(key => values.map(key -> _)).several[Map[Case, Value]]
-
-  override def sortedMaps[Value](values: ScalaTrials[Value])(implicit
-      ordering: Ordering[_ >: Case]
-  ): TrialsImplementation[SortedMap[Case, Value]] = {
-    flatMap(key => values.map(key -> _)).lists
-      .map[SortedMap[Case, Value]](
-        SortedMap
-          .from[Case, Value](_)(
-            ordering.asInstanceOf[Ordering[Case]]
-          ): SortedMap[Case, Value]
-      )
-  }
-
   protected override def lotsOfSize[Collection](
       size: Int,
       builderFactory: => Builder[Case, Collection]
@@ -1032,9 +997,5 @@ case class TrialsImplementation[Case](
 
       override def build(): Collection = underlyingBuilder.result()
     }
-  )
-
-  override def listsOfSize(size: Int): ScalaTrials[List[Case]] = lotsOfSize(
-    size
   )
 }
