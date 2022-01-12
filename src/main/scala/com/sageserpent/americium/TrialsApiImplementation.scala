@@ -1,11 +1,12 @@
-package com.sageserpent.americium.java
+package com.sageserpent.americium
 import cats.Traverse
 import cats.free.Free
 import cats.free.Free.pure
 import cats.implicits._
 import com.google.common.collect.ImmutableList
-import com.sageserpent.americium.java.TrialsImplementation._
+import com.sageserpent.americium.TrialsImplementation._
 import com.sageserpent.americium.java.{
+  CaseFactory,
   Trials => JavaTrials,
   TrialsApi => JavaTrialsApi
 }

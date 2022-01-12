@@ -1,4 +1,4 @@
-package com.sageserpent.americium.java
+package com.sageserpent.americium
 
 import cats.data.{OptionT, State, StateT}
 import cats.free.Free
@@ -7,12 +7,14 @@ import cats.implicits._
 import cats.{Eval, ~>}
 import com.google.common.collect.{Ordering => _, _}
 import com.sageserpent.americium.Trials.RejectionByInlineFilter
-import com.sageserpent.americium.java.TrialsApiImplementation.scalaApi
+import com.sageserpent.americium.TrialsApiImplementation.scalaApi
 import com.sageserpent.americium.java.TrialsScaffolding.OptionalLimits
 import com.sageserpent.americium.java.tupleTrials.{
   Tuple2Trials => JavaTuple2Trials
 }
 import com.sageserpent.americium.java.{
+  Builder,
+  CaseFactory,
   Trials => JavaTrials,
   TrialsScaffolding => JavaTrialsScaffolding,
   TrialsSkeletalImplementation => JavaTrialsSkeletalImplementation

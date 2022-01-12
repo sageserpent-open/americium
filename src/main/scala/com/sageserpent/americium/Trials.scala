@@ -1,9 +1,8 @@
 package com.sageserpent.americium
 
 import cats._
+import com.sageserpent.americium.TrialsImplementation.GenerationSupport
 import com.sageserpent.americium.TrialsScaffolding.Tuple2Trials
-import com.sageserpent.americium.java.TrialsApiImplementation
-import com.sageserpent.americium.java.TrialsImplementation.GenerationSupport
 
 import scala.collection.Factory
 import scala.collection.immutable.{SortedMap, SortedSet}
