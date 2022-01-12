@@ -9,7 +9,10 @@ import com.sageserpent.americium.java.{
   Trials => JavaTrials,
   TrialsApi => JavaTrialsApi
 }
-import com.sageserpent.americium.{Trials, TrialsApi}
+import com.sageserpent.americium.{
+  Trials => ScalaTrials,
+  TrialsApi => ScalaTrialsApi
+}
 
 import _root_.java.lang.{
   Boolean => JavaBoolean,
@@ -247,9 +250,9 @@ object TrialsApiImplementation {
       scalaApi.strings
   }
 
-  val scalaApi = new CommonApi with TrialsApi {
+  val scalaApi = new CommonApi with ScalaTrialsApi {
     override def delay[Case](
-        delayed: => Trials[Case]
+        delayed: => ScalaTrials[Case]
     ): TrialsImplementation[Case] =
       TrialsImplementation(Free.defer(delayed.generation))
 
@@ -290,39 +293,39 @@ object TrialsApiImplementation {
       )
 
     override def alternate[Case](
-        firstAlternative: Trials[Case],
-        secondAlternative: Trials[Case],
-        otherAlternatives: Trials[Case]*
+        firstAlternative: ScalaTrials[Case],
+        secondAlternative: ScalaTrials[Case],
+        otherAlternatives: ScalaTrials[Case]*
     ): TrialsImplementation[Case] =
       alternate(
         firstAlternative +: secondAlternative +: otherAlternatives
       )
 
     override def alternate[Case](
-        alternatives: Iterable[Trials[Case]]
+        alternatives: Iterable[ScalaTrials[Case]]
     ): TrialsImplementation[Case] =
-      choose(alternatives).flatMap(identity[Trials[Case]])
+      choose(alternatives).flatMap(identity[ScalaTrials[Case]])
 
     override def alternateWithWeights[Case](
-        firstAlternative: (Int, Trials[Case]),
-        secondAlternative: (Int, Trials[Case]),
-        otherAlternatives: (Int, Trials[Case])*
+        firstAlternative: (Int, ScalaTrials[Case]),
+        secondAlternative: (Int, ScalaTrials[Case]),
+        otherAlternatives: (Int, ScalaTrials[Case])*
     ): TrialsImplementation[Case] = alternateWithWeights(
       firstAlternative +: secondAlternative +: otherAlternatives
     )
 
     override def alternateWithWeights[Case](
         alternatives: Iterable[
-          (Int, Trials[Case])
+          (Int, ScalaTrials[Case])
         ]
     ): TrialsImplementation[Case] =
-      chooseWithWeights(alternatives).flatMap(identity[Trials[Case]])
+      chooseWithWeights(alternatives).flatMap(identity[ScalaTrials[Case]])
 
     override def sequences[Case, Sequence[_]: Traverse](
-        sequenceOfTrials: Sequence[Trials[Case]]
+        sequenceOfTrials: Sequence[ScalaTrials[Case]]
     )(implicit
         factory: collection.Factory[Case, Sequence[Case]]
-    ): Trials[Sequence[Case]] = sequenceOfTrials.sequence
+    ): ScalaTrials[Sequence[Case]] = sequenceOfTrials.sequence
 
     override def complexities: TrialsImplementation[Int] =
       new TrialsImplementation(NoteComplexity)
@@ -439,7 +442,7 @@ object TrialsApiImplementation {
           booleans
             .map((negative: Boolean) =>
               if (negative) -zeroOrPositive else zeroOrPositive
-            ): Trials[Double]
+            ): ScalaTrials[Double]
         )
 
     override def booleans: TrialsImplementation[Boolean] =

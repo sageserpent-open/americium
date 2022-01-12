@@ -18,8 +18,11 @@ import com.sageserpent.americium.java.{
   TrialsSkeletalImplementation => JavaTrialsSkeletalImplementation
 }
 import com.sageserpent.americium.randomEnrichment.RichRandom
-import com.sageserpent.americium.tupleTrials.Tuple2Trials
-import com.sageserpent.americium.{Trials, TrialsScaffolding}
+import com.sageserpent.americium.tupleTrials.{Tuple2Trials => ScalaTuple2Trials}
+import com.sageserpent.americium.{
+  Trials => ScalaTrials,
+  TrialsScaffolding => ScalaTrialsScaffolding
+}
 import io.circe.generic.auto._
 import io.circe.parser._
 import io.circe.syntax._
@@ -79,10 +82,10 @@ object TrialsImplementation {
 case class TrialsImplementation[Case](
     override val generation: TrialsImplementation.Generation[_ <: Case]
 ) extends JavaTrialsSkeletalImplementation[Case]
-    with Trials[Case] {
+    with ScalaTrials[Case] {
   thisTrialsImplementation =>
 
-  override type SupplySyntaxType = TrialsScaffolding.SupplyToSyntax[Case]
+  override type SupplySyntaxType = ScalaTrialsScaffolding.SupplyToSyntax[Case]
 
   import TrialsImplementation._
 
@@ -153,21 +156,21 @@ case class TrialsImplementation[Case](
   override def withLimit(
       limit: Int
   ): JavaTrialsScaffolding.SupplyToSyntax[Case]
-    with TrialsScaffolding.SupplyToSyntax[Case] =
+    with ScalaTrialsScaffolding.SupplyToSyntax[Case] =
     withLimits(casesLimit = limit)
 
   override def withLimit(
       limit: Int,
       complexityLimit: Int
   ): JavaTrialsScaffolding.SupplyToSyntax[Case]
-    with TrialsScaffolding.SupplyToSyntax[Case] =
+    with ScalaTrialsScaffolding.SupplyToSyntax[Case] =
     withLimits(casesLimit = limit, complexityLimit = complexityLimit)
 
   def withLimits(
       casesLimit: Int,
       additionalLimits: OptionalLimits
   ): JavaTrialsScaffolding.SupplyToSyntax[Case]
-    with TrialsScaffolding.SupplyToSyntax[Case] =
+    with ScalaTrialsScaffolding.SupplyToSyntax[Case] =
     withLimits(
       casesLimit = casesLimit,
       complexityLimit = additionalLimits.complexity,
@@ -185,7 +188,7 @@ case class TrialsImplementation[Case](
       additionalLimits: OptionalLimits,
       shrinkageStop: JavaTrialsScaffolding.ShrinkageStop[_ >: Case]
   ): JavaTrialsScaffolding.SupplyToSyntax[Case]
-    with TrialsScaffolding.SupplyToSyntax[Case] =
+    with ScalaTrialsScaffolding.SupplyToSyntax[Case] =
     withLimits(
       casesLimit = casesLimit,
       complexityLimit = additionalLimits.complexity,
@@ -201,11 +204,11 @@ case class TrialsImplementation[Case](
       casesLimit: Int,
       complexityLimit: Int,
       shrinkageAttemptsLimit: Int,
-      shrinkageStop: TrialsScaffolding.ShrinkageStop[_ >: Case]
+      shrinkageStop: ScalaTrialsScaffolding.ShrinkageStop[_ >: Case]
   ): JavaTrialsScaffolding.SupplyToSyntax[Case]
-    with TrialsScaffolding.SupplyToSyntax[Case] =
+    with ScalaTrialsScaffolding.SupplyToSyntax[Case] =
     new JavaTrialsScaffolding.SupplyToSyntax[Case]
-      with TrialsScaffolding.SupplyToSyntax[Case] {
+      with ScalaTrialsScaffolding.SupplyToSyntax[Case] {
       final case class NonEmptyDecisionStages(
           latestDecision: Decision,
           previousDecisions: DecisionStagesInReverseOrder
@@ -848,7 +851,7 @@ case class TrialsImplementation[Case](
     flatMap(caze =>
       new TrialsImplementation(
         FiltrationResult(Some(caze).filter(predicate))
-      ): Trials[Case]
+      ): ScalaTrials[Case]
     )
   }
 
@@ -858,7 +861,7 @@ case class TrialsImplementation[Case](
     flatMap(caze =>
       new TrialsImplementation(
         FiltrationResult(filteringTransform(caze))
-      ): Trials[TransformedCase]
+      ): ScalaTrials[TransformedCase]
     )
 
   def this(
@@ -868,7 +871,7 @@ case class TrialsImplementation[Case](
   }
 
   override def flatMap[TransformedCase](
-      step: Case => Trials[TransformedCase]
+      step: Case => ScalaTrials[TransformedCase]
   ): TrialsImplementation[TransformedCase] = {
     val adaptedStep = (step andThen (_.generation))
       .asInstanceOf[Case => Generation[TransformedCase]]
@@ -878,9 +881,9 @@ case class TrialsImplementation[Case](
   def withRecipe(
       recipe: String
   ): JavaTrialsScaffolding.SupplyToSyntax[Case]
-    with TrialsScaffolding.SupplyToSyntax[Case] =
+    with ScalaTrialsScaffolding.SupplyToSyntax[Case] =
     new JavaTrialsScaffolding.SupplyToSyntax[Case]
-      with TrialsScaffolding.SupplyToSyntax[Case] {
+      with ScalaTrialsScaffolding.SupplyToSyntax[Case] {
       // Java-only API ...
       override def supplyTo(consumer: Consumer[Case]): Unit =
         supplyTo(consumer.accept)
@@ -914,9 +917,9 @@ case class TrialsImplementation[Case](
     new JavaTuple2Trials(this, secondTrials)
 
   override def and[Case2](
-      secondTrials: Trials[Case2]
-  ): TrialsScaffolding.Tuple2Trials[Case, Case2] =
-    new Tuple2Trials(this, secondTrials)
+      secondTrials: ScalaTrials[Case2]
+  ): ScalaTrialsScaffolding.Tuple2Trials[Case, Case2] =
+    new ScalaTuple2Trials(this, secondTrials)
 
   protected override def several[Collection](
       builderFactory: => Builder[Case, Collection]
@@ -928,7 +931,9 @@ case class TrialsImplementation[Case](
           partialResult.foreach(builder add _)
           builder.build()
         },
-        flatMap(item => addItems(item :: partialResult): Trials[Collection])
+        flatMap(item =>
+          addItems(item :: partialResult): ScalaTrials[Collection]
+        )
       )
 
     addItems(Nil)
@@ -966,11 +971,11 @@ case class TrialsImplementation[Case](
   )
 
   override def maps[Value](
-      values: Trials[Value]
+      values: ScalaTrials[Value]
   ): TrialsImplementation[Map[Case, Value]] =
     flatMap(key => values.map(key -> _)).several[Map[Case, Value]]
 
-  override def sortedMaps[Value](values: Trials[Value])(implicit
+  override def sortedMaps[Value](values: ScalaTrials[Value])(implicit
       ordering: Ordering[_ >: Case]
   ): TrialsImplementation[SortedMap[Case, Value]] = {
     flatMap(key => values.map(key -> _)).lists
@@ -990,7 +995,7 @@ case class TrialsImplementation[Case](
       def addItems(
           numberOfItems: Int,
           partialResult: List[Case]
-      ): Trials[Collection] =
+      ): ScalaTrials[Collection] =
         if (0 >= numberOfItems)
           scalaApi.only {
             val builder = builderFactory
@@ -1000,7 +1005,7 @@ case class TrialsImplementation[Case](
         else
           flatMap(item =>
             (scalaApi
-              .resetComplexity(complexity): Trials[Unit])
+              .resetComplexity(complexity): ScalaTrials[Unit])
               .flatMap(_ =>
                 addItems(
                   numberOfItems - 1,
@@ -1027,5 +1032,7 @@ case class TrialsImplementation[Case](
     }
   )
 
-  override def listsOfSize(size: Int): Trials[List[Case]] = lotsOfSize(size)
+  override def listsOfSize(size: Int): ScalaTrials[List[Case]] = lotsOfSize(
+    size
+  )
 }

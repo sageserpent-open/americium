@@ -3,15 +3,8 @@ package com.sageserpent.americium.java
 import com.google.common.collect.{Ordering => _, _}
 import com.sageserpent.americium.java.{Trials => JavaTrials}
 
-import _root_.java.util.function.{
-  Function => JavaFunction,
-  Supplier => JavaSupplier
-}
-import _root_.java.util.{
-  Comparator => JavaComparator,
-  HashMap => JavaHashMap,
-  Map => JavaMap
-}
+import _root_.java.util.function.{Function => JavaFunction, Supplier}
+import _root_.java.util.{Comparator, HashMap => JavaHashMap, Map => JavaMap}
 
 trait TrialsSkeletalImplementation[Case] extends JavaTrials[Case] {
   override def flatMap[TransformedCase](
@@ -28,7 +21,7 @@ trait TrialsSkeletalImplementation[Case] extends JavaTrials[Case] {
   ): JavaTrials[Collection]
 
   override def collections[Collection](
-      builderFactory: JavaSupplier[
+      builderFactory: Supplier[
         Builder[Case, Collection]
       ]
   ): JavaTrials[Collection] =
@@ -59,7 +52,7 @@ trait TrialsSkeletalImplementation[Case] extends JavaTrials[Case] {
     })
 
   override def immutableSortedSets(
-      elementComparator: JavaComparator[Case]
+      elementComparator: Comparator[Case]
   ): JavaTrials[ImmutableSortedSet[Case]] =
     several(new Builder[Case, ImmutableSortedSet[Case]] {
       private val underlyingBuilder: ImmutableSortedSet.Builder[Case] =
@@ -91,7 +84,7 @@ trait TrialsSkeletalImplementation[Case] extends JavaTrials[Case] {
     )
 
   override def immutableSortedMaps[Value](
-      elementComparator: JavaComparator[Case],
+      elementComparator: Comparator[Case],
       values: JavaTrials[Value]
   ): JavaTrials[ImmutableSortedMap[Case, Value]] =
     flatMap(key => values.map(key -> _)).several(
@@ -113,7 +106,7 @@ trait TrialsSkeletalImplementation[Case] extends JavaTrials[Case] {
 
   override def collectionsOfSize[Collection](
       size: Int,
-      builderFactory: JavaSupplier[
+      builderFactory: Supplier[
         Builder[Case, Collection]
       ]
   ): JavaTrials[Collection] =
