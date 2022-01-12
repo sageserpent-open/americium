@@ -1,9 +1,18 @@
 package com.sageserpent.americium
-import com.sageserpent.americium.{Trials => ScalaTrials}
+import com.sageserpent.americium.tupleTrials.{Tuple2Trials => ScalaTuple2Trials}
+import com.sageserpent.americium.{
+  Trials => ScalaTrials,
+  TrialsScaffolding => ScalaTrialsScaffolding
+}
 
 import scala.collection.immutable.{SortedMap, SortedSet}
 
 trait TrialsSkeletalImplementation[Case] extends ScalaTrials[Case] {
+  override def and[Case2](
+      secondTrials: ScalaTrials[Case2]
+  ): ScalaTrialsScaffolding.Tuple2Trials[Case, Case2] =
+    new ScalaTuple2Trials(this, secondTrials)
+
   override def lists: ScalaTrials[List[Case]] = several
 
   override def sets: ScalaTrials[Set[_ <: Case]] = several

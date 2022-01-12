@@ -9,9 +9,6 @@ import com.google.common.collect.{Ordering => _, _}
 import com.sageserpent.americium.Trials.RejectionByInlineFilter
 import com.sageserpent.americium.TrialsApiImplementation.scalaApi
 import com.sageserpent.americium.java.TrialsScaffolding.OptionalLimits
-import com.sageserpent.americium.java.tupleTrials.{
-  Tuple2Trials => JavaTuple2Trials
-}
 import com.sageserpent.americium.java.{
   Builder,
   CaseFactory,
@@ -20,7 +17,6 @@ import com.sageserpent.americium.java.{
   TrialsSkeletalImplementation => JavaTrialsSkeletalImplementation
 }
 import com.sageserpent.americium.randomEnrichment.RichRandom
-import com.sageserpent.americium.tupleTrials.{Tuple2Trials => ScalaTuple2Trials}
 import com.sageserpent.americium.{
   Trials => ScalaTrials,
   TrialsScaffolding => ScalaTrialsScaffolding,
@@ -913,16 +909,6 @@ case class TrialsImplementation[Case](
         }
       }
     }
-
-  override def and[Case2](
-      secondTrials: JavaTrials[Case2]
-  ): JavaTrialsScaffolding.Tuple2Trials[Case, Case2] =
-    new JavaTuple2Trials(this, secondTrials)
-
-  override def and[Case2](
-      secondTrials: ScalaTrials[Case2]
-  ): ScalaTrialsScaffolding.Tuple2Trials[Case, Case2] =
-    new ScalaTuple2Trials(this, secondTrials)
 
   protected override def several[Collection](
       builderFactory: => Builder[Case, Collection]

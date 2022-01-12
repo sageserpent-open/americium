@@ -1,15 +1,26 @@
 package com.sageserpent.americium.java
 
 import com.google.common.collect.{Ordering => _, _}
-import com.sageserpent.americium.java.{Trials => JavaTrials}
+import com.sageserpent.americium.java.tupleTrials.{
+  Tuple2Trials => JavaTuple2Trials
+}
+import com.sageserpent.americium.java.{
+  Trials => JavaTrials,
+  TrialsScaffolding => JavaTrialsScaffolding
+}
 
-import _root_.java.util.function.{Function => JavaFunction, Supplier}
+import _root_.java.util.function.{Supplier, Function => JavaFunction}
 import _root_.java.util.{Comparator, HashMap => JavaHashMap, Map => JavaMap}
 
 trait TrialsSkeletalImplementation[Case] extends JavaTrials[Case] {
   override def flatMap[TransformedCase](
       step: JavaFunction[Case, JavaTrials[TransformedCase]]
   ): TrialsSkeletalImplementation[TransformedCase]
+
+  override def and[Case2](
+      secondTrials: JavaTrials[Case2]
+  ): JavaTrialsScaffolding.Tuple2Trials[Case, Case2] =
+    new JavaTuple2Trials(this, secondTrials)
 
   protected def lotsOfSize[Collection](
       size: Int,
