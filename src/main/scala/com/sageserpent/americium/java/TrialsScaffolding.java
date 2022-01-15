@@ -98,7 +98,7 @@ public interface TrialsScaffolding<Case,
          * Deeply recursive trials also result in high complexity.
          */
         @lombok.Builder.Default
-        final int complexity = TrialsFactoring.defaultComplexityLimit();
+        public final int complexity = TrialsFactoring.defaultComplexityLimit();
 
         /**
          * The maximum number of shrinkage attempts when shrinking a case.
@@ -106,7 +106,7 @@ public interface TrialsScaffolding<Case,
          * original failing case.
          */
         @lombok.Builder.Default
-        final int shrinkageAttempts =
+        public final int shrinkageAttempts =
                 TrialsFactoring.defaultShrinkageAttemptsLimit();
     }
 

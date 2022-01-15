@@ -1,6 +1,7 @@
 package com.sageserpent.americium.java;
 
 import com.google.common.collect.*;
+import com.sageserpent.americium.TrialsApiImplementation;
 
 import java.util.Comparator;
 import java.util.Optional;
