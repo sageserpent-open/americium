@@ -3,6 +3,7 @@ package com.sageserpent.americium
 import cats._
 import com.sageserpent.americium.TrialsImplementation.GenerationSupport
 import com.sageserpent.americium.TrialsScaffolding.Tuple2Trials
+import com.sageserpent.americium.java.{Trials => JavaTrials}
 
 import scala.collection.Factory
 import scala.collection.immutable.{SortedMap, SortedSet}
@@ -47,6 +48,8 @@ trait Trials[+Case]
     extends TrialsScaffolding[Case]
     with GenerationSupport[Case] {
   override type SupplySyntaxType <: TrialsScaffolding.SupplyToSyntax[Case]
+
+  def javaTrials: JavaTrials[_ <: Case]
 
   def map[TransformedCase](
       transform: Case => TransformedCase
