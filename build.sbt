@@ -36,7 +36,7 @@ lazy val settings = Seq(
     pushChanges
   ),
   name         := "americium",
-  scalaVersion := "2.13.7",
+  scalaVersion := "2.13.8",
   scalacOptions += s"-target:jvm-$javaVersion",
   javacOptions ++= Seq("-source", javaVersion, "-target", javaVersion),
   libraryDependencies += "com.softwaremill.magnolia1_2" %% "magnolia" % "1.0.0-M7",
