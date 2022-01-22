@@ -1,6 +1,6 @@
 package com.sageserpent.americium
 
-import cats._
+import cats.*
 import com.sageserpent.americium.TrialsImplementation.GenerationSupport
 import com.sageserpent.americium.TrialsScaffolding.Tuple2Trials
 
@@ -8,7 +8,7 @@ import scala.collection.Factory
 import scala.collection.immutable.{SortedMap, SortedSet}
 import scala.language.implicitConversions
 
-object Trials extends TrialsByMagnolia {
+object Trials {
   def api: TrialsApi = TrialsApiImplementation.scalaApi
 
   private[americium] class RejectionByInlineFilter extends RuntimeException

@@ -2,33 +2,33 @@ package com.sageserpent.americium
 import cats.Traverse
 import cats.free.Free
 import cats.free.Free.pure
-import cats.implicits._
+import cats.implicits.*
 import com.google.common.collect.ImmutableList
-import com.sageserpent.americium.TrialsImplementation._
+import com.sageserpent.americium.TrialsImplementation.*
 import com.sageserpent.americium.java.{
   CaseFactory,
-  Trials => JavaTrials,
-  TrialsApi => JavaTrialsApi
+  Trials as JavaTrials,
+  TrialsApi as JavaTrialsApi
 }
 import com.sageserpent.americium.{
-  Trials => ScalaTrials,
-  TrialsApi => ScalaTrialsApi
+  Trials as ScalaTrials,
+  TrialsApi as ScalaTrialsApi
 }
 
 import _root_.java.lang.{
-  Boolean => JavaBoolean,
-  Byte => JavaByte,
-  Character => JavaCharacter,
-  Double => JavaDouble,
-  Integer => JavaInteger,
-  Iterable => JavaIterable,
-  Long => JavaLong
+  Boolean as JavaBoolean,
+  Byte as JavaByte,
+  Character as JavaCharacter,
+  Double as JavaDouble,
+  Integer as JavaInteger,
+  Iterable as JavaIterable,
+  Long as JavaLong
 }
 import _root_.java.time.Instant
-import _root_.java.util.function.{Supplier, Function => JavaFunction}
-import _root_.java.util.{List => JavaList, Map => JavaMap}
+import _root_.java.util.function.{Supplier, Function as JavaFunction}
+import _root_.java.util.{List as JavaList, Map as JavaMap}
 import scala.collection.immutable.SortedMap
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 import scala.util.Random
 
 object TrialsApiImplementation {
