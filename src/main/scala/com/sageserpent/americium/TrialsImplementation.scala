@@ -3,35 +3,25 @@ package com.sageserpent.americium
 import cats.data.{OptionT, State, StateT}
 import cats.free.Free
 import cats.free.Free.liftF
-import cats.implicits._
+import cats.implicits.*
 import cats.{Eval, ~>}
-import com.google.common.collect.{Ordering => _, _}
+import com.google.common.collect.{Ordering as _, *}
 import com.sageserpent.americium.Trials.RejectionByInlineFilter
 import com.sageserpent.americium.TrialsApiImplementation.scalaApi
 import com.sageserpent.americium.java.TrialsScaffolding.OptionalLimits
-import com.sageserpent.americium.java.{
-  Builder,
-  CaseFactory,
-  Trials => JavaTrials,
-  TrialsScaffolding => JavaTrialsScaffolding,
-  TrialsSkeletalImplementation => JavaTrialsSkeletalImplementation
-}
+import com.sageserpent.americium.java.{Builder, CaseFactory, Trials as JavaTrials, TrialsScaffolding as JavaTrialsScaffolding, TrialsSkeletalImplementation as JavaTrialsSkeletalImplementation}
 import com.sageserpent.americium.randomEnrichment.RichRandom
-import com.sageserpent.americium.{
-  Trials => ScalaTrials,
-  TrialsScaffolding => ScalaTrialsScaffolding,
-  TrialsSkeletalImplementation => ScalaTrialsSkeletalImplementation
-}
-import io.circe.generic.auto._
-import io.circe.parser._
-import io.circe.syntax._
+import com.sageserpent.americium.{Trials as ScalaTrials, TrialsScaffolding as ScalaTrialsScaffolding, TrialsSkeletalImplementation as ScalaTrialsSkeletalImplementation}
+import io.circe.generic.auto.*
+import io.circe.parser.*
+import io.circe.syntax.*
 
-import _root_.java.util.function.{Consumer, Predicate, Function => JavaFunction}
-import _root_.java.util.{Optional, Iterator => JavaIterator}
+import _root_.java.util.function.{Consumer, Predicate, Function as JavaFunction}
+import _root_.java.util.{Optional, Iterator as JavaIterator}
 import scala.annotation.tailrec
 import scala.collection.immutable.SortedMap
 import scala.collection.mutable
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 import scala.util.Random
 
 object TrialsImplementation {
@@ -86,7 +76,7 @@ case class TrialsImplementation[Case](
 
   override type SupplySyntaxType = ScalaTrialsScaffolding.SupplyToSyntax[Case]
 
-  import TrialsImplementation._
+  import TrialsImplementation.*
 
   override val scalaTrials = this
 
@@ -213,7 +203,7 @@ case class TrialsImplementation[Case](
           previousDecisions: DecisionStagesInReverseOrder
       )
 
-      final case object NoDecisionStages extends DecisionStagesInReverseOrder
+      case object NoDecisionStages extends DecisionStagesInReverseOrder
 
       final case class InternedDecisionStages(index: Int)
           extends DecisionStagesInReverseOrder
@@ -770,8 +760,7 @@ case class TrialsImplementation[Case](
                   externalStoppingCondition = externalStoppingCondition
                 )
               )
-            } else
-              Eval.now(())
+            } else Eval.now(())
           }
 
           potentialShrunkExceptionalOutcome.flatMap(_ =>
