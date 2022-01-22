@@ -19,7 +19,7 @@ object Trials {
     if (satisfiedPrecondition) block else throw new RejectionByInlineFilter()
 
   implicit class CharacterTrialsSyntax(val characterTrials: Trials[Char]) {
-    def strings(): Trials[String] = characterTrials.several
+    def strings: Trials[String] = characterTrials.several
 
     def stringsOfSize(size: Int): Trials[String] =
       characterTrials.lotsOfSize(size)

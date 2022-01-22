@@ -2,23 +2,18 @@ package com.sageserpent.americium
 
 import com.sageserpent.americium.Trials.RejectionByInlineFilter
 import com.sageserpent.americium.TrialsScaffolding.noShrinking
-import com.sageserpent.americium.java.{
-  Builder,
-  CaseFactory,
-  Trials => JavaTrials,
-  TrialsApi => JavaTrialsApi
-}
+import com.sageserpent.americium.java.{Builder, CaseFactory, Trials as JavaTrials, TrialsApi as JavaTrialsApi}
 import org.mockito.ArgumentMatchers.{any, argThat}
 import org.mockito.Mockito
-import org.mockito.Mockito._
+import org.mockito.Mockito.*
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.prop.TableDrivenPropertyChecks
 
 import _root_.java.util.UUID
-import _root_.java.util.function.{Predicate, Function => JavaFunction}
+import _root_.java.util.function.{Predicate, Function as JavaFunction}
 import scala.collection.mutable
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 import scala.util.Try
 
 object TrialsSpec {
@@ -48,8 +43,7 @@ object TrialsSpec {
     )
   }
 
-  val api: TrialsApi         = Trials.api
-  val javaApi: JavaTrialsApi = JavaTrials.api
+  val api: TrialsApi = Trials.api
 
   val limit: Int = 350
 
@@ -118,10 +112,7 @@ class TrialsSpec
     extends AnyFlatSpec
     with Matchers
     with TableDrivenPropertyChecks {
-  import TrialsSpec._
-
-  type TypeRequirementsToProtectCodeInStringsFromUnusedImportOptimisation =
-    (JavaTrials[_], JavaFunction[_, _], Predicate[_])
+  import TrialsSpec.*
 
   "test driving the Scala API" should "not produce smoke" in {
     val trials = api.choose(2, -4, 3)
@@ -223,87 +214,6 @@ class TrialsSpec
     api
       .choose(0, 1, 2, 5)
       .flatMap(size => api.characters('a', 'z').stringsOfSize(size))
-      .withLimit(limit)
-      .supplyTo(println)
-  }
-
-  "test driving the Java API" should "not produce smoke" in {
-    val javaTrials = javaApi.choose(2, -4, 3)
-
-    val flatMappedJavaTrials =
-      javaTrials flatMap (integer => javaApi.only(1.1 * integer))
-
-    flatMappedJavaTrials.withLimit(limit).supplyTo(println)
-
-    val mappedJavaTrials = javaTrials map (_ * 2.5)
-
-    mappedJavaTrials.withLimit(limit).supplyTo(println)
-
-    javaApi
-      .alternate(flatMappedJavaTrials, mappedJavaTrials)
-      .withLimit(limit)
-      .supplyTo(println)
-
-    javaApi
-      .choose((0 to 20).asJava)
-      .withLimit(limit)
-      .supplyTo(println)
-
-    javaApi
-      .alternate(Seq(flatMappedJavaTrials, mappedJavaTrials).asJava)
-      .withLimit(limit)
-      .supplyTo(println)
-
-    javaApi
-      .streamLegacy(_.toString)
-      .withLimit(limit)
-      .supplyTo(println)
-
-    javaApi.bytes
-      .withLimit(limit)
-      .supplyTo(println)
-
-    javaApi.integers
-      .withLimit(limit)
-      .supplyTo(println)
-
-    javaApi.longs
-      .withLimit(limit)
-      .supplyTo(println)
-
-    javaApi.doubles
-      .withLimit(limit)
-      .supplyTo(println)
-
-    javaApi.booleans
-      .withLimit(limit)
-      .supplyTo(println)
-
-    javaApi.characters
-      .withLimit(limit)
-      .supplyTo(println)
-
-    javaApi.instants
-      .withLimit(limit)
-      .supplyTo(println)
-
-    javaApi.strings
-      .withLimit(limit)
-      .supplyTo(println)
-
-    javaApi
-      .characters('a', 'z', 'p')
-      .collections(Builder.stringBuilder _)
-      .withLimit(limit)
-      .supplyTo(println)
-
-    javaApi
-      .choose(0, 1, 2, 5)
-      .flatMap(size =>
-        javaApi
-          .characters('a', 'z')
-          .collectionsOfSize(size, Builder.stringBuilder _)
-      )
       .withLimit(limit)
       .supplyTo(println)
   }
@@ -522,7 +432,7 @@ class TrialsSpec
       case (possibleChoices, exceptionCriterion) =>
         val sut = api.choose(possibleChoices)
 
-        val complainingConsumer = { caze: X =>
+        val complainingConsumer = { (caze: X) =>
           if (exceptionCriterion(caze))
             throw ExceptionWithCasePayload(caze)
         }
@@ -739,7 +649,7 @@ class TrialsSpec
 
       doReturn(())
         .when(mockConsumer)
-        .apply(argThat { identifiedCase: (Any, UUID) =>
+        .apply(argThat { (identifiedCase: (Any, UUID)) =>
           alternativeInvariantIds.contains(
             identifiedCase._2
           ) && predicateOnHash(
@@ -918,8 +828,8 @@ class TrialsSpec
           api.streamLegacy(_ * 1.46),
           api.choose(0 until 10 map (_.toString)),
           api.choose(-10 until 0)
-        ),
-        implicitly[Trials.Factory[Option[Int]]].trials
+        ) /*,
+        implicitly[Trials.Factory[Option[Int]]].trials*/
       )
     ) { sut =>
       val mockConsumer: Any => Unit = mock(classOf[Any => Unit])
@@ -960,9 +870,9 @@ class TrialsSpec
         api.alternate(
           api.choose(0 until 10 map (_.toString)),
           api.choose(-10 until 0)
-        )                                                    -> 4,
-        api.streamLegacy(identity)                           -> 200,
-        implicitly[Trials.Factory[Either[Long, Int]]].trials -> 500
+        )                          -> 4,
+        api.streamLegacy(identity) -> 200 /*,
+        implicitly[Trials.Factory[Either[Long, Int]]].trials -> 500*/
       )
     ) { (sut, limit) =>
       val mockConsumer: Any => Unit = mock(classOf[Any => Unit])
@@ -981,8 +891,8 @@ class TrialsSpec
         api.alternate(
           api.choose(0 until 10 map (_.toString)),
           api.choose(-10 until 0)
-        )                                                           -> 20,
-        implicitly[Trials.Factory[Either[Boolean, Boolean]]].trials -> 4,
+        ) -> 20 /*,
+        implicitly[Trials.Factory[Either[Boolean, Boolean]]].trials -> 4*/,
         api
           .choose(1 to 3)
           .flatMap(x => api.choose(1 to 10).map(x -> _))
@@ -1017,11 +927,11 @@ class TrialsSpec
           api.only(true),
           api.choose(-10 until 0),
           api.streamLegacy(JackInABox.apply)
-        ),
+        ) /*,
         implicitly[Trials.Factory[Option[Int]]].trials.map {
           case None        => JackInABox(())
           case Some(value) => value
-        }
+        }*/
       )
     ) { sut =>
       val surprisedConsumer: Any => Unit = {
@@ -1076,11 +986,11 @@ class TrialsSpec
           case value => value
         }),
         api.choose(-10 until 0)
-      ),
+      ) /*,
       implicitly[Trials.Factory[Option[Int]]].trials.map {
         case None        => JackInABox(())
         case Some(value) => value
-      }
+      }*/
     )
   ) { sut =>
     val surprisedConsumer: Any => Unit = {
@@ -1110,7 +1020,7 @@ class TrialsSpec
         trialsAndCriterion: DescriptionTrialsCriterionAndLimit[X]
     ): Unit = trialsAndCriterion match {
       case (description, sut, exceptionCriterion, limit) =>
-        val complainingConsumer = { caze: Vector[X] =>
+        val complainingConsumer = { (caze: Vector[X]) =>
           if (exceptionCriterion(caze))
             throw ExceptionWithCasePayload(caze)
         }
@@ -1490,25 +1400,25 @@ class TrialsSpec
       .supplyTo(println)
   }
 
-  "test driving automatic implicit generation of a trials" should "not produce smoke" in {
-    implicitly[Trials.Factory[Option[Int]]].trials
-      .withLimit(limit)
-      .supplyTo(println)
+//  "test driving automatic implicit generation of a trials" should "not produce smoke" in {
+//    implicitly[Trials.Factory[Option[Int]]].trials
+//      .withLimit(limit)
+//      .supplyTo(println)
+//
+//    implicitly[Trials.Factory[Either[(Boolean, Boolean), Double]]].trials
+//      .withLimit(limit)
+//      .supplyTo(println)
+//  }
 
-    implicitly[Trials.Factory[Either[(Boolean, Boolean), Double]]].trials
-      .withLimit(limit)
-      .supplyTo(println)
-  }
-
-  "test driving automatic implicit generation of a trials for a recursive data structure" should "not produce smoke" in {
-    implicitly[Trials.Factory[List[Boolean]]].trials
-      .withLimit(limit)
-      .supplyTo(println)
-
-    implicitly[Trials.Factory[BinaryTree]].trials
-      .withLimit(limit)
-      .supplyTo(println)
-  }
+//  "test driving automatic implicit generation of a trials for a recursive data structure" should "not produce smoke" in {
+//    implicitly[Trials.Factory[List[Boolean]]].trials
+//      .withLimit(limit)
+//      .supplyTo(println)
+//
+//    implicitly[Trials.Factory[BinaryTree]].trials
+//      .withLimit(limit)
+//      .supplyTo(println)
+//  }
 
   "inlined filtration" should "execute the controlled block if and only if the precondition holds" in {
     assertThrows[RejectionByInlineFilter] {

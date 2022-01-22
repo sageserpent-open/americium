@@ -312,7 +312,7 @@ class RichRandomMiscellaneaSpec extends AnyFlatSpec with Matchers {
 
       val sequences =
         (sequenceSizes zipWithIndex) map { case (sequenceSize, sequenceIndex) =>
-          Seq.tabulate(sequenceSize) { itemIndex: Int =>
+          Seq.tabulate(sequenceSize) { (itemIndex: Int) =>
             sequenceIndex + numberOfSequences * itemIndex
           }
         }

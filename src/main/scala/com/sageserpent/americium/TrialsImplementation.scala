@@ -76,8 +76,6 @@ case class TrialsImplementation[Case](
 
   import TrialsImplementation.*
 
-  override val scalaTrials = this
-
   // Java and Scala API ...
   override def reproduce(recipe: String): Case =
     reproduce(parseDecisionIndices(recipe))
@@ -155,7 +153,7 @@ case class TrialsImplementation[Case](
       casesLimit: Int,
       complexityLimit: Int,
       shrinkageAttemptsLimit: Int,
-      shrinkageStop: ScalaTrialsScaffolding.ShrinkageStop[_ >: Case]
+      shrinkageStop: ScalaTrialsScaffolding.ShrinkageStop[Case]
   ): ScalaTrialsScaffolding.SupplyToSyntax[Case] =
     new ScalaTrialsScaffolding.SupplyToSyntax[Case] {
       final case class NonEmptyDecisionStages(
@@ -527,24 +525,6 @@ case class TrialsImplementation[Case](
         }
       }
 
-      // Java-only API ...
-      override def supplyTo(consumer: Consumer[Case]): Unit =
-        supplyTo(consumer.accept)
-
-      override def asIterator(): JavaIterator[Case] = {
-        val randomBehaviour = new Random(734874)
-
-        cases(
-          casesLimit,
-          complexityLimit,
-          randomBehaviour,
-          None,
-          decisionStagesToGuideShrinkage = None
-        )
-          .map(_._2)
-          .asJava
-      }
-
       // Scala-only API ...
       override def supplyTo(consumer: Case => Unit): Unit = {
 
@@ -807,15 +787,6 @@ case class TrialsImplementation[Case](
       recipe: String
   ): ScalaTrialsScaffolding.SupplyToSyntax[Case] =
     new ScalaTrialsScaffolding.SupplyToSyntax[Case] {
-      // Java-only API ...
-      override def supplyTo(consumer: Consumer[Case]): Unit =
-        supplyTo(consumer.accept)
-
-      override def asIterator(): JavaIterator[Case] = Seq {
-        val decisionStages = parseDecisionIndices(recipe)
-        reproduce(decisionStages)
-      }.asJava.iterator()
-
       // Scala-only API ...
       override def supplyTo(consumer: Case => Unit): Unit = {
         val decisionStages = parseDecisionIndices(recipe)
@@ -834,7 +805,7 @@ case class TrialsImplementation[Case](
       }
     }
 
-  protected override def several[Collection](
+  protected def several[Collection](
       builderFactory: => Builder[Case, Collection]
   ): TrialsImplementation[Collection] = {
     def addItems(partialResult: List[Case]): TrialsImplementation[Collection] =
@@ -864,7 +835,7 @@ case class TrialsImplementation[Case](
     override def build(): Collection = underlyingBuilder.result()
   })
 
-  protected override def lotsOfSize[Collection](
+  protected def lotsOfSize[Collection](
       size: Int,
       builderFactory: => Builder[Case, Collection]
   ): TrialsImplementation[Collection] =
