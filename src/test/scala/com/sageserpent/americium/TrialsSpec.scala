@@ -2,7 +2,7 @@ package com.sageserpent.americium
 
 import com.sageserpent.americium.Trials.RejectionByInlineFilter
 import com.sageserpent.americium.TrialsScaffolding.noShrinking
-import com.sageserpent.americium.java.{Builder, CaseFactory, Trials as JavaTrials, TrialsApi as JavaTrialsApi}
+import com.sageserpent.americium.java.{Builder, CaseFactory}
 import org.mockito.ArgumentMatchers.{any, argThat}
 import org.mockito.Mockito
 import org.mockito.Mockito.*
@@ -423,13 +423,14 @@ class TrialsSpec
 
   case class ExceptionWithCasePayload[Case](caze: Case) extends RuntimeException
 
+  case class ChoicesAndCriterion[X](choices: Seq[X], criterion: X => Boolean)
+
   "a choice that includes exceptional cases" should "result in one of the corresponding exceptions" in {
-    type ChoicesAndCriterion[X] = (Seq[X], X => Boolean)
 
     def testBodyInWildcardCapture[X](
         choicesAndCriterion: ChoicesAndCriterion[X]
     ) = choicesAndCriterion match {
-      case (possibleChoices, exceptionCriterion) =>
+      case ChoicesAndCriterion(possibleChoices, exceptionCriterion) =>
         val sut = api.choose(possibleChoices)
 
         val complainingConsumer = { (caze: X) =>
@@ -458,10 +459,13 @@ class TrialsSpec
     forAll(
       Table[ChoicesAndCriterion[_]](
         "possibleChoices -> exceptionCriterion",
-        (1 to 10, 0 == (_: Int) % 2),
-        (-5 to 5 map (_.toString), (_: String).contains("5")),
-        (Seq(false, true), identity[Boolean] _),
-        (Seq(4.3), (_: Double) => true)
+        ChoicesAndCriterion(1 to 10, 0 == (_: Int) % 2),
+        ChoicesAndCriterion(
+          -5 to 5 map (_.toString),
+          (_: String).contains("5")
+        ),
+        ChoicesAndCriterion(Seq(false, true), identity[Boolean] _),
+        ChoicesAndCriterion(Seq(4.3), (_: Double) => true)
       )
     ) { choicesAndCriterion =>
       testBodyInWildcardCapture(choicesAndCriterion)
@@ -1012,14 +1016,23 @@ class TrialsSpec
     exceptionRecreatedViaRecipe.recipe shouldBe exception.recipe
   }
 
-  it should "be shrunk to a simple case" in {
-    type DescriptionTrialsCriterionAndLimit[X] =
-      (String, Trials[Vector[X]], Vector[X] => Boolean, Int)
+  case class DescriptionTrialsCriterionAndLimit[X](
+      description: String,
+      sut: Trials[Vector[X]],
+      exceptionCriterion: Vector[X] => Boolean,
+      limit: Int
+  )
 
+  it should "be shrunk to a simple case" in {
     def testBodyInWildcardCapture[X](
         trialsAndCriterion: DescriptionTrialsCriterionAndLimit[X]
     ): Unit = trialsAndCriterion match {
-      case (description, sut, exceptionCriterion, limit) =>
+      case DescriptionTrialsCriterionAndLimit(
+            description,
+            sut,
+            exceptionCriterion,
+            limit
+          ) =>
         val complainingConsumer = { (caze: Vector[X]) =>
           if (exceptionCriterion(caze))
             throw ExceptionWithCasePayload(caze)
@@ -1073,7 +1086,7 @@ class TrialsSpec
     forAll(
       Table[DescriptionTrialsCriterionAndLimit[_]](
         "(description, trials, exceptionCriterion)",
-        (
+        DescriptionTrialsCriterionAndLimit(
           // This first entry isn't expected to shrink the values, only the
           // length of the failing case.
           "Has more than one text item whose converted values sum to more than 7.",
@@ -1082,14 +1095,14 @@ class TrialsSpec
             1 < integerVector.size && integerVector.sum > 7,
           limit
         ),
-        (
+        DescriptionTrialsCriterionAndLimit(
           "Has either four or five characters.",
           api.characters.several[Vector[Char]],
           (characterVector: Vector[Char]) =>
             4 to 5 contains characterVector.size,
           limit
         ),
-        (
+        DescriptionTrialsCriterionAndLimit(
           "Has either four or five characters - variation.",
           api
             .integers(4, 10)
@@ -1098,7 +1111,7 @@ class TrialsSpec
             4 to 5 contains characterVector.size,
           limit
         ),
-        (
+        DescriptionTrialsCriterionAndLimit(
           "Has either four or five characters - variation with shrinkable character range.",
           api
             .integers(4, 10)
@@ -1107,7 +1120,7 @@ class TrialsSpec
             4 to 5 contains characterVector.size,
           limit
         ),
-        (
+        DescriptionTrialsCriterionAndLimit(
           "Has either four or five characters - this used to be a pathologically slow example.",
           api
             .integers(0, 10)
@@ -1116,28 +1129,28 @@ class TrialsSpec
             4 to 5 contains characterVector.size,
           limit
         ),
-        (
+        DescriptionTrialsCriterionAndLimit(
           "Has more than one item and sums to more than 7.",
           doubleVectorTrials,
           (doubleVector: Vector[Double]) =>
             1 < doubleVector.size && doubleVector.sum > 7,
           limit
         ),
-        (
+        DescriptionTrialsCriterionAndLimit(
           "Has more than one item and sums to more than 7.",
           byteVectorTrials,
           (integerVector: Vector[Byte]) =>
             1 < integerVector.size && integerVector.sum > 7,
           limit
         ),
-        (
+        DescriptionTrialsCriterionAndLimit(
           "Has more than one item and sums to more than 7.",
           integerVectorTrials,
           (integerVector: Vector[Int]) =>
             1 < integerVector.size && integerVector.sum > 7,
           limit
         ),
-        (
+        DescriptionTrialsCriterionAndLimit(
           "Has more than one item, no zeroes and sums to more than 7.",
           integerVectorTrials,
           (integerVector: Vector[Int]) =>
@@ -1145,7 +1158,7 @@ class TrialsSpec
               .contains(0),
           limit
         ),
-        (
+        DescriptionTrialsCriterionAndLimit(
           "Has more than one item, at least one zero and sums to more than 7.",
           integerVectorTrials,
           (integerVector: Vector[Int]) =>
@@ -1153,14 +1166,14 @@ class TrialsSpec
               .contains(0),
           limit
         ),
-        (
+        DescriptionTrialsCriterionAndLimit(
           "Has more than one item and sums to more than 7.",
           longVectorTrials,
           (longVector: Vector[Long]) =>
             1 < longVector.size && longVector.sum > 7,
           limit
         ),
-        (
+        DescriptionTrialsCriterionAndLimit(
           "Has more than one item, no zeroes and sums to more than 7.",
           longVectorTrials,
           (longVector: Vector[Long]) =>
@@ -1169,20 +1182,20 @@ class TrialsSpec
             ),
           limit
         ),
-        (
+        DescriptionTrialsCriterionAndLimit(
           "Has more than one item, at least one zero and sums to more than 7.",
           longVectorTrials,
           (longVector: Vector[Long]) =>
             1 < longVector.size && longVector.sum > 7 && longVector.contains(0),
           limit
         ),
-        (
+        DescriptionTrialsCriterionAndLimit(
           "Has more than 7 items.",
           integerVectorTrials,
           (integerVector: Vector[Int]) => integerVector.size > 7,
           limit
         ),
-        (
+        DescriptionTrialsCriterionAndLimit(
           "Has more than one item, at least one non-zero and sums to a multiple of 7.",
           integerVectorTrials,
           (integerVector: Vector[Int]) =>
@@ -1190,7 +1203,7 @@ class TrialsSpec
               .exists(0 != _),
           limit
         ),
-        (
+        DescriptionTrialsCriterionAndLimit(
           "Has more than one item, no zeroes and sums to a multiple of 7.",
           integerVectorTrials,
           (integerVector: Vector[Int]) =>
@@ -1198,7 +1211,7 @@ class TrialsSpec
               .contains(0),
           limit
         ),
-        (
+        DescriptionTrialsCriterionAndLimit(
           "Has more than one item, at least one zero and sums to a multiple of 7.",
           integerVectorTrials,
           (integerVector: Vector[Int]) =>
@@ -1206,14 +1219,14 @@ class TrialsSpec
               .contains(0),
           limit
         ),
-        (
+        DescriptionTrialsCriterionAndLimit(
           "Has more than one item and sums to a positive multiple of 7.",
           integerVectorTrials,
           (integerVector: Vector[Int]) =>
             1 < integerVector.size && 0 == integerVector.sum % 7 && 0 < integerVector.sum,
           limit
         ),
-        (
+        DescriptionTrialsCriterionAndLimit(
           "Has more than one item, no zeroes and sums to a positive multiple of 7.",
           integerVectorTrials,
           (integerVector: Vector[Int]) =>
@@ -1221,7 +1234,7 @@ class TrialsSpec
               .contains(0),
           limit
         ),
-        (
+        DescriptionTrialsCriterionAndLimit(
           "Has more than one item, at least one non-zero and sums to a positive multiple of 7.",
           integerVectorTrials,
           (integerVector: Vector[Int]) =>
@@ -1229,14 +1242,14 @@ class TrialsSpec
               .exists(0 != _),
           limit
         ),
-        (
+        DescriptionTrialsCriterionAndLimit(
           "Flattened binary tree with more than one leaf that sums to a multiple of 19 greater than 19.",
           binaryTreeTrials map (_.flatten),
           (integerVector: Vector[Int]) =>
             1 < integerVector.size && 0 == integerVector.sum % 19 && 19 < integerVector.sum,
           limit
         ),
-        (
+        DescriptionTrialsCriterionAndLimit(
           "Flattened binary tree with more than one leaf and no zeroes that sums to a multiple of 19 greater than 19.",
           binaryTreeTrials map (_.flatten),
           (integerVector: Vector[Int]) =>
@@ -1244,7 +1257,7 @@ class TrialsSpec
               .contains(0),
           limit
         ),
-        (
+        DescriptionTrialsCriterionAndLimit(
           "Flattened binary tree with more than one leaf and at least one zero that sums to a multiple of 19 greater than 19.",
           binaryTreeTrials map (_.flatten),
           (integerVector: Vector[Int]) =>
@@ -1252,7 +1265,7 @@ class TrialsSpec
               .contains(0),
           limit
         ),
-        (
+        DescriptionTrialsCriterionAndLimit(
           "Has more than five items, at least one non-zero and sums to a multiple of 7.",
           integerVectorTrials,
           (integerVector: Vector[Int]) =>
@@ -1260,7 +1273,7 @@ class TrialsSpec
               .exists(0 != _),
           500
         ),
-        (
+        DescriptionTrialsCriterionAndLimit(
           "Has more than five items and sums to a multiple of 7 less than -7.",
           integerVectorTrials,
           (integerVector: Vector[Int]) =>
@@ -1268,7 +1281,7 @@ class TrialsSpec
               .exists(0 != _),
           750
         ),
-        (
+        DescriptionTrialsCriterionAndLimit(
           "Has more than two items and is not sorted in ascending order.",
           integerVectorTrials,
           (integerVector: Vector[Int]) =>
@@ -1277,14 +1290,14 @@ class TrialsSpec
               .exists { case (first, second) => first > second },
           limit
         ),
-        (
+        DescriptionTrialsCriterionAndLimit(
           "Has more than two items and no duplicates.",
           integerVectorTrials,
           (integerVector: Vector[Int]) =>
             2 < integerVector.size && integerVector.distinct == integerVector,
           limit
         ),
-        (
+        DescriptionTrialsCriterionAndLimit(
           "Flattened binary tree with more than two leaves whose odd-indexed leaves contain zeroes and even-indexed leaves contain non-zero values that sum to a multiple of 31 greater than 31.",
           binaryTreeTrials map (_.flatten),
           (integerVector: Vector[Int]) =>
@@ -1293,7 +1306,7 @@ class TrialsSpec
             )),
           5000
         ),
-        (
+        DescriptionTrialsCriterionAndLimit(
           "List with more than two elements whose odd-indexed elements contain zeroes and even-indexed elements contain non-zero values that sum to a multiple of 31 greater than 31.",
           listTrials map (_.toVector),
           (integerVector: Vector[Int]) =>
