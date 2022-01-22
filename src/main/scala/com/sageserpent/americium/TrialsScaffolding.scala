@@ -1,10 +1,7 @@
 package com.sageserpent.americium
 import com.sageserpent.americium.TrialsScaffolding.{ShrinkageStop, noStopping}
 import com.sageserpent.americium.java.TrialsFactoring
-import com.sageserpent.americium.java.TrialsFactoring.{
-  defaultComplexityLimit,
-  defaultShrinkageAttemptsLimit
-}
+import com.sageserpent.americium.java.TrialsFactoring.{defaultComplexityLimit, defaultShrinkageAttemptsLimit}
 
 import _root_.java.time.Instant
 import scala.concurrent.duration.{Duration, FiniteDuration}

@@ -35,10 +35,10 @@ import scala.math.Ordering
 
 // Insertion sort, but with a bug...
 def notSoStableSort[Element](
-                              elements: List[Element]
-                            )(implicit ordering: Ordering[Element]): List[Element] =
+    elements: List[Element]
+)(implicit ordering: Ordering[Element]): List[Element] =
   elements match {
-    case Nil => Nil
+    case Nil          => Nil
     case head :: tail =>
       // Spot the deliberate mistake......vvvv
       notSoStableSort(tail).span(ordering.lteq(_, head)) match {
@@ -210,8 +210,7 @@ bug-reproduction test that focuses solely on the test case causing the problem:
 // Until the bug is fixed, we expect this test to fail...
 it should "also preserve the original order of the subsequences of elements that are equivalent according to the order - this time with the failure reproduced directly" ignore
   associationLists
-    .withRecipe(
-      """[
+    .withRecipe("""[
         |    {
         |        "ChoiceOf" : {
         |            "index" : 1
@@ -274,8 +273,7 @@ it should "also preserve the original order of the subsequences of elements that
 ### Java ###
 
 ```java
-import com.sageserpent.americium.java.Trials;
-import com.sageserpent.americium.java.TrialsApi;
+
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSortedSet;
@@ -469,7 +467,7 @@ class Cookbook extends AnyFlatSpec {
     65 -> "Oxygen",
     18 -> "Carbon",
     10 -> "Hydrogen",
-    3 -> "Nitrogen"
+    3  -> "Nitrogen"
   )
 
   /* ... or hard-wire in some single value. */
@@ -489,7 +487,7 @@ class Cookbook extends AnyFlatSpec {
   val zonedDateTimes: Trials[ZonedDateTime] =
     for {
       instant <- instants
-      zoneId <- zoneIds
+      zoneId  <- zoneIds
     } yield ZonedDateTime.ofInstant(instant, zoneId)
 
   /* Filter out what you don't want. */
