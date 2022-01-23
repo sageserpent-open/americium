@@ -7,7 +7,7 @@ import cats.implicits.*
 import cats.{Eval, ~>}
 import com.google.common.collect.{Ordering as _, *}
 import com.sageserpent.americium.Trials.RejectionByInlineFilter
-import com.sageserpent.americium.TrialsApiImplementation.scalaApi
+import com.sageserpent.americium.TrialsApis.scalaApi
 import com.sageserpent.americium.java.TrialsScaffolding.OptionalLimits
 import com.sageserpent.americium.java.{
   Builder,

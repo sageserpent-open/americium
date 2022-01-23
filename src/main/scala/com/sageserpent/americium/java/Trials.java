@@ -21,7 +21,7 @@ public interface Trials<Case> extends
      * putting them to work by running test code.
      */
     static TrialsApi api() {
-        return (TrialsApi) com.sageserpent.americium.TrialsApiImplementation.javaApi();
+        return (TrialsApi) com.sageserpent.americium.TrialsApis.javaApi();
     }
 
     static <Result> Result whenever(Boolean satisfiedPrecondition,
