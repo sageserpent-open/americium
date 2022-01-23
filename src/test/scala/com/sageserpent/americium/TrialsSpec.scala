@@ -1617,14 +1617,28 @@ class TrialsSpec
     )
   }
 
+  "mapping using a Java function" should "compile" in {
+    assertCompiles("javaApi.only(1).map((_ + 1): JavaFunction[Int, Int])")
+  }
+
   "mapping using a Scala function" should "compile" in {
     assertCompiles("api.only(1).map(_ + 1)")
+  }
+
+  "flatmapping using a Java function" should "compile" in {
+    assertCompiles(
+      "javaApi.only(1).flatMap(value => javaApi.choose(value, 1.0 + value))"
+    )
   }
 
   "flatmapping using a Scala function" should "compile" in {
     assertCompiles(
       "api.only(1).flatMap(value => api.choose(value, 1.0 + value))"
     )
+  }
+
+  "filtering using a Java predicate" should "compile" in {
+    assertCompiles("javaApi.only(1).filter(1 == _)")
   }
 
   "filtering using a Scala function" should "compile" in {
