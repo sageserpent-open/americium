@@ -2,7 +2,12 @@ package com.sageserpent.americium
 
 import com.sageserpent.americium.Trials.RejectionByInlineFilter
 import com.sageserpent.americium.TrialsScaffolding.noShrinking
-import com.sageserpent.americium.java.{Builder, CaseFactory}
+import com.sageserpent.americium.java.{
+  Builder,
+  CaseFactory,
+  Trials as JavaTrials,
+  TrialsApi as JavaTrialsApi
+}
 import org.mockito.ArgumentMatchers.{any, argThat}
 import org.mockito.Mockito
 import org.mockito.Mockito.*
@@ -43,7 +48,8 @@ object TrialsSpec {
     )
   }
 
-  val api: TrialsApi = Trials.api
+  val api: TrialsApi         = Trials.api
+  val javaApi: JavaTrialsApi = JavaTrials.api
 
   val limit: Int = 350
 
@@ -113,6 +119,9 @@ class TrialsSpec
     with Matchers
     with TableDrivenPropertyChecks {
   import TrialsSpec.*
+
+  type TypeRequirementsToProtectCodeInStringsFromUnusedImportOptimisation =
+    (JavaTrials[_], JavaFunction[_, _], Predicate[_])
 
   "test driving the Scala API" should "not produce smoke" in {
     val trials = api.choose(2, -4, 3)
@@ -214,6 +223,87 @@ class TrialsSpec
     api
       .choose(0, 1, 2, 5)
       .flatMap(size => api.characters('a', 'z').stringsOfSize(size))
+      .withLimit(limit)
+      .supplyTo(println)
+  }
+
+  "test driving the Java API" should "not produce smoke" in {
+    val javaTrials = javaApi.choose(2, -4, 3)
+
+    val flatMappedJavaTrials =
+      javaTrials flatMap (integer => javaApi.only(1.1 * integer))
+
+    flatMappedJavaTrials.withLimit(limit).supplyTo(println)
+
+    val mappedJavaTrials = javaTrials map (_ * 2.5)
+
+    mappedJavaTrials.withLimit(limit).supplyTo(println)
+
+    javaApi
+      .alternate(flatMappedJavaTrials, mappedJavaTrials)
+      .withLimit(limit)
+      .supplyTo(println)
+
+    javaApi
+      .choose((0 to 20).asJava)
+      .withLimit(limit)
+      .supplyTo(println)
+
+    javaApi
+      .alternate(Seq(flatMappedJavaTrials, mappedJavaTrials).asJava)
+      .withLimit(limit)
+      .supplyTo(println)
+
+    javaApi
+      .streamLegacy(_.toString)
+      .withLimit(limit)
+      .supplyTo(println)
+
+    javaApi.bytes
+      .withLimit(limit)
+      .supplyTo(println)
+
+    javaApi.integers
+      .withLimit(limit)
+      .supplyTo(println)
+
+    javaApi.longs
+      .withLimit(limit)
+      .supplyTo(println)
+
+    javaApi.doubles
+      .withLimit(limit)
+      .supplyTo(println)
+
+    javaApi.booleans
+      .withLimit(limit)
+      .supplyTo(println)
+
+    javaApi.characters
+      .withLimit(limit)
+      .supplyTo(println)
+
+    javaApi.instants
+      .withLimit(limit)
+      .supplyTo(println)
+
+    javaApi.strings
+      .withLimit(limit)
+      .supplyTo(println)
+
+    javaApi
+      .characters('a', 'z', 'p')
+      .collections(Builder.stringBuilder _)
+      .withLimit(limit)
+      .supplyTo(println)
+
+    javaApi
+      .choose(0, 1, 2, 5)
+      .flatMap(size =>
+        javaApi
+          .characters('a', 'z')
+          .collectionsOfSize(size, Builder.stringBuilder _)
+      )
       .withLimit(limit)
       .supplyTo(println)
   }
