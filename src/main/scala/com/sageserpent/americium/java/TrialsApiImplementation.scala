@@ -1,16 +1,10 @@
 package com.sageserpent.americium.java
 import com.google.common.collect.ImmutableList
 import com.sageserpent.americium.java.{
-  CaseFactory,
   Trials as JavaTrials,
   TrialsApi as JavaTrialsApi
 }
-import com.sageserpent.americium.{
-  CommonApi,
-  Trials,
-  TrialsImplementation,
-  TrialsApiImplementation as ScalaTrialsApiImplementation
-}
+import com.sageserpent.americium.{CommonApi, Trials, TrialsImplementation}
 
 import _root_.java.lang.{
   Boolean as JavaBoolean,
@@ -26,29 +20,16 @@ import _root_.java.util.{List as JavaList, Map as JavaMap}
 import java.time.Instant
 import scala.jdk.CollectionConverters.*
 
-trait TrialsApiImplementation extends CommonApi with JavaTrialsApi {
-  def scalaApi: ScalaTrialsApiImplementation
+trait TrialsApiImplementation extends CommonApi with TrialsApiWart {
 
   override def delay[Case](
       delayed: Supplier[JavaTrials[Case]]
   ): JavaTrials[Case] = scalaApi.delay(delayed.get().scalaTrials)
 
-  override def choose[Case <: AnyRef](
-      firstChoice: Case,
-      secondChoice: Case,
-      otherChoices: Case*
-  ): TrialsImplementation[Case] =
-    scalaApi.choose(firstChoice +: secondChoice +: otherChoices)
-
   override def choose[Case](
       choices: JavaIterable[Case]
   ): TrialsImplementation[Case] =
     scalaApi.choose(choices.asScala)
-
-  override def choose[Case <: AnyRef](
-      choices: Array[Case]
-  ): TrialsImplementation[Case] =
-    scalaApi.choose(choices.toSeq)
 
   override def chooseWithWeights[Case](
       firstChoice: JavaMap.Entry[JavaInteger, Case],
