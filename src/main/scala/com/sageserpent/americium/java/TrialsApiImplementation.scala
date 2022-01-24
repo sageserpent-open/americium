@@ -1,9 +1,6 @@
 package com.sageserpent.americium.java
 import com.google.common.collect.ImmutableList
-import com.sageserpent.americium.java.{
-  Trials as JavaTrials,
-  TrialsApi as JavaTrialsApi
-}
+import com.sageserpent.americium.java.Trials as JavaTrials
 import com.sageserpent.americium.{CommonApi, Trials, TrialsImplementation}
 
 import _root_.java.lang.{
@@ -20,10 +17,7 @@ import _root_.java.util.{List as JavaList, Map as JavaMap}
 import java.time.Instant
 import scala.jdk.CollectionConverters.*
 
-trait TrialsApiImplementation
-    extends CommonApi
-    with TrialsApiWart
-    with JavaTrialsApi {
+trait TrialsApiImplementation extends CommonApi with TrialsApiWart {
 
   override def delay[Case](
       delayed: Supplier[JavaTrials[Case]]

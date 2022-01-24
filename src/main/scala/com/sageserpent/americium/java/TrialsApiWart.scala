@@ -1,10 +1,11 @@
 package com.sageserpent.americium.java
+import com.sageserpent.americium.java.TrialsApi as JavaTrialsApi
 import com.sageserpent.americium.{
   TrialsImplementation,
   TrialsApiImplementation as ScalaTrialsApiImplementation
 }
 
-trait TrialsApiWart {
+trait TrialsApiWart extends JavaTrialsApi {
   def scalaApi: ScalaTrialsApiImplementation
 
   def choose[Case](
