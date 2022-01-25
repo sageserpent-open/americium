@@ -39,8 +39,8 @@ lazy val settings = Seq(
   scalaVersion := "2.13.8",
   scalacOptions ++= Seq("-Xsource:3"),
   javacOptions ++= Seq("-source", javaVersion, "-target", javaVersion),
-  // libraryDependencies += "com.softwaremill.magnolia1_3" %% "magnolia" %
-  // "1.0.0-M8",
+  libraryDependencies += "com.softwaremill.magnolia1_2" %% "magnolia" % "1.0.0-M7",
+  libraryDependencies += "org.scala-lang" % "scala-reflect" % scalaVersion.value,
   libraryDependencies += "org.typelevel" %% "cats-core"             % "2.7.0",
   libraryDependencies += "org.typelevel" %% "cats-free"             % "2.7.0",
   libraryDependencies += "org.typelevel" %% "cats-collections-core" % "0.9.3",

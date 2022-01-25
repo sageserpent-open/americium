@@ -9,7 +9,7 @@ import scala.collection.Factory
 import scala.collection.immutable.{SortedMap, SortedSet}
 import scala.language.implicitConversions
 
-object Trials {
+object Trials extends TrialsByMagnolia {
   def api: TrialsApi = TrialsApis.scalaApi
 
   private[americium] class RejectionByInlineFilter extends RuntimeException
