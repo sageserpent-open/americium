@@ -38,8 +38,7 @@ lazy val settings = Seq(
   name         := "americium",
   scalaVersion := "3.1.1",
   javacOptions ++= Seq("-source", javaVersion, "-target", javaVersion),
-  // libraryDependencies += "com.softwaremill.magnolia1_3" %% "magnolia" %
-  // "1.0.0-M8",
+  libraryDependencies += "com.softwaremill.magnolia1_3" %% "magnolia" % "1.0.0",
   libraryDependencies += "org.typelevel" %% "cats-core"             % "2.7.0",
   libraryDependencies += "org.typelevel" %% "cats-free"             % "2.7.0",
   libraryDependencies += "org.typelevel" %% "cats-collections-core" % "0.9.3",
