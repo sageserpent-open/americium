@@ -9,7 +9,7 @@ class UnboundedSpec extends AnyFlatSpec with Matchers {
   private val integerTrials = api.integers
 
   private val unboundedGenerator: Trials[Unbounded[Int]] =
-    api.alternateWithWeights(1 -> api.only(NegativeInfinity()), 1 -> api.only(PositiveInfinity()), 10 -> api.integers.map(Finite.apply))//implicitly[Trials.Factory[Unbounded[Int]]].trials
+    implicitly[Trials.Factory[Unbounded[Int]]].trials
 
   "lifted finite values" should "be ordered correspondingly to the underlying finite values" in
     (integerTrials and integerTrials)
