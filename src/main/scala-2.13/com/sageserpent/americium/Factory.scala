@@ -4,8 +4,11 @@ import magnolia1.{CaseClass, Magnolia, Monadic, SealedTrait}
 
 import scala.language.experimental.macros
 
-trait TrialsByMagnolia {
+trait Factory[Case] {
+  def trials: Trials[Case]
+}
 
+object Factory {
   type Typeclass[Case] = Factory[Case]
 
   def join[Case](caseClass: CaseClass[Typeclass, Case]): Typeclass[Case] =
@@ -43,10 +46,6 @@ trait TrialsByMagnolia {
 
   def lift[Case](unlifted: Trials[Case]): Factory[Case] = new Factory[Case] {
     override def trials: Trials[Case] = unlifted
-  }
-
-  trait Factory[Case] {
-    def trials: Trials[Case]
   }
 
   implicit def gen[Case]: Typeclass[Case] = macro Magnolia.gen[Case]

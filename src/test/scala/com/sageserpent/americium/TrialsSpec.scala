@@ -923,7 +923,7 @@ class TrialsSpec
           api.choose(0 until 10 map (_.toString)),
           api.choose(-10 until 0)
         ),
-        implicitly[Trials.Factory[Option[Int]]].trials
+        implicitly[Factory[Option[Int]]].trials
       )
     ) { sut =>
       val mockConsumer: Any => Unit = mock(classOf[Any => Unit])
@@ -964,9 +964,9 @@ class TrialsSpec
         api.alternate(
           api.choose(0 until 10 map (_.toString)),
           api.choose(-10 until 0)
-        )                                                    -> 4,
-        api.streamLegacy(identity)                           -> 200,
-        implicitly[Trials.Factory[Either[Long, Int]]].trials -> 500
+        )                                             -> 4,
+        api.streamLegacy(identity)                    -> 200,
+        implicitly[Factory[Either[Long, Int]]].trials -> 500
       )
     ) { (sut, limit) =>
       val mockConsumer: Any => Unit = mock(classOf[Any => Unit])
@@ -985,8 +985,8 @@ class TrialsSpec
         api.alternate(
           api.choose(0 until 10 map (_.toString)),
           api.choose(-10 until 0)
-        )                                                           -> 20,
-        implicitly[Trials.Factory[Either[Boolean, Boolean]]].trials -> 4,
+        )                                                    -> 20,
+        implicitly[Factory[Either[Boolean, Boolean]]].trials -> 4,
         api
           .choose(1 to 3)
           .flatMap(x => api.choose(1 to 10).map(x -> _))
@@ -1022,7 +1022,7 @@ class TrialsSpec
           api.choose(-10 until 0),
           api.streamLegacy(JackInABox.apply)
         ),
-        implicitly[Trials.Factory[Option[Int]]].trials.map {
+        implicitly[Factory[Option[Int]]].trials.map {
           case None        => JackInABox(())
           case Some(value) => value
         }
@@ -1081,7 +1081,7 @@ class TrialsSpec
         }),
         api.choose(-10 until 0)
       ),
-      implicitly[Trials.Factory[Option[Int]]].trials.map {
+      implicitly[Factory[Option[Int]]].trials.map {
         case None        => JackInABox(())
         case Some(value) => value
       }
@@ -1504,21 +1504,21 @@ class TrialsSpec
   }
 
   "test driving automatic implicit generation of a trials" should "not produce smoke" in {
-    implicitly[Trials.Factory[Option[Int]]].trials
+    implicitly[Factory[Option[Int]]].trials
       .withLimit(limit)
       .supplyTo(println)
 
-    implicitly[Trials.Factory[Either[(Boolean, Boolean), Double]]].trials
+    implicitly[Factory[Either[(Boolean, Boolean), Double]]].trials
       .withLimit(limit)
       .supplyTo(println)
   }
 
   "test driving automatic implicit generation of a trials for a recursive data structure" should "not produce smoke" in {
-    implicitly[Trials.Factory[List[Boolean]]].trials
+    implicitly[Factory[List[Boolean]]].trials
       .withLimit(limit)
       .supplyTo(println)
 
-    implicitly[Trials.Factory[BinaryTree]].trials
+    implicitly[Factory[BinaryTree]].trials
       .withLimit(limit)
       .supplyTo(println)
   }
