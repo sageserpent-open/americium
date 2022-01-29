@@ -1,8 +1,13 @@
 package com.sageserpent.americium
 import magnolia1.{AutoDerivation, CaseClass, Monadic, SealedTrait}
 
-trait TrialsByMagnolia extends AutoDerivation[TrialsByMagnolia#Factory] {
+import scala.deriving.Mirror
 
+trait Factory[Case] {
+  def trials: Trials[Case]
+}
+
+object Factory extends AutoDerivation[Factory] {
   def join[Case](caseClass: CaseClass[Typeclass, Case]): Typeclass[Case] =
     lift(
       caseClass.constructMonadic(parameter =>
@@ -23,11 +28,12 @@ trait TrialsByMagnolia extends AutoDerivation[TrialsByMagnolia#Factory] {
     lift(Trials.api.alternate(subtypeGenerators))
   }
 
-  // HACK: had to write an explicit implicit implementation
-  // as Mercator would need an `apply` method to implement
-  // `point`, which `Trials` does not provide.
-  implicit def evidence: Monadic[Trials] = new Monadic[Trials] {
-    override def flatMap[A, B](from: Trials[A])(fn: A => Trials[B]): Trials[B] =
+  // HACK: had to write an explicit implicit implementation to supply an
+  // `apply` method to implement `point`, which `Trials` does not provide.
+  given evidence: Monadic[Trials] = new Monadic[Trials] {
+    override def flatMap[A, B](from: Trials[A])(
+        fn: A => Trials[B]
+    ): Trials[B] =
       from.flatMap(fn)
 
     override def point[A](value: A): Trials[A] = Trials.api.only(value)
@@ -38,9 +44,5 @@ trait TrialsByMagnolia extends AutoDerivation[TrialsByMagnolia#Factory] {
 
   def lift[Case](unlifted: Trials[Case]): Factory[Case] = new Factory[Case] {
     override def trials: Trials[Case] = unlifted
-  }
-
-  trait Factory[Case] {
-    def trials: Trials[Case]
   }
 }
