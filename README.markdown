@@ -2,6 +2,7 @@
 
 [![Build Status](https://travis-ci.com/sageserpent-open/americium.svg?branch=master)](https://travis-ci.com/sageserpent-open/americium)
 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.sageserpent/americium_2.13/badge.svg?style=flat&gav=true)](https://maven-badges.herokuapp.com/maven-central/com.sageserpent/americium_2.13/badge.svg)
+[![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.sageserpent/americium_3/badge.svg?style=flat&gav=true)](https://maven-badges.herokuapp.com/maven-central/com.sageserpent/americium_3/badge.svg)
 
 ## What? Why? ##
 
