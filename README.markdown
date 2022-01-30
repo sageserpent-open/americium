@@ -609,9 +609,9 @@ of its repository to make its use-case more obvious.
 
 This the automatic generation of trials for structured types, and is brought to us via the Magnolia library - see it in
 action here:
-[TrialsSpec.scala](https://github.com/sageserpent-open/americium/blob/e69b9fb60cd90796d96ba1126a90f6c1ab2a7a1d/src/test/scala/com/sageserpent/americium/TrialsSpec.scala#L1057)
+[TrialsSpec.scala](https://github.com/sageserpent-open/americium/blob/7219c8982380458397e54be207b6769b991d0ef4/src/test/scala/com/sageserpent/americium/TrialsSpec.scala#L1506)
 and here:
-[TrialsSpec.scala](https://github.com/sageserpent-open/americium/blob/e69b9fb60cd90796d96ba1126a90f6c1ab2a7a1d/src/test/scala/com/sageserpent/americium/TrialsSpec.scala#L1067)
+[TrialsSpec.scala](https://github.com/sageserpent-open/americium/blob/7219c8982380458397e54be207b6769b991d0ef4/src/test/scala-2.13/com/sageserpent/americium/TrialsSpecSpecificToScala2_13.scala#L13)
 
 Ask for a trials of your case class hierarchy types, and it shall be written for you!
 
