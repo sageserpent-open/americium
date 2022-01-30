@@ -7,8 +7,12 @@ lazy val javaVersion = "1.8"
 
 lazy val scala2_13_Version = "2.13.7"
 
+lazy val scala3_Version = "3.1.1"
+
+ThisBuild / scalaVersion := scala2_13_Version
+
 lazy val settings = Seq(
-  crossScalaVersions     := Seq(scala2_13_Version),
+  crossScalaVersions     := Seq(scala2_13_Version, scala3_Version),
   publishTo              := sonatypePublishToBundle.value,
   pomIncludeRepository   := { _ => false },
   sonatypeCredentialHost := "s01.oss.sonatype.org",
@@ -28,27 +32,39 @@ lazy val settings = Seq(
   releaseProcess := Seq[ReleaseStep](
     checkSnapshotDependencies,
     inquireVersions,
-    runClean,
+    releaseStepCommandAndRemaining(
+      "+clean"
+    ), // ... instead, cross-build the clean step using SBT's own mechanism ...
     releaseStepCommandAndRemaining(
       "+test"
-    ), // ... instead, cross-build the testing step using SBT's own mechanism ...
+    ), // ... and the testing step using SBT's own mechanism ...
     setReleaseVersion,
     commitReleaseVersion,
     tagRelease,
     releaseStepCommandAndRemaining(
       "+publishSigned"
-    ), // ... likewise, cross-build the publishing step using SBT's own mechanism.
+    ), // ... finally the publishing step using SBT's own mechanism.
     releaseStepCommand("sonatypeBundleRelease"),
     setNextVersion,
     commitNextVersion,
     pushChanges
   ),
-  name         := "americium",
-  scalaVersion := "2.13.8",
+  name := "americium",
   scalacOptions ++= Seq("-Xsource:3"),
   javacOptions ++= Seq("-source", javaVersion, "-target", javaVersion),
-  libraryDependencies += "com.softwaremill.magnolia1_2" %% "magnolia" % "1.0.0",
-  libraryDependencies += "org.scala-lang" % "scala-reflect" % scalaVersion.value,
+  libraryDependencies ++= (CrossVersion.partialVersion(
+    scalaVersion.value
+  ) match {
+    case Some((2, _)) =>
+      Seq(
+        "com.softwaremill.magnolia1_2" %% "magnolia"      % "1.0.0",
+        "org.scala-lang"                % "scala-reflect" % scalaVersion.value
+      )
+    case Some((3, _)) =>
+      Seq("com.softwaremill.magnolia1_3" %% "magnolia" % "1.0.0")
+
+    case _ => Nil
+  }),
   libraryDependencies += "org.typelevel" %% "cats-core"             % "2.7.0",
   libraryDependencies += "org.typelevel" %% "cats-free"             % "2.7.0",
   libraryDependencies += "org.typelevel" %% "cats-collections-core" % "0.9.3",
