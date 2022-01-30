@@ -1,6 +1,6 @@
 package com.sageserpent.americium
 
-import cats.implicits._
+import cats.implicits.*
 import com.sageserpent.americium.TrialsScaffolding.ShrinkageStop
 
 object tupleTrials {
@@ -44,9 +44,7 @@ object tupleTrials {
         casesLimit: Int,
         complexityLimit: Int,
         shrinkageAttemptsLimit: Int,
-        shrinkageStop: ShrinkageStop[
-          _ >: (Case1, Case2)
-        ]
+        shrinkageStop: ShrinkageStop[(Case1, Case2)]
     ): SupplyToSyntaxTuple2 = (consumer: ((Case1, Case2)) => Unit) =>
       trialsOfPairs
         .withLimits(
@@ -102,9 +100,7 @@ object tupleTrials {
         casesLimit: Int,
         complexityLimit: Int,
         shrinkageAttemptsLimit: Int,
-        shrinkageStop: ShrinkageStop[
-          _ >: (Case1, Case2, Case3)
-        ]
+        shrinkageStop: ShrinkageStop[(Case1, Case2, Case3)]
     ): SupplyToSyntaxTuple3 = (consumer: ((Case1, Case2, Case3)) => Unit) =>
       trialsOfTriples
         .withLimits(
@@ -165,9 +161,7 @@ object tupleTrials {
         casesLimit: Int,
         complexityLimit: Int,
         shrinkageAttemptsLimit: Int,
-        shrinkageStop: ShrinkageStop[
-          _ >: (Case1, Case2, Case3, Case4)
-        ]
+        shrinkageStop: ShrinkageStop[(Case1, Case2, Case3, Case4)]
     ): SupplyToSyntaxTuple4 =
       (consumer: ((Case1, Case2, Case3, Case4)) => Unit) =>
         trialsOfQuadruples

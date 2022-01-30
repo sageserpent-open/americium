@@ -11,7 +11,7 @@ import scala.concurrent.duration.{Duration, FiniteDuration}
 import scala.jdk.DurationConverters.ScalaDurationOps
 
 object TrialsScaffolding {
-  type ShrinkageStop[Case] = () => Case => Boolean
+  type ShrinkageStop[-Case] = () => Case => Boolean
 
   val noStopping: ShrinkageStop[Any] = () => _ => false
 
@@ -92,7 +92,7 @@ trait TrialsScaffolding[+Case] extends TrialsFactoring[Case] {
       casesLimit: Int,
       complexityLimit: Int = defaultComplexityLimit,
       shrinkageAttemptsLimit: Int = defaultShrinkageAttemptsLimit,
-      shrinkageStop: ShrinkageStop[_ >: Case] = noStopping
+      shrinkageStop: ShrinkageStop[Case] = noStopping
   ): SupplySyntaxType
 
   def withRecipe(recipe: String): SupplySyntaxType

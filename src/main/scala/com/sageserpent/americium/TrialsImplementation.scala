@@ -3,35 +3,34 @@ package com.sageserpent.americium
 import cats.data.{OptionT, State, StateT}
 import cats.free.Free
 import cats.free.Free.liftF
-import cats.implicits._
+import cats.implicits.*
 import cats.{Eval, ~>}
-import com.google.common.collect.{Ordering => _, _}
+import com.google.common.collect.{Ordering as _, *}
 import com.sageserpent.americium.Trials.RejectionByInlineFilter
-import com.sageserpent.americium.TrialsApiImplementation.scalaApi
+import com.sageserpent.americium.TrialsApis.scalaApi
 import com.sageserpent.americium.java.TrialsScaffolding.OptionalLimits
 import com.sageserpent.americium.java.{
   Builder,
   CaseFactory,
-  Trials => JavaTrials,
-  TrialsScaffolding => JavaTrialsScaffolding,
-  TrialsSkeletalImplementation => JavaTrialsSkeletalImplementation
+  TrialsScaffolding as JavaTrialsScaffolding,
+  TrialsSkeletalImplementation as JavaTrialsSkeletalImplementation
 }
 import com.sageserpent.americium.randomEnrichment.RichRandom
 import com.sageserpent.americium.{
-  Trials => ScalaTrials,
-  TrialsScaffolding => ScalaTrialsScaffolding,
-  TrialsSkeletalImplementation => ScalaTrialsSkeletalImplementation
+  Trials as ScalaTrials,
+  TrialsScaffolding as ScalaTrialsScaffolding,
+  TrialsSkeletalImplementation as ScalaTrialsSkeletalImplementation
 }
-import io.circe.generic.auto._
-import io.circe.parser._
-import io.circe.syntax._
+import io.circe.generic.auto.*
+import io.circe.parser.*
+import io.circe.syntax.*
 
-import _root_.java.util.function.{Consumer, Predicate, Function => JavaFunction}
-import _root_.java.util.{Optional, Iterator => JavaIterator}
+import _root_.java.util.Iterator as JavaIterator
+import _root_.java.util.function.{Consumer, Predicate}
 import scala.annotation.tailrec
 import scala.collection.immutable.SortedMap
 import scala.collection.mutable
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 import scala.util.Random
 
 object TrialsImplementation {
@@ -42,17 +41,11 @@ object TrialsImplementation {
 
   sealed trait Decision
 
-  // Java and Scala API ...
-
   sealed trait GenerationOperation[Case]
-
-  // Java-only API ...
 
   private[americium] trait GenerationSupport[+Case] {
     val generation: Generation[_ <: Case]
   }
-
-  // Scala-only API ...
 
   case class ChoiceOf(index: Int) extends Decision
 
@@ -80,15 +73,17 @@ object TrialsImplementation {
 
 case class TrialsImplementation[Case](
     override val generation: TrialsImplementation.Generation[_ <: Case]
-) extends JavaTrialsSkeletalImplementation[Case]
-    with ScalaTrialsSkeletalImplementation[Case] {
+) extends ScalaTrialsSkeletalImplementation[Case]
+    with JavaTrialsSkeletalImplementation[Case] {
   thisTrialsImplementation =>
 
   override type SupplySyntaxType = ScalaTrialsScaffolding.SupplyToSyntax[Case]
 
-  import TrialsImplementation._
+  import TrialsImplementation.*
 
-  override val scalaTrials = this
+  override def scalaTrials: TrialsImplementation[Case] = this
+
+  override def javaTrials: TrialsImplementation[Case] = this
 
   // Java and Scala API ...
   override def reproduce(recipe: String): Case =
@@ -165,7 +160,7 @@ case class TrialsImplementation[Case](
     with ScalaTrialsScaffolding.SupplyToSyntax[Case] =
     withLimits(casesLimit = limit, complexityLimit = complexityLimit)
 
-  def withLimits(
+  override def withLimits(
       casesLimit: Int,
       additionalLimits: OptionalLimits
   ): JavaTrialsScaffolding.SupplyToSyntax[Case]
@@ -182,7 +177,7 @@ case class TrialsImplementation[Case](
       }
     )
 
-  def withLimits(
+  override def withLimits(
       casesLimit: Int,
       additionalLimits: OptionalLimits,
       shrinkageStop: JavaTrialsScaffolding.ShrinkageStop[_ >: Case]
@@ -203,7 +198,7 @@ case class TrialsImplementation[Case](
       casesLimit: Int,
       complexityLimit: Int,
       shrinkageAttemptsLimit: Int,
-      shrinkageStop: ScalaTrialsScaffolding.ShrinkageStop[_ >: Case]
+      shrinkageStop: ScalaTrialsScaffolding.ShrinkageStop[Case]
   ): JavaTrialsScaffolding.SupplyToSyntax[Case]
     with ScalaTrialsScaffolding.SupplyToSyntax[Case] =
     new JavaTrialsScaffolding.SupplyToSyntax[Case]
@@ -213,7 +208,7 @@ case class TrialsImplementation[Case](
           previousDecisions: DecisionStagesInReverseOrder
       )
 
-      final case object NoDecisionStages extends DecisionStagesInReverseOrder
+      case object NoDecisionStages extends DecisionStagesInReverseOrder
 
       final case class InternedDecisionStages(index: Int)
           extends DecisionStagesInReverseOrder
@@ -770,8 +765,7 @@ case class TrialsImplementation[Case](
                   externalStoppingCondition = externalStoppingCondition
                 )
               )
-            } else
-              Eval.now(())
+            } else Eval.now(())
           }
 
           potentialShrunkExceptionalOutcome.flatMap(_ =>
@@ -815,66 +809,10 @@ case class TrialsImplementation[Case](
       }
     }
 
-  // Java-only API ...
-  override def map[TransformedCase](
-      transform: JavaFunction[Case, TransformedCase]
-  ): TrialsImplementation[TransformedCase] = map(transform.apply)
-
-  override def flatMap[TransformedCase](
-      step: JavaFunction[Case, JavaTrials[TransformedCase]]
-  ): TrialsImplementation[TransformedCase] =
-    flatMap(step.apply _ andThen (_.scalaTrials))
-
-  override def filter(
-      predicate: Predicate[Case]
-  ): TrialsImplementation[Case] =
-    filter(predicate.test)
-
-  def mapFilter[TransformedCase](
-      filteringTransform: JavaFunction[Case, Optional[TransformedCase]]
-  ): TrialsImplementation[TransformedCase] =
-    mapFilter(filteringTransform.apply _ andThen {
-      case withPayload if withPayload.isPresent => Some(withPayload.get())
-      case _                                    => None
-    })
-
-  // Scala-only API ...
-  override def map[TransformedCase](
-      transform: Case => TransformedCase
-  ): TrialsImplementation[TransformedCase] =
-    TrialsImplementation(generation map transform)
-
-  override def filter(
-      predicate: Case => Boolean
-  ): TrialsImplementation[Case] = {
-    flatMap(caze =>
-      new TrialsImplementation(
-        FiltrationResult(Some(caze).filter(predicate))
-      ): ScalaTrials[Case]
-    )
-  }
-
-  override def mapFilter[TransformedCase](
-      filteringTransform: Case => Option[TransformedCase]
-  ): TrialsImplementation[TransformedCase] =
-    flatMap(caze =>
-      new TrialsImplementation(
-        FiltrationResult(filteringTransform(caze))
-      ): ScalaTrials[TransformedCase]
-    )
-
   def this(
       generationOperation: TrialsImplementation.GenerationOperation[Case]
   ) = {
     this(liftF(generationOperation))
-  }
-
-  override def flatMap[TransformedCase](
-      step: Case => ScalaTrials[TransformedCase]
-  ): TrialsImplementation[TransformedCase] = {
-    val adaptedStep = (step andThen (_.generation))
-      .asInstanceOf[Case => Generation[TransformedCase]]
-    TrialsImplementation(generation flatMap adaptedStep)
   }
 
   def withRecipe(
@@ -910,6 +848,7 @@ case class TrialsImplementation[Case](
       }
     }
 
+  // Scala-only API ...
   protected override def several[Collection](
       builderFactory: => Builder[Case, Collection]
   ): TrialsImplementation[Collection] = {
@@ -940,7 +879,7 @@ case class TrialsImplementation[Case](
     override def build(): Collection = underlyingBuilder.result()
   })
 
-  protected override def lotsOfSize[Collection](
+  protected def lotsOfSize[Collection](
       size: Int,
       builderFactory: => Builder[Case, Collection]
   ): TrialsImplementation[Collection] =

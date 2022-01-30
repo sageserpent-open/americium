@@ -5,20 +5,20 @@ import com.sageserpent.americium.TrialsScaffolding.noShrinking
 import com.sageserpent.americium.java.{
   Builder,
   CaseFactory,
-  Trials => JavaTrials,
-  TrialsApi => JavaTrialsApi
+  Trials as JavaTrials,
+  TrialsApi as JavaTrialsApi
 }
 import org.mockito.ArgumentMatchers.{any, argThat}
 import org.mockito.Mockito
-import org.mockito.Mockito._
+import org.mockito.Mockito.*
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.prop.TableDrivenPropertyChecks
 
 import _root_.java.util.UUID
-import _root_.java.util.function.{Predicate, Function => JavaFunction}
+import _root_.java.util.function.{Predicate, Function as JavaFunction}
 import scala.collection.mutable
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 import scala.util.Try
 
 object TrialsSpec {
@@ -118,7 +118,7 @@ class TrialsSpec
     extends AnyFlatSpec
     with Matchers
     with TableDrivenPropertyChecks {
-  import TrialsSpec._
+  import TrialsSpec.*
 
   type TypeRequirementsToProtectCodeInStringsFromUnusedImportOptimisation =
     (JavaTrials[_], JavaFunction[_, _], Predicate[_])
@@ -513,16 +513,17 @@ class TrialsSpec
 
   case class ExceptionWithCasePayload[Case](caze: Case) extends RuntimeException
 
+  case class ChoicesAndCriterion[X](choices: Seq[X], criterion: X => Boolean)
+
   "a choice that includes exceptional cases" should "result in one of the corresponding exceptions" in {
-    type ChoicesAndCriterion[X] = (Seq[X], X => Boolean)
 
     def testBodyInWildcardCapture[X](
         choicesAndCriterion: ChoicesAndCriterion[X]
     ) = choicesAndCriterion match {
-      case (possibleChoices, exceptionCriterion) =>
+      case ChoicesAndCriterion(possibleChoices, exceptionCriterion) =>
         val sut = api.choose(possibleChoices)
 
-        val complainingConsumer = { caze: X =>
+        val complainingConsumer = { (caze: X) =>
           if (exceptionCriterion(caze))
             throw ExceptionWithCasePayload(caze)
         }
@@ -548,10 +549,13 @@ class TrialsSpec
     forAll(
       Table[ChoicesAndCriterion[_]](
         "possibleChoices -> exceptionCriterion",
-        (1 to 10, 0 == (_: Int) % 2),
-        (-5 to 5 map (_.toString), (_: String).contains("5")),
-        (Seq(false, true), identity[Boolean] _),
-        (Seq(4.3), (_: Double) => true)
+        ChoicesAndCriterion(1 to 10, 0 == (_: Int) % 2),
+        ChoicesAndCriterion(
+          -5 to 5 map (_.toString),
+          (_: String).contains("5")
+        ),
+        ChoicesAndCriterion(Seq(false, true), identity[Boolean] _),
+        ChoicesAndCriterion(Seq(4.3), (_: Double) => true)
       )
     ) { choicesAndCriterion =>
       testBodyInWildcardCapture(choicesAndCriterion)
@@ -739,7 +743,7 @@ class TrialsSpec
 
       doReturn(())
         .when(mockConsumer)
-        .apply(argThat { identifiedCase: (Any, UUID) =>
+        .apply(argThat { (identifiedCase: (Any, UUID)) =>
           alternativeInvariantIds.contains(
             identifiedCase._2
           ) && predicateOnHash(
@@ -919,7 +923,7 @@ class TrialsSpec
           api.choose(0 until 10 map (_.toString)),
           api.choose(-10 until 0)
         ),
-        implicitly[Trials.Factory[Option[Int]]].trials
+        implicitly[Factory[Option[Int]]].trials
       )
     ) { sut =>
       val mockConsumer: Any => Unit = mock(classOf[Any => Unit])
@@ -960,9 +964,9 @@ class TrialsSpec
         api.alternate(
           api.choose(0 until 10 map (_.toString)),
           api.choose(-10 until 0)
-        )                                                    -> 4,
-        api.streamLegacy(identity)                           -> 200,
-        implicitly[Trials.Factory[Either[Long, Int]]].trials -> 500
+        )                                             -> 4,
+        api.streamLegacy(identity)                    -> 200,
+        implicitly[Factory[Either[Long, Int]]].trials -> 500
       )
     ) { (sut, limit) =>
       val mockConsumer: Any => Unit = mock(classOf[Any => Unit])
@@ -981,8 +985,8 @@ class TrialsSpec
         api.alternate(
           api.choose(0 until 10 map (_.toString)),
           api.choose(-10 until 0)
-        )                                                           -> 20,
-        implicitly[Trials.Factory[Either[Boolean, Boolean]]].trials -> 4,
+        )                                                    -> 20,
+        implicitly[Factory[Either[Boolean, Boolean]]].trials -> 4,
         api
           .choose(1 to 3)
           .flatMap(x => api.choose(1 to 10).map(x -> _))
@@ -1018,7 +1022,7 @@ class TrialsSpec
           api.choose(-10 until 0),
           api.streamLegacy(JackInABox.apply)
         ),
-        implicitly[Trials.Factory[Option[Int]]].trials.map {
+        implicitly[Factory[Option[Int]]].trials.map {
           case None        => JackInABox(())
           case Some(value) => value
         }
@@ -1077,7 +1081,7 @@ class TrialsSpec
         }),
         api.choose(-10 until 0)
       ),
-      implicitly[Trials.Factory[Option[Int]]].trials.map {
+      implicitly[Factory[Option[Int]]].trials.map {
         case None        => JackInABox(())
         case Some(value) => value
       }
@@ -1102,15 +1106,24 @@ class TrialsSpec
     exceptionRecreatedViaRecipe.recipe shouldBe exception.recipe
   }
 
-  it should "be shrunk to a simple case" in {
-    type DescriptionTrialsCriterionAndLimit[X] =
-      (String, Trials[Vector[X]], Vector[X] => Boolean, Int)
+  case class DescriptionTrialsCriterionAndLimit[X](
+      description: String,
+      sut: Trials[Vector[X]],
+      exceptionCriterion: Vector[X] => Boolean,
+      limit: Int
+  )
 
+  it should "be shrunk to a simple case" in {
     def testBodyInWildcardCapture[X](
         trialsAndCriterion: DescriptionTrialsCriterionAndLimit[X]
     ): Unit = trialsAndCriterion match {
-      case (description, sut, exceptionCriterion, limit) =>
-        val complainingConsumer = { caze: Vector[X] =>
+      case DescriptionTrialsCriterionAndLimit(
+            description,
+            sut,
+            exceptionCriterion,
+            limit
+          ) =>
+        val complainingConsumer = { (caze: Vector[X]) =>
           if (exceptionCriterion(caze))
             throw ExceptionWithCasePayload(caze)
         }
@@ -1163,7 +1176,7 @@ class TrialsSpec
     forAll(
       Table[DescriptionTrialsCriterionAndLimit[_]](
         "(description, trials, exceptionCriterion)",
-        (
+        DescriptionTrialsCriterionAndLimit(
           // This first entry isn't expected to shrink the values, only the
           // length of the failing case.
           "Has more than one text item whose converted values sum to more than 7.",
@@ -1172,14 +1185,14 @@ class TrialsSpec
             1 < integerVector.size && integerVector.sum > 7,
           limit
         ),
-        (
+        DescriptionTrialsCriterionAndLimit(
           "Has either four or five characters.",
           api.characters.several[Vector[Char]],
           (characterVector: Vector[Char]) =>
             4 to 5 contains characterVector.size,
           limit
         ),
-        (
+        DescriptionTrialsCriterionAndLimit(
           "Has either four or five characters - variation.",
           api
             .integers(4, 10)
@@ -1188,7 +1201,7 @@ class TrialsSpec
             4 to 5 contains characterVector.size,
           limit
         ),
-        (
+        DescriptionTrialsCriterionAndLimit(
           "Has either four or five characters - variation with shrinkable character range.",
           api
             .integers(4, 10)
@@ -1197,7 +1210,7 @@ class TrialsSpec
             4 to 5 contains characterVector.size,
           limit
         ),
-        (
+        DescriptionTrialsCriterionAndLimit(
           "Has either four or five characters - this used to be a pathologically slow example.",
           api
             .integers(0, 10)
@@ -1206,28 +1219,28 @@ class TrialsSpec
             4 to 5 contains characterVector.size,
           limit
         ),
-        (
+        DescriptionTrialsCriterionAndLimit(
           "Has more than one item and sums to more than 7.",
           doubleVectorTrials,
           (doubleVector: Vector[Double]) =>
             1 < doubleVector.size && doubleVector.sum > 7,
           limit
         ),
-        (
+        DescriptionTrialsCriterionAndLimit(
           "Has more than one item and sums to more than 7.",
           byteVectorTrials,
           (integerVector: Vector[Byte]) =>
             1 < integerVector.size && integerVector.sum > 7,
           limit
         ),
-        (
+        DescriptionTrialsCriterionAndLimit(
           "Has more than one item and sums to more than 7.",
           integerVectorTrials,
           (integerVector: Vector[Int]) =>
             1 < integerVector.size && integerVector.sum > 7,
           limit
         ),
-        (
+        DescriptionTrialsCriterionAndLimit(
           "Has more than one item, no zeroes and sums to more than 7.",
           integerVectorTrials,
           (integerVector: Vector[Int]) =>
@@ -1235,7 +1248,7 @@ class TrialsSpec
               .contains(0),
           limit
         ),
-        (
+        DescriptionTrialsCriterionAndLimit(
           "Has more than one item, at least one zero and sums to more than 7.",
           integerVectorTrials,
           (integerVector: Vector[Int]) =>
@@ -1243,14 +1256,14 @@ class TrialsSpec
               .contains(0),
           limit
         ),
-        (
+        DescriptionTrialsCriterionAndLimit(
           "Has more than one item and sums to more than 7.",
           longVectorTrials,
           (longVector: Vector[Long]) =>
             1 < longVector.size && longVector.sum > 7,
           limit
         ),
-        (
+        DescriptionTrialsCriterionAndLimit(
           "Has more than one item, no zeroes and sums to more than 7.",
           longVectorTrials,
           (longVector: Vector[Long]) =>
@@ -1259,20 +1272,20 @@ class TrialsSpec
             ),
           limit
         ),
-        (
+        DescriptionTrialsCriterionAndLimit(
           "Has more than one item, at least one zero and sums to more than 7.",
           longVectorTrials,
           (longVector: Vector[Long]) =>
             1 < longVector.size && longVector.sum > 7 && longVector.contains(0),
           limit
         ),
-        (
+        DescriptionTrialsCriterionAndLimit(
           "Has more than 7 items.",
           integerVectorTrials,
           (integerVector: Vector[Int]) => integerVector.size > 7,
           limit
         ),
-        (
+        DescriptionTrialsCriterionAndLimit(
           "Has more than one item, at least one non-zero and sums to a multiple of 7.",
           integerVectorTrials,
           (integerVector: Vector[Int]) =>
@@ -1280,7 +1293,7 @@ class TrialsSpec
               .exists(0 != _),
           limit
         ),
-        (
+        DescriptionTrialsCriterionAndLimit(
           "Has more than one item, no zeroes and sums to a multiple of 7.",
           integerVectorTrials,
           (integerVector: Vector[Int]) =>
@@ -1288,7 +1301,7 @@ class TrialsSpec
               .contains(0),
           limit
         ),
-        (
+        DescriptionTrialsCriterionAndLimit(
           "Has more than one item, at least one zero and sums to a multiple of 7.",
           integerVectorTrials,
           (integerVector: Vector[Int]) =>
@@ -1296,14 +1309,14 @@ class TrialsSpec
               .contains(0),
           limit
         ),
-        (
+        DescriptionTrialsCriterionAndLimit(
           "Has more than one item and sums to a positive multiple of 7.",
           integerVectorTrials,
           (integerVector: Vector[Int]) =>
             1 < integerVector.size && 0 == integerVector.sum % 7 && 0 < integerVector.sum,
           limit
         ),
-        (
+        DescriptionTrialsCriterionAndLimit(
           "Has more than one item, no zeroes and sums to a positive multiple of 7.",
           integerVectorTrials,
           (integerVector: Vector[Int]) =>
@@ -1311,7 +1324,7 @@ class TrialsSpec
               .contains(0),
           limit
         ),
-        (
+        DescriptionTrialsCriterionAndLimit(
           "Has more than one item, at least one non-zero and sums to a positive multiple of 7.",
           integerVectorTrials,
           (integerVector: Vector[Int]) =>
@@ -1319,14 +1332,14 @@ class TrialsSpec
               .exists(0 != _),
           limit
         ),
-        (
+        DescriptionTrialsCriterionAndLimit(
           "Flattened binary tree with more than one leaf that sums to a multiple of 19 greater than 19.",
           binaryTreeTrials map (_.flatten),
           (integerVector: Vector[Int]) =>
             1 < integerVector.size && 0 == integerVector.sum % 19 && 19 < integerVector.sum,
           limit
         ),
-        (
+        DescriptionTrialsCriterionAndLimit(
           "Flattened binary tree with more than one leaf and no zeroes that sums to a multiple of 19 greater than 19.",
           binaryTreeTrials map (_.flatten),
           (integerVector: Vector[Int]) =>
@@ -1334,7 +1347,7 @@ class TrialsSpec
               .contains(0),
           limit
         ),
-        (
+        DescriptionTrialsCriterionAndLimit(
           "Flattened binary tree with more than one leaf and at least one zero that sums to a multiple of 19 greater than 19.",
           binaryTreeTrials map (_.flatten),
           (integerVector: Vector[Int]) =>
@@ -1342,7 +1355,7 @@ class TrialsSpec
               .contains(0),
           limit
         ),
-        (
+        DescriptionTrialsCriterionAndLimit(
           "Has more than five items, at least one non-zero and sums to a multiple of 7.",
           integerVectorTrials,
           (integerVector: Vector[Int]) =>
@@ -1350,7 +1363,7 @@ class TrialsSpec
               .exists(0 != _),
           500
         ),
-        (
+        DescriptionTrialsCriterionAndLimit(
           "Has more than five items and sums to a multiple of 7 less than -7.",
           integerVectorTrials,
           (integerVector: Vector[Int]) =>
@@ -1358,7 +1371,7 @@ class TrialsSpec
               .exists(0 != _),
           750
         ),
-        (
+        DescriptionTrialsCriterionAndLimit(
           "Has more than two items and is not sorted in ascending order.",
           integerVectorTrials,
           (integerVector: Vector[Int]) =>
@@ -1367,14 +1380,14 @@ class TrialsSpec
               .exists { case (first, second) => first > second },
           limit
         ),
-        (
+        DescriptionTrialsCriterionAndLimit(
           "Has more than two items and no duplicates.",
           integerVectorTrials,
           (integerVector: Vector[Int]) =>
             2 < integerVector.size && integerVector.distinct == integerVector,
           limit
         ),
-        (
+        DescriptionTrialsCriterionAndLimit(
           "Flattened binary tree with more than two leaves whose odd-indexed leaves contain zeroes and even-indexed leaves contain non-zero values that sum to a multiple of 31 greater than 31.",
           binaryTreeTrials map (_.flatten),
           (integerVector: Vector[Int]) =>
@@ -1383,7 +1396,7 @@ class TrialsSpec
             )),
           5000
         ),
-        (
+        DescriptionTrialsCriterionAndLimit(
           "List with more than two elements whose odd-indexed elements contain zeroes and even-indexed elements contain non-zero values that sum to a multiple of 31 greater than 31.",
           listTrials map (_.toVector),
           (integerVector: Vector[Int]) =>
@@ -1491,21 +1504,21 @@ class TrialsSpec
   }
 
   "test driving automatic implicit generation of a trials" should "not produce smoke" in {
-    implicitly[Trials.Factory[Option[Int]]].trials
+    implicitly[Factory[Option[Int]]].trials
       .withLimit(limit)
       .supplyTo(println)
 
-    implicitly[Trials.Factory[Either[(Boolean, Boolean), Double]]].trials
+    implicitly[Factory[Either[(Boolean, Boolean), Double]]].trials
       .withLimit(limit)
       .supplyTo(println)
   }
 
   "test driving automatic implicit generation of a trials for a recursive data structure" should "not produce smoke" in {
-    implicitly[Trials.Factory[List[Boolean]]].trials
+    implicitly[Factory[List[Boolean]]].trials
       .withLimit(limit)
       .supplyTo(println)
 
-    implicitly[Trials.Factory[BinaryTree]].trials
+    implicitly[Factory[BinaryTree]].trials
       .withLimit(limit)
       .supplyTo(println)
   }

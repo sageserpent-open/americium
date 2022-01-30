@@ -1,10 +1,12 @@
 package com.sageserpent.americium
 
+import scala.language.implicitConversions
 import scala.math.Ordered
 
 object Unbounded {
   implicit def convertToOrdered[X: Ordering](
-      unbounded: Unbounded[X]): Ordered[Unbounded[X]] =
+      unbounded: Unbounded[X]
+  ): Ordered[Unbounded[X]] =
     (another: Unbounded[X]) =>
       (unbounded, another) match {
         case (Finite(thisUnlifted), Finite(anotherUnlifted)) =>
@@ -15,7 +17,7 @@ object Unbounded {
         case (NegativeInfinity(), _)                  => -1
         case (PositiveInfinity(), _)                  => 1
         case (_, NegativeInfinity())                  => 1
-    }
+      }
 }
 
 sealed trait Unbounded[X]

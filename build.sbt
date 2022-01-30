@@ -44,10 +44,10 @@ lazy val settings = Seq(
     pushChanges
   ),
   name         := "americium",
-  scalaVersion := "2.12.15",
-  scalacOptions += s"-target:jvm-$javaVersion",
+  scalaVersion := "2.13.8",
+  scalacOptions ++= Seq("-Xsource:3"),
   javacOptions ++= Seq("-source", javaVersion, "-target", javaVersion),
-  libraryDependencies += "com.softwaremill.magnolia1_2" %% "magnolia" % "1.0.0-M7",
+  libraryDependencies += "com.softwaremill.magnolia1_2" %% "magnolia" % "1.0.0",
   libraryDependencies += "org.scala-lang" % "scala-reflect" % scalaVersion.value,
   libraryDependencies += "org.typelevel" %% "cats-core"             % "2.7.0",
   libraryDependencies += "org.typelevel" %% "cats-free"             % "2.7.0",

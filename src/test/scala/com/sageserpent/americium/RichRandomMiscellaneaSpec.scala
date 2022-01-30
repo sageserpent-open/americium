@@ -1,6 +1,6 @@
 package com.sageserpent.americium
 
-import com.sageserpent.americium.randomEnrichment._
+import com.sageserpent.americium.randomEnrichment.*
 import org.scalatest.Assertion
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -312,7 +312,7 @@ class RichRandomMiscellaneaSpec extends AnyFlatSpec with Matchers {
 
       val sequences =
         (sequenceSizes zipWithIndex) map { case (sequenceSize, sequenceIndex) =>
-          Seq.tabulate(sequenceSize) { itemIndex: Int =>
+          Seq.tabulate(sequenceSize) { (itemIndex: Int) =>
             sequenceIndex + numberOfSequences * itemIndex
           }
         }
