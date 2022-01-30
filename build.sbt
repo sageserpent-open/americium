@@ -50,7 +50,16 @@ lazy val settings = Seq(
     pushChanges
   ),
   name := "americium",
-  scalacOptions ++= Seq("-Xsource:3"),
+  scalacOptions ++= (CrossVersion.partialVersion(
+    scalaVersion.value
+  ) match {
+    case Some((2, _)) =>
+      Seq("-Xsource:3")
+    case Some((3, _)) =>
+      Seq.empty
+
+    case _ => Nil
+  }),
   javacOptions ++= Seq("-source", javaVersion, "-target", javaVersion),
   libraryDependencies ++= (CrossVersion.partialVersion(
     scalaVersion.value
@@ -63,7 +72,7 @@ lazy val settings = Seq(
     case Some((3, _)) =>
       Seq("com.softwaremill.magnolia1_3" %% "magnolia" % "1.0.0")
 
-    case _ => Nil
+    case _ => Seq.empty
   }),
   libraryDependencies += "org.typelevel" %% "cats-core"             % "2.7.0",
   libraryDependencies += "org.typelevel" %% "cats-free"             % "2.7.0",
