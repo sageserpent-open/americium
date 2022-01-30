@@ -1,7 +1,7 @@
 # Americium - **_Test cases galore! Automatic case shrinkage! Bring your own test style. For Scala and Java..._**
 
 [![Build Status](https://travis-ci.com/sageserpent-open/americium.svg?branch=master)](https://travis-ci.com/sageserpent-open/americium)
-[![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.sageserpent/americium_2.13/badge.svg?style=flat&gav=true)](https://maven-badges.herokuapp.com/maven-central/com.sageserpent/americium_2.13/badge.svg)
+[![Maven Central](https://index.scala-lang.org/sageserpent-open/americium/americium/latest-by-scala-version.svg?color=2465cd&style=flat)](https://index.scala-lang.org/sageserpent-open/americium/americium)
 
 ## What? Why? ##
 
@@ -274,8 +274,7 @@ it should "also preserve the original order of the subsequences of elements that
 ### Java ###
 
 ```java
-import com.sageserpent.americium.java.Trials;
-import com.sageserpent.americium.java.TrialsApi;
+
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSortedSet;
@@ -609,9 +608,9 @@ of its repository to make its use-case more obvious.
 
 This the automatic generation of trials for structured types, and is brought to us via the Magnolia library - see it in
 action here:
-[TrialsSpec.scala](https://github.com/sageserpent-open/americium/blob/e69b9fb60cd90796d96ba1126a90f6c1ab2a7a1d/src/test/scala/com/sageserpent/americium/TrialsSpec.scala#L1057)
+[TrialsSpec.scala](https://github.com/sageserpent-open/americium/blob/7219c8982380458397e54be207b6769b991d0ef4/src/test/scala/com/sageserpent/americium/TrialsSpec.scala#L1506)
 and here:
-[TrialsSpec.scala](https://github.com/sageserpent-open/americium/blob/e69b9fb60cd90796d96ba1126a90f6c1ab2a7a1d/src/test/scala/com/sageserpent/americium/TrialsSpec.scala#L1067)
+[TrialsSpec.scala](https://github.com/sageserpent-open/americium/blob/7219c8982380458397e54be207b6769b991d0ef4/src/test/scala-2.13/com/sageserpent/americium/TrialsSpecSpecificToScala2_13.scala#L13)
 
 Ask for a trials of your case class hierarchy types, and it shall be written for you!
 
