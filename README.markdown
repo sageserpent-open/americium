@@ -2,6 +2,33 @@
 
 [![Build Status](https://travis-ci.com/sageserpent-open/americium.svg?branch=master)](https://travis-ci.com/sageserpent-open/americium)
 [![Maven Central](https://index.scala-lang.org/sageserpent-open/americium/americium/latest-by-scala-version.svg?color=2465cd&style=flat)](https://index.scala-lang.org/sageserpent-open/americium/americium)
+```java
+// JShell...
+
+import com.sageserpent.americium.java.Trials;
+import com.sageserpent.americium.java.TrialsApi;
+import com.sageserpent.americium.java.TrialsFactoring;
+
+import java.util.Collection;
+
+    final TrialsApi api = Trials.api();
+
+    class SystemUnderTest {
+        public static void printSum(Collection<Integer> input) {
+            final int sum = input.stream().reduce((lhs, rhs) -> lhs + rhs).get();
+
+            System.out.println(sum);
+        }
+    }
+
+    try {
+        api.integers().immutableLists().withLimit(100).supplyTo(SystemUnderTest::printSum);
+    } catch (TrialsFactoring.TrialException exception){
+        System.out.println(exception.getCause());
+        System.out.println(exception.provokingCase());
+        System.out.println(exception.recipe());
+    }
+```
 
 ## What? Why? ##
 
