@@ -5,7 +5,7 @@ lazy val jUnitVersion = "5.7.0"
 
 lazy val javaVersion = "1.8"
 
-lazy val scala2_13_Version = "2.13.7"
+lazy val scala2_13_Version = "2.13.8"
 
 lazy val scala3_Version = "3.1.1"
 

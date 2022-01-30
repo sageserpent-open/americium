@@ -1513,16 +1513,6 @@ class TrialsSpec
       .supplyTo(println)
   }
 
-  "test driving automatic implicit generation of a trials for a recursive data structure" should "not produce smoke" in {
-    implicitly[Factory[List[Boolean]]].trials
-      .withLimit(limit)
-      .supplyTo(println)
-
-    implicitly[Factory[BinaryTree]].trials
-      .withLimit(limit)
-      .supplyTo(println)
-  }
-
   "inlined filtration" should "execute the controlled block if and only if the precondition holds" in {
     assertThrows[RejectionByInlineFilter] {
       Trials.whenever(satisfiedPrecondition = false) {
