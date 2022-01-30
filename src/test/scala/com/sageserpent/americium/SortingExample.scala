@@ -41,7 +41,7 @@ class SortingExample extends AnyFlatSpec with Matchers {
         _.nonEmpty
       ) // Filter out the empty case as we can't assert sensibly on it.
       .withLimit(200) // Only check up to 200 cases inclusive.
-      .supplyTo { nonEmptyAssocationList: List[(Int, Int)] =>
+      .supplyTo { (nonEmptyAssocationList: List[(Int, Int)]) =>
         // This is a parameterised test, using `nonEmptyAssociationList` as the
         // test case parameter...
         val sortedResult = notSoStableSort(nonEmptyAssocationList)(ordering)
@@ -54,7 +54,7 @@ class SortingExample extends AnyFlatSpec with Matchers {
 
   it should "conserve the original elements" in
     associationLists.withLimit(200).supplyTo {
-      associationList: List[(Int, Int)] =>
+      (associationList: List[(Int, Int)]) =>
         val sortedResult = notSoStableSort(associationList)(ordering)
 
         sortedResult should contain theSameElementsAs associationList
@@ -63,7 +63,7 @@ class SortingExample extends AnyFlatSpec with Matchers {
   // Until the bug is fixed, we expect this test to fail...
   it should "also preserve the original order of the subsequences of elements that are equivalent according to the order" ignore
     associationLists.withLimit(200).supplyTo {
-      associationList: List[(Int, Int)] =>
+      (associationList: List[(Int, Int)]) =>
         Trials.whenever(
           associationList.nonEmpty
         ) // Filter out the empty case as while we can assert on it, the assertion would be trivial.
@@ -114,7 +114,7 @@ class SortingExample extends AnyFlatSpec with Matchers {
                     |        }
                     |    }
                     |]""".stripMargin)
-      .supplyTo { associationList: List[(Int, Int)] =>
+      .supplyTo { (associationList: List[(Int, Int)]) =>
         {
           val sortedResult = notSoStableSort(associationList)(ordering)
 

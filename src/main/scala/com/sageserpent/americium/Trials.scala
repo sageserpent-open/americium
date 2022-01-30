@@ -1,15 +1,16 @@
 package com.sageserpent.americium
 
-import cats._
+import cats.*
 import com.sageserpent.americium.TrialsImplementation.GenerationSupport
 import com.sageserpent.americium.TrialsScaffolding.Tuple2Trials
+import com.sageserpent.americium.java.Trials as JavaTrials
 
 import scala.collection.Factory
 import scala.collection.immutable.{SortedMap, SortedSet}
 import scala.language.implicitConversions
 
-object Trials extends TrialsByMagnolia {
-  def api: TrialsApi = TrialsApiImplementation.scalaApi
+object Trials {
+  def api: TrialsApi = TrialsApis.scalaApi
 
   private[americium] class RejectionByInlineFilter extends RuntimeException
 
@@ -19,7 +20,7 @@ object Trials extends TrialsByMagnolia {
     if (satisfiedPrecondition) block else throw new RejectionByInlineFilter()
 
   implicit class CharacterTrialsSyntax(val characterTrials: Trials[Char]) {
-    def strings(): Trials[String] = characterTrials.several
+    def strings: Trials[String] = characterTrials.several
 
     def stringsOfSize(size: Int): Trials[String] =
       characterTrials.lotsOfSize(size)
@@ -47,6 +48,8 @@ trait Trials[+Case]
     extends TrialsScaffolding[Case]
     with GenerationSupport[Case] {
   override type SupplySyntaxType <: TrialsScaffolding.SupplyToSyntax[Case]
+
+  def javaTrials: JavaTrials[_ <: Case]
 
   def map[TransformedCase](
       transform: Case => TransformedCase

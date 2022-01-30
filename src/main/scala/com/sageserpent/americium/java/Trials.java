@@ -1,7 +1,6 @@
 package com.sageserpent.americium.java;
 
 import com.google.common.collect.*;
-import com.sageserpent.americium.TrialsApiImplementation;
 
 import java.util.Comparator;
 import java.util.Optional;
@@ -22,7 +21,7 @@ public interface Trials<Case> extends
      * putting them to work by running test code.
      */
     static TrialsApi api() {
-        return (TrialsApi) TrialsApiImplementation.javaApi();
+        return (TrialsApi) com.sageserpent.americium.TrialsApis.javaApi();
     }
 
     static <Result> Result whenever(Boolean satisfiedPrecondition,
@@ -78,7 +77,7 @@ public interface Trials<Case> extends
      * @param <Case2>
      * @return
      */
-    <Case2> Trials.Tuple2Trials<Case, Case2> and(
+    <Case2> Tuple2Trials<Case, Case2> and(
             Trials<Case2> secondTrials);
 
     /**

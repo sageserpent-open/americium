@@ -1,11 +1,18 @@
 import sbtrelease.ReleaseStateTransformations._
 import xerial.sbt.Sonatype._
 
-val jUnitVersion = "5.7.0"
+lazy val jUnitVersion = "5.7.0"
 
-val javaVersion = "1.8"
+lazy val javaVersion = "1.8"
+
+lazy val scala2_13_Version = "2.13.8"
+
+lazy val scala3_Version = "3.1.1"
+
+ThisBuild / scalaVersion := scala2_13_Version
 
 lazy val settings = Seq(
+  crossScalaVersions     := Seq(scala2_13_Version, scala3_Version),
   publishTo              := sonatypePublishToBundle.value,
   pomIncludeRepository   := { _ => false },
   sonatypeCredentialHost := "s01.oss.sonatype.org",
@@ -21,26 +28,52 @@ lazy val settings = Seq(
       email = "gjmurphy1@icloud.com"
     )
   ),
+  releaseCrossBuild := false, // Don't use the support for cross-building provided by `sbt-release`....
   releaseProcess := Seq[ReleaseStep](
     checkSnapshotDependencies,
     inquireVersions,
-    runClean,
-    runTest,
+    releaseStepCommandAndRemaining(
+      "+clean"
+    ), // ... instead, cross-build the clean step using SBT's own mechanism ...
+    releaseStepCommandAndRemaining(
+      "+test"
+    ), // ... and the testing step using SBT's own mechanism ...
     setReleaseVersion,
     commitReleaseVersion,
     tagRelease,
-    releaseStepCommandAndRemaining("publishSigned"),
+    releaseStepCommandAndRemaining(
+      "+publishSigned"
+    ), // ... finally the publishing step using SBT's own mechanism.
     releaseStepCommand("sonatypeBundleRelease"),
     setNextVersion,
     commitNextVersion,
     pushChanges
   ),
-  name         := "americium",
-  scalaVersion := "2.13.7",
-  scalacOptions += s"-target:jvm-$javaVersion",
+  name := "americium",
+  scalacOptions ++= (CrossVersion.partialVersion(
+    scalaVersion.value
+  ) match {
+    case Some((2, _)) =>
+      Seq("-Xsource:3")
+    case Some((3, _)) =>
+      Seq.empty
+
+    case _ => Nil
+  }),
   javacOptions ++= Seq("-source", javaVersion, "-target", javaVersion),
-  libraryDependencies += "com.softwaremill.magnolia1_2" %% "magnolia" % "1.0.0-M7",
-  libraryDependencies += "org.scala-lang" % "scala-reflect" % scalaVersion.value,
+  libraryDependencies ++= (CrossVersion.partialVersion(
+    scalaVersion.value
+  ) match {
+    case Some((2, _)) =>
+      Seq(
+        "com.softwaremill.magnolia1_2" %% "magnolia"      % "1.0.0",
+        "org.scala-lang"                % "scala-reflect" % scalaVersion.value
+      )
+    case Some((3, _)) =>
+      Seq("com.softwaremill.magnolia1_3" %% "magnolia" % "1.0.0")
+
+    case _ => Seq.empty
+  }),
   libraryDependencies += "org.typelevel" %% "cats-core"             % "2.7.0",
   libraryDependencies += "org.typelevel" %% "cats-free"             % "2.7.0",
   libraryDependencies += "org.typelevel" %% "cats-collections-core" % "0.9.3",
