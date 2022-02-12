@@ -152,7 +152,7 @@ public interface TrialsScaffolding<Case,
      * @return An instance of {@link SupplyToSyntax} that supplies the
      * reproduced trial case.
      */
-    SupplyToSyntax<Case> withRecipe(final String recipe);
+    SupplySyntaxType withRecipe(final String recipe);
 
     interface SupplyToSyntax<Case> {
         /**

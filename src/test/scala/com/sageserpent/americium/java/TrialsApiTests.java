@@ -335,15 +335,11 @@ public class TrialsApiTests {
         System.out.println("Now to reproduce the failure...");
 
         final Try<Void, TrialsFactoring.TrialException> mustHarbourAnError =
-                Try.runWithCatch(() ->
-                                 {
-                                     // TODO: should be able to remove this
-                                     //  cast once the fix has been made...
-                                     ((TrialsScaffolding.Tuple4Trials.SupplyToSyntaxTuple4<Integer, String,
-                                             ImmutableSet<Boolean>, String>) combinationOfTrials
-                                             .withRecipe(trialException.recipe()))
-                                             .supplyTo(this::thisShouldFail);
-                                 }, TrialsFactoring.TrialException.class);
+                Try.runWithCatch(() -> {
+                    combinationOfTrials
+                            .withRecipe(trialException.recipe())
+                            .supplyTo(this::thisShouldFail);
+                }, TrialsFactoring.TrialException.class);
 
         assertThat("This should have reproduced a failure.",
                    mustHarbourAnError.onFail(exception -> {
@@ -379,9 +375,7 @@ public class TrialsApiTests {
                        .bits();
 
         try {
-            // A questionable
-            // assertion that we
-            // expect will fail...
+            // A questionable assertion that we expect will fail...
             assertThat(
                     numberOfBitsForHashCode,
                     lessThanOrEqualTo(
