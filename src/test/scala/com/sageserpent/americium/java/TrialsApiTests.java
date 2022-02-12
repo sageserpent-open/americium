@@ -2,6 +2,8 @@ package com.sageserpent.americium.java;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.hash.Hashing;
+import cyclops.control.Try;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -297,13 +299,102 @@ public class TrialsApiTests {
            .and(api.strings())
            .and(api.booleans().immutableSets())
            .and(api.characters().immutableListsOfSize(4))
-           .withLimit((100))
+           .withLimit(100)
            .supplyTo((first, second, third, fourth) ->
                              System.out.printf("%s, %s, %s, %s%n",
                                                first,
                                                second,
                                                third,
                                                fourth));
+    }
+
+    @Test
+    void reproduceFailureInvolvingCombinationsOfTrials() {
+        final TrialsScaffolding.Tuple4Trials<Integer, String,
+                ImmutableSet<Boolean>, String>
+                combinationOfTrials = api.integers()
+                                         .and(api.strings())
+                                         .and(api.booleans().immutableSets())
+                                         .and(api.characters()
+                                                 .collectionsOfSize(4,
+                                                                    () -> Builder.stringBuilder()));
+
+        final Try<Void, TrialsFactoring.TrialException> shouldHarbourAnError =
+                Try.runWithCatch(() ->
+                                 {
+                                     combinationOfTrials
+                                             .withLimit(100)
+                                             .supplyTo(this::thisShouldFail);
+                                 }, TrialsFactoring.TrialException.class);
+
+        // If this fails, it is because the test's own logic is incorrect,
+        // therefore we don't have any expectations here.
+        final TrialsFactoring.TrialException trialException =
+                shouldHarbourAnError.failureGet().toOptional().get();
+
+        System.out.println("Now to reproduce the failure...");
+
+        final Try<Void, TrialsFactoring.TrialException> mustHarbourAnError =
+                Try.runWithCatch(() ->
+                                 {
+                                     // TODO: should be able to remove this
+                                     //  cast once the fix has been made...
+                                     ((TrialsScaffolding.Tuple4Trials.SupplyToSyntaxTuple4<Integer, String,
+                                             ImmutableSet<Boolean>, String>) combinationOfTrials
+                                             .withRecipe(trialException.recipe()))
+                                             .supplyTo(this::thisShouldFail);
+                                 }, TrialsFactoring.TrialException.class);
+
+        assertThat("This should have reproduced a failure.",
+                   mustHarbourAnError.onFail(exception -> {
+                       assertThat(exception.provokingCase(),
+                                  equalTo(trialException.provokingCase()));
+                       assertThat(exception.recipe(),
+                                  equalTo(trialException.recipe()));
+                       assertThat(exception.getMessage(),
+                                  equalTo(trialException.getMessage()));
+                   }).isFailure());
+    }
+
+    private void thisShouldFail(Integer first, String second,
+                                ImmutableSet<Boolean> third, String fourth) {
+        final int
+                numberOfBitsForHashCode =
+                Hashing.murmur3_32()
+                       .newHasher()
+                       .putInt(first)
+                       .putUnencodedChars(
+                               second)
+                       .putObject(
+                               third,
+                               (from, into) -> {
+                                   from
+                                           .iterator()
+                                           .forEachRemaining(
+                                                   into::putBoolean);
+                               })
+                       .putUnencodedChars(
+                               fourth)
+                       .hash()
+                       .bits();
+
+        try {
+            // A questionable
+            // assertion that we
+            // expect will fail...
+            assertThat(
+                    numberOfBitsForHashCode,
+                    lessThanOrEqualTo(
+                            31));
+        } catch (Throwable throwable) {
+            System.out.format(
+                    "%d, %s, %s, %s\n",
+                    first,
+                    second,
+                    third,
+                    fourth);
+            throw throwable;
+        }
     }
 
     private static final Trials<String> first =
