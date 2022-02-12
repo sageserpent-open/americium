@@ -1634,4 +1634,44 @@ class TrialsSpec
   "filtering using a Scala function" should "compile" in {
     assertCompiles("api.only(1).filter(1 == _)")
   }
+
+  "this rho problem" should "be minimised" in {
+    // Inspired by:
+    // https://buttondown.email/hillelwayne/archive/fd1f0758-ae31-4e83-9138-33721cbd5ce3
+    // and https://notebook.drmaciver.com/posts/2020-12-28-16:19.html
+
+    // The following predicate is based on this Python diff:
+    // format:off
+    //    def f(x, y, z):
+    //      out = 0
+    //      for i in range(10):
+    //        out = out * x + abs(y*z - i**2)
+    //        x, y, z = y+1, z, x
+    //    - return abs(out)%100 < 10
+    //    + return abs(out)%100 < 9
+    // format:on
+
+    def predicate(
+        threshold: BigInt
+    )(x: BigInt, y: BigInt, z: BigInt): Boolean = {
+      val (out, _, _, _) = (0 until 10).foldLeft((BigInt(0L), x, y, z)) {
+        case ((partial, x, y, z), i) =>
+          (partial * x + (y * z - BigInt(i).pow(2)).abs, y + 1, z, x)
+      }
+      out.abs % 100 < threshold
+    }
+
+    val suts = api.longs and api.longs and api.longs
+
+    val trialException = {
+      // NOTE: have to crank the limit up to 50 to get such a nice minimisation,
+      // although 40 yields a pretty decent result too.
+      intercept[suts.TrialException](suts.withLimit(50).supplyTo {
+        case (x, y, z) =>
+          predicate(10)(x, y, z) shouldEqual predicate(9)(x, y, z)
+      })
+    }
+
+    println(trialException.provokingCase)
+  }
 }
