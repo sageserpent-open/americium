@@ -121,8 +121,8 @@ means that the test has to run a *long, long* time. Even more fun if you're in a
 breakpoints being hit for several hundred successful cases before you get to the one that finally fails, whichever it
 is...
 
-What we want here is something that automatically shrinks a failing test case down to a minimal test case (or at least
-reasonably close to one), and provides some way of reproducing this minimal test case without having to slog through a
+What we want here is something that __automatically shrinks a failing test case down to a minimal test case__ (or at least
+reasonably close to one), and provides some way of __reproducing this minimal test case directly__ without having to slog through a
 whole bunch of successful cases we aren't interested in.
 
 After toiling through quite a few of these monster test failures in the Plutonium, Curium and several commercial
