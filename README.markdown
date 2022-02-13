@@ -23,11 +23,11 @@ import java.util.Collection;
         }
     }
 
-    final Trials<ImmutableList<Integer>> testCases =
+    final Trials<ImmutableList<Integer>> trials =
             api.integers().immutableLists();
 
     try {
-        testCases.withLimit(100).supplyTo(SystemUnderTest::printSum);
+        trials.withLimit(100).supplyTo(SystemUnderTest::printSum);
     } catch (TrialsFactoring.TrialException exception) {
         System.out.println(exception.getCause()); // java.util.NoSuchElementException: No value present
         System.out.println(exception.provokingCase()); // []
@@ -35,9 +35,8 @@ import java.util.Collection;
     }
 
     try {
-        testCases
-                .withRecipe("[{\"ChoiceOf\" : {\"index\" : 0}}]")
-                .supplyTo(SystemUnderTest::printSum);
+        trials.withRecipe("[{\"ChoiceOf\" : {\"index\" : 0}}]")
+              .supplyTo(SystemUnderTest::printSum);
     } catch (TrialsFactoring.TrialException exception) {
         System.out.println(exception.getCause()); // java.util.NoSuchElementException: No value present
         System.out.println(exception.provokingCase()); // []
