@@ -14,7 +14,7 @@ lazy val settings = Seq(
     case _ => Nil
   }),
   javacOptions ++= Seq("-source", javaVersion, "-target", javaVersion),
-  libraryDependencies += "com.sageserpent" %% "americium"  % "1.2.2",
+  libraryDependencies += "com.sageserpent" %% "americium"  % "1.2.3",
   libraryDependencies += "org.typelevel"   %% "cats-laws"  % "2.7.0"  % Test,
   libraryDependencies += "org.scalatest"   %% "scalatest"  % "3.2.9"  % Test,
   libraryDependencies += "org.scalacheck"  %% "scalacheck" % "1.15.4" % Test,
