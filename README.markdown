@@ -5,6 +5,7 @@
 ```java
 // JShell...
 
+import com.google.common.collect.ImmutableList;
 import com.sageserpent.americium.java.Trials;
 import com.sageserpent.americium.java.TrialsApi;
 import com.sageserpent.americium.java.TrialsFactoring;
@@ -15,18 +16,32 @@ import java.util.Collection;
 
     class SystemUnderTest {
         public static void printSum(Collection<Integer> input) {
-            final int sum = input.stream().reduce((lhs, rhs) -> lhs + rhs).get();
+            final int sum =
+                    input.stream().reduce((lhs, rhs) -> lhs + rhs).get(); // Oops.
 
             System.out.println(sum);
         }
     }
 
+    final Trials<ImmutableList<Integer>> testCases =
+            api.integers().immutableLists();
+
     try {
-        api.integers().immutableLists().withLimit(100).supplyTo(SystemUnderTest::printSum);
-    } catch (TrialsFactoring.TrialException exception){
-        System.out.println(exception.getCause());
-        System.out.println(exception.provokingCase());
-        System.out.println(exception.recipe());
+        testCases.withLimit(100).supplyTo(SystemUnderTest::printSum);
+    } catch (TrialsFactoring.TrialException exception) {
+        System.out.println(exception.getCause()); // java.util.NoSuchElementException: No value present
+        System.out.println(exception.provokingCase()); // []
+        System.out.println(exception.recipe()); // [{"ChoiceOf" : {"index" : 0}}]
+    }
+
+    try {
+        testCases
+                .withRecipe("[{\"ChoiceOf\" : {\"index\" : 0}}]")
+                .supplyTo(SystemUnderTest::printSum);
+    } catch (TrialsFactoring.TrialException exception) {
+        System.out.println(exception.getCause()); // java.util.NoSuchElementException: No value present
+        System.out.println(exception.provokingCase()); // []
+        System.out.println(exception.recipe()); // [{"ChoiceOf" : {"index" : 0}}]
     }
 ```
 
