@@ -1,6 +1,7 @@
 package com.sageserpent.americium.java;
 
 import com.google.common.collect.*;
+import cyclops.control.Either;
 
 import java.util.Comparator;
 import java.util.Optional;
@@ -21,7 +22,7 @@ public interface Trials<Case> extends
      * putting them to work by running test code.
      */
     static TrialsApi api() {
-        return (TrialsApi) com.sageserpent.americium.TrialsApis.javaApi();
+        return com.sageserpent.americium.TrialsApis.javaApi();
     }
 
     static <Result> Result whenever(Boolean satisfiedPrecondition,
@@ -79,6 +80,10 @@ public interface Trials<Case> extends
      */
     <Case2> Tuple2Trials<Case, Case2> and(
             Trials<Case2> secondTrials);
+
+    <Case2> Trials<Either<Case, Case2>> or(Trials<Case2> alternativeTrials);
+
+    Trials<Optional<Case>> optionals();
 
     /**
      * Transform this to a trials of collection, where {@link Collection} is

@@ -7,7 +7,7 @@ import cats.implicits.*
 import cats.{Eval, ~>}
 import com.google.common.collect.{Ordering as _, *}
 import com.sageserpent.americium.Trials.RejectionByInlineFilter
-import com.sageserpent.americium.TrialsApis.scalaApi
+import com.sageserpent.americium.TrialsApis.{javaApi, scalaApi}
 import com.sageserpent.americium.java.TrialsScaffolding.OptionalLimits
 import com.sageserpent.americium.java.{
   Builder,
@@ -21,12 +21,13 @@ import com.sageserpent.americium.{
   TrialsScaffolding as ScalaTrialsScaffolding,
   TrialsSkeletalImplementation as ScalaTrialsSkeletalImplementation
 }
+import cyclops.control.Either as JavaEither
 import io.circe.generic.auto.*
 import io.circe.parser.*
 import io.circe.syntax.*
 
-import _root_.java.util.Iterator as JavaIterator
 import _root_.java.util.function.{Consumer, Predicate}
+import _root_.java.util.{Iterator as JavaIterator, Optional as JavaOptional}
 import scala.annotation.tailrec
 import scala.collection.immutable.SortedMap
 import scala.collection.mutable
@@ -922,5 +923,31 @@ case class TrialsImplementation[Case](
 
       override def build(): Collection = underlyingBuilder.result()
     }
+  )
+
+  override def or[Case2](
+      alternativeTrials: ScalaTrials[Case2]
+  ): TrialsImplementation[Either[Case, Case2]] = scalaApi.alternate(
+    this.map(Either.left),
+    alternativeTrials.map(Either.right)
+  )
+
+  override def or[Case2](
+      alternativeTrials: java.Trials[Case2]
+  ): TrialsImplementation[
+    JavaEither[Case, Case2]
+  ] = javaApi.alternate(
+    this.map(JavaEither.left[Case, Case2]),
+    alternativeTrials.map(JavaEither.right[Case, Case2])
+  )
+
+  override def options: TrialsImplementation[Option[Case]] =
+    scalaApi.alternate(scalaApi.only(None), this.map(Some.apply))
+
+  override def optionals(): TrialsImplementation[
+    JavaOptional[Case]
+  ] = javaApi.alternate(
+    javaApi.only(JavaOptional.empty()),
+    this.map(JavaOptional.of)
   )
 }

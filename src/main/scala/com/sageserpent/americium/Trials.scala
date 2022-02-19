@@ -67,6 +67,10 @@ trait Trials[+Case]
 
   def and[Case2](secondTrials: Trials[Case2]): Tuple2Trials[Case, Case2]
 
+  def or[Case2](alternativeTrials: Trials[Case2]): Trials[Either[Case, Case2]]
+
+  def options: Trials[Option[Case]]
+
   def several[Container](implicit
       factory: Factory[Case, Container]
   ): Trials[Container]
