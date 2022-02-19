@@ -928,7 +928,7 @@ case class TrialsImplementation[Case](
   override def or[Case2](
       alternativeTrials: ScalaTrials[Case2]
   ): TrialsImplementation[Either[Case, Case2]] = scalaApi.alternate(
-    this.map(Either.left),
+    this.map(Either.left[Case, Case2]),
     alternativeTrials.map(Either.right)
   )
 
@@ -942,12 +942,12 @@ case class TrialsImplementation[Case](
   )
 
   override def options: TrialsImplementation[Option[Case]] =
-    scalaApi.alternate(scalaApi.only(None), this.map(Some.apply))
+    scalaApi.alternate(scalaApi.only(None), this.map(Some.apply[Case]))
 
   override def optionals(): TrialsImplementation[
     JavaOptional[Case]
   ] = javaApi.alternate(
     javaApi.only(JavaOptional.empty()),
-    this.map(JavaOptional.of)
+    this.map(JavaOptional.of[Case])
   )
 }
