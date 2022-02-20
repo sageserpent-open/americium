@@ -742,22 +742,17 @@ class TrialsSpec
           case singleton => api.only(singleton)
         } zip alternativeInvariantIds map {
           // Set up a unique invariant on each alternative - it should supply
-          // pairs,
-          // each of which has the same id component that denotes the
-          // alternative. As
-          // the id is unique, the implementation of `Trials.alternative`
-          // cannot fake
-          // the id values - so they must come from the alternatives somehow.
-          // Furthermore,
-          // the pair should satisfy a predicate on its hash.
+          // pairs, each of which has the same id component that denotes the
+          // alternative. As the id is unique, the implementation of
+          // `Trials.alternative` cannot fake the id values - so they must come
+          // from the alternatives somehow. Furthermore, the pair should satisfy
+          // a predicate on its hash.
           case (trials, invariantId) =>
             trials.map(_ -> invariantId).filter(predicateOnHash)
         })
 
       val mockConsumer: ((Any, UUID)) => Unit =
         mock(classOf[((Any, UUID)) => Unit])
-
-      sut.withLimit(limit).supplyTo(mockConsumer)
 
       doReturn(())
         .when(mockConsumer)
@@ -768,12 +763,17 @@ class TrialsSpec
             identifiedCase
           )
         })
+
+      sut.withLimit(limit).supplyTo(mockConsumer)
+
+      verifyNoMoreInteractions(ignoreStubs(mockConsumer): _*)
     }
 
   "collection trials" should "yield cases whose elements satisfy the same invariants as the values yielded by the base element trials" in
     forAll(
       Table(
         "input",
+        Seq.empty,
         1 to 10,
         20 to 30 map (_.toString),
         Seq(true, false),
@@ -799,12 +799,10 @@ class TrialsSpec
         }).map(
           _ ->
             // Set up an invariant - it should supply pairs, each of which has
-            // the same id component. As the id is unique, the implementation
-            // of `Trials.several` cannot fake the id values - so they must
-            // come
+            // the same id component. As the id is unique, the implementation of
+            // `Trials.several` cannot fake the id values - so they must come
             // from the base trials somehow. Furthermore, the pair should
-            // satisfy
-            // a predicate on its hash.
+            // satisfy a predicate on its hash.
             invariantId
         ).filter(predicateOnHash)
           .several
@@ -923,6 +921,8 @@ class TrialsSpec
         .apply(argThat(largeSize == (_: List[Any]).size))
 
       sut.withLimit(1).supplyTo(mockConsumer)
+
+      verifyNoMoreInteractions(ignoreStubs(mockConsumer): _*)
     }
 
   "trials" should "yield repeatable cases" in
@@ -955,6 +955,8 @@ class TrialsSpec
 
       // ... now let's see if we see the same cases.
       sut.withLimit(limit).supplyTo(mockConsumer)
+
+      verifyNoMoreInteractions(ignoreStubs(mockConsumer): _*)
     }
 
   they should "not invoke stoppage if no failure is found" in {
@@ -1580,6 +1582,8 @@ class TrialsSpec
           mockConsumer(caze)
         }
       )
+
+    verifyNoMoreInteractions(ignoreStubs(mockConsumer): _*)
   }
 
   it should "cover the same number of cases that would be covered by an explicit filtration over infinite possibilities" in forAll(
