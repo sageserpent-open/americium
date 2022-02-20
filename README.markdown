@@ -5,6 +5,7 @@
 ```java
 // JShell...
 
+import com.google.common.collect.ImmutableList;
 import com.sageserpent.americium.java.Trials;
 import com.sageserpent.americium.java.TrialsApi;
 import com.sageserpent.americium.java.TrialsFactoring;
@@ -15,18 +16,31 @@ import java.util.Collection;
 
     class SystemUnderTest {
         public static void printSum(Collection<Integer> input) {
-            final int sum = input.stream().reduce((lhs, rhs) -> lhs + rhs).get();
+            final int sum =
+                    input.stream().reduce((lhs, rhs) -> lhs + rhs).get(); // Oops.
 
             System.out.println(sum);
         }
     }
 
+    final Trials<ImmutableList<Integer>> trials =
+            api.integers().immutableLists();
+
     try {
-        api.integers().immutableLists().withLimit(100).supplyTo(SystemUnderTest::printSum);
-    } catch (TrialsFactoring.TrialException exception){
-        System.out.println(exception.getCause());
-        System.out.println(exception.provokingCase());
-        System.out.println(exception.recipe());
+        trials.withLimit(100).supplyTo(SystemUnderTest::printSum);
+    } catch (TrialsFactoring.TrialException exception) {
+        System.out.println(exception.getCause()); // java.util.NoSuchElementException: No value present
+        System.out.println(exception.provokingCase()); // []
+        System.out.println(exception.recipe()); // [{"ChoiceOf" : {"index" : 0}}]
+    }
+
+    try {
+        trials.withRecipe("[{\"ChoiceOf\" : {\"index\" : 0}}]")
+              .supplyTo(SystemUnderTest::printSum);
+    } catch (TrialsFactoring.TrialException exception) {
+        System.out.println(exception.getCause()); // java.util.NoSuchElementException: No value present
+        System.out.println(exception.provokingCase()); // []
+        System.out.println(exception.recipe()); // [{"ChoiceOf" : {"index" : 0}}]
     }
 ```
 
@@ -106,8 +120,8 @@ means that the test has to run a *long, long* time. Even more fun if you're in a
 breakpoints being hit for several hundred successful cases before you get to the one that finally fails, whichever it
 is...
 
-What we want here is something that automatically shrinks a failing test case down to a minimal test case (or at least
-reasonably close to one), and provides some way of reproducing this minimal test case without having to slog through a
+What we want here is something that __automatically shrinks a failing test case down to a minimal test case__ (or at least
+reasonably close to one), and provides some way of __reproducing this minimal test case directly__ without having to slog through a
 whole bunch of successful cases we aren't interested in.
 
 After toiling through quite a few of these monster test failures in the Plutonium, Curium and several commercial

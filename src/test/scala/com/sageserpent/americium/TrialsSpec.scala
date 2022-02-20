@@ -225,6 +225,15 @@ class TrialsSpec
       .flatMap(size => api.characters('a', 'z').stringsOfSize(size))
       .withLimit(limit)
       .supplyTo(println)
+
+    api.integers.options
+      .withLimit(limit)
+      .supplyTo(println)
+
+    api.instants
+      .or(api.booleans)
+      .withLimit(limit)
+      .supplyTo(println)
   }
 
   "test driving the Java API" should "not produce smoke" in {
@@ -304,6 +313,15 @@ class TrialsSpec
           .characters('a', 'z')
           .collectionsOfSize(size, Builder.stringBuilder _)
       )
+      .withLimit(limit)
+      .supplyTo(println)
+
+    javaApi.integers.optionals
+      .withLimit(limit)
+      .supplyTo(println)
+
+    javaApi.instants
+      .or(javaApi.booleans)
       .withLimit(limit)
       .supplyTo(println)
   }
