@@ -15,8 +15,9 @@ import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.prop.TableDrivenPropertyChecks
 
-import _root_.java.util.UUID
-import _root_.java.util.function.{Predicate, Function as JavaFunction}
+import _root_.java.util.function.{Consumer, Predicate, Function as JavaFunction}
+import _root_.java.util.stream.IntStream
+import _root_.java.util.{Optional, UUID, LinkedList as JavaLinkedList}
 import scala.collection.mutable
 import scala.jdk.CollectionConverters.*
 import scala.util.Try
@@ -1770,5 +1771,33 @@ class TrialsSpec
     }
   }
 
-  "lifting with Java `.optionals`" should "cover underlying finite choices and include `None`" in {}
+  "lifting with Java `.optionals`" should "cover underlying finite choices and include `None`" in {
+    inMockitoSession {
+      val mockConsumer: Consumer[Optional[Int]] =
+        mock(classOf[Consumer[Optional[Int]]])
+
+      val underlyings: JavaTrials[Int] =
+        javaApi.choose(
+          IntStream
+            .range(0, 10)
+            .collect[JavaLinkedList[Int]](
+              () => new JavaLinkedList[Int](),
+              _.add(_),
+              _.addAll(_)
+            )
+        )
+
+      underlyings
+        .withLimit(limit)
+        .supplyTo(underlyingCase =>
+          doNothing().when(mockConsumer).accept(Optional.of(underlyingCase))
+        )
+
+      doNothing().when(mockConsumer).accept(Optional.empty)
+
+      underlyings.optionals.withLimit(limit).supplyTo(mockConsumer)
+
+      verifyNoMoreInteractions(mockConsumer)
+    }
+  }
 }
