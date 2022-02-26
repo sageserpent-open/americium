@@ -761,7 +761,10 @@ class TrialsSpec
           UUID.randomUUID()
         }
 
-        def predicateOnHash(caze: Any) = 0 == caze.hashCode() % 3
+        val predicateOnHash: ((Any, UUID)) => Boolean = {
+          case (value: Any, _) =>
+            0 == value.hashCode() % 3
+        }
 
         val sut: Trials[(Any, UUID)] =
           api.alternate(alternatives map {
@@ -775,7 +778,7 @@ class TrialsSpec
             // alternative. As the id is unique, the implementation of
             // `Trials.alternative` cannot fake the id values - so they must
             // come from the alternatives somehow. Furthermore, the pair should
-            // satisfy a predicate on its hash.
+            // satisfy a predicate on the hash of its second component.
             case (trials, invariantId) =>
               trials.map(_ -> invariantId).filter(predicateOnHash)
           })
@@ -1597,11 +1600,11 @@ class TrialsSpec
       api.only(15),
       api.choose(0 until 20),
       api.alternate(
-        api.only(1),
+        api.only(99),
         api.choose(0 until 20),
-        api.only(15)
+        api.only(127)
       ),
-      api.choose(0 until 20).flatMap(x => api.choose(1, 3).map(x * _))
+      api.choose(1 until 20).flatMap(x => api.choose(1, 3).map(_ + 4 * x))
     )
   ) { trials =>
     inMockitoSession {
