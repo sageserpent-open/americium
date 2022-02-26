@@ -797,7 +797,7 @@ class TrialsSpec
             )
           })
 
-        verifyNoMoreInteractions(ignoreStubs(mockConsumer): _*)
+        verifyNoMoreInteractions(mockConsumer)
       }
     }
 
@@ -957,7 +957,7 @@ class TrialsSpec
 
         verify(mockConsumer).apply(argThat(largeSize == (_: List[Any]).size))
 
-        verifyNoMoreInteractions(ignoreStubs(mockConsumer): _*)
+        verifyNoMoreInteractions(mockConsumer)
       }
     }
 
@@ -993,7 +993,7 @@ class TrialsSpec
         // ... now let's see if we see the same cases.
         sut.withLimit(limit).supplyTo(mockConsumer)
 
-        verifyNoMoreInteractions(ignoreStubs(mockConsumer): _*)
+        verifyNoMoreInteractions(mockConsumer)
       }
     }
 
@@ -1628,7 +1628,7 @@ class TrialsSpec
           }
         )
 
-      verifyNoMoreInteractions(ignoreStubs(mockConsumer): _*)
+      verifyNoMoreInteractions(mockConsumer)
     }
   }
 
@@ -1744,4 +1744,31 @@ class TrialsSpec
 
     println(trialException.provokingCase)
   }
+
+  "combination with Scala `.or`" should "cover alternate finite choices" in {}
+
+  "combination with Java `.or`" should "cover alternate finite choices" in {}
+
+  "lifting with Scala `.options`" should "cover underlying finite choices and include `None`" in {
+    inMockitoSession {
+      val mockConsumer: Option[Int] => Unit =
+        mock(classOf[Option[Int] => Unit])
+
+      val underlyings: Trials[Int] = api.choose(0 to 10)
+
+      underlyings
+        .withLimit(limit)
+        .supplyTo(underlyingCase =>
+          doReturn(()).when(mockConsumer).apply(Some(underlyingCase))
+        )
+
+      doReturn(()).when(mockConsumer).apply(None)
+
+      underlyings.options.withLimit(limit).supplyTo(mockConsumer)
+
+      verifyNoMoreInteractions(mockConsumer)
+    }
+  }
+
+  "lifting with Java `.optionals`" should "cover underlying finite choices and include `None`" in {}
 }
