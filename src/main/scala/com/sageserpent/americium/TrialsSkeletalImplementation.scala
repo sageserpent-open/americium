@@ -23,7 +23,7 @@ trait TrialsSkeletalImplementation[Case] extends ScalaTrials[Case] {
     flatMap(caze =>
       new TrialsImplementation(
         FiltrationResult(Some(caze).filter(predicate))
-      ): ScalaTrials[Case]
+      )
     )
   }
 
@@ -33,7 +33,7 @@ trait TrialsSkeletalImplementation[Case] extends ScalaTrials[Case] {
     flatMap(caze =>
       new TrialsImplementation(
         FiltrationResult(filteringTransform(caze))
-      ): ScalaTrials[TransformedCase]
+      )
     )
 
   override def flatMap[TransformedCase](
@@ -49,28 +49,38 @@ trait TrialsSkeletalImplementation[Case] extends ScalaTrials[Case] {
   ): ScalaTrialsScaffolding.Tuple2Trials[Case, Case2] =
     new ScalaTuple2Trials(this, secondTrials)
 
-  override def lists: ScalaTrials[List[Case]] = several
+  override def several[Container](implicit
+      factory: collection.Factory[Case, Container]
+  ): TrialsSkeletalImplementation[Container]
 
-  override def sets: ScalaTrials[Set[_ <: Case]] = several
+  override def lists: TrialsSkeletalImplementation[List[Case]] = several
+
+  override def sets: TrialsSkeletalImplementation[Set[_ <: Case]] = several
 
   override def sortedSets(implicit
       ordering: Ordering[_ >: Case]
-  ): ScalaTrials[SortedSet[_ <: Case]] =
+  ): TrialsSkeletalImplementation[SortedSet[_ <: Case]] =
     lists.map(SortedSet.from[Case](_)(ordering.asInstanceOf[Ordering[Case]]))
 
   override def maps[Value](
       values: ScalaTrials[Value]
-  ): ScalaTrials[Map[Case, Value]] =
+  ): TrialsSkeletalImplementation[Map[Case, Value]] =
     flatMap(key => values.map(key -> _)).several[Map[Case, Value]]
 
   override def sortedMaps[Value](values: ScalaTrials[Value])(implicit
       ordering: Ordering[_ >: Case]
-  ): ScalaTrials[SortedMap[Case, Value]] = flatMap(key =>
+  ): TrialsSkeletalImplementation[SortedMap[Case, Value]] = flatMap(key =>
     values.map(key -> _)
   ).lists
     .map(SortedMap.from[Case, Value](_)(ordering.asInstanceOf[Ordering[Case]]))
 
-  override def listsOfSize(size: Int): ScalaTrials[List[Case]] = lotsOfSize(
+  override def lotsOfSize[Container](size: Int)(implicit
+      factory: collection.Factory[Case, Container]
+  ): TrialsSkeletalImplementation[Container]
+
+  override def listsOfSize(
+      size: Int
+  ): TrialsSkeletalImplementation[List[Case]] = lotsOfSize(
     size
   )
 }
