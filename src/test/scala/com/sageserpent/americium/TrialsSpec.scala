@@ -8,6 +8,7 @@ import com.sageserpent.americium.java.{
   Trials as JavaTrials,
   TrialsApi as JavaTrialsApi
 }
+import cyclops.control.Either as JavaEither
 import org.mockito.ArgumentMatchers.{any, argThat}
 import org.mockito.Mockito
 import org.mockito.Mockito.{atMost as mockitoAtMost, *}
@@ -1746,9 +1747,67 @@ class TrialsSpec
     println(trialException.provokingCase)
   }
 
-  "combination with Scala `.or`" should "cover alternate finite choices" in {}
+  "combination with Scala `.or`" should "cover alternate finite choices" in {
+    inMockitoSession {
+      val mockConsumer: Either[String, Int] => Unit =
+        mock(classOf[Either[String, Int] => Unit])
 
-  "combination with Java `.or`" should "cover alternate finite choices" in {}
+      val lefts: Trials[String] = api.choose("Huey", "Duey", "Louie")
+
+      val rights: Trials[Int] = api.choose(0 until 10)
+
+      lefts
+        .map(Left.apply)
+        .withLimit(limit)
+        .supplyTo(left => doReturn(()).when(mockConsumer).apply(left))
+
+      rights
+        .map(Right.apply)
+        .withLimit(limit)
+        .supplyTo(right => doReturn(()).when(mockConsumer).apply(right))
+
+      (lefts or rights)
+        .withLimit(limit)
+        .supplyTo(mockConsumer)
+
+      verifyNoMoreInteractions(mockConsumer)
+    }
+  }
+
+  "combination with Java `.or`" should "cover alternate finite choices" in {
+    inMockitoSession {
+      val mockConsumer: Consumer[JavaEither[String, Int]] =
+        mock(classOf[Consumer[JavaEither[String, Int]]])
+
+      val lefts: JavaTrials[String] = javaApi.choose("Huey", "Duey", "Louie")
+
+      val rights: JavaTrials[Int] = javaApi.choose(
+        IntStream
+          .range(0, 10)
+          .collect[JavaLinkedList[Int]](
+            () => new JavaLinkedList[Int](),
+            _.add(_),
+            _.addAll(_)
+          )
+      )
+
+      lefts
+        .map(JavaEither.left[String, Int])
+        .withLimit(limit)
+        .supplyTo(left => doNothing().when(mockConsumer).accept(left))
+
+      rights
+        .map(JavaEither.right[String, Int])
+        .withLimit(limit)
+        .supplyTo(right => doNothing().when(mockConsumer).accept(right))
+
+      (lefts or rights)
+        .withLimit(limit)
+        .supplyTo(mockConsumer)
+
+      verifyNoMoreInteractions(mockConsumer)
+    }
+  }
 
   "lifting with Scala `.options`" should "cover underlying finite choices and include `None`" in {
     inMockitoSession {
