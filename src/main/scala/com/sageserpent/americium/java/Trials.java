@@ -49,6 +49,8 @@ public interface Trials<Case> extends
      */
     com.sageserpent.americium.Trials<Case> scalaTrials();
 
+    // Monad syntax methods...
+
     <TransformedCase> Trials<TransformedCase> map(
             final Function<Case, TransformedCase> transform);
 
@@ -76,13 +78,33 @@ public interface Trials<Case> extends
      *
      * @param secondTrials
      * @param <Case2>
-     * @return
+     * @return Syntax object that permits the test code to consume either a
+     * pair or two separate arguments.
      */
     <Case2> Tuple2Trials<Case, Case2> and(
             Trials<Case2> secondTrials);
 
+    /**
+     * Fluent syntax to allow trials of *dissimilar* types to be supplied as
+     * alternatives to the same test. In contrast to the
+     * {@link TrialsApi#alternate(Trials, Trials, Trials[])}, the
+     * alternatives do not have to conform to the same type; instead here we
+     * can switch in the test between unrelated types using an {@link Either}
+     * instance to hold cases from either this trials instance or {@code
+     * alternativeTrials}.
+     *
+     * @param alternativeTrials
+     * @param <Case2>
+     * @return {@link Either} that is populated with either a {@link Case} or
+     * a {@link Case2}.
+     */
     <Case2> Trials<Either<Case, Case2>> or(Trials<Case2> alternativeTrials);
 
+    /**
+     * @return A lifted trials that wraps the underlying cases from this in
+     * an {@link Optional}; the resulting trials also supplies a special case
+     * of {@link Optional#empty()}.
+     */
     Trials<Optional<Case>> optionals();
 
     /**
@@ -98,6 +120,8 @@ public interface Trials<Case> extends
      */
     <Collection> Trials<Collection> collections(
             Supplier<Builder<Case, Collection>> builderFactory);
+
+    // Convenience methods that enable supply of Guava collection cases...
 
     Trials<ImmutableList<Case>> immutableLists();
 
