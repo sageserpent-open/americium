@@ -25,14 +25,42 @@ public interface Trials<Case> extends
         return com.sageserpent.americium.TrialsApis.javaApi();
     }
 
-    static <Result> Result whenever(Boolean satisfiedPrecondition,
+    /**
+     * This is an alternative to calling {@link Trials#filter(Predicate)} -
+     * the idea here is to embed calls to this method in the test itself as
+     * an enclosing guard condition prior to executing the core testing code.
+     * Usually the guard precondition would involve some check on the
+     * supplied case and possibly some other inputs that come from elsewhere.
+     * Like the use of filtration, this approach will interact correctly with
+     * the shrinkage mechanism, which is why it is provided.
+     *
+     * @param guardPrecondition A precondition that must be satisfied to run
+     *                          the test code.
+     * @param block             The core testing code as a lambda.
+     * @param <Result>
+     * @return The result of successful execution of the test code.
+     */
+    static <Result> Result whenever(Boolean guardPrecondition,
                                     Supplier<Result> block) {
-        return com.sageserpent.americium.Trials.whenever(satisfiedPrecondition,
+        return com.sageserpent.americium.Trials.whenever(guardPrecondition,
                                                          block::get);
     }
 
-    static void whenever(Boolean satisfiedPrecondition, Runnable block) {
-        com.sageserpent.americium.Trials.whenever(satisfiedPrecondition, () -> {
+    /**
+     * This is an alternative to calling {@link Trials#filter(Predicate)} -
+     * the idea here is to embed calls to this method in the test itself as
+     * an enclosing guard condition prior to executing the core testing code.
+     * Usually the guard precondition would involve some check on the
+     * supplied case and possibly some other inputs that come from elsewhere.
+     * Like the use of filtration, this approach will interact correctly with
+     * the shrinkage mechanism, which is why it is provided.
+     *
+     * @param guardPrecondition A precondition that must be satisfied to run
+     *                          the test code.
+     * @param block             The core testing code as a lambda.
+     */
+    static void whenever(Boolean guardPrecondition, Runnable block) {
+        com.sageserpent.americium.Trials.whenever(guardPrecondition, () -> {
             block.run();
             return null;
         });

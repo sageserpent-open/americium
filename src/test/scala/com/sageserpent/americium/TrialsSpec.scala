@@ -1679,6 +1679,45 @@ class TrialsSpec
     }
   }
 
+  it should "be minimise failures to the same failing case as via explicit filtration - Scala" in {
+    val sets: Trials[Set[_ <: Int]] = api.integers.sets
+
+    def predicate(set: Set[_ <: Int]): Boolean = 0 == set.hashCode() % 2
+
+    val trouble = new RuntimeException("Trouble!")
+
+    def troublesomeConsumer(set: Set[_ <: Int]): Unit =
+      if (1 == set.size % 3) {
+        println(set)
+        throw trouble
+      }
+
+    val explicitlyFiltered = sets.filter(predicate)
+
+    val exceptionViaExplicitFiltration =
+      intercept[explicitlyFiltered.TrialException](
+        explicitlyFiltered.withLimit(limit).supplyTo(troublesomeConsumer)
+      )
+
+    val exceptionViaInlinedFiltration = intercept[sets.TrialException](
+      sets
+        .withLimit(limit)
+        .supplyTo(caze =>
+          Trials.whenever(predicate(caze)) {
+            troublesomeConsumer(caze)
+          }
+        )
+    )
+
+    exceptionViaInlinedFiltration.getCause should be(
+      exceptionViaExplicitFiltration.getCause
+    )
+
+    exceptionViaInlinedFiltration.provokingCase should be(
+      exceptionViaExplicitFiltration.provokingCase
+    )
+  }
+
   "mapping using a Java function" should "compile" in {
     assertCompiles("javaApi.only(1).map((_ + 1): JavaFunction[Int, Int])")
   }
