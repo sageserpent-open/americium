@@ -835,7 +835,7 @@ that it would make if an explicit filtration is used.
 Here is
 a [Java example](https://github.com/sageserpent-open/americium/blob/8f0582c3654d0c4000e4311c9cc89be7372f8864/src/test/scala/com/sageserpent/americium/java/TrialsApiTests.java#L202)
 and here is
-a [Scala example](https://github.com/sageserpent-open/americium/blob/8f0582c3654d0c4000e4311c9cc89be7372f8864/src/test/scala/com/sageserpent/americium/TrialsSpec.scala#L1591)
+a [Scala example](https://github.com/sageserpent-open/americium/blob/03128c4ae691114294eba6583f42ff5e587fb047/src/test/scala/com/sageserpent/americium/SortingExample.scala#L67)
 .
 
 ### Why is there a file 'IntelliJCodeStyle.xml' in the project? ###
