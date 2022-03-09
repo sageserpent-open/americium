@@ -6,7 +6,6 @@ import cats.free.Free.liftF
 import cats.implicits.*
 import cats.{Eval, ~>}
 import com.google.common.collect.{Ordering as _, *}
-import com.sageserpent.americium.Trials.RejectionByInlineFilter
 import com.sageserpent.americium.TrialsApis.{javaApi, scalaApi}
 import com.sageserpent.americium.java.TrialsScaffolding.OptionalLimits
 import com.sageserpent.americium.java.{
@@ -683,10 +682,15 @@ case class TrialsImplementation[Case](
                               decisionStagesForPotentialShrunkCaseInReverseOrder,
                               potentialShrunkCase
                             ) if caze != potentialShrunkCase =>
+                          val rejectionByInlineFilter: RuntimeException =
+                            new RuntimeException
                           try {
-                            Eval.now(consumer(potentialShrunkCase))
+                            Trials.throwInlineFilterRejection.withValue(() =>
+                              throw rejectionByInlineFilter
+                            ) { Eval.now(consumer(potentialShrunkCase)) }
                           } catch {
-                            case _: RejectionByInlineFilter =>
+                            case exception
+                                if rejectionByInlineFilter == exception =>
                               Eval.now(inlinedCaseFiltration.reject())
                             case throwableFromPotentialShrunkCase: Throwable =>
                               val decisionStagesForPotentialShrunkCase =
@@ -798,10 +802,14 @@ case class TrialsImplementation[Case](
         ) match {
           case (cases, inlinedCaseFiltration) =>
             cases.foreach { case (decisionStagesInReverseOrder, caze) =>
+              val rejectionByInlineFilter: RuntimeException =
+                new RuntimeException
               try {
-                consumer(caze)
+                Trials.throwInlineFilterRejection.withValue(() =>
+                  throw rejectionByInlineFilter
+                ) { consumer(caze) }
               } catch {
-                case _: RejectionByInlineFilter =>
+                case exception if rejectionByInlineFilter == exception =>
                   inlinedCaseFiltration.reject()
                 case throwable: Throwable =>
                   shrink(
