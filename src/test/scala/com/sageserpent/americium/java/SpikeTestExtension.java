@@ -4,8 +4,10 @@ import com.google.common.collect.ImmutableList;
 import cyclops.companion.Streams;
 import cyclops.data.tuple.Tuple2;
 import org.junit.jupiter.api.extension.*;
+import org.junit.platform.commons.util.ExceptionUtils;
 import org.opentest4j.TestAbortedException;
 
+import java.lang.reflect.Method;
 import java.util.Iterator;
 import java.util.List;
 import java.util.stream.Stream;
@@ -13,9 +15,12 @@ import java.util.stream.Stream;
 public class SpikeTestExtension
         implements TestTemplateInvocationContextProvider,
         TestExecutionExceptionHandler,
-        TestWatcher {
+        TestWatcher,
+        InvocationInterceptor {
     private final Iterator<Long> cases;
     private final InlinedCaseFiltration inlinedCaseFiltration;
+    private final RuntimeException rejectionByInlineFilter =
+            new RuntimeException();
 
     {
         final Trials<Long> trials = Trials.api().longs();
@@ -74,14 +79,35 @@ public class SpikeTestExtension
     }
 
     @Override
+    public void interceptTestTemplateMethod(Invocation<Void> invocation,
+                                            ReflectiveInvocationContext<Method> invocationContext,
+                                            ExtensionContext extensionContext)
+            throws Throwable {
+        com.sageserpent.americium.Trials
+                .throwInlineFilterRejection()
+                .withValue(() -> {
+                               throw rejectionByInlineFilter;
+                           },
+                           () -> {
+                               try {
+                                   InvocationInterceptor.super.interceptTestMethod(
+                                           invocation,
+                                           invocationContext,
+                                           extensionContext);
+                               } catch (Throwable e) {
+                                   ExceptionUtils.throwAsUncheckedException(e);
+                               }
+
+                               return null;
+                           });
+    }
+
+    @Override
     public void handleTestExecutionException(ExtensionContext context,
                                              Throwable throwable)
             throws Throwable {
-        try {
-            throw throwable;
-        } catch (SpecialException specialException) {
-            throw new TestAbortedException();
-        }
+        throw rejectionByInlineFilter == throwable ? new TestAbortedException()
+                                                   : throwable;
     }
 
     @Override
@@ -89,8 +115,5 @@ public class SpikeTestExtension
         inlinedCaseFiltration.reject();
 
         TestWatcher.super.testAborted(context, cause);
-    }
-
-    public static class SpecialException extends RuntimeException {
     }
 }

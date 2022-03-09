@@ -13,8 +13,8 @@ import scala.util.DynamicVariable
 object Trials {
   def api: TrialsApi = TrialsApis.scalaApi
 
-  private[americium] val throwInlineFilterRejection
-      : DynamicVariable[() => Unit] = new DynamicVariable(() => {})
+  val throwInlineFilterRejection: DynamicVariable[() => Unit] =
+    new DynamicVariable(() => {})
 
   def whenever(satisfiedPrecondition: Boolean)(
       block: => Unit

@@ -9,7 +9,7 @@ import static java.lang.Math.abs;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 
-public class SpikeWithTestWatcher {
+public class DemonstrateSpikedJUnitIntegration {
     @BeforeEach
     void beforeEach() {
         System.out.println("Before each...");
@@ -25,7 +25,7 @@ public class SpikeWithTestWatcher {
     void throwAnException(Long caze) {
         assumeTrue(0 != caze % 2);
 
-        if (5 == abs(caze % 10))
-            throw new SpikeTestExtension.SpecialException();
+        Trials.whenever(5 != abs(caze % 10), () -> {
+        });
     }
 }
