@@ -177,6 +177,8 @@ public interface TrialsScaffolding<Case,
         void supplyTo(final Consumer<Case> consumer);
 
         Iterator<Case> asIterator();
+
+        Tuple2<Iterator<Case>, InlinedCaseFiltration> testIntegration();
     }
 
     interface Tuple2Trials<Case1, Case2> extends

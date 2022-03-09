@@ -23,6 +23,7 @@ import com.sageserpent.americium.{
   TrialsSkeletalImplementation as ScalaTrialsSkeletalImplementation
 }
 import cyclops.control.Either as JavaEither
+import cyclops.data.tuple.Tuple2 as JavaTuple2
 import io.circe.generic.auto.*
 import io.circe.parser.*
 import io.circe.syntax.*
@@ -574,6 +575,23 @@ case class TrialsImplementation[Case](
         )._1.map(_._2).asJava
       }
 
+      override def testIntegration(): JavaTuple2[JavaIterator[
+        Case
+      ], InlinedCaseFiltration] = {
+        val randomBehaviour = new Random(734874)
+
+        cases(
+          casesLimit,
+          complexityLimit,
+          randomBehaviour,
+          None,
+          decisionStagesToGuideShrinkage = None
+        ) match {
+          case (cases, inlinedCaseFiltration) =>
+            JavaTuple2.of(cases.map(_._2).asJava, inlinedCaseFiltration)
+        }
+      }
+
       // Scala-only API ...
       override def supplyTo(consumer: Case => Unit): Unit = {
 
@@ -822,6 +840,10 @@ case class TrialsImplementation[Case](
         val decisionStages = parseDecisionIndices(recipe)
         reproduce(decisionStages)
       }.asJava.iterator()
+
+      override def testIntegration()
+          : JavaTuple2[JavaIterator[Case], InlinedCaseFiltration] =
+        JavaTuple2.of(asIterator(), () => {})
 
       // Scala-only API ...
       override def supplyTo(consumer: Case => Unit): Unit = {
