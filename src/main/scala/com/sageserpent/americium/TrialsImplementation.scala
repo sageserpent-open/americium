@@ -539,7 +539,7 @@ case class TrialsImplementation[Case](
                 .value
                 .value match {
                 case Some((State(_, decisionStages, _), caze))
-                    if potentialDuplicates.add(decisionStages) => {
+                    if potentialDuplicates.add(decisionStages) =>
                   {
                     numberOfUniqueCasesProduced += 1
                     backupOfStarvationCountdown = starvationCountdown
@@ -549,7 +549,6 @@ case class TrialsImplementation[Case](
                   }
 
                   Some(decisionStages -> caze)
-                }
                 case _ =>
                   { starvationCountdown -= 1 }
 
