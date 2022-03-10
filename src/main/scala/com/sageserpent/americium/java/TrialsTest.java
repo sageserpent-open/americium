@@ -11,4 +11,5 @@ import java.lang.annotation.*;
 @TestTemplate
 @ExtendWith(TrialsTestExtension.class)
 public @interface TrialsTest {
+    String[] trials() default "";
 }

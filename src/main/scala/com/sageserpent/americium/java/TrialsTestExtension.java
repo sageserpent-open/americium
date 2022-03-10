@@ -5,19 +5,27 @@ import com.google.common.collect.ImmutableSet;
 import cyclops.companion.Streams;
 import cyclops.data.tuple.Tuple2;
 import org.junit.jupiter.api.extension.*;
+import org.junit.platform.commons.support.AnnotationSupport;
+import org.junit.platform.commons.support.HierarchyTraversalMode;
+import org.junit.platform.commons.support.ReflectionSupport;
 import org.junit.platform.commons.util.ExceptionUtils;
 import org.opentest4j.TestAbortedException;
 
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class TrialsTestExtension
         implements TestTemplateInvocationContextProvider,
         InvocationInterceptor {
-    private final Iterator<Long> cases;
-    private final InlinedCaseFiltration inlinedCaseFiltration;
+    private Iterator<ImmutableList<Object>> cases;
+    private InlinedCaseFiltration inlinedCaseFiltration;
 
     private final static Class<? extends Throwable>[]
             additionalExceptionsToHandleAsFiltration =
@@ -26,12 +34,66 @@ public class TrialsTestExtension
                     .stream()
                     .toArray(Class[]::new);
 
-    {
-        final Trials<Long> trials = Trials.api().longs();
-        final int limit = 50;
+    private void setUpFromAnnotation(
+            ExtensionContext context) {
+        final Method testMethod = context.getRequiredTestMethod();
+        final TrialsTest annotation =
+                AnnotationSupport
+                        .findAnnotation(testMethod,
+                                        TrialsTest.class)
+                        .orElseThrow(() -> {
+                            throw new TestAbortedException(String.format(
+                                    "`TrialsTest` annotation missing from " +
+                                    "method: %s",
+                                    testMethod));
+                        });
 
-        final Tuple2<Iterator<Long>, InlinedCaseFiltration> pair =
-                trials.withLimit(limit).testIntegration();
+        final List<String> supplierFieldNames =
+                Stream.of(annotation.trials()).collect(
+                        Collectors.toList());
+
+        final Class<?> testClass = context.getRequiredTestClass();
+
+        final List<Field> supplierFields =
+                ReflectionSupport.findFields(testClass,
+                                             field -> supplierFieldNames.contains(
+                                                     field.getName()),
+                                             HierarchyTraversalMode.BOTTOM_UP);
+
+        final Map<String, Field> fieldsByName = supplierFields
+                .stream()
+                .collect(Collectors.toMap(Field::getName, Function.identity()));
+
+
+        final Object testInstance = context.getTestInstance().orElse(null);
+
+        final List<Trials<Object>> trials =
+                supplierFieldNames.stream().map(fieldName -> {
+                    try {
+                        return ReflectionSupport
+                                .tryToReadFieldValue(fieldsByName.get(fieldName),
+                                                     testInstance)
+                                .toOptional()
+                                .flatMap(value -> value instanceof Trials
+                                                  ?
+                                                  Optional.of((Trials<Object>) value)
+                                                  : Optional.empty())
+                                .get();
+                    } catch (Exception e) {
+                        return (Trials<Object>) ExceptionUtils.throwAsUncheckedException(
+                                e);
+                    }
+                }).collect(Collectors.toList());
+
+        final Trials<ImmutableList<Object>> lists = Trials.api().lists(trials);
+
+        final TrialsScaffolding.SupplyToSyntax<ImmutableList<Object>>
+                supplyToSyntax =
+                lists.withLimit(100);
+
+        final Tuple2<Iterator<ImmutableList<Object>>, InlinedCaseFiltration>
+                pair =
+                supplyToSyntax.testIntegration();
 
         cases = pair._1();
         inlinedCaseFiltration = pair._2();
@@ -45,6 +107,8 @@ public class TrialsTestExtension
     @Override
     public Stream<TestTemplateInvocationContext> provideTestTemplateInvocationContexts(
             ExtensionContext context) {
+        setUpFromAnnotation(context);
+
         return Streams
                 .stream(cases)
                 .map(caze -> new TestTemplateInvocationContext() {
@@ -53,7 +117,8 @@ public class TrialsTestExtension
                         return String.format("%s %s",
                                              TestTemplateInvocationContext.super.getDisplayName(
                                                      invocationIndex),
-                                             caze);
+                                             1 < caze.size() ? caze
+                                                             : caze.get(0));
                     }
 
                     @Override
@@ -67,7 +132,7 @@ public class TrialsTestExtension
                                 return parameterContext
                                         .getParameter()
                                         .getType()
-                                        .isAssignableFrom(Long.class);
+                                        .isInstance(caze.get(parameterContext.getIndex()));
                             }
 
                             @Override
@@ -75,7 +140,7 @@ public class TrialsTestExtension
                                     ParameterContext parameterContext,
                                     ExtensionContext extensionContext)
                                     throws ParameterResolutionException {
-                                return caze;
+                                return caze.get(parameterContext.getIndex());
                             }
                         });
                     }
@@ -92,8 +157,8 @@ public class TrialsTestExtension
                         invocation,
                         invocationContext,
                         extensionContext);
-            } catch (Throwable e) {
-                ExceptionUtils.throwAsUncheckedException(e);
+            } catch (Throwable throwable) {
+                ExceptionUtils.throwAsUncheckedException(throwable);
             }
         }, additionalExceptionsToHandleAsFiltration))
             throw new TestAbortedException();

@@ -19,16 +19,31 @@ public class DemonstrateJUnitIntegration {
         System.out.println("...after each.");
     }
 
-    @TrialsTest
-    void throwAnException(Long caze) {
-        final boolean assumption = 0 != caze % 2;
+    private static final Trials<Long> longs = Trials.api().longs();
+
+    private static final Trials<String> strings =
+            Trials.api().choose("Fred", "Harold", "Ethel");
+
+    @TrialsTest(trials = "longs")
+    void testWithALong(Long longCase) {
+        final boolean assumption = 0 != longCase % 2;
 
         assumeTrue(assumption);
 
-        final boolean guardPrecondition = 5 != abs(caze % 10);
+        final boolean guardPrecondition = 5 != abs(longCase % 10);
 
         Trials.whenever(guardPrecondition, () -> {
             assertTrue(assumption);
+            assertTrue(guardPrecondition);
+        });
+    }
+
+    @TrialsTest(trials = {"longs", "strings"})
+    void testWithALongAndAString(Long longCase, String stringCase) {
+        final boolean guardPrecondition =
+                5 != abs(longCase % 10) && stringCase.contains("e");
+
+        Trials.whenever(guardPrecondition, () -> {
             assertTrue(guardPrecondition);
         });
     }
