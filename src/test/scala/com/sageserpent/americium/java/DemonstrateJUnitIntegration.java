@@ -24,7 +24,7 @@ public class DemonstrateJUnitIntegration {
     private static final Trials<String> strings =
             Trials.api().choose("Fred", "Harold", "Ethel");
 
-    @TrialsTest(trials = "longs")
+    @TrialsTest(trials = "longs", casesLimit = 100)
     void testWithALong(Long longCase) {
         final boolean assumption = 0 != longCase % 2;
 
@@ -38,7 +38,7 @@ public class DemonstrateJUnitIntegration {
         });
     }
 
-    @TrialsTest(trials = {"longs", "strings"})
+    @TrialsTest(trials = {"longs", "strings"}, casesLimit = 100)
     void testWithALongAndAString(Long longCase, String stringCase) {
         final boolean guardPrecondition =
                 5 != abs(longCase % 10) && stringCase.contains("e");

@@ -12,4 +12,10 @@ import java.lang.annotation.*;
 @ExtendWith(TrialsTestExtension.class)
 public @interface TrialsTest {
     String[] trials() default "";
+
+    int casesLimit();
+
+    int complexity() default 100;
+
+    int shrinkageAttempts() default 100;
 }

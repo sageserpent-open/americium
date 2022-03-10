@@ -89,7 +89,12 @@ public class TrialsTestExtension
 
         final TrialsScaffolding.SupplyToSyntax<ImmutableList<Object>>
                 supplyToSyntax =
-                lists.withLimit(100);
+                lists.withLimits(annotation.casesLimit(),
+                                 TrialsScaffolding.OptionalLimits
+                                         .builder()
+                                         .complexity(annotation.complexity())
+                                         .shrinkageAttempts(annotation.shrinkageAttempts())
+                                         .build());
 
         final Tuple2<Iterator<ImmutableList<Object>>, InlinedCaseFiltration>
                 pair =
