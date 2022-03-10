@@ -13,7 +13,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.stream.Stream;
 
-public class SpikeTestExtension
+public class TrialsTestExtension
         implements TestTemplateInvocationContextProvider,
         InvocationInterceptor {
     private final Iterator<Long> cases;
