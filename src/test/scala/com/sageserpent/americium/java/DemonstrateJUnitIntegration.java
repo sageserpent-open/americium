@@ -4,10 +4,11 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 
 import static java.lang.Math.abs;
+import static org.junit.Assert.assertTrue;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 
-public class DemonstrateSpikedJUnitIntegration {
+public class DemonstrateJUnitIntegration {
     @BeforeEach
     void beforeEach() {
         System.out.println("Before each...");
@@ -20,9 +21,15 @@ public class DemonstrateSpikedJUnitIntegration {
 
     @TrialsTest
     void throwAnException(Long caze) {
-        assumeTrue(0 != caze % 2);
+        final boolean assumption = 0 != caze % 2;
 
-        Trials.whenever(5 != abs(caze % 10), () -> {
+        assumeTrue(assumption);
+
+        final boolean guardPrecondition = 5 != abs(caze % 10);
+
+        Trials.whenever(guardPrecondition, () -> {
+            assertTrue(assumption);
+            assertTrue(guardPrecondition);
         });
     }
 }
