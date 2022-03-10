@@ -521,10 +521,43 @@ case class TrialsImplementation[Case](
           val potentialDuplicates =
             mutable.Set.empty[DecisionStagesInReverseOrder]
 
-          val inlinedCaseFiltration: InlinedCaseFiltration = () => {
-            numberOfUniqueCasesProduced -= 1
-            starvationCountdown = backupOfStarvationCountdown - 1
-          }
+          val inlinedCaseFiltration: InlinedCaseFiltration =
+            new InlinedCaseFiltration {
+              override def executeInFiltrationContext(
+                  runnable: Runnable,
+                  additionalExceptionsToNoteAsFiltration: Array[
+                    Class[_ <: Throwable]
+                  ]
+              ): Boolean = {
+                val inlineFilterRejection = new RuntimeException
+
+                try {
+                  Trials.throwInlineFilterRejection.withValue(() =>
+                    throw inlineFilterRejection
+                  ) { runnable.run() }
+
+                  true
+                } catch {
+                  case exception: RuntimeException
+                      if inlineFilterRejection == exception =>
+                    noteRejectionOfCase()
+
+                    false
+                  case throwable: Throwable
+                      if additionalExceptionsToNoteAsFiltration.exists(
+                        _.isInstance(throwable)
+                      ) =>
+                    noteRejectionOfCase()
+
+                    throw throwable
+                }
+              }
+
+              private def noteRejectionOfCase() = {
+                numberOfUniqueCasesProduced -= 1
+                starvationCountdown = backupOfStarvationCountdown - 1
+              }
+            }
 
           new Iterator[Option[(DecisionStagesInReverseOrder, Case)]] {
             private def remainingGap = limit - numberOfUniqueCasesProduced
@@ -682,16 +715,14 @@ case class TrialsImplementation[Case](
                               decisionStagesForPotentialShrunkCaseInReverseOrder,
                               potentialShrunkCase
                             ) if caze != potentialShrunkCase =>
-                          val rejectionByInlineFilter: RuntimeException =
-                            new RuntimeException
                           try {
-                            Trials.throwInlineFilterRejection.withValue(() =>
-                              throw rejectionByInlineFilter
-                            ) { Eval.now(consumer(potentialShrunkCase)) }
+                            Eval.now(
+                              inlinedCaseFiltration.executeInFiltrationContext(
+                                () => consumer(potentialShrunkCase),
+                                Array.empty
+                              )
+                            )
                           } catch {
-                            case exception
-                                if rejectionByInlineFilter == exception =>
-                              Eval.now(inlinedCaseFiltration.reject())
                             case throwableFromPotentialShrunkCase: Throwable =>
                               val decisionStagesForPotentialShrunkCase =
                                 decisionStagesForPotentialShrunkCaseInReverseOrder.reverse
@@ -802,15 +833,12 @@ case class TrialsImplementation[Case](
         ) match {
           case (cases, inlinedCaseFiltration) =>
             cases.foreach { case (decisionStagesInReverseOrder, caze) =>
-              val rejectionByInlineFilter: RuntimeException =
-                new RuntimeException
               try {
-                Trials.throwInlineFilterRejection.withValue(() =>
-                  throw rejectionByInlineFilter
-                ) { consumer(caze) }
+                inlinedCaseFiltration.executeInFiltrationContext(
+                  () => consumer(caze),
+                  Array.empty
+                )
               } catch {
-                case exception if rejectionByInlineFilter == exception =>
-                  inlinedCaseFiltration.reject()
                 case throwable: Throwable =>
                   shrink(
                     caze = caze,
@@ -851,7 +879,19 @@ case class TrialsImplementation[Case](
 
       override def testIntegration()
           : JavaTuple2[JavaIterator[Case], InlinedCaseFiltration] =
-        JavaTuple2.of(asIterator(), () => {})
+        JavaTuple2.of(
+          asIterator(),
+          {
+            (
+                runnable: Runnable,
+                additionalExceptionsToHandleAsFiltration: Array[
+                  Class[_ <: Throwable]
+                ]
+            ) =>
+              runnable.run()
+              true
+          }
+        )
 
       // Scala-only API ...
       override def supplyTo(consumer: Case => Unit): Unit = {

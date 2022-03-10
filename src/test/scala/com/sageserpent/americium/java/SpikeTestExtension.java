@@ -1,6 +1,7 @@
 package com.sageserpent.americium.java;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import cyclops.companion.Streams;
 import cyclops.data.tuple.Tuple2;
 import org.junit.jupiter.api.extension.*;
@@ -14,13 +15,16 @@ import java.util.stream.Stream;
 
 public class SpikeTestExtension
         implements TestTemplateInvocationContextProvider,
-        TestExecutionExceptionHandler,
-        TestWatcher,
         InvocationInterceptor {
     private final Iterator<Long> cases;
     private final InlinedCaseFiltration inlinedCaseFiltration;
-    private final RuntimeException rejectionByInlineFilter =
-            new RuntimeException();
+
+    private final static Class<? extends Throwable>[]
+            additionalExceptionsToHandleAsFiltration =
+            ImmutableSet
+                    .of(TestAbortedException.class)
+                    .stream()
+                    .toArray(Class[]::new);
 
     {
         final Trials<Long> trials = Trials.api().longs();
@@ -81,39 +85,17 @@ public class SpikeTestExtension
     @Override
     public void interceptTestTemplateMethod(Invocation<Void> invocation,
                                             ReflectiveInvocationContext<Method> invocationContext,
-                                            ExtensionContext extensionContext)
-            throws Throwable {
-        com.sageserpent.americium.Trials
-                .throwInlineFilterRejection()
-                .withValue(() -> {
-                               throw rejectionByInlineFilter;
-                           },
-                           () -> {
-                               try {
-                                   InvocationInterceptor.super.interceptTestMethod(
-                                           invocation,
-                                           invocationContext,
-                                           extensionContext);
-                               } catch (Throwable e) {
-                                   ExceptionUtils.throwAsUncheckedException(e);
-                               }
-
-                               return null;
-                           });
-    }
-
-    @Override
-    public void handleTestExecutionException(ExtensionContext context,
-                                             Throwable throwable)
-            throws Throwable {
-        throw rejectionByInlineFilter == throwable ? new TestAbortedException()
-                                                   : throwable;
-    }
-
-    @Override
-    public void testAborted(ExtensionContext context, Throwable cause) {
-        inlinedCaseFiltration.reject();
-
-        TestWatcher.super.testAborted(context, cause);
+                                            ExtensionContext extensionContext) {
+        if (!inlinedCaseFiltration.executeInFiltrationContext(() -> {
+            try {
+                InvocationInterceptor.super.interceptTestMethod(
+                        invocation,
+                        invocationContext,
+                        extensionContext);
+            } catch (Throwable e) {
+                ExceptionUtils.throwAsUncheckedException(e);
+            }
+        }, additionalExceptionsToHandleAsFiltration))
+            throw new TestAbortedException();
     }
 }
