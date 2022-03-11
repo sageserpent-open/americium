@@ -8,16 +8,20 @@ import com.sageserpent.americium.java.Trials as JavaTrials
 import scala.collection.Factory
 import scala.collection.immutable.{SortedMap, SortedSet}
 import scala.language.implicitConversions
+import scala.util.DynamicVariable
 
 object Trials {
   def api: TrialsApi = TrialsApis.scalaApi
 
-  private[americium] class RejectionByInlineFilter extends RuntimeException
+  private[americium] val throwInlineFilterRejection
+      : DynamicVariable[() => Unit] =
+    new DynamicVariable(() => {})
 
-  def whenever[Result](satisfiedPrecondition: Boolean)(
-      block: => Result
-  ): Result =
-    if (satisfiedPrecondition) block else throw new RejectionByInlineFilter()
+  def whenever(satisfiedPrecondition: Boolean)(
+      block: => Unit
+  ): Unit =
+    if (satisfiedPrecondition) block
+    else throwInlineFilterRejection.value.apply()
 
   implicit class CharacterTrialsSyntax(val characterTrials: Trials[Char]) {
     def strings: Trials[String] = characterTrials.several

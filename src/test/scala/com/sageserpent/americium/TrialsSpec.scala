@@ -1,6 +1,5 @@
 package com.sageserpent.americium
 
-import com.sageserpent.americium.Trials.RejectionByInlineFilter
 import com.sageserpent.americium.TrialsScaffolding.noShrinking
 import com.sageserpent.americium.java.{
   Builder,
@@ -1580,12 +1579,10 @@ class TrialsSpec
   }
 
   "inlined filtration" should "execute the controlled block if and only if the precondition holds" in {
-    assertThrows[RejectionByInlineFilter] {
-      Trials.whenever(satisfiedPrecondition = false) {
-        fail(
-          "If the precondition doesn't hold, the block should not be executed."
-        )
-      }
+    Trials.whenever(satisfiedPrecondition = false) {
+      fail(
+        "If the precondition doesn't hold, the block should not be executed."
+      )
     }
 
     Trials.whenever(satisfiedPrecondition = true) {

@@ -11,6 +11,9 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
+import static com.sageserpent.americium.java.TrialsDefaults.defaultComplexityLimit;
+import static com.sageserpent.americium.java.TrialsDefaults.defaultShrinkageAttemptsLimit;
+
 public interface TrialsScaffolding<Case,
         SupplySyntaxType extends TrialsScaffolding.SupplyToSyntax<Case>>
         extends TrialsFactoring<Case> {
@@ -98,7 +101,7 @@ public interface TrialsScaffolding<Case,
          * Deeply recursive trials also result in high complexity.
          */
         @lombok.Builder.Default
-        public final int complexity = TrialsFactoring.defaultComplexityLimit();
+        public final int complexity = defaultComplexityLimit;
 
         /**
          * The maximum number of shrinkage attempts when shrinking a case.
@@ -107,7 +110,7 @@ public interface TrialsScaffolding<Case,
          */
         @lombok.Builder.Default
         public final int shrinkageAttempts =
-                TrialsFactoring.defaultShrinkageAttemptsLimit();
+                defaultShrinkageAttemptsLimit;
     }
 
     /**
@@ -177,6 +180,8 @@ public interface TrialsScaffolding<Case,
         void supplyTo(final Consumer<Case> consumer);
 
         Iterator<Case> asIterator();
+
+        Tuple2<Iterator<Case>, InlinedCaseFiltration> testIntegration();
     }
 
     interface Tuple2Trials<Case1, Case2> extends

@@ -1,19 +1,19 @@
 package com.sageserpent.americium.java
 
-import cats.implicits._
+import cats.implicits.*
 import cats.{Functor, Semigroupal}
 import com.sageserpent.americium.java.{
-  Trials => JavaTrials,
-  TrialsScaffolding => JavaTrialsScaffolding
+  Trials as JavaTrials,
+  TrialsScaffolding as JavaTrialsScaffolding
 }
 import cyclops.data.tuple.{
-  Tuple2 => JavaTuple2,
-  Tuple3 => JavaTuple3,
-  Tuple4 => JavaTuple4
+  Tuple2 as JavaTuple2,
+  Tuple3 as JavaTuple3,
+  Tuple4 as JavaTuple4
 }
 import cyclops.function.{Consumer3, Consumer4}
 
-import _root_.java.util.{Iterator => JavaIterator}
+import _root_.java.util.Iterator as JavaIterator
 import java.util.function.{BiConsumer, Consumer}
 
 object tupleTrials {
@@ -76,6 +76,10 @@ object tupleTrials {
 
       override def asIterator: JavaIterator[JavaTuple2[Case1, Case2]] =
         supplyToSyntax.asIterator
+
+      override def testIntegration: JavaTuple2[JavaIterator[
+        JavaTuple2[Case1, Case2]
+      ], InlinedCaseFiltration] = supplyToSyntax.testIntegration
 
       protected val supplyToSyntax: TrialsScaffolding.SupplyToSyntax[
         JavaTuple2[Case1, Case2]
@@ -166,6 +170,10 @@ object tupleTrials {
 
       override def asIterator: JavaIterator[JavaTuple3[Case1, Case2, Case3]] =
         supplyToSyntax.asIterator
+
+      override def testIntegration: JavaTuple2[JavaIterator[
+        JavaTuple3[Case1, Case2, Case3]
+      ], InlinedCaseFiltration] = supplyToSyntax.testIntegration
 
       protected val supplyToSyntax: TrialsScaffolding.SupplyToSyntax[
         JavaTuple3[Case1, Case2, Case3]
@@ -273,6 +281,10 @@ object tupleTrials {
       override def asIterator
           : JavaIterator[JavaTuple4[Case1, Case2, Case3, Case4]] =
         supplyToSyntax.asIterator
+
+      override def testIntegration: JavaTuple2[JavaIterator[
+        JavaTuple4[Case1, Case2, Case3, Case4]
+      ], InlinedCaseFiltration] = supplyToSyntax.testIntegration
 
       protected val supplyToSyntax: TrialsScaffolding.SupplyToSyntax[
         JavaTuple4[Case1, Case2, Case3, Case4]

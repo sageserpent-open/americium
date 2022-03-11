@@ -6,7 +6,6 @@ import cats.free.Free.liftF
 import cats.implicits.*
 import cats.{Eval, ~>}
 import com.google.common.collect.{Ordering as _, *}
-import com.sageserpent.americium.Trials.RejectionByInlineFilter
 import com.sageserpent.americium.TrialsApis.{javaApi, scalaApi}
 import com.sageserpent.americium.java.TrialsScaffolding.OptionalLimits
 import com.sageserpent.americium.java.{
@@ -23,6 +22,7 @@ import com.sageserpent.americium.{
   TrialsSkeletalImplementation as ScalaTrialsSkeletalImplementation
 }
 import cyclops.control.Either as JavaEither
+import cyclops.data.tuple.Tuple2 as JavaTuple2
 import io.circe.generic.auto.*
 import io.circe.parser.*
 import io.circe.syntax.*
@@ -521,10 +521,43 @@ case class TrialsImplementation[Case](
           val potentialDuplicates =
             mutable.Set.empty[DecisionStagesInReverseOrder]
 
-          val inlinedCaseFiltration: InlinedCaseFiltration = () => {
-            numberOfUniqueCasesProduced -= 1
-            starvationCountdown = backupOfStarvationCountdown - 1
-          }
+          val inlinedCaseFiltration: InlinedCaseFiltration =
+            new InlinedCaseFiltration {
+              override def executeInFiltrationContext(
+                  runnable: Runnable,
+                  additionalExceptionsToNoteAsFiltration: Array[
+                    Class[_ <: Throwable]
+                  ]
+              ): Boolean = {
+                val inlineFilterRejection = new RuntimeException
+
+                try {
+                  Trials.throwInlineFilterRejection.withValue(() =>
+                    throw inlineFilterRejection
+                  ) { runnable.run() }
+
+                  true
+                } catch {
+                  case exception: RuntimeException
+                      if inlineFilterRejection == exception =>
+                    noteRejectionOfCase()
+
+                    false
+                  case throwable: Throwable
+                      if additionalExceptionsToNoteAsFiltration.exists(
+                        _.isInstance(throwable)
+                      ) =>
+                    noteRejectionOfCase()
+
+                    throw throwable
+                }
+              }
+
+              private def noteRejectionOfCase() = {
+                numberOfUniqueCasesProduced -= 1
+                starvationCountdown = backupOfStarvationCountdown - 1
+              }
+            }
 
           new Iterator[Option[(DecisionStagesInReverseOrder, Case)]] {
             private def remainingGap = limit - numberOfUniqueCasesProduced
@@ -539,7 +572,7 @@ case class TrialsImplementation[Case](
                 .value
                 .value match {
                 case Some((State(_, decisionStages, _), caze))
-                    if potentialDuplicates.add(decisionStages) => {
+                    if potentialDuplicates.add(decisionStages) =>
                   {
                     numberOfUniqueCasesProduced += 1
                     backupOfStarvationCountdown = starvationCountdown
@@ -549,7 +582,6 @@ case class TrialsImplementation[Case](
                   }
 
                   Some(decisionStages -> caze)
-                }
                 case _ =>
                   { starvationCountdown -= 1 }
 
@@ -573,6 +605,23 @@ case class TrialsImplementation[Case](
           None,
           decisionStagesToGuideShrinkage = None
         )._1.map(_._2).asJava
+      }
+
+      override def testIntegration(): JavaTuple2[JavaIterator[
+        Case
+      ], InlinedCaseFiltration] = {
+        val randomBehaviour = new Random(734874)
+
+        cases(
+          casesLimit,
+          complexityLimit,
+          randomBehaviour,
+          None,
+          decisionStagesToGuideShrinkage = None
+        ) match {
+          case (cases, inlinedCaseFiltration) =>
+            JavaTuple2.of(cases.map(_._2).asJava, inlinedCaseFiltration)
+        }
       }
 
       // Scala-only API ...
@@ -667,10 +716,13 @@ case class TrialsImplementation[Case](
                               potentialShrunkCase
                             ) if caze != potentialShrunkCase =>
                           try {
-                            Eval.now(consumer(potentialShrunkCase))
+                            Eval.now(
+                              inlinedCaseFiltration.executeInFiltrationContext(
+                                () => consumer(potentialShrunkCase),
+                                Array.empty
+                              )
+                            )
                           } catch {
-                            case _: RejectionByInlineFilter =>
-                              Eval.now(inlinedCaseFiltration.reject())
                             case throwableFromPotentialShrunkCase: Throwable =>
                               val decisionStagesForPotentialShrunkCase =
                                 decisionStagesForPotentialShrunkCaseInReverseOrder.reverse
@@ -782,10 +834,11 @@ case class TrialsImplementation[Case](
           case (cases, inlinedCaseFiltration) =>
             cases.foreach { case (decisionStagesInReverseOrder, caze) =>
               try {
-                consumer(caze)
+                inlinedCaseFiltration.executeInFiltrationContext(
+                  () => consumer(caze),
+                  Array.empty
+                )
               } catch {
-                case _: RejectionByInlineFilter =>
-                  inlinedCaseFiltration.reject()
                 case throwable: Throwable =>
                   shrink(
                     caze = caze,
@@ -823,6 +876,22 @@ case class TrialsImplementation[Case](
         val decisionStages = parseDecisionIndices(recipe)
         reproduce(decisionStages)
       }.asJava.iterator()
+
+      override def testIntegration()
+          : JavaTuple2[JavaIterator[Case], InlinedCaseFiltration] =
+        JavaTuple2.of(
+          asIterator(),
+          {
+            (
+                runnable: Runnable,
+                additionalExceptionsToHandleAsFiltration: Array[
+                  Class[_ <: Throwable]
+                ]
+            ) =>
+              runnable.run()
+              true
+          }
+        )
 
       // Scala-only API ...
       override def supplyTo(consumer: Case => Unit): Unit = {
