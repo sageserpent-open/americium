@@ -368,7 +368,41 @@ class TrialsSpec
         }
 
         exception.getCause should be(problem)
-        exception.provokingCase should be(dataCase)
+        val provokingCase: Any = exception.provokingCase
+        provokingCase should be(dataCase)
+      }
+    }
+
+  it should "result in an exception that references it even when trials are joined with `and`" in
+    forAll(
+      Table(
+        "case tuple",
+        (1, 2, 3),
+        ("foo", false, 2.3),
+        (2.3, -1, Set.empty),
+        (Seq(false, 0, true), List.empty, true)
+      )
+    ) { case (dataCase1, dataCase2, dataCase3) =>
+      inMockitoSession {
+        val sut =
+          api.only(dataCase1) and api.only(dataCase2) and api.only(dataCase3)
+
+        val problem = new RuntimeException("Test problem")
+
+        val mockConsumer: ((Any, Any, Any)) => Unit =
+          mock(classOf[((Any, Any, Any)) => Unit])
+
+        doThrow(problem)
+          .when(mockConsumer)
+          .apply((dataCase1, dataCase2, dataCase3))
+
+        val exception = intercept[sut.TrialException] {
+          sut.withLimit(limit).supplyTo(mockConsumer)
+        }
+
+        exception.getCause should be(problem)
+        val provokingCase: (Any, Any, Any) = exception.provokingCase
+        provokingCase should be((dataCase1, dataCase2, dataCase3))
       }
     }
 
@@ -1213,10 +1247,11 @@ class TrialsSpec
 
             val sizeOfProvokingCase = provokingCase.size
 
-            try sut
-              .filter(_ != provokingCase)
-              .withLimit(limit)
-              .supplyTo(complainingConsumer)
+            try
+              sut
+                .filter(_ != provokingCase)
+                .withLimit(limit)
+                .supplyTo(complainingConsumer)
             catch {
               case exceptionFromFilteredTrials: Throwable =>
                 exceptionFromFilteredTrials.getCause match {
