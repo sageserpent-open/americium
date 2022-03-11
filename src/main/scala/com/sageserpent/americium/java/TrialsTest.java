@@ -15,7 +15,7 @@ public @interface TrialsTest {
 
     int casesLimit();
 
-    int complexity() default 100;
+    int complexity() default TrialsDefaults.defaultComplexityLimit;
 
-    int shrinkageAttempts() default 100;
+    int shrinkageAttempts() default TrialsDefaults.defaultShrinkageAttemptsLimit;
 }
