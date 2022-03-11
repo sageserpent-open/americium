@@ -62,6 +62,7 @@ public class TrialsTestExtension
 
         final Map<String, Field> fieldsByName = supplierFields
                 .stream()
+                .filter(field -> Trials.class.isAssignableFrom(field.getType()))
                 .collect(Collectors.toMap(Field::getName, Function.identity()));
 
 
@@ -70,18 +71,34 @@ public class TrialsTestExtension
         final List<Trials<Object>> trials =
                 supplierFieldNames.stream().map(fieldName -> {
                     try {
-                        return ReflectionSupport
-                                .tryToReadFieldValue(fieldsByName.get(fieldName),
-                                                     testInstance)
-                                .toOptional()
-                                .flatMap(value -> value instanceof Trials
-                                                  ?
-                                                  Optional.of((Trials<Object>) value)
-                                                  : Optional.empty())
-                                .get();
+                        return (Trials<Object>) Optional
+                                .ofNullable(fieldsByName.get(fieldName))
+                                .flatMap(field -> ReflectionSupport
+                                        .tryToReadFieldValue(fieldsByName.get(
+                                                                     fieldName),
+                                                             testInstance)
+                                        .toOptional())
+                                .orElseThrow(() ->
+                                                     supplierFields
+                                                             .stream()
+                                                             .filter(field -> fieldName.equals(
+                                                                     field.getName()))
+                                                             .findFirst()
+                                                             .map(field -> new RuntimeException(
+                                                                     String.format(
+                                                                             "Field of name `%s` in test class `%s` has the wrong type of `%s` - should be typed as a `Trials`.",
+                                                                             fieldName,
+                                                                             testClass,
+                                                                             field.getType())))
+                                                             .orElse(new RuntimeException(
+                                                                     String.format(
+                                                                             "Failed to find field of name: `%s` in test class `%s`.",
+                                                                             fieldName,
+                                                                             testClass)))
+                                );
                     } catch (Exception e) {
-                        return (Trials<Object>) ExceptionUtils.throwAsUncheckedException(
-                                e);
+                        ExceptionUtils.throwAsUncheckedException(e);
+                        return null;
                     }
                 }).collect(Collectors.toList());
 
