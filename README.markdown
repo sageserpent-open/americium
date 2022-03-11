@@ -2,6 +2,7 @@
 
 [![Build Status](https://travis-ci.com/sageserpent-open/americium.svg?branch=master)](https://travis-ci.com/sageserpent-open/americium)
 [![Maven Central](https://index.scala-lang.org/sageserpent-open/americium/americium/latest-by-scala-version.svg?color=2465cd&style=flat)](https://index.scala-lang.org/sageserpent-open/americium/americium)
+
 ```java
 // JShell...
 
@@ -12,36 +13,36 @@ import com.sageserpent.americium.java.TrialsFactoring;
 
 import java.util.Collection;
 
-    final TrialsApi api = Trials.api();
+final TrialsApi api=Trials.api();
 
-    class SystemUnderTest {
-        public static void printSum(Collection<Integer> input) {
-            final int sum =
-                    input.stream().reduce((lhs, rhs) -> lhs + rhs).get(); // Oops.
+class SystemUnderTest {
+    public static void printSum(Collection<Integer> input) {
+        final int sum =
+                input.stream().reduce((lhs, rhs) -> lhs + rhs).get(); // Oops.
 
-            System.out.println(sum);
-        }
+        System.out.println(sum);
     }
+}
 
     final Trials<ImmutableList<Integer>> trials =
             api.integers().immutableLists();
 
-    try {
-        trials.withLimit(100).supplyTo(SystemUnderTest::printSum);
-    } catch (TrialsFactoring.TrialException exception) {
-        System.out.println(exception.getCause()); // java.util.NoSuchElementException: No value present
-        System.out.println(exception.provokingCase()); // []
-        System.out.println(exception.recipe()); // [{"ChoiceOf" : {"index" : 0}}]
-    }
+    try{
+            trials.withLimit(100).supplyTo(SystemUnderTest::printSum);
+            }catch(TrialsFactoring.TrialException exception){
+            System.out.println(exception.getCause()); // java.util.NoSuchElementException: No value present
+            System.out.println(exception.provokingCase()); // []
+            System.out.println(exception.recipe()); // [{"ChoiceOf" : {"index" : 0}}]
+            }
 
-    try {
-        trials.withRecipe("[{\"ChoiceOf\" : {\"index\" : 0}}]")
-              .supplyTo(SystemUnderTest::printSum);
-    } catch (TrialsFactoring.TrialException exception) {
-        System.out.println(exception.getCause()); // java.util.NoSuchElementException: No value present
-        System.out.println(exception.provokingCase()); // []
-        System.out.println(exception.recipe()); // [{"ChoiceOf" : {"index" : 0}}]
-    }
+            try{
+            trials.withRecipe("[{\"ChoiceOf\" : {\"index\" : 0}}]")
+            .supplyTo(SystemUnderTest::printSum);
+            }catch(TrialsFactoring.TrialException exception){
+            System.out.println(exception.getCause()); // java.util.NoSuchElementException: No value present
+            System.out.println(exception.provokingCase()); // []
+            System.out.println(exception.recipe()); // [{"ChoiceOf" : {"index" : 0}}]
+            }
 ```
 
 ## What? Why? ##
@@ -120,9 +121,9 @@ means that the test has to run a *long, long* time. Even more fun if you're in a
 breakpoints being hit for several hundred successful cases before you get to the one that finally fails, whichever it
 is...
 
-What we want here is something that __automatically shrinks a failing test case down to a minimal test case__ (or at least
-reasonably close to one), and provides some way of __reproducing this minimal test case directly__ without having to slog through a
-whole bunch of successful cases we aren't interested in.
+What we want here is something that __automatically shrinks a failing test case down to a minimal test case__ (or at
+least reasonably close to one), and provides some way of __reproducing this minimal test case directly__ without having
+to slog through a whole bunch of successful cases we aren't interested in.
 
 After toiling through quite a few of these monster test failures in the Plutonium, Curium and several commercial
 projects, the author decided to address this issue.
@@ -795,6 +796,47 @@ whether the maximum number of shrinkage attempts has been reached or not. In fac
 configuring the maximum number of shrinkage attempts and counting the shrinkages - the former includes a panic mode
 where the shrinkage mechanism has not yet managed to shrink further on a previous failing case, but is still retrying,
 whereas the shrinkage stop predicate is only invoked with freshly shrunk cases where progress has been made.
+
+### Suppose a test wants to reject a test case based on the test's own logic?  ###
+
+Presumably you've examined the `Trials.filter` method and found it wanting - maybe there is something about the validity
+of the test case that can only be determined by the act of testing itself?
+
+An example would be where the system under test parses some test case text according to a mysterious format that only it
+truly understands - so there is an element of chance in the test itself as to whether the test case is valid or not -
+the only way to weed out irrelevant test cases is to try the parse and detect any failure prior to proceeding with the
+rest of the test. Of course, one could argue that maybe the parsing stage itself should be moved into the construction
+of the `Trials` instance, but there might be construction dependencies of the system under test that mean it can only be
+built within the context of a running test.
+
+Another example might be a situation where the test case is a composite 'test-plan' made of commands that are
+interpreted in the test to set up and drive some system under test that has mutable state - you can't do this on the fly
+in a `Trials` instance as that is deliberately stateless, as are the test cases it yields. Instead, the test plan
+captures the intent to run the commands later on within the test, so the test plan itself remains stateless. This works
+nicely, but can lead to a situation where the commands can push the system under test into performing an illegal
+operation based on whatever state it is currently in at some point in the executing test plan. Rather than
+second-guessing what the test plan might do and filtering based on that insight, a simpler approach is again to just try
+it out and intercept the cases where it causes the system under test to reject a command.
+
+Still another example might be that the test may adapt its behaviour depending on resource constraints, say the amount
+of memory available - so the decision as to whether or not a test case is in scope may only be made by the test.
+
+This can be done conveniently using `Trials.whenever`, which acts as a block construct that guards some inner test code
+with a precondition. If the precondition isn't met, the inner test code isn't executed and the `Trials` machinery is
+informed that the offending test case should be considered as being filtered out.
+
+Unlike explicit filtration via `Trials.filter`, this 'inlined filtration' is applied after the fact, and strictly
+speaking doesn't even have to examine the test case to reject it - because the test case is supplied to the test code
+that calls `Trials.whenever`, the case is implied when the guard precondition doesn't hold, whatever the reason.
+
+The `Trials` machinery keep tabs on inlined filtration, and will make the same guarantees as to coverage of test cases
+that it would make if an explicit filtration is used.
+
+Here is
+a [Java example](https://github.com/sageserpent-open/americium/blob/8f0582c3654d0c4000e4311c9cc89be7372f8864/src/test/scala/com/sageserpent/americium/java/TrialsApiTests.java#L202)
+and here is
+a [Scala example](https://github.com/sageserpent-open/americium/blob/03128c4ae691114294eba6583f42ff5e587fb047/src/test/scala/com/sageserpent/americium/SortingExample.scala#L67)
+.
 
 ### Why is there a file 'IntelliJCodeStyle.xml' in the project? ###
 
