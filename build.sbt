@@ -77,6 +77,7 @@ lazy val settings = Seq(
   libraryDependencies += "org.typelevel" %% "cats-core"             % "2.7.0",
   libraryDependencies += "org.typelevel" %% "cats-free"             % "2.7.0",
   libraryDependencies += "org.typelevel" %% "cats-collections-core" % "0.9.3",
+  libraryDependencies += "co.fs2"        %% "fs2-core"              % "3.2.5",
   libraryDependencies += "io.circe"      %% "circe-core"            % "0.14.1",
   libraryDependencies += "io.circe"      %% "circe-generic"         % "0.14.1",
   libraryDependencies += "io.circe"      %% "circe-parser"          % "0.14.1",
