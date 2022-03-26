@@ -563,39 +563,44 @@ case class TrialsImplementation[Case](
               }
             }
 
-          Fs2Stream.fromIterator[IO](
-            iterator =
-              new Iterator[Option[(DecisionStagesInReverseOrder, Case)]] {
-                private def remainingGap = limit - numberOfUniqueCasesProduced
+          // TODO: use an effect and do this directly in a stream construct -
+          // this would fit in better with the streaming philosophy.
+          Fs2Stream.suspend(
+            Fs2Stream.fromIterator[IO](
+              iterator =
+                new Iterator[Option[(DecisionStagesInReverseOrder, Case)]] {
+                  private def remainingGap = limit - numberOfUniqueCasesProduced
 
-                override def hasNext: Boolean =
-                  0 < remainingGap && 0 < starvationCountdown
+                  override def hasNext: Boolean =
+                    0 < remainingGap && 0 < starvationCountdown
 
-                override def next()
-                    : Option[(DecisionStagesInReverseOrder, Case)] =
-                  generation
-                    .foldMap(interpreter(depth = 0))
-                    .run(State.initial)
-                    .value
-                    .value match {
-                    case Some((State(_, decisionStages, _), caze))
-                        if potentialDuplicates.add(decisionStages) =>
-                      {
-                        numberOfUniqueCasesProduced += 1
-                        backupOfStarvationCountdown = starvationCountdown
-                        starvationCountdown = Math
-                          .round(Math.sqrt(limit * remainingGap))
-                          .toInt
-                      }
+                  override def next()
+                      : Option[(DecisionStagesInReverseOrder, Case)] =
+                    generation
+                      .foldMap(interpreter(depth = 0))
+                      .run(State.initial)
+                      .value
+                      .value match {
+                      case Some((State(_, decisionStages, _), caze))
+                          if potentialDuplicates.add(decisionStages) =>
+                        {
+                          numberOfUniqueCasesProduced += 1
+                          backupOfStarvationCountdown = starvationCountdown
+                          starvationCountdown = Math
+                            .round(Math.sqrt(limit * remainingGap))
+                            .toInt
+                        }
 
-                      Some(decisionStages -> caze)
-                    case _ =>
-                      { starvationCountdown -= 1 }
+                        Some(decisionStages -> caze)
+                      case _ =>
+                        { starvationCountdown -= 1 }
 
-                      None
-                  }
-              }.collect { case Some(caze) => caze },
-            chunkSize = 10
+                        None
+                    }
+                }.collect { case Some(caze) => caze },
+              chunkSize =
+                1 // TODO: have to have a chunk size of 1 to allow inline filtration to propagate back up the stream asap, else we get a test failure. It would be better to finesse this somehow...
+            )
           ) -> inlinedCaseFiltration
         }
       }
