@@ -1,8 +1,8 @@
 import cats.effect.IO
 import cats.effect.unsafe.implicits.global
 val aSimpleStream: fs2.Stream[IO, Int] =
-  // fs2.Stream.suspend(fs2.Stream.fromIterator[IO](Iterator.from(0), 1))
-  fs2.Stream.iterate(0)(1 + _)
+  fs2.Stream.suspend(fs2.Stream.fromIterator[IO](Iterator.from(0), 10))
+//fs2.Stream.iterate(0)(1 + _)
 
 var dubiousMutableSignallingState: Boolean = false
 

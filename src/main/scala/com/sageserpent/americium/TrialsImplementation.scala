@@ -1,6 +1,8 @@
 package com.sageserpent.americium
 
 import cats.data.{OptionT, State, StateT}
+import cats.effect.IO
+import cats.effect.unsafe.implicits.global
 import cats.free.Free
 import cats.free.Free.liftF
 import cats.implicits.*
@@ -11,6 +13,7 @@ import com.sageserpent.americium.java.TrialsScaffolding.OptionalLimits
 import com.sageserpent.americium.java.{
   Builder,
   CaseFactory,
+  CaseFailureReporting,
   InlinedCaseFiltration,
   TrialsScaffolding as JavaTrialsScaffolding,
   TrialsSkeletalImplementation as JavaTrialsSkeletalImplementation
@@ -23,6 +26,7 @@ import com.sageserpent.americium.{
 }
 import cyclops.control.Either as JavaEither
 import cyclops.data.tuple.Tuple2 as JavaTuple2
+import fs2.Stream as Fs2Stream
 import io.circe.generic.auto.*
 import io.circe.parser.*
 import io.circe.syntax.*
@@ -266,7 +270,7 @@ case class TrialsImplementation[Case](
           scaleDeflationLevel: Option[Int],
           decisionStagesToGuideShrinkage: Option[DecisionStages]
       ): (
-          Iterator[(DecisionStagesInReverseOrder, Case)],
+          Fs2Stream[IO, (DecisionStagesInReverseOrder, Case)],
           InlinedCaseFiltration
       ) = {
         scaleDeflationLevel.foreach(level =>
@@ -559,35 +563,40 @@ case class TrialsImplementation[Case](
               }
             }
 
-          new Iterator[Option[(DecisionStagesInReverseOrder, Case)]] {
-            private def remainingGap = limit - numberOfUniqueCasesProduced
+          Fs2Stream.fromIterator[IO](
+            iterator =
+              new Iterator[Option[(DecisionStagesInReverseOrder, Case)]] {
+                private def remainingGap = limit - numberOfUniqueCasesProduced
 
-            override def hasNext: Boolean =
-              0 < remainingGap && 0 < starvationCountdown
+                override def hasNext: Boolean =
+                  0 < remainingGap && 0 < starvationCountdown
 
-            override def next(): Option[(DecisionStagesInReverseOrder, Case)] =
-              generation
-                .foldMap(interpreter(depth = 0))
-                .run(State.initial)
-                .value
-                .value match {
-                case Some((State(_, decisionStages, _), caze))
-                    if potentialDuplicates.add(decisionStages) =>
-                  {
-                    numberOfUniqueCasesProduced += 1
-                    backupOfStarvationCountdown = starvationCountdown
-                    starvationCountdown = Math
-                      .round(Math.sqrt(limit * remainingGap))
-                      .toInt
+                override def next()
+                    : Option[(DecisionStagesInReverseOrder, Case)] =
+                  generation
+                    .foldMap(interpreter(depth = 0))
+                    .run(State.initial)
+                    .value
+                    .value match {
+                    case Some((State(_, decisionStages, _), caze))
+                        if potentialDuplicates.add(decisionStages) =>
+                      {
+                        numberOfUniqueCasesProduced += 1
+                        backupOfStarvationCountdown = starvationCountdown
+                        starvationCountdown = Math
+                          .round(Math.sqrt(limit * remainingGap))
+                          .toInt
+                      }
+
+                      Some(decisionStages -> caze)
+                    case _ =>
+                      { starvationCountdown -= 1 }
+
+                      None
                   }
-
-                  Some(decisionStages -> caze)
-                case _ =>
-                  { starvationCountdown -= 1 }
-
-                  None
-              }
-          }.collect { case Some(caze) => caze } -> inlinedCaseFiltration
+              }.collect { case Some(caze) => caze },
+            chunkSize = 10
+          ) -> inlinedCaseFiltration
         }
       }
 
@@ -595,7 +604,7 @@ case class TrialsImplementation[Case](
       override def supplyTo(consumer: Consumer[Case]): Unit =
         supplyTo(consumer.accept)
 
-      override def asIterator(): JavaIterator[Case] = {
+      override def asIterator(): JavaIterator[Case] = ??? /*{
         val randomBehaviour = new Random(734874)
 
         cases(
@@ -605,11 +614,11 @@ case class TrialsImplementation[Case](
           None,
           decisionStagesToGuideShrinkage = None
         )._1.map(_._2).asJava
-      }
+      }*/
 
       override def testIntegration(): JavaTuple2[JavaIterator[
         Case
-      ], InlinedCaseFiltration] = {
+      ], InlinedCaseFiltration] = ??? /*{
         val randomBehaviour = new Random(734874)
 
         cases(
@@ -622,209 +631,24 @@ case class TrialsImplementation[Case](
           case (cases, inlinedCaseFiltration) =>
             JavaTuple2.of(cases.map(_._2).asJava, inlinedCaseFiltration)
         }
-      }
+      }*/
 
-      // Scala-only API ...
-      override def supplyTo(consumer: Case => Unit): Unit = {
-
+      private def shrinkableCases: Fs2Stream[
+        IO,
+        (
+            Case,
+            CaseFailureReporting,
+            InlinedCaseFiltration
+        )
+      ] = {
         val randomBehaviour = new Random(734874)
 
-        // NOTE: prior to the commit when this comment was introduced, the
-        // `shrink` function returned an `EitherT[Eval, TrialException, Unit]`
-        // instead of throwing the final `TrialException`. That approach was
-        // certainly more flexible - it permits exploring multiple shrinkages
-        // and taking the best one, but for now we just go with the first shrunk
-        // case from the calling step we find that hasn't been beaten by a
-        // recursive call, and throw there and then.
-        def shrink(
-            caze: Case,
-            throwable: Throwable,
-            decisionStages: DecisionStages,
-            shrinkageAttemptIndex: Int,
-            scaleDeflationLevel: Int,
-            casesLimit: Int,
-            numberOfShrinksInPanicModeIncludingThisOne: Int,
-            externalStoppingCondition: Case => Boolean
-        ): Eval[Unit] = {
-          require(0 <= numberOfShrinksInPanicModeIncludingThisOne)
-          require(0 <= shrinkageAttemptIndex)
+        var caseFailureDetectedDownstream: Boolean = false
 
-          if (
-            shrinkageAttemptsLimit == shrinkageAttemptIndex || externalStoppingCondition(
-              caze
-            )
-          )
-            throw new TrialException(throwable) {
-              override def provokingCase: Case = caze
-
-              override def recipe: String = decisionStages.asJson.spaces4
-            }
-
-          require(shrinkageAttemptsLimit > shrinkageAttemptIndex)
-
-          val potentialShrunkExceptionalOutcome: Eval[Unit] = {
-            val numberOfDecisionStages = decisionStages.size
-
-            if (0 < numberOfDecisionStages) {
-              // NOTE: there's some voodoo in choosing the exponential scaling
-              // factor - if it's too high, say 2, then the solutions are hardly
-              // shrunk at all. If it is unity, then the solutions are shrunk a
-              // bit but can be still involve overly 'large' values, in the
-              // sense that the factory input values are large. This needs
-              // finessing, but will do for now...
-              val limitWithExtraLeewayThatHasBeenObservedToFindBetterShrunkCases =
-                (100 * casesLimit / 99) max casesLimit
-
-              val outcomes: LazyList[Eval[Unit]] =
-                cases(
-                  limitWithExtraLeewayThatHasBeenObservedToFindBetterShrunkCases,
-                  numberOfDecisionStages,
-                  randomBehaviour,
-                  scaleDeflationLevel = Some(scaleDeflationLevel),
-                  decisionStagesToGuideShrinkage = Option.when(
-                    0 < numberOfShrinksInPanicModeIncludingThisOne
-                  )(decisionStages)
-                ) match {
-                  case (cases, inlinedCaseFiltration) =>
-                    LazyList
-                      .from(cases)
-                      .collect {
-                        case (
-                              _,
-                              potentialShrunkCase
-                            )
-                            // NOTE: we have to make sure that the calling
-                            // invocation of `shrink` was also in panic more, as
-                            // it is legitimate for the first panic shrinkage to
-                            // arrive at the same result as a non-panic calling
-                            // invocation, and this does indeed occur for some
-                            // non-trivial panic mode shrinkage sequences at the
-                            // start of panic mode. Otherwise if we were already
-                            // in panic mode in the calling invocation, this is
-                            // as sign that there is nothing left to usefully
-                            // shrink down, as otherwise the failure won't be
-                            // provoked at all.
-                            if 1 < numberOfShrinksInPanicModeIncludingThisOne && caze == potentialShrunkCase =>
-                          throw new TrialException(throwable) {
-                            override def provokingCase: Case = caze
-
-                            override def recipe: String =
-                              decisionStages.asJson.spaces4
-                          }
-                        case (
-                              decisionStagesForPotentialShrunkCaseInReverseOrder,
-                              potentialShrunkCase
-                            ) if caze != potentialShrunkCase =>
-                          try {
-                            Eval.now(
-                              inlinedCaseFiltration.executeInFiltrationContext(
-                                () => consumer(potentialShrunkCase),
-                                Array.empty
-                              )
-                            )
-                          } catch {
-                            case throwableFromPotentialShrunkCase: Throwable =>
-                              val decisionStagesForPotentialShrunkCase =
-                                decisionStagesForPotentialShrunkCaseInReverseOrder.reverse
-
-                              assert(
-                                decisionStagesForPotentialShrunkCase.size <= numberOfDecisionStages
-                              )
-
-                              val lessComplex =
-                                decisionStagesForPotentialShrunkCase.size < numberOfDecisionStages
-
-                              val stillEnoughRoomToDecreaseScale =
-                                scaleDeflationLevel < maximumScaleDeflationLevel
-
-                              if (
-                                lessComplex || stillEnoughRoomToDecreaseScale
-                              ) {
-                                val scaleDeflationLevelForRecursion =
-                                  if (!lessComplex)
-                                    1 + scaleDeflationLevel
-                                  else scaleDeflationLevel
-
-                                Eval.defer {
-                                  shrink(
-                                    caze = potentialShrunkCase,
-                                    throwable =
-                                      throwableFromPotentialShrunkCase,
-                                    decisionStages =
-                                      decisionStagesForPotentialShrunkCase,
-                                    shrinkageAttemptIndex =
-                                      1 + shrinkageAttemptIndex,
-                                    scaleDeflationLevel =
-                                      scaleDeflationLevelForRecursion,
-                                    casesLimit =
-                                      limitWithExtraLeewayThatHasBeenObservedToFindBetterShrunkCases,
-                                    numberOfShrinksInPanicModeIncludingThisOne =
-                                      0,
-                                    externalStoppingCondition =
-                                      externalStoppingCondition
-                                  )
-                                }
-                              } else
-                                throw new TrialException(
-                                  throwableFromPotentialShrunkCase
-                                ) {
-                                  override def provokingCase: Case =
-                                    potentialShrunkCase
-
-                                  override def recipe: String =
-                                    decisionStagesForPotentialShrunkCase.asJson.spaces4
-                                }
-                          }
-                      }
-                }
-
-              val potentialExceptionalOutcome: Eval[Unit] = {
-                def yieldTheFirstExceptionalOutcomeIfPossible(
-                    outcomes: LazyList[Eval[Unit]]
-                ): Eval[Unit] =
-                  if (outcomes.nonEmpty)
-                    outcomes.head.flatMap(_ =>
-                      yieldTheFirstExceptionalOutcomeIfPossible(outcomes.tail)
-                    )
-                  else Eval.now(())
-
-                yieldTheFirstExceptionalOutcomeIfPossible(outcomes)
-              }
-
-              potentialExceptionalOutcome.flatMap(_ =>
-                // At this point, slogging through the potential shrunk cases
-                // failed to find any failures; go into (or remain in) panic
-                // mode...
-                shrink(
-                  caze = caze,
-                  throwable = throwable,
-                  decisionStages = decisionStages,
-                  shrinkageAttemptIndex = 1 + shrinkageAttemptIndex,
-                  scaleDeflationLevel = scaleDeflationLevel,
-                  casesLimit =
-                    limitWithExtraLeewayThatHasBeenObservedToFindBetterShrunkCases,
-                  numberOfShrinksInPanicModeIncludingThisOne =
-                    1 + numberOfShrinksInPanicModeIncludingThisOne,
-                  externalStoppingCondition = externalStoppingCondition
-                )
-              )
-            } else Eval.now(())
-          }
-
-          potentialShrunkExceptionalOutcome.flatMap(_ =>
-            // At this point the recursion hasn't found a failing case, so we
-            // call it a day and go with the best we've got from further up the
-            // call chain...
-
-            throw new TrialException(throwable) {
-              override def provokingCase: Case = caze
-
-              override def recipe: String = decisionStages.asJson.spaces4
-            }
-          )
-        }
-
-        cases(
+        val businessAsUsualCases: Fs2Stream[
+          IO,
+          (Case, CaseFailureReporting, InlinedCaseFiltration)
+        ] = cases(
           casesLimit,
           complexityLimit,
           randomBehaviour,
@@ -832,28 +656,208 @@ case class TrialsImplementation[Case](
           decisionStagesToGuideShrinkage = None
         ) match {
           case (cases, inlinedCaseFiltration) =>
-            cases.foreach { case (decisionStagesInReverseOrder, caze) =>
-              try {
-                inlinedCaseFiltration.executeInFiltrationContext(
-                  () => consumer(caze),
-                  Array.empty
+            cases.map {
+              case (
+                    decisionStagesInReverseOrder: DecisionStagesInReverseOrder,
+                    caze: Case
+                  ) =>
+                (
+                  caze,
+                  throwable => {
+                    caseFailureDetectedDownstream = true
+
+                    val decisionStages = decisionStagesInReverseOrder.reverse
+
+                    throw new TrialException(throwable) {
+                      override def provokingCase: Case = caze
+
+                      override def recipe: String =
+                        decisionStages.asJson.spaces4
+                    }
+                  },
+                  inlinedCaseFiltration
                 )
-              } catch {
-                case throwable: Throwable =>
-                  shrink(
-                    caze = caze,
-                    throwable = throwable,
-                    decisionStages = decisionStagesInReverseOrder.reverse,
-                    shrinkageAttemptIndex = 0,
-                    scaleDeflationLevel = 0,
-                    casesLimit = casesLimit,
-                    numberOfShrinksInPanicModeIncludingThisOne = 0,
-                    externalStoppingCondition = shrinkageStop()
-                  ).value // Evaluating the nominal `Unit` result will throw a `TrialsException`.
-              }
             }
         }
+
+        businessAsUsualCases.flatMap(stuff =>
+          Fs2Stream
+            .eval(IO {
+              if (caseFailureDetectedDownstream) {
+                caseFailureDetectedDownstream = false
+                true
+              } else false
+            })
+            .flatMap(needToShrink =>
+              if (needToShrink) ??? else Fs2Stream.emit(stuff)
+            )
+        )
       }
+
+      // Scala-only API ...
+      override def supplyTo(consumer: Case => Unit): Unit = {
+        shrinkableCases
+          .flatMap {
+            case (
+                  caze: Case,
+                  caseFailureReporting: CaseFailureReporting,
+                  inlinedCaseFiltration: InlinedCaseFiltration
+                ) =>
+              Fs2Stream.eval(IO {
+                try {
+                  inlinedCaseFiltration.executeInFiltrationContext(
+                    () => consumer(caze),
+                    Array.empty
+                  )
+                } catch {
+                  case throwable: Throwable =>
+                    caseFailureReporting.report(throwable)
+                }
+              })
+          }
+          .compile
+          .drain
+          .unsafeRunSync()
+      }
+
+      /* def supplyTo2(consumer: Case => Unit): Unit = {
+       *
+       * val randomBehaviour = new Random(734874)
+       *
+       * // NOTE: prior to the commit when this comment was introduced, the //
+       * `shrink` function returned an `EitherT[Eval, TrialException, Unit]` //
+       * instead of throwing the final `TrialException`. That approach was //
+       * certainly more flexible - it permits exploring multiple shrinkages //
+       * and taking the best one, but for now we just go with the first shrunk
+       * // case from the calling step we find that hasn't been beaten by a //
+       * recursive call, and throw there and then.
+       * def shrink( caze: Case, throwable: Throwable, decisionStages:
+       * DecisionStages, shrinkageAttemptIndex: Int, scaleDeflationLevel: Int,
+       * casesLimit: Int, numberOfShrinksInPanicModeIncludingThisOne: Int,
+       * externalStoppingCondition: Case => Boolean ): Eval[Unit] = { require(0
+       * <= numberOfShrinksInPanicModeIncludingThisOne) require(0 <=
+       * shrinkageAttemptIndex)
+       *
+       * if ( shrinkageAttemptsLimit == shrinkageAttemptIndex ||
+       * externalStoppingCondition( caze ) ) throw new TrialException(throwable)
+       * { override def provokingCase: Case = caze
+       *
+       * override def recipe: String = decisionStages.asJson.spaces4 }
+       *
+       * require(shrinkageAttemptsLimit > shrinkageAttemptIndex)
+       *
+       * val potentialShrunkExceptionalOutcome: Eval[Unit] = { val
+       * numberOfDecisionStages = decisionStages.size
+       *
+       * if (0 < numberOfDecisionStages) { // NOTE: there's some voodoo in
+       * choosing the exponential scaling // factor - if it's too high, say 2,
+       * then the solutions are hardly // shrunk at all. If it is unity, then
+       * the solutions are shrunk a // bit but can be still involve overly
+       * 'large' values, in the // sense that the factory input values are
+       * large. This needs // finessing, but will do for now...
+       * val limitWithExtraLeewayThatHasBeenObservedToFindBetterShrunkCases =
+       * (100 * casesLimit / 99) max casesLimit
+       *
+       * val outcomes: LazyList[Eval[Unit]] =
+       * cases( limitWithExtraLeewayThatHasBeenObservedToFindBetterShrunkCases,
+       * numberOfDecisionStages, randomBehaviour, scaleDeflationLevel =
+       * Some(scaleDeflationLevel), decisionStagesToGuideShrinkage =
+       * Option.when( 0 < numberOfShrinksInPanicModeIncludingThisOne
+       * )(decisionStages) ) match { case (cases, inlinedCaseFiltration) =>
+       * LazyList .from(cases) .collect { case ( _, potentialShrunkCase ) //
+       * NOTE: we have to make sure that the calling // invocation of `shrink`
+       * was also in panic more, as // it is legitimate for the first panic
+       * shrinkage to // arrive at the same result as a non-panic calling //
+       * invocation, and this does indeed occur for some // non-trivial panic
+       * mode shrinkage sequences at the // start of panic mode. Otherwise if we
+       * were already // in panic mode in the calling invocation, this is // as
+       * sign that there is nothing left to usefully // shrink down, as
+       * otherwise the failure won't be // provoked at all.
+       * if 1 < numberOfShrinksInPanicModeIncludingThisOne && caze ==
+       * potentialShrunkCase => throw new TrialException(throwable) { override
+       * def provokingCase: Case = caze
+       *
+       * override def recipe: String =
+       * decisionStages.asJson.spaces4 } case (
+       * decisionStagesForPotentialShrunkCaseInReverseOrder, potentialShrunkCase
+       * ) if caze != potentialShrunkCase => try { Eval.now(
+       * inlinedCaseFiltration.executeInFiltrationContext( () =>
+       * consumer(potentialShrunkCase), Array.empty ) ) } catch { case
+       * throwableFromPotentialShrunkCase: Throwable => val
+       * decisionStagesForPotentialShrunkCase =
+       * decisionStagesForPotentialShrunkCaseInReverseOrder.reverse
+       *
+       * assert( decisionStagesForPotentialShrunkCase.size <=
+       * numberOfDecisionStages )
+       *
+       * val lessComplex =
+       * decisionStagesForPotentialShrunkCase.size < numberOfDecisionStages
+       *
+       * val stillEnoughRoomToDecreaseScale =
+       * scaleDeflationLevel < maximumScaleDeflationLevel
+       *
+       * if ( lessComplex || stillEnoughRoomToDecreaseScale ) { val
+       * scaleDeflationLevelForRecursion =
+       * if (!lessComplex) 1 + scaleDeflationLevel else scaleDeflationLevel
+       *
+       * Eval.defer { shrink( caze = potentialShrunkCase, throwable =
+       * throwableFromPotentialShrunkCase, decisionStages =
+       * decisionStagesForPotentialShrunkCase, shrinkageAttemptIndex =
+       * 1 + shrinkageAttemptIndex, scaleDeflationLevel =
+       * scaleDeflationLevelForRecursion, casesLimit =
+       * limitWithExtraLeewayThatHasBeenObservedToFindBetterShrunkCases,
+       * numberOfShrinksInPanicModeIncludingThisOne =
+       * 0, externalStoppingCondition =
+       * externalStoppingCondition ) } } else throw new TrialException(
+       * throwableFromPotentialShrunkCase ) { override def provokingCase: Case =
+       * potentialShrunkCase
+       *
+       * override def recipe: String =
+       * decisionStagesForPotentialShrunkCase.asJson.spaces4 } } } }
+       *
+       * val potentialExceptionalOutcome: Eval[Unit] = { def
+       * yieldTheFirstExceptionalOutcomeIfPossible( outcomes:
+       * LazyList[Eval[Unit]] ): Eval[Unit] =
+       * if (outcomes.nonEmpty) outcomes.head.flatMap(_ =>
+       * yieldTheFirstExceptionalOutcomeIfPossible(outcomes.tail) ) else
+       * Eval.now(())
+       *
+       * yieldTheFirstExceptionalOutcomeIfPossible(outcomes) }
+       *
+       * potentialExceptionalOutcome.flatMap(_ => // At this point, slogging
+       * through the potential shrunk cases // failed to find any failures; go
+       * into (or remain in) panic // mode...
+       * shrink( caze = caze, throwable = throwable, decisionStages =
+       * decisionStages, shrinkageAttemptIndex = 1 + shrinkageAttemptIndex,
+       * scaleDeflationLevel = scaleDeflationLevel, casesLimit =
+       * limitWithExtraLeewayThatHasBeenObservedToFindBetterShrunkCases,
+       * numberOfShrinksInPanicModeIncludingThisOne =
+       * 1 + numberOfShrinksInPanicModeIncludingThisOne,
+       * externalStoppingCondition = externalStoppingCondition ) ) } else
+       * Eval.now(()) }
+       *
+       * potentialShrunkExceptionalOutcome.flatMap(_ => // At this point the
+       * recursion hasn't found a failing case, so we // call it a day and go
+       * with the best we've got from further up the // call chain...
+       *
+       * throw new TrialException(throwable) { override def provokingCase: Case
+       * = caze
+       *
+       * override def recipe: String = decisionStages.asJson.spaces4 } ) }
+       *
+       * cases( casesLimit, complexityLimit, randomBehaviour, None,
+       * decisionStagesToGuideShrinkage = None ) match { case (cases,
+       * inlinedCaseFiltration) => cases.foreach { case
+       * (decisionStagesInReverseOrder, caze) => try {
+       * inlinedCaseFiltration.executeInFiltrationContext( () => consumer(caze),
+       * Array.empty ) } catch { case throwable: Throwable => shrink( caze =
+       * caze, throwable = throwable, decisionStages =
+       * decisionStagesInReverseOrder.reverse, shrinkageAttemptIndex = 0,
+       * scaleDeflationLevel = 0, casesLimit = casesLimit,
+       * numberOfShrinksInPanicModeIncludingThisOne = 0,
+       * externalStoppingCondition = shrinkageStop() ).value // Evaluating the
+       * nominal `Unit` result will throw a `TrialsException`.
+       * } } } } */
     }
 
   def this(
