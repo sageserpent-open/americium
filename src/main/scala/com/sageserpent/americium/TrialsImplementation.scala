@@ -88,6 +88,13 @@ case class TrialsImplementation[Case](
   type StreamedCases =
     Fs2Stream[IO, (Case, CaseFailureReporting, InlinedCaseFiltration)]
 
+  type PullOfCases =
+    Pull[
+      IO,
+      (Case, CaseFailureReporting, InlinedCaseFiltration),
+      Unit
+    ]
+
   import TrialsImplementation.*
 
   override def scalaTrials: TrialsImplementation[Case] = this
@@ -844,7 +851,7 @@ case class TrialsImplementation[Case](
 
         def carryOnButSwitchToShrinkageApproachOnCaseFailure(
             businessAsUsualCases: StreamedCases
-        ): StreamedCases = Fs2Stream
+        ): PullOfCases = Pull
           .eval(IO {
             val capture = shrinkageCasesFromDownstream
 
@@ -871,17 +878,18 @@ case class TrialsImplementation[Case](
                         headCase
                       ) >> carryOnButSwitchToShrinkageApproachOnCaseFailure(
                         remainingCases
-                      ).pull.echo
+                      )
                     }
                   )
-                  .stream
               )
               // If there are shrinkage cases from downstream, we need drop
               // business as usual and switch to them instead.
               (carryOnButSwitchToShrinkageApproachOnCaseFailure)
           )
 
-        carryOnButSwitchToShrinkageApproachOnCaseFailure(businessAsUsualCases)
+        carryOnButSwitchToShrinkageApproachOnCaseFailure(
+          businessAsUsualCases
+        ).stream
       }
 
       // Scala-only API ...
