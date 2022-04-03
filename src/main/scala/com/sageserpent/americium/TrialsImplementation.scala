@@ -85,6 +85,9 @@ case class TrialsImplementation[Case](
 
   override type SupplySyntaxType = ScalaTrialsScaffolding.SupplyToSyntax[Case]
 
+  type StreamedCases =
+    Fs2Stream[IO, (Case, CaseFailureReporting, InlinedCaseFiltration)]
+
   import TrialsImplementation.*
 
   override def scalaTrials: TrialsImplementation[Case] = this
@@ -638,30 +641,16 @@ case class TrialsImplementation[Case](
         }
       }*/
 
-      private def shrinkableCases: Fs2Stream[
-        IO,
-        (
-            Case,
-            CaseFailureReporting,
-            InlinedCaseFiltration
-        )
-      ] = {
+      private def shrinkableCases: StreamedCases = {
         val randomBehaviour = new Random(734874)
 
-        var shrinkageCasesFromDownstream: Option[Fs2Stream[
-          IO,
-          (
-              Case,
-              CaseFailureReporting,
-              InlinedCaseFiltration
-          )
-        ]] = None
+        var shrinkageCasesFromDownstream: Option[StreamedCases] = None
 
         def wrapInTrialException(
             throwable: Throwable,
             caze: Case,
             decisionStages: DecisionStages
-        ): Fs2Stream[IO, (Case, CaseFailureReporting, InlinedCaseFiltration)] =
+        ): StreamedCases =
           Fs2Stream.raiseError[IO](new TrialException(throwable) {
             override def provokingCase: Case = caze
 
@@ -678,14 +667,7 @@ case class TrialsImplementation[Case](
             casesLimit: Int,
             numberOfShrinksInPanicModeIncludingThisOne: Int,
             externalStoppingCondition: Case => Boolean
-        ): Fs2Stream[
-          IO,
-          (
-              Case,
-              CaseFailureReporting,
-              InlinedCaseFiltration
-          )
-        ] = {
+        ): StreamedCases = {
           if (
             shrinkageAttemptsLimit == shrinkageAttemptIndex || externalStoppingCondition(
               caze
@@ -706,10 +688,7 @@ case class TrialsImplementation[Case](
               val limitWithExtraLeewayThatHasBeenObservedToFindBetterShrunkCases =
                 (100 * casesLimit / 99) max casesLimit
 
-              val conservativelyShrunkCases: Fs2Stream[
-                IO,
-                (Case, CaseFailureReporting, InlinedCaseFiltration)
-              ] = cases(
+              val conservativelyShrunkCases: StreamedCases = cases(
                 limitWithExtraLeewayThatHasBeenObservedToFindBetterShrunkCases,
                 numberOfDecisionStages,
                 randomBehaviour,
@@ -827,10 +806,7 @@ case class TrialsImplementation[Case](
           }
         }
 
-        val businessAsUsualCases: Fs2Stream[
-          IO,
-          (Case, CaseFailureReporting, InlinedCaseFiltration)
-        ] = cases(
+        val businessAsUsualCases: StreamedCases = cases(
           casesLimit,
           complexityLimit,
           randomBehaviour,
@@ -867,14 +843,8 @@ case class TrialsImplementation[Case](
         }
 
         def carryOnButSwitchToShrinkageApproachOnCaseFailure(
-            businessAsUsualCases: Fs2Stream[
-              IO,
-              (Case, CaseFailureReporting, InlinedCaseFiltration)
-            ]
-        ): Fs2Stream[
-          IO,
-          (Case, CaseFailureReporting, InlinedCaseFiltration)
-        ] = Fs2Stream
+            businessAsUsualCases: StreamedCases
+        ): StreamedCases = Fs2Stream
           .eval(IO {
             val capture = shrinkageCasesFromDownstream
 
