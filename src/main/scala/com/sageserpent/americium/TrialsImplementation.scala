@@ -521,14 +521,6 @@ case class TrialsImplementation[Case](
           }
 
         {
-          // NASTY HACK: what was previously a Java-style imperative iterator
-          // implementation has, ahem, 'matured' into an overall imperative
-          // iterator forwarding to another with a `collect` to flatten out the
-          // `Option` part of the latter's output. Both co-operate by sharing
-          // mutable state used to determine when the overall iterator should
-          // stop yielding output. This in turn allows another hack, namely to
-          // intercept calls to `forEach` on the overall iterator so that it can
-          // monitor cases that don't pass inline filtration.
           var starvationCountdown: Int         = limit
           var backupOfStarvationCountdown      = 0
           var numberOfUniqueCasesProduced: Int = 0
