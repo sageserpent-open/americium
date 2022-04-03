@@ -1,7 +1,11 @@
 import cats.effect.IO
 import cats.effect.unsafe.implicits.global
 val aSimpleStream: fs2.Stream[IO, Int] =
-  fs2.Stream.suspend(fs2.Stream.fromIterator[IO](Iterator.from(0), 10))
+  fs2.Stream.suspend(
+    fs2.Stream(0 to 5: _*).covary[IO] ++ fs2.Stream.raiseError[IO](
+      ???
+    ) ++ fs2.Stream.fromIterator[IO](Iterator.from(0), 4)
+  )
 //fs2.Stream.iterate(0)(1 + _)
 
 var dubiousMutableSignallingState: Boolean = false
@@ -31,4 +35,5 @@ keepTrying()
   )
   .compile
   .drain
+  .attempt
   .unsafeRunSync()
