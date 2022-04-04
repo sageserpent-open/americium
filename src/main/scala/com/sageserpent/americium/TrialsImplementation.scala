@@ -26,7 +26,7 @@ import com.sageserpent.americium.{
 }
 import cyclops.control.Either as JavaEither
 import cyclops.data.tuple.Tuple2 as JavaTuple2
-import fs2.{Pull, Stream as Fs2Stream}
+import fs2.{Fallible, Pull, Pure, Stream as Fs2Stream}
 import io.circe.generic.auto.*
 import io.circe.parser.*
 import io.circe.syntax.*
@@ -86,14 +86,10 @@ case class TrialsImplementation[Case](
   override type SupplySyntaxType = ScalaTrialsScaffolding.SupplyToSyntax[Case]
 
   type StreamedCases =
-    Fs2Stream[IO, (Case, CaseFailureReporting, InlinedCaseFiltration)]
+    Fs2Stream[Fallible, (Case, CaseFailureReporting, InlinedCaseFiltration)]
 
   type PullOfCases =
-    Pull[
-      IO,
-      (Case, CaseFailureReporting, InlinedCaseFiltration),
-      Unit
-    ]
+    Pull[Fallible, (Case, CaseFailureReporting, InlinedCaseFiltration), Unit]
 
   import TrialsImplementation.*
 
@@ -280,7 +276,7 @@ case class TrialsImplementation[Case](
           scaleDeflationLevel: Option[Int],
           decisionStagesToGuideShrinkage: Option[DecisionStages]
       ): (
-          Fs2Stream[IO, (DecisionStagesInReverseOrder, Case)],
+          Fs2Stream[Pure, (DecisionStagesInReverseOrder, Case)],
           InlinedCaseFiltration
       ) = {
         scaleDeflationLevel.foreach(level =>
@@ -565,45 +561,43 @@ case class TrialsImplementation[Case](
               }
             }
 
-          // TODO: use an effect and do this directly in a stream construct -
-          // this would fit in better with the streaming philosophy.
-          Fs2Stream.suspend(
-            Fs2Stream.fromIterator[IO](
-              iterator =
-                new Iterator[Option[(DecisionStagesInReverseOrder, Case)]] {
-                  private def remainingGap = limit - numberOfUniqueCasesProduced
+          def emitCases()
+              : Fs2Stream[Pure, (DecisionStagesInReverseOrder, Case)] = {
+            val remainingGap = limit - numberOfUniqueCasesProduced
 
-                  override def hasNext: Boolean =
-                    0 < remainingGap && 0 < starvationCountdown
+            val moreToDo = 0 < remainingGap && 0 < starvationCountdown
 
-                  override def next()
-                      : Option[(DecisionStagesInReverseOrder, Case)] =
-                    generation
-                      .foldMap(interpreter(depth = 0))
-                      .run(State.initial)
-                      .value
-                      .value match {
-                      case Some((State(_, decisionStages, _), caze))
-                          if potentialDuplicates.add(decisionStages) =>
-                        {
-                          numberOfUniqueCasesProduced += 1
-                          backupOfStarvationCountdown = starvationCountdown
-                          starvationCountdown = Math
-                            .round(Math.sqrt(limit * remainingGap))
-                            .toInt
-                        }
+            if (moreToDo)
+              Fs2Stream
+                .emit {
+                  generation
+                    .foldMap(interpreter(depth = 0))
+                    .run(State.initial)
+                    .value
+                    .value match {
+                    case Some((State(_, decisionStages, _), caze))
+                        if potentialDuplicates.add(decisionStages) =>
+                      {
+                        numberOfUniqueCasesProduced += 1
+                        backupOfStarvationCountdown = starvationCountdown
+                        starvationCountdown = Math
+                          .round(Math.sqrt(limit * remainingGap))
+                          .toInt
+                      }
 
-                        Some(decisionStages -> caze)
-                      case _ =>
-                        { starvationCountdown -= 1 }
+                      Some(decisionStages -> caze)
+                    case _ => {
+                      starvationCountdown -= 1
 
-                        None
+                      None
                     }
-                }.collect { case Some(caze) => caze },
-              chunkSize =
-                1 // TODO: have to have a chunk size of 1 to allow inline filtration to propagate back up the stream asap, else we get a test failure. It would be better to finesse this somehow...
-            )
-          ) -> inlinedCaseFiltration
+                  }
+                }
+                .collect { case Some(caze) => caze } ++ emitCases()
+            else Fs2Stream.empty
+          }
+
+          emitCases() -> inlinedCaseFiltration
         }
       }
 
@@ -650,7 +644,7 @@ case class TrialsImplementation[Case](
             caze: Case,
             decisionStages: DecisionStages
         ): StreamedCases =
-          Fs2Stream.raiseError[IO](new TrialException(throwable) {
+          Fs2Stream.raiseError[Fallible](new TrialException(throwable) {
             override def provokingCase: Case = caze
 
             override def recipe: String =
@@ -844,15 +838,15 @@ case class TrialsImplementation[Case](
         def carryOnButSwitchToShrinkageApproachOnCaseFailure(
             businessAsUsualCases: StreamedCases
         ): PullOfCases = Pull
-          .eval(IO {
+          .pure { () =>
             val capture = shrinkageCasesFromDownstream
 
             capture.foreach { _ => shrinkageCasesFromDownstream = None }
 
             capture
-          })
+          }
           .flatMap(
-            _.fold
+            _.apply().fold
               // If there are no shrinkage cases from downstream, we need to
               // pull a single case and carry on with the remaining business
               // as usual via a recursive call to this method.
@@ -861,7 +855,7 @@ case class TrialsImplementation[Case](
                   .flatMap(
                     _.fold(ifEmpty =
                       Pull.done
-                        .covary[IO]
+                        .covary[Fallible]
                         .covaryOutput[
                           (Case, CaseFailureReporting, InlinedCaseFiltration)
                         ]
@@ -893,7 +887,7 @@ case class TrialsImplementation[Case](
                   caseFailureReporting: CaseFailureReporting,
                   inlinedCaseFiltration: InlinedCaseFiltration
                 ) =>
-              Fs2Stream.eval(IO {
+              Fs2Stream.emit {
                 try {
                   inlinedCaseFiltration.executeInFiltrationContext(
                     () => consumer(caze),
@@ -903,12 +897,10 @@ case class TrialsImplementation[Case](
                   case throwable: Throwable =>
                     caseFailureReporting.report(throwable)
                 }
-              })
+              }
           }
           .compile
           .drain
-          .attempt
-          .unsafeRunSync()
           .toTry
           .get
       }
