@@ -181,7 +181,7 @@ public interface TrialsScaffolding<Case,
 
         Iterator<Case> asIterator();
 
-        Iterator<Tuple3<Case, CaseFailureReporting, InlinedCaseFiltration>> testIntegrationContexts();
+        Iterator<TestIntegrationContext<Case>> testIntegrationContexts();
     }
 
     interface Tuple2Trials<Case1, Case2> extends

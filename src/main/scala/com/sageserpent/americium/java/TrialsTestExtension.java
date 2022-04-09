@@ -3,7 +3,6 @@ package com.sageserpent.americium.java;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import cyclops.companion.Streams;
-import cyclops.data.tuple.Tuple3;
 import org.junit.jupiter.api.extension.*;
 import org.junit.platform.commons.support.AnnotationSupport;
 import org.junit.platform.commons.support.HierarchyTraversalMode;
@@ -23,8 +22,7 @@ import java.util.stream.Stream;
 
 public class TrialsTestExtension
         implements TestTemplateInvocationContextProvider {
-    private Iterator<Tuple3<ImmutableList<Object>, CaseFailureReporting,
-            InlinedCaseFiltration>>
+    private Iterator<TestIntegrationContext<ImmutableList<Object>>>
             testIntegrationContexts;
 
     private final static Class<? extends Throwable>[]
@@ -128,71 +126,73 @@ public class TrialsTestExtension
 
         return Streams
                 .stream(testIntegrationContexts)
-                .map(testIntegrationContext -> {
-                    final ImmutableList<Object> arguments =
-                            testIntegrationContext._1();
-                    final CaseFailureReporting caseFailureReporting =
-                            testIntegrationContext._2();
-                    final InlinedCaseFiltration inlinedCaseFiltration =
-                            testIntegrationContext._3();
+                .map(testIntegrationContext -> new TestTemplateInvocationContext() {
+                    @Override
+                    public String getDisplayName(int invocationIndex) {
+                        return String.format("%s %s",
+                                             TestTemplateInvocationContext.super.getDisplayName(
+                                                     invocationIndex),
+                                             1 <
+                                             testIntegrationContext
+                                                     .caze()
+                                                     .size()
+                                             ? testIntegrationContext.caze()
+                                             :
+                                             testIntegrationContext
+                                                     .caze()
+                                                     .get(0));
+                    }
 
-                    return new TestTemplateInvocationContext() {
-                        @Override
-                        public String getDisplayName(int invocationIndex) {
-                            return String.format("%s %s",
-                                                 TestTemplateInvocationContext.super.getDisplayName(
-                                                         invocationIndex),
-                                                 1 < arguments.size()
-                                                 ? arguments
-                                                 : arguments.get(0));
-                        }
+                    @Override
+                    public List<Extension> getAdditionalExtensions() {
+                        return ImmutableList.of(new ParameterResolver() {
+                            @Override
+                            public boolean supportsParameter(
+                                    ParameterContext parameterContext,
+                                    ExtensionContext extensionContext)
+                                    throws ParameterResolutionException {
+                                return parameterContext
+                                        .getParameter()
+                                        .getType()
+                                        .isInstance(testIntegrationContext
+                                                            .caze()
+                                                            .get(
+                                                                    parameterContext.getIndex()));
+                            }
 
-                        @Override
-                        public List<Extension> getAdditionalExtensions() {
-                            return ImmutableList.of(new ParameterResolver() {
-                                @Override
-                                public boolean supportsParameter(
-                                        ParameterContext parameterContext,
-                                        ExtensionContext extensionContext)
-                                        throws ParameterResolutionException {
-                                    return parameterContext
-                                            .getParameter()
-                                            .getType()
-                                            .isInstance(arguments.get(
-                                                    parameterContext.getIndex()));
-                                }
-
-                                @Override
-                                public Object resolveParameter(
-                                        ParameterContext parameterContext,
-                                        ExtensionContext extensionContext)
-                                        throws ParameterResolutionException {
-                                    return arguments.get(parameterContext.getIndex());
-                                }
-                            }, new InvocationInterceptor() {
-                                @Override
-                                public void interceptTestTemplateMethod(
-                                        Invocation<Void> invocation,
-                                        ReflectiveInvocationContext<Method> invocationContext,
-                                        ExtensionContext extensionContext) {
-                                    if (!inlinedCaseFiltration.executeInFiltrationContext(
-                                            () -> {
-                                                try {
-                                                    InvocationInterceptor.super.interceptTestMethod(
-                                                            invocation,
-                                                            invocationContext,
-                                                            extensionContext);
-                                                } catch (Throwable throwable) {
-                                                    ExceptionUtils.throwAsUncheckedException(
-                                                            throwable);
-                                                }
-                                            },
-                                            additionalExceptionsToHandleAsFiltration))
-                                        throw new TestAbortedException();
-                                }
-                            });
-                        }
-                    };
+                            @Override
+                            public Object resolveParameter(
+                                    ParameterContext parameterContext,
+                                    ExtensionContext extensionContext)
+                                    throws ParameterResolutionException {
+                                return testIntegrationContext.caze().get(
+                                        parameterContext.getIndex());
+                            }
+                        }, new InvocationInterceptor() {
+                            @Override
+                            public void interceptTestTemplateMethod(
+                                    Invocation<Void> invocation,
+                                    ReflectiveInvocationContext<Method> invocationContext,
+                                    ExtensionContext extensionContext) {
+                                if (!testIntegrationContext
+                                        .inlinedCaseFiltration()
+                                        .executeInFiltrationContext(
+                                                () -> {
+                                                    try {
+                                                        InvocationInterceptor.super.interceptTestMethod(
+                                                                invocation,
+                                                                invocationContext,
+                                                                extensionContext);
+                                                    } catch (Throwable throwable) {
+                                                        ExceptionUtils.throwAsUncheckedException(
+                                                                throwable);
+                                                    }
+                                                },
+                                                additionalExceptionsToHandleAsFiltration))
+                                    throw new TestAbortedException();
+                            }
+                        });
+                    }
                 });
     }
 }

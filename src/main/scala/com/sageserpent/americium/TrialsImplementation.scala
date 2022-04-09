@@ -13,6 +13,7 @@ import com.sageserpent.americium.java.{
   CaseFactory,
   CaseFailureReporting,
   InlinedCaseFiltration,
+  TestIntegrationContext,
   TrialsScaffolding as JavaTrialsScaffolding,
   TrialsSkeletalImplementation as JavaTrialsSkeletalImplementation
 }
@@ -23,7 +24,6 @@ import com.sageserpent.americium.{
   TrialsSkeletalImplementation as ScalaTrialsSkeletalImplementation
 }
 import cyclops.control.Either as JavaEither
-import cyclops.data.tuple.Tuple3 as JavaTuple3
 import fs2.{Fallible, Pull, Pure, Stream as Fs2Stream}
 import io.circe.generic.auto.*
 import io.circe.parser.*
@@ -88,6 +88,12 @@ case class TrialsImplementation[Case](
 
   type PullOfCases =
     Pull[Fallible, (Case, CaseFailureReporting, InlinedCaseFiltration), Unit]
+
+  case class TestIntegrationContextImplementation(
+      caze: Case,
+      caseFailureReporting: CaseFailureReporting,
+      inlinedCaseFiltration: InlinedCaseFiltration
+  ) extends com.sageserpent.americium.java.TestIntegrationContext[Case] {}
 
   import TrialsImplementation.*
 
@@ -604,15 +610,14 @@ case class TrialsImplementation[Case](
         supplyTo(consumer.accept)
 
       override def asIterator(): JavaIterator[Case] =
-        lazyListOfTestIntegrationContexts().map(_._1()).asJava.iterator()
+        lazyListOfTestIntegrationContexts().map(_.caze).asJava.iterator()
 
-      override def testIntegrationContexts(): JavaIterator[
-        JavaTuple3[Case, CaseFailureReporting, InlinedCaseFiltration]
-      ] = lazyListOfTestIntegrationContexts().asJava.iterator()
+      override def testIntegrationContexts()
+          : JavaIterator[TestIntegrationContext[Case]] =
+        lazyListOfTestIntegrationContexts().asJava.iterator()
 
-      private def lazyListOfTestIntegrationContexts(): Seq[
-        JavaTuple3[Case, CaseFailureReporting, InlinedCaseFiltration]
-      ] = {
+      private def lazyListOfTestIntegrationContexts()
+          : LazyList[TestIntegrationContext[Case]] = {
         LazyList.unfold(shrinkableCases()) { streamedCases =>
           streamedCases.pull.uncons1
             .flatMap {
@@ -630,10 +635,10 @@ case class TrialsImplementation[Case](
                       (caze, caseFailureReporting, inlinedCaseFiltration),
                       tail
                     ) =>
-                  JavaTuple3.of(
-                    caze,
-                    caseFailureReporting,
-                    inlinedCaseFiltration
+                  TestIntegrationContextImplementation(
+                    caze = caze,
+                    caseFailureReporting = caseFailureReporting,
+                    inlinedCaseFiltration = inlinedCaseFiltration
                   ) -> tail
               }
           }
@@ -933,17 +938,16 @@ case class TrialsImplementation[Case](
         reproduce(decisionStages)
       }.asJava.iterator()
 
-      override def testIntegrationContexts(): JavaIterator[
-        JavaTuple3[Case, CaseFailureReporting, InlinedCaseFiltration]
-      ] =
+      override def testIntegrationContexts()
+          : JavaIterator[TestIntegrationContext[Case]] =
         Seq(
-          JavaTuple3.of[Case, CaseFailureReporting, InlinedCaseFiltration](
-            {
+          TestIntegrationContextImplementation(
+            caze = {
               val decisionStages = parseDecisionIndices(recipe)
               reproduce(decisionStages)
             },
-            (throwable: Throwable) => {},
-            {
+            caseFailureReporting = { (throwable: Throwable) => },
+            inlinedCaseFiltration = {
               (
                   runnable: Runnable,
                   additionalExceptionsToHandleAsFiltration: Array[
@@ -953,7 +957,7 @@ case class TrialsImplementation[Case](
                 runnable.run()
                 true
             }
-          )
+          ): TestIntegrationContext[Case]
         ).asJava.iterator()
 
       // Scala-only API ...
