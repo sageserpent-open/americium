@@ -156,8 +156,7 @@ public class TrialsTestExtension
                                         .getType()
                                         .isInstance(testIntegrationContext
                                                             .caze()
-                                                            .get(
-                                                                    parameterContext.getIndex()));
+                                                            .get(parameterContext.getIndex()));
                             }
 
                             @Override
@@ -190,6 +189,14 @@ public class TrialsTestExtension
                                                 },
                                                 additionalExceptionsToHandleAsFiltration))
                                     throw new TestAbortedException();
+                            }
+                        }, new TestWatcher() {
+                            @Override
+                            public void testFailed(ExtensionContext context,
+                                                   Throwable cause) {
+                                testIntegrationContext
+                                        .caseFailureReporting()
+                                        .report(cause);
                             }
                         });
                     }

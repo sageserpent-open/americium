@@ -628,7 +628,8 @@ case class TrialsImplementation[Case](
             .head
             .compile
             .last match {
-            case Left(throwable) => throw throwable
+            case Left(throwable) =>
+              throw throwable
             case Right(cargo) =>
               cargo.map {
                 case (
