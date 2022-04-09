@@ -1,8 +1,6 @@
 package com.sageserpent.americium
 
 import cats.data.{OptionT, State, StateT}
-import cats.effect.IO
-import cats.effect.unsafe.implicits.global
 import cats.free.Free
 import cats.free.Free.liftF
 import cats.implicits.*
@@ -25,7 +23,7 @@ import com.sageserpent.americium.{
   TrialsSkeletalImplementation as ScalaTrialsSkeletalImplementation
 }
 import cyclops.control.Either as JavaEither
-import cyclops.data.tuple.Tuple2 as JavaTuple2
+import cyclops.data.tuple.Tuple3 as JavaTuple3
 import fs2.{Fallible, Pull, Pure, Stream as Fs2Stream}
 import io.circe.generic.auto.*
 import io.circe.parser.*
@@ -605,36 +603,43 @@ case class TrialsImplementation[Case](
       override def supplyTo(consumer: Consumer[Case]): Unit =
         supplyTo(consumer.accept)
 
-      override def asIterator(): JavaIterator[Case] = ??? /*{
-        val randomBehaviour = new Random(734874)
+      override def asIterator(): JavaIterator[Case] =
+        lazyListOfTestIntegrationContexts().map(_._1()).asJava.iterator()
 
-        cases(
-          casesLimit,
-          complexityLimit,
-          randomBehaviour,
-          None,
-          decisionStagesToGuideShrinkage = None
-        )._1.map(_._2).asJava
-      }*/
+      override def testIntegrationContexts(): JavaIterator[
+        JavaTuple3[Case, CaseFailureReporting, InlinedCaseFiltration]
+      ] = lazyListOfTestIntegrationContexts().asJava.iterator()
 
-      override def testIntegration(): JavaTuple2[JavaIterator[
-        Case
-      ], InlinedCaseFiltration] = ??? /*{
-        val randomBehaviour = new Random(734874)
-
-        cases(
-          casesLimit,
-          complexityLimit,
-          randomBehaviour,
-          None,
-          decisionStagesToGuideShrinkage = None
-        ) match {
-          case (cases, inlinedCaseFiltration) =>
-            JavaTuple2.of(cases.map(_._2).asJava, inlinedCaseFiltration)
+      private def lazyListOfTestIntegrationContexts(): Seq[
+        JavaTuple3[Case, CaseFailureReporting, InlinedCaseFiltration]
+      ] = {
+        LazyList.unfold(shrinkableCases()) { streamedCases =>
+          streamedCases.pull.uncons1
+            .flatMap {
+              case None              => Pull.done
+              case Some(headAndTail) => Pull.output1(headAndTail)
+            }
+            .stream
+            .head
+            .compile
+            .last match {
+            case Left(throwable) => throw throwable
+            case Right(cargo) =>
+              cargo.map {
+                case (
+                      (caze, caseFailureReporting, inlinedCaseFiltration),
+                      tail
+                    ) =>
+                  JavaTuple3.of(
+                    caze,
+                    caseFailureReporting,
+                    inlinedCaseFiltration
+                  ) -> tail
+              }
+          }
         }
-      }*/
-
-      private def shrinkableCases: StreamedCases = {
+      }
+      private def shrinkableCases(): StreamedCases = {
         val randomBehaviour = new Random(734874)
 
         var shrinkageCasesFromDownstream: Option[StreamedCases] = None
@@ -928,21 +933,28 @@ case class TrialsImplementation[Case](
         reproduce(decisionStages)
       }.asJava.iterator()
 
-      override def testIntegration()
-          : JavaTuple2[JavaIterator[Case], InlinedCaseFiltration] =
-        JavaTuple2.of(
-          asIterator(),
-          {
-            (
-                runnable: Runnable,
-                additionalExceptionsToHandleAsFiltration: Array[
-                  Class[_ <: Throwable]
-                ]
-            ) =>
-              runnable.run()
-              true
-          }
-        )
+      override def testIntegrationContexts(): JavaIterator[
+        JavaTuple3[Case, CaseFailureReporting, InlinedCaseFiltration]
+      ] =
+        Seq(
+          JavaTuple3.of[Case, CaseFailureReporting, InlinedCaseFiltration](
+            {
+              val decisionStages = parseDecisionIndices(recipe)
+              reproduce(decisionStages)
+            },
+            (throwable: Throwable) => {},
+            {
+              (
+                  runnable: Runnable,
+                  additionalExceptionsToHandleAsFiltration: Array[
+                    Class[_ <: Throwable]
+                  ]
+              ) =>
+                runnable.run()
+                true
+            }
+          )
+        ).asJava.iterator()
 
       // Scala-only API ...
       override def supplyTo(consumer: Case => Unit): Unit = {

@@ -77,9 +77,11 @@ object tupleTrials {
       override def asIterator: JavaIterator[JavaTuple2[Case1, Case2]] =
         supplyToSyntax.asIterator
 
-      override def testIntegration: JavaTuple2[JavaIterator[
-        JavaTuple2[Case1, Case2]
-      ], InlinedCaseFiltration] = supplyToSyntax.testIntegration
+      override def testIntegrationContexts: JavaIterator[JavaTuple3[JavaTuple2[
+        Case1,
+        Case2
+      ], CaseFailureReporting, InlinedCaseFiltration]] =
+        supplyToSyntax.testIntegrationContexts
 
       protected val supplyToSyntax: TrialsScaffolding.SupplyToSyntax[
         JavaTuple2[Case1, Case2]
@@ -171,9 +173,11 @@ object tupleTrials {
       override def asIterator: JavaIterator[JavaTuple3[Case1, Case2, Case3]] =
         supplyToSyntax.asIterator
 
-      override def testIntegration: JavaTuple2[JavaIterator[
-        JavaTuple3[Case1, Case2, Case3]
-      ], InlinedCaseFiltration] = supplyToSyntax.testIntegration
+      override def testIntegrationContexts: JavaIterator[JavaTuple3[
+        JavaTuple3[Case1, Case2, Case3],
+        CaseFailureReporting,
+        InlinedCaseFiltration
+      ]] = supplyToSyntax.testIntegrationContexts
 
       protected val supplyToSyntax: TrialsScaffolding.SupplyToSyntax[
         JavaTuple3[Case1, Case2, Case3]
@@ -282,9 +286,11 @@ object tupleTrials {
           : JavaIterator[JavaTuple4[Case1, Case2, Case3, Case4]] =
         supplyToSyntax.asIterator
 
-      override def testIntegration: JavaTuple2[JavaIterator[
-        JavaTuple4[Case1, Case2, Case3, Case4]
-      ], InlinedCaseFiltration] = supplyToSyntax.testIntegration
+      override def testIntegrationContexts: JavaIterator[JavaTuple3[
+        JavaTuple4[Case1, Case2, Case3, Case4],
+        CaseFailureReporting,
+        InlinedCaseFiltration
+      ]] = supplyToSyntax.testIntegrationContexts
 
       protected val supplyToSyntax: TrialsScaffolding.SupplyToSyntax[
         JavaTuple4[Case1, Case2, Case3, Case4]
