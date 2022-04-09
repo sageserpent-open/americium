@@ -4,7 +4,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.hash.Hashing;
 import cyclops.control.Try;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -389,34 +388,6 @@ public class TrialsApiTests {
                     fourth);
             throw throwable;
         }
-    }
-
-    private static final Trials<String> first =
-            api.integers(1, 10)
-               .flatMap(size -> api
-                       .characters('a', 'z', 'a')
-                       .collectionsOfSize(size, Builder::stringBuilder));
-
-    private static final Trials<String> second =
-            api.integers(0, 10)
-               .flatMap(size -> api
-                       .characters('0', '9', '0')
-                       .collectionsOfSize(size, Builder::stringBuilder));
-
-    @Disabled
-    // This now detects the 'failing' test case correctly - but it is still a
-    // test failure. Need to rethink what this test should look like....
-    @Test
-    void copiedFromJqwik() {
-        first.and(second)
-             .withLimit(50)
-             .supplyTo((String first, String second) -> {
-                 final String concatenation = first + second;
-                 assertThat("Strings aren't allowed to be of length 4" +
-                            " or 5 characters" + " in this test.",
-                            4 > concatenation.length() ||
-                            5 < concatenation.length());
-             });
     }
 
     @Test
