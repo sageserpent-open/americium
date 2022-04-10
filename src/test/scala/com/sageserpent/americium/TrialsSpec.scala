@@ -1620,9 +1620,7 @@ class TrialsSpec
       )
     }
 
-    Trials.whenever(satisfiedPrecondition = true) {
-      succeed
-    }
+    Trials.whenever(satisfiedPrecondition = true) {}
   }
 
   private val oddHash = 1 == (_: Any).hashCode % 2

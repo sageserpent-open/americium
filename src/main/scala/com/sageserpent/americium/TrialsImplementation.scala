@@ -891,7 +891,7 @@ case class TrialsImplementation[Case](
 
       // Scala-only API ...
       override def supplyTo(consumer: Case => Unit): Unit = {
-        shrinkableCases
+        shrinkableCases()
           .flatMap {
             case (
                   caze: Case,
