@@ -84,10 +84,10 @@ case class TrialsImplementation[Case](
   override type SupplySyntaxType = ScalaTrialsScaffolding.SupplyToSyntax[Case]
 
   type StreamedCases =
-    Fs2Stream[Fallible, (Case, CaseFailureReporting, InlinedCaseFiltration)]
+    Fs2Stream[Fallible, TestIntegrationContextImplementation]
 
   type PullOfCases =
-    Pull[Fallible, (Case, CaseFailureReporting, InlinedCaseFiltration), Unit]
+    Pull[Fallible, TestIntegrationContextImplementation, Unit]
 
   case class TestIntegrationContextImplementation(
       caze: Case,
@@ -631,17 +631,7 @@ case class TrialsImplementation[Case](
             case Left(throwable) =>
               throw throwable
             case Right(cargo) =>
-              cargo.map {
-                case (
-                      (caze, caseFailureReporting, inlinedCaseFiltration),
-                      tail
-                    ) =>
-                  TestIntegrationContextImplementation(
-                    caze = caze,
-                    caseFailureReporting = caseFailureReporting,
-                    inlinedCaseFiltration = inlinedCaseFiltration
-                  ) -> tail
-              }
+              cargo
           }
         }
       }
@@ -726,57 +716,59 @@ case class TrialsImplementation[Case](
                           potentialShrunkCase
                         ) if caze != potentialShrunkCase =>
                       Fs2Stream.emit(
-                        (
-                          potentialShrunkCase,
-                          (throwableFromPotentialShrunkCase: Throwable) => {
-                            val decisionStagesForPotentialShrunkCase =
-                              decisionStagesForPotentialShrunkCaseInReverseOrder.reverse
+                        TestIntegrationContextImplementation(
+                          caze = potentialShrunkCase,
+                          caseFailureReporting =
+                            (throwableFromPotentialShrunkCase: Throwable) => {
+                              val decisionStagesForPotentialShrunkCase =
+                                decisionStagesForPotentialShrunkCaseInReverseOrder.reverse
 
-                            assert(
-                              decisionStagesForPotentialShrunkCase.size <= numberOfDecisionStages
-                            )
+                              assert(
+                                decisionStagesForPotentialShrunkCase.size <= numberOfDecisionStages
+                              )
 
-                            val lessComplex =
-                              decisionStagesForPotentialShrunkCase.size < numberOfDecisionStages
+                              val lessComplex =
+                                decisionStagesForPotentialShrunkCase.size < numberOfDecisionStages
 
-                            val stillEnoughRoomToDecreaseScale =
-                              scaleDeflationLevel < maximumScaleDeflationLevel
+                              val stillEnoughRoomToDecreaseScale =
+                                scaleDeflationLevel < maximumScaleDeflationLevel
 
-                            shrinkageCasesFromDownstream = Some(
-                              if (
-                                lessComplex || stillEnoughRoomToDecreaseScale
-                              ) {
-                                val scaleDeflationLevelForRecursion =
-                                  if (!lessComplex)
-                                    1 + scaleDeflationLevel
-                                  else scaleDeflationLevel
+                              shrinkageCasesFromDownstream = Some(
+                                if (
+                                  lessComplex || stillEnoughRoomToDecreaseScale
+                                ) {
+                                  val scaleDeflationLevelForRecursion =
+                                    if (!lessComplex)
+                                      1 + scaleDeflationLevel
+                                    else scaleDeflationLevel
 
-                                shrink(
-                                  caze = potentialShrunkCase,
-                                  throwable = throwableFromPotentialShrunkCase,
-                                  decisionStages =
-                                    decisionStagesForPotentialShrunkCase,
-                                  shrinkageAttemptIndex =
-                                    1 + shrinkageAttemptIndex,
-                                  scaleDeflationLevel =
-                                    scaleDeflationLevelForRecursion,
-                                  casesLimit =
-                                    limitWithExtraLeewayThatHasBeenObservedToFindBetterShrunkCases,
-                                  numberOfShrinksInPanicModeIncludingThisOne =
-                                    0,
-                                  externalStoppingCondition =
-                                    externalStoppingCondition
-                                )
+                                  shrink(
+                                    caze = potentialShrunkCase,
+                                    throwable =
+                                      throwableFromPotentialShrunkCase,
+                                    decisionStages =
+                                      decisionStagesForPotentialShrunkCase,
+                                    shrinkageAttemptIndex =
+                                      1 + shrinkageAttemptIndex,
+                                    scaleDeflationLevel =
+                                      scaleDeflationLevelForRecursion,
+                                    casesLimit =
+                                      limitWithExtraLeewayThatHasBeenObservedToFindBetterShrunkCases,
+                                    numberOfShrinksInPanicModeIncludingThisOne =
+                                      0,
+                                    externalStoppingCondition =
+                                      externalStoppingCondition
+                                  )
 
-                              } else
-                                wrapInTrialException(
-                                  throwableFromPotentialShrunkCase,
-                                  potentialShrunkCase,
-                                  decisionStagesForPotentialShrunkCase
-                                )
-                            )
-                          },
-                          inlinedCaseFiltration
+                                } else
+                                  wrapInTrialException(
+                                    throwableFromPotentialShrunkCase,
+                                    potentialShrunkCase,
+                                    decisionStagesForPotentialShrunkCase
+                                  )
+                              )
+                            },
+                          inlinedCaseFiltration = inlinedCaseFiltration
                         )
                       )
 
@@ -823,9 +815,9 @@ case class TrialsImplementation[Case](
                     decisionStagesInReverseOrder: DecisionStagesInReverseOrder,
                     caze: Case
                   ) =>
-                (
-                  caze,
-                  (throwable: Throwable) => {
+                TestIntegrationContextImplementation(
+                  caze = caze,
+                  caseFailureReporting = (throwable: Throwable) => {
                     val decisionStages = decisionStagesInReverseOrder.reverse
 
                     shrinkageCasesFromDownstream = Some(
@@ -841,7 +833,7 @@ case class TrialsImplementation[Case](
                       )
                     )
                   },
-                  inlinedCaseFiltration
+                  inlinedCaseFiltration = inlinedCaseFiltration
                 )
             }
         }
@@ -867,9 +859,7 @@ case class TrialsImplementation[Case](
                     _.fold(ifEmpty =
                       Pull.done
                         .covary[Fallible]
-                        .covaryOutput[
-                          (Case, CaseFailureReporting, InlinedCaseFiltration)
-                        ]
+                        .covaryOutput[TestIntegrationContextImplementation]
                     ) { case (headCase, remainingCases) =>
                       Pull.output1(
                         headCase
@@ -893,7 +883,7 @@ case class TrialsImplementation[Case](
       override def supplyTo(consumer: Case => Unit): Unit = {
         shrinkableCases()
           .flatMap {
-            case (
+            case TestIntegrationContextImplementation(
                   caze: Case,
                   caseFailureReporting: CaseFailureReporting,
                   inlinedCaseFiltration: InlinedCaseFiltration
