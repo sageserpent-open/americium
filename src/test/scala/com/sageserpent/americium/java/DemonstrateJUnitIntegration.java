@@ -32,13 +32,15 @@ public class DemonstrateJUnitIntegration {
             api.integers(1, 10)
                .flatMap(size -> api
                        .characters('a', 'z', 'a')
-                       .collectionsOfSize(size, Builder::stringBuilder));
+                       .collectionsOfSize(size, Builder::stringBuilder))
+               .filter(string -> string.endsWith("h"));
 
     private static final Trials<String> second =
             api.integers(0, 10)
                .flatMap(size -> api
                        .characters('0', '9', '0')
-                       .collectionsOfSize(size, Builder::stringBuilder));
+                       .collectionsOfSize(size, Builder::stringBuilder))
+               .filter(string -> string.length() >= 1);
 
     @TrialsTest(trials = "longs", casesLimit = 100)
     void testWithALong(Long longCase) {
@@ -67,8 +69,9 @@ public class DemonstrateJUnitIntegration {
     @Disabled
     // This now detects the 'failing' test case correctly - but it is still a
     // test failure. Need to rethink what this test should look like....
-    @TrialsTest(trials = {"first", "second"}, casesLimit = 50)
+    @TrialsTest(trials = {"first", "second"}, casesLimit = 125)
     void copiedFromJqwik(String first, String second) {
+        System.out.format("%s, %s\n", first, second);
         final String concatenation = first + second;
         assertThat("Strings aren't allowed to be of length 4" +
                    " or 5 characters" + " in this test.",
