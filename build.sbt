@@ -84,6 +84,7 @@ lazy val settings = Seq(
   libraryDependencies += "com.google.guava" % "guava"   % "30.1.1-jre",
   libraryDependencies += "com.oath.cyclops" % "cyclops" % "10.4.0",
   libraryDependencies += "org.junit.jupiter" % "junit-jupiter-params" % "5.8.2",
+  libraryDependencies += "org.rocksdb"       % "rocksdbjni"           % "7.1.1",
   libraryDependencies += "org.typelevel"  %% "cats-laws"  % "2.7.0"  % Test,
   libraryDependencies += "org.scalatest"  %% "scalatest"  % "3.2.9"  % Test,
   libraryDependencies += "org.scalacheck" %% "scalacheck" % "1.15.4" % Test,
