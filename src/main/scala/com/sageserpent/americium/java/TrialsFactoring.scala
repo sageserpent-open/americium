@@ -20,7 +20,7 @@ trait TrialsFactoring[+Case] {
   abstract class TrialException(cause: Throwable)
       extends RuntimeException(cause) {
     override def toString: String =
-      s"Trial exception with underlying cause:\n$getCause\nCase:\n$provokingCase\nReproduce with recipe:\n$recipe"
+      s"Trial exception with underlying cause:\n$getCause\nCase:\n$provokingCase\nReproduce via Java property:\ntrials.recipeHash=$recipeHash\nReproduce via `withLimits` using recipe:\n$recipe"
 
     /** @return
       *   The {@code Case} that provoked the exception.
@@ -32,5 +32,7 @@ trait TrialsFactoring[+Case] {
       *   supplied to the corresponding trials instance.
       */
     def recipe: String
+
+    def recipeHash: String
   }
 }

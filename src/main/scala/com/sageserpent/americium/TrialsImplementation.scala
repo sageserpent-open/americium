@@ -655,6 +655,9 @@ case class TrialsImplementation[Case](
 
             override def recipe: String =
               decisionStages.asJson.spaces4
+
+            override def recipeHash: String =
+              decisionStages.hashCode().toHexString
           })
 
         def shrink(
@@ -975,6 +978,9 @@ case class TrialsImplementation[Case](
               override def provokingCase: Case = reproducedCase
 
               override def recipe: String = decisionStages.asJson.spaces4
+
+              override def recipeHash: String =
+                decisionStages.hashCode().toHexString
             }
         }
       }
