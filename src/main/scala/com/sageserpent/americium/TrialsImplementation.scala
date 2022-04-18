@@ -93,7 +93,8 @@ case class TrialsImplementation[Case](
   case class TestIntegrationContextImplementation(
       caze: Case,
       caseFailureReporting: CaseFailureReporting,
-      inlinedCaseFiltration: InlinedCaseFiltration
+      inlinedCaseFiltration: InlinedCaseFiltration,
+      isPartOfShrinkage: Boolean
   ) extends com.sageserpent.americium.java.TestIntegrationContext[Case] {}
 
   import TrialsImplementation.*
@@ -772,7 +773,8 @@ case class TrialsImplementation[Case](
                                   )
                               )
                             },
-                          inlinedCaseFiltration = inlinedCaseFiltration
+                          inlinedCaseFiltration = inlinedCaseFiltration,
+                          isPartOfShrinkage = true
                         )
                       )
 
@@ -837,7 +839,8 @@ case class TrialsImplementation[Case](
                       )
                     )
                   },
-                  inlinedCaseFiltration = inlinedCaseFiltration
+                  inlinedCaseFiltration = inlinedCaseFiltration,
+                  isPartOfShrinkage = false
                 )
             }
         }
@@ -890,7 +893,8 @@ case class TrialsImplementation[Case](
             case TestIntegrationContextImplementation(
                   caze: Case,
                   caseFailureReporting: CaseFailureReporting,
-                  inlinedCaseFiltration: InlinedCaseFiltration
+                  inlinedCaseFiltration: InlinedCaseFiltration,
+                  _
                 ) =>
               Fs2Stream.eval(SyncIO {
                 try {
@@ -953,7 +957,8 @@ case class TrialsImplementation[Case](
               ) =>
                 runnable.run()
                 true
-            }
+            },
+            isPartOfShrinkage = false
           ): TestIntegrationContext[Case]
         ).asJava.iterator()
 

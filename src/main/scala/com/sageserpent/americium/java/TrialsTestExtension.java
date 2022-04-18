@@ -129,7 +129,12 @@ public class TrialsTestExtension
                 .map(testIntegrationContext -> new TestTemplateInvocationContext() {
                     @Override
                     public String getDisplayName(int invocationIndex) {
-                        return String.format("%s %s",
+                        final String shrinkagePrefix =
+                                testIntegrationContext.isPartOfShrinkage()
+                                ? "Shrinking ... " : "";
+
+                        return String.format("%s%s %s",
+                                             shrinkagePrefix,
                                              TestTemplateInvocationContext.super.getDisplayName(
                                                      invocationIndex),
                                              1 <
