@@ -39,6 +39,8 @@ import scala.jdk.CollectionConverters.*
 import scala.util.Random
 
 object TrialsImplementation {
+  val recipeHashJavaPropertyName = "trials.recipeHash"
+
   val maximumScaleDeflationLevel = 50
 
   type DecisionStages   = List[Decision]
