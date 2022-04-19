@@ -1275,7 +1275,9 @@ class TrialsSpec
             sut.withLimit(limit).supplyTo(mockConsumer)
           )
         } finally {
-          previousPropertyValue.foreach(
+          previousPropertyValue.fold(ifEmpty =
+            System.clearProperty(recipeHashJavaPropertyName)
+          )(
             System.setProperty(recipeHashJavaPropertyName, _)
           )
         }
