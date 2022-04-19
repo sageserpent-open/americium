@@ -79,13 +79,19 @@ lazy val settings = Seq(
     val tests = (Test / definedTests).value
 
     tests
-      .groupBy { testDefinition =>
-        if (testDefinition.name.contains("Trials"))
-          "trialsTests"
-        else testDefinition.name
-      }
+      .groupBy(_.name)
       .map { case (groupName, group) =>
-        new Group(groupName, group, SubProcess((Test / forkOptions).value))
+        new Group(
+          groupName,
+          group,
+          SubProcess(
+            (Test / forkOptions).value.withRunJVMOptions(
+              Vector(
+                s"-Dtrials.runDatabase=trialsRunDatabaseForGroup$groupName"
+              )
+            )
+          )
+        )
       }
       .toSeq
   },

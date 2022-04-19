@@ -42,9 +42,13 @@ import scala.jdk.CollectionConverters.*
 import scala.util.Random
 
 object TrialsImplementation {
+  val temporaryDirectoryJavaProperty = "java.io.tmpdir"
+
+  val runDatabaseJavaPropertyName = "trials.runDatabase"
+
   val recipeHashJavaPropertyName = "trials.recipeHash"
 
-  val trialsRegenerationDatabaseName = "trialsRegenerationDatabase"
+  val runDatabaseDefault = "trialsRunDatabase"
 
   val maximumScaleDeflationLevel = 50
 
@@ -82,16 +86,32 @@ object TrialsImplementation {
   case class ResetComplexity[Case](complexity: Int)
       extends GenerationOperation[Unit]
 
-  def rocksDbResource(): Resource[SyncIO, RocksDB] =
+  def rocksDbResource(readOnly: Boolean = false): Resource[SyncIO, RocksDB] =
     Resource.make(acquire = SyncIO {
-      RocksDB.loadLibrary()
+      Option(System.getProperty(temporaryDirectoryJavaProperty)).fold(ifEmpty =
+        throw new RuntimeException(
+          s"No definition of Java property: `$temporaryDirectoryJavaProperty`"
+        )
+      ) { directory =>
+        val runDatabase = Option(
+          System.getProperty(runDatabaseJavaPropertyName)
+        ).getOrElse(runDatabaseDefault)
 
-      RocksDB.open(
-        Path
-          .of(System.getProperty("java.io.tmpdir"))
-          .resolve(trialsRegenerationDatabaseName)
-          .toString
-      )
+        if (readOnly)
+          RocksDB.openReadOnly(
+            Path
+              .of(directory)
+              .resolve(runDatabase)
+              .toString
+          )
+        else
+          RocksDB.open(
+            Path
+              .of(directory)
+              .resolve(runDatabase)
+              .toString
+          )
+      }
     })(release =
       rocksDB =>
         SyncIO {
@@ -934,7 +954,7 @@ case class TrialsImplementation[Case](
           ).stream
         }(recipeHash =>
           Fs2Stream
-            .resource(rocksDbResource())
+            .resource(rocksDbResource(readOnly = true))
             .flatMap { rocksDb =>
               val singleTestIntegrationContext = Fs2Stream
                 .eval(SyncIO {
