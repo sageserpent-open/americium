@@ -26,7 +26,7 @@ import com.sageserpent.americium.{
   TrialsSkeletalImplementation as ScalaTrialsSkeletalImplementation
 }
 import cyclops.control.Either as JavaEither
-import fs2.{INothing, Pull, Stream as Fs2Stream}
+import fs2.{Pull, Stream as Fs2Stream}
 import io.circe.generic.auto.*
 import io.circe.parser.*
 import io.circe.syntax.*
@@ -665,11 +665,49 @@ case class TrialsImplementation[Case](
         }
       }
 
-      private def shrinkableCases(): StreamedCases =
+      private def shrinkableCases(): StreamedCases = {
+        var shrinkageCasesFromDownstream: Option[StreamedCases] = None
+
+        def carryOnButSwitchToShrinkageApproachOnCaseFailure(
+            businessAsUsualCases: StreamedCases
+        ): PullOfCases = Pull
+          .eval(SyncIO {
+            val capture = shrinkageCasesFromDownstream
+
+            capture.foreach { _ => shrinkageCasesFromDownstream = None }
+
+            capture
+          })
+          .flatMap(
+            _.fold
+              // If there are no shrinkage cases from downstream, we need to
+              // pull a single case and carry on with the remaining business
+              // as usual via a recursive call to this method.
+              (ifEmpty =
+                businessAsUsualCases.pull.uncons1
+                  .flatMap(
+                    _.fold(ifEmpty =
+                      Pull.done
+                        .covary[SyncIO]
+                        .covaryOutput[
+                          TestIntegrationContextImplementation
+                        ]
+                    ) { case (headCase, remainingCases) =>
+                      Pull.output1(
+                        headCase
+                      ) >> carryOnButSwitchToShrinkageApproachOnCaseFailure(
+                        remainingCases
+                      )
+                    }
+                  )
+              )
+              // If there are shrinkage cases from downstream, we need drop
+              // business as usual and switch to them instead.
+              (carryOnButSwitchToShrinkageApproachOnCaseFailure)
+          )
+
         Option(System.getProperty(recipeHashJavaPropertyName)).fold {
           val randomBehaviour = new Random(734874)
-
-          var shrinkageCasesFromDownstream: Option[StreamedCases] = None
 
           def shrink(
               caze: Case,
@@ -686,17 +724,15 @@ case class TrialsImplementation[Case](
                 caze
               )
             )
-              Fs2Stream.eval(
-                rocksDbResource().use(rocksDb =>
-                  SyncIO {
-                    throwTrialException(Some(rocksDb))(
-                      throwable,
-                      caze,
-                      decisionStages
-                    )
-                  }
+              Fs2Stream
+                .resource(rocksDbResource())
+                .flatMap(rocksDb =>
+                  raiseTrialException(Some(rocksDb))(
+                    throwable,
+                    caze,
+                    decisionStages
+                  )
                 )
-              )
             else {
               require(shrinkageAttemptsLimit > shrinkageAttemptIndex)
 
@@ -740,17 +776,15 @@ case class TrialsImplementation[Case](
                           // shrink down, as otherwise the failure won't be
                           // provoked at all.
                           if 1 < numberOfShrinksInPanicModeIncludingThisOne && caze == potentialShrunkCase =>
-                        Fs2Stream.eval(
-                          rocksDbResource().use(rocksDb =>
-                            SyncIO {
-                              throwTrialException(Some(rocksDb))(
-                                throwable,
-                                caze,
-                                decisionStages
-                              )
-                            }
+                        Fs2Stream
+                          .resource(rocksDbResource())
+                          .flatMap(rocksDb =>
+                            raiseTrialException(Some(rocksDb))(
+                              throwable,
+                              caze,
+                              decisionStages
+                            )
                           )
-                        )
 
                       case (
                             decisionStagesForPotentialShrunkCaseInReverseOrder,
@@ -803,17 +837,15 @@ case class TrialsImplementation[Case](
 
                                   } else
 
-                                    Fs2Stream.eval(
-                                      rocksDbResource().use(rocksDb =>
-                                        SyncIO {
-                                          throwTrialException(Some(rocksDb))(
-                                            throwableFromPotentialShrunkCase,
-                                            potentialShrunkCase,
-                                            decisionStagesForPotentialShrunkCase
-                                          )
-                                        }
+                                    Fs2Stream
+                                      .resource(rocksDbResource())
+                                      .flatMap(rocksDb =>
+                                        raiseTrialException(Some(rocksDb))(
+                                          throwableFromPotentialShrunkCase,
+                                          potentialShrunkCase,
+                                          decisionStagesForPotentialShrunkCase
+                                        )
                                       )
-                                    )
                                 )
                               },
                             inlinedCaseFiltration = inlinedCaseFiltration,
@@ -847,17 +879,15 @@ case class TrialsImplementation[Case](
                 // At this point the recursion hasn't found a failing case, so
                 // we call it a day and go with the best we've got from
                 // further up the call chain...
-                Fs2Stream.eval(
-                  rocksDbResource().use(rocksDb =>
-                    SyncIO {
-                      throwTrialException(Some(rocksDb))(
-                        throwable,
-                        caze,
-                        decisionStages
-                      )
-                    }
+                Fs2Stream
+                  .resource(rocksDbResource())
+                  .flatMap(rocksDb =>
+                    raiseTrialException(Some(rocksDb))(
+                      throwable,
+                      caze,
+                      decisionStages
+                    )
                   )
-                )
             }
           }
 
@@ -899,60 +929,55 @@ case class TrialsImplementation[Case](
               }
           }
 
-          def carryOnButSwitchToShrinkageApproachOnCaseFailure(
-              businessAsUsualCases: StreamedCases
-          ): PullOfCases = Pull
-            .eval(SyncIO {
-              val capture = shrinkageCasesFromDownstream
-
-              capture.foreach { _ => shrinkageCasesFromDownstream = None }
-
-              capture
-            })
-            .flatMap(
-              _.fold
-                // If there are no shrinkage cases from downstream, we need to
-                // pull a single case and carry on with the remaining business
-                // as usual via a recursive call to this method.
-                (ifEmpty =
-                  businessAsUsualCases.pull.uncons1
-                    .flatMap(
-                      _.fold(ifEmpty =
-                        Pull.done
-                          .covary[SyncIO]
-                          .covaryOutput[
-                            TestIntegrationContextImplementation
-                          ]
-                      ) { case (headCase, remainingCases) =>
-                        Pull.output1(
-                          headCase
-                        ) >> carryOnButSwitchToShrinkageApproachOnCaseFailure(
-                          remainingCases
-                        )
-                      }
-                    )
-                )
-                // If there are shrinkage cases from downstream, we need drop
-                // business as usual and switch to them instead.
-                (carryOnButSwitchToShrinkageApproachOnCaseFailure)
-            )
-
           carryOnButSwitchToShrinkageApproachOnCaseFailure(
             businessAsUsualCases
           ).stream
         }(recipeHash =>
-          for {
-            rocksDb <- Fs2Stream.resource(rocksDbResource())
-            singleTestIntegrationContext <- Fs2Stream.eval(SyncIO {
-              val recipe = rocksDb
-                .get(recipeHash.map(_.toByte).toArray)
-                .map(_.toChar)
-                .mkString
+          Fs2Stream
+            .resource(rocksDbResource())
+            .flatMap { rocksDb =>
+              val singleTestIntegrationContext = Fs2Stream
+                .eval(SyncIO {
+                  val recipe = rocksDb
+                    .get(recipeHash.map(_.toByte).toArray)
+                    .map(_.toChar)
+                    .mkString
 
-              testIntegrationContextFor(recipe)
-            })
-          } yield singleTestIntegrationContext
+                  {
+                    val decisionStages = parseDecisionIndices(recipe)
+                    val caze           = reproduce(decisionStages)
+
+                    TestIntegrationContextImplementation(
+                      caze = caze,
+                      caseFailureReporting = { (throwable: Throwable) =>
+                        shrinkageCasesFromDownstream = Some(
+                          raiseTrialException(None)(
+                            throwable,
+                            caze,
+                            decisionStages
+                          )
+                        )
+                      },
+                      inlinedCaseFiltration = {
+                        (
+                            runnable: Runnable,
+                            additionalExceptionsToHandleAsFiltration: Array[
+                              Class[_ <: Throwable]
+                            ]
+                        ) =>
+                          runnable.run()
+                          true
+                      },
+                      isPartOfShrinkage = false
+                    )
+                  }
+                })
+              carryOnButSwitchToShrinkageApproachOnCaseFailure(
+                singleTestIntegrationContext
+              ).stream
+            }
         )
+      }
 
       // Scala-only API ...
       override def supplyTo(consumer: Case => Unit): Unit = {
@@ -1009,9 +1034,26 @@ case class TrialsImplementation[Case](
 
       override def testIntegrationContexts()
           : JavaIterator[TestIntegrationContext[Case]] =
-        Seq(
-          testIntegrationContextFor(recipe): TestIntegrationContext[Case]
-        ).asJava.iterator()
+        Seq({
+          val decisionStages = parseDecisionIndices(recipe)
+          val caze           = reproduce(decisionStages)
+
+          TestIntegrationContextImplementation(
+            caze = caze,
+            caseFailureReporting = { (throwable: Throwable) => },
+            inlinedCaseFiltration = {
+              (
+                  runnable: Runnable,
+                  additionalExceptionsToHandleAsFiltration: Array[
+                    Class[_ <: Throwable]
+                  ]
+              ) =>
+                runnable.run()
+                true
+            },
+            isPartOfShrinkage = false
+          )
+        }: TestIntegrationContext[Case]).asJava.iterator()
 
       // Scala-only API ...
       override def supplyTo(consumer: Case => Unit): Unit = {
@@ -1038,11 +1080,11 @@ case class TrialsImplementation[Case](
       }
     }
 
-  def throwTrialException(rocksDb: Option[RocksDB])(
+  def raiseTrialException(rocksDb: Option[RocksDB])(
       throwable: Throwable,
       caze: Case,
       decisionStages: DecisionStages
-  ): INothing = {
+  ): StreamedCases = {
     val json                  = decisionStages.asJson.spaces4
     val jsonHashInHexadecimal = json.hashCode.toHexString
 
@@ -1056,40 +1098,16 @@ case class TrialsImplementation[Case](
       )
     )
 
-    throw new TrialException(throwable) {
+    Fs2Stream.raiseError[SyncIO](new TrialException(throwable) {
       override def provokingCase: Case = caze
 
       override def recipe: String = json
 
       override def recipeHash: String = jsonHashInHexadecimal
-    }
-
+    })
   }
 
-  private def testIntegrationContextFor(recipe: String) = {
-    val decisionStages = parseDecisionIndices(recipe)
-    val caze           = reproduce(decisionStages)
-
-    TestIntegrationContextImplementation(
-      caze = caze,
-      caseFailureReporting = { (throwable: Throwable) =>
-        throwTrialException(None)(throwable, caze, decisionStages)
-      },
-      inlinedCaseFiltration = {
-        (
-            runnable: Runnable,
-            additionalExceptionsToHandleAsFiltration: Array[
-              Class[_ <: Throwable]
-            ]
-        ) =>
-          runnable.run()
-          true
-      },
-      isPartOfShrinkage = false
-    )
-  }
-
-// Scala-only API ...
+  // Scala-only API ...
   protected override def several[Collection](
       builderFactory: => Builder[Case, Collection]
   ): TrialsImplementation[Collection] = {
