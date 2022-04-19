@@ -23,7 +23,27 @@ import scala.collection.mutable
 import scala.jdk.CollectionConverters.*
 import scala.util.Try
 
+trait MockitoSessionSupport {
+  protected def inMockitoSession[X](
+      test: => Unit
+  ): Unit = {
+    val mockitoSession = Mockito.mockitoSession().startMocking()
+
+    try {
+      test
+    } finally {
+      mockitoSession.finishMocking()
+    }
+  }
+}
+
 object TrialsSpec {
+  case class JackInABox[Caze](caze: Caze)
+
+  case class ExceptionWithCasePayload[Case](caze: Case) extends RuntimeException
+
+  case class ChoicesAndCriterion[X](choices: Seq[X], criterion: X => Boolean)
+
   sealed trait BinaryTree {
     def flatten: Vector[Int]
   }
@@ -119,20 +139,9 @@ object TrialsSpec {
 class TrialsSpec
     extends AnyFlatSpec
     with Matchers
-    with TableDrivenPropertyChecks {
+    with TableDrivenPropertyChecks
+    with MockitoSessionSupport {
   import TrialsSpec.*
-
-  private def inMockitoSession[X](
-      test: => Unit
-  ): Unit = {
-    val mockitoSession = Mockito.mockitoSession().startMocking()
-
-    try {
-      test
-    } finally {
-      mockitoSession.finishMocking()
-    }
-  }
 
   type TypeRequirementsToProtectCodeInStringsFromUnusedImportOptimisation =
     (JavaTrials[_], JavaFunction[_, _], Predicate[_])
@@ -588,10 +597,6 @@ class TrialsSpec
         isomorphismCaseFactory.maximallyShrunkInput()
       ))
     }
-
-  case class ExceptionWithCasePayload[Case](caze: Case) extends RuntimeException
-
-  case class ChoicesAndCriterion[X](choices: Seq[X], criterion: X => Boolean)
 
   "a choice that includes exceptional cases" should "result in one of the corresponding exceptions" in {
 
@@ -1100,8 +1105,6 @@ class TrialsSpec
       }
     }
 
-  case class JackInABox[Caze](caze: Caze)
-
   they should "yield repeatable exceptions" in
     forAll(
       Table(
@@ -1203,92 +1206,6 @@ class TrialsSpec
     exceptionRecreatedViaRecipe.provokingCase shouldBe exception.provokingCase
     exceptionRecreatedViaRecipe.recipe shouldBe exception.recipe
     exceptionRecreatedViaRecipe.recipeHash shouldBe exception.recipeHash
-  }
-
-  it should "be reproduced by its recipe hash" in forAll(
-    Table(
-      "trials",
-      api.only(JackInABox(1)),
-      api.choose(1, false, JackInABox(99)),
-      api.alternate(
-        api.only(true),
-        api.choose(0 until 10 map (_.toString) map JackInABox.apply),
-        api.choose(-10 until 0)
-      ),
-      api.alternate(
-        api.only(true),
-        api.choose(-10 until 0),
-        api.alternate(api.choose(-99 to -50), api.only(JackInABox(-2)))
-      ),
-      api.alternate(
-        api.only(true),
-        api.alternate(
-          api.choose(-99 to -50),
-          api.choose("Red herring", false, JackInABox(-2))
-        ),
-        api.choose(-10 until 0)
-      ),
-      api.streamLegacy({
-        case value if 0 == value % 3 => JackInABox(value)
-        case value => value
-      }),
-      api.alternate(
-        api.only(true),
-        api.streamLegacy({
-          case value if 0 == value % 3 => JackInABox(value)
-          case value => value
-        }),
-        api.choose(-10 until 0)
-      ),
-      implicitly[Factory[Option[Int]]].trials.map {
-        case None        => JackInABox(())
-        case Some(value) => value
-      }
-    )
-  ) { sut =>
-    inMockitoSession {
-      val surprisedConsumer: Any => Unit = {
-        case JackInABox(caze) => throw ExceptionWithCasePayload(caze)
-        case _                =>
-      }
-
-      val exception = intercept[sut.TrialException](
-        sut.withLimit(limit).supplyTo(surprisedConsumer)
-      )
-
-      val mockConsumer: Any => Unit = mock(classOf[Any => Unit])
-
-      doAnswer(invocation =>
-        throw ExceptionWithCasePayload(
-          invocation.getArgument[JackInABox[_]](0).caze
-        )
-      ).when(mockConsumer).apply(any[JackInABox[_]]())
-
-      val exceptionRecreatedViaRecipeHash = {
-        val previousPropertyValue =
-          Option(
-            System.setProperty(recipeHashJavaPropertyName, exception.recipeHash)
-          )
-
-        try {
-          intercept[sut.TrialException](
-            sut.withLimit(limit).supplyTo(mockConsumer)
-          )
-        } finally {
-          previousPropertyValue.fold(ifEmpty =
-            System.clearProperty(recipeHashJavaPropertyName)
-          )(
-            System.setProperty(recipeHashJavaPropertyName, _)
-          )
-        }
-      }
-
-      exceptionRecreatedViaRecipeHash.provokingCase shouldBe exception.provokingCase
-      exceptionRecreatedViaRecipeHash.recipe shouldBe exception.recipe
-      exceptionRecreatedViaRecipeHash.recipeHash shouldBe exception.recipeHash
-
-      verify(mockConsumer).apply(any())
-    }
   }
 
   case class DescriptionTrialsCriterionAndLimit[X](
@@ -2012,6 +1929,100 @@ class TrialsSpec
       underlyings.optionals.withLimit(limit).supplyTo(mockConsumer)
 
       verifyNoMoreInteractions(mockConsumer)
+    }
+  }
+}
+
+class TrialsSpecInJVMProcessQuarantine
+    extends AnyFlatSpec
+    with Matchers
+    with TableDrivenPropertyChecks
+    with MockitoSessionSupport {
+  import TrialsSpec.*
+
+  it should "be reproduced by its recipe hash" in forAll(
+    Table(
+      "trials",
+      api.only(JackInABox(1)),
+      api.choose(1, false, JackInABox(99)),
+      api.alternate(
+        api.only(true),
+        api.choose(0 until 10 map (_.toString) map JackInABox.apply),
+        api.choose(-10 until 0)
+      ),
+      api.alternate(
+        api.only(true),
+        api.choose(-10 until 0),
+        api.alternate(api.choose(-99 to -50), api.only(JackInABox(-2)))
+      ),
+      api.alternate(
+        api.only(true),
+        api.alternate(
+          api.choose(-99 to -50),
+          api.choose("Red herring", false, JackInABox(-2))
+        ),
+        api.choose(-10 until 0)
+      ),
+      api.streamLegacy({
+        case value if 0 == value % 3 => JackInABox(value)
+        case value => value
+      }),
+      api.alternate(
+        api.only(true),
+        api.streamLegacy({
+          case value if 0 == value % 3 => JackInABox(value)
+          case value => value
+        }),
+        api.choose(-10 until 0)
+      ),
+      implicitly[Factory[Option[Int]]].trials.map {
+        case None        => JackInABox(())
+        case Some(value) => value
+      }
+    )
+  ) { sut =>
+    inMockitoSession {
+      val surprisedConsumer: Any => Unit = {
+        case JackInABox(caze) => throw ExceptionWithCasePayload(caze)
+        case _                =>
+      }
+
+      val exception = intercept[sut.TrialException](
+        sut.withLimit(limit).supplyTo(surprisedConsumer)
+      )
+
+      val mockConsumer: Any => Unit = mock(classOf[Any => Unit])
+
+      doAnswer(invocation =>
+        throw ExceptionWithCasePayload(
+          invocation.getArgument[JackInABox[_]](0).caze
+        )
+      ).when(mockConsumer).apply(any[JackInABox[_]]())
+
+      val exceptionRecreatedViaRecipeHash = {
+        val previousPropertyValue =
+          Option(
+            System.setProperty(recipeHashJavaPropertyName, exception.recipeHash)
+          )
+
+        try {
+          intercept[sut.TrialException](
+            sut.withLimit(limit).supplyTo(mockConsumer)
+          )
+        } finally {
+          previousPropertyValue.fold(ifEmpty =
+            System.clearProperty(recipeHashJavaPropertyName)
+          )(
+            System.setProperty(recipeHashJavaPropertyName, _)
+          )
+        }
+      }
+
+      exceptionRecreatedViaRecipeHash.provokingCase shouldBe exception.provokingCase
+      exceptionRecreatedViaRecipeHash.recipe shouldBe exception.recipe
+      exceptionRecreatedViaRecipeHash.recipeHash shouldBe exception.recipeHash
+
+      verify(mockConsumer).apply(any())
     }
   }
 }
