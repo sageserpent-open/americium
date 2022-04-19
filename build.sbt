@@ -80,21 +80,18 @@ lazy val settings = Seq(
 
     tests
       .groupBy { testDefinition =>
-        if (testDefinition.name.endsWith("InJVMProcessQuarantine"))
-          testDefinition.name
-        else "others"
+        if (testDefinition.name.contains("Trials"))
+          "trialsTests"
+        else testDefinition.name
       }
       .map { case (groupName, group) =>
         new Group(groupName, group, SubProcess((Test / forkOptions).value))
       }
       .toSeq
   },
-  // The next two settings work in concert to force the grouped tests to run in
-  // the main SBT process; each group is run in sequence, but within a group the
-  // tests can run in parallel via multithreading - so each group is run in the
-  // same manner as the default SBT mode, which is pretty quick.
-  Test / fork                            := false,
-  Test / testForkedParallel              := true,
+  Global / concurrentRestrictions := Seq(Tags.limit(Tags.ForkedTestGroup, 6)),
+  Test / fork                     := true,
+  Test / testForkedParallel       := false,
   libraryDependencies += "org.typelevel" %% "cats-core"             % "2.7.0",
   libraryDependencies += "org.typelevel" %% "cats-free"             % "2.7.0",
   libraryDependencies += "org.typelevel" %% "cats-collections-core" % "0.9.3",
