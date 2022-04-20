@@ -183,10 +183,10 @@ case class TrialsImplementation[Case](
   override type SupplySyntaxType = ScalaTrialsScaffolding.SupplyToSyntax[Case]
 
   type StreamedCases =
-    Fs2Stream[SyncIO, TestIntegrationContextImplementation]
+    Fs2Stream[SyncIO, TestIntegrationContext[Case]]
 
   type PullOfCases =
-    Pull[SyncIO, TestIntegrationContextImplementation, Unit]
+    Pull[SyncIO, TestIntegrationContext[Case], Unit]
 
   case class TestIntegrationContextImplementation(
       caze: Case,
@@ -711,7 +711,7 @@ case class TrialsImplementation[Case](
                       Pull.done
                         .covary[SyncIO]
                         .covaryOutput[
-                          TestIntegrationContextImplementation
+                          TestIntegrationContext[Case]
                         ]
                     ) { case (headCase, remainingCases) =>
                       Pull.output1(
