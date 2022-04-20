@@ -8,6 +8,7 @@ import cats.free.Free.liftF
 import cats.implicits.*
 import cats.{Eval, ~>}
 import com.google.common.collect.{Ordering as _, *}
+import com.google.common.hash
 import com.sageserpent.americium.TrialsApis.{javaApi, scalaApi}
 import com.sageserpent.americium.java.TrialsScaffolding.OptionalLimits
 import com.sageserpent.americium.java.{
@@ -686,6 +687,36 @@ case class TrialsImplementation[Case](
         }
       }
 
+      private def raiseTrialException(rocksDb: Option[RocksDB])(
+          throwable: Throwable,
+          caze: Case,
+          decisionStages: DecisionStages
+      ): StreamedCases = {
+        val json = decisionStages.asJson.spaces4
+        val jsonHashInHexadecimal = hash.Hashing
+          .murmur3_128()
+          .hashUnencodedChars(json)
+          .toString
+
+        // TODO: suppose this throws an exception? Probably best to
+        // just log it and carry on, as the user wants to see a test
+        // failure rather than an issue with the database.
+        rocksDb.foreach(
+          _.put(
+            jsonHashInHexadecimal.map(_.toByte).toArray,
+            json.map(_.toByte).toArray
+          )
+        )
+
+        Fs2Stream.raiseError[SyncIO](new TrialException(throwable) {
+          override def provokingCase: Case = caze
+
+          override def recipe: String = json
+
+          override def recipeHash: String = jsonHashInHexadecimal
+        })
+      }
+
       private def shrinkableCases(): StreamedCases = {
         var shrinkageCasesFromDownstream: Option[StreamedCases] = None
 
@@ -1100,33 +1131,6 @@ case class TrialsImplementation[Case](
         }
       }
     }
-
-  def raiseTrialException(rocksDb: Option[RocksDB])(
-      throwable: Throwable,
-      caze: Case,
-      decisionStages: DecisionStages
-  ): StreamedCases = {
-    val json                  = decisionStages.asJson.spaces4
-    val jsonHashInHexadecimal = json.hashCode.toHexString
-
-    // TODO: suppose this throws an exception? Probably best to
-    // just log it and carry on, as the user wants to see a test
-    // failure rather than an issue with the database.
-    rocksDb.foreach(
-      _.put(
-        jsonHashInHexadecimal.map(_.toByte).toArray,
-        json.map(_.toByte).toArray
-      )
-    )
-
-    Fs2Stream.raiseError[SyncIO](new TrialException(throwable) {
-      override def provokingCase: Case = caze
-
-      override def recipe: String = json
-
-      override def recipeHash: String = jsonHashInHexadecimal
-    })
-  }
 
   // Scala-only API ...
   protected override def several[Collection](
