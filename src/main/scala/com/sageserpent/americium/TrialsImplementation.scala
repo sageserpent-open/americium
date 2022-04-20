@@ -31,11 +31,15 @@ import fs2.{Pull, Stream as Fs2Stream}
 import io.circe.generic.auto.*
 import io.circe.parser.*
 import io.circe.syntax.*
-import org.rocksdb.RocksDB
+import org.rocksdb.*
 
 import _root_.java.nio.file.Path
 import _root_.java.util.function.{Consumer, Predicate}
-import _root_.java.util.{Iterator as JavaIterator, Optional as JavaOptional}
+import _root_.java.util.{
+  ArrayList as JavaArrayList,
+  Iterator as JavaIterator,
+  Optional as JavaOptional
+}
 import scala.annotation.tailrec
 import scala.collection.immutable.SortedMap
 import scala.collection.mutable
@@ -52,6 +56,25 @@ object TrialsImplementation {
   val runDatabaseDefault = "trialsRunDatabase"
 
   val maximumScaleDeflationLevel = 50
+
+  val rocksDbOptions = new DBOptions()
+    .optimizeForSmallDb()
+    .setCreateIfMissing(true)
+    .setCreateMissingColumnFamilies(true)
+
+  val columnFamilyOptions = new ColumnFamilyOptions()
+    .setCompressionType(CompressionType.LZ4_COMPRESSION)
+    .setBottommostCompressionType(CompressionType.ZSTD_COMPRESSION)
+
+  val defaultColumnFamilyDescriptor = new ColumnFamilyDescriptor(
+    RocksDB.DEFAULT_COLUMN_FAMILY,
+    columnFamilyOptions
+  )
+
+  val columnFamilyDescriptorForRecipeHashes = new ColumnFamilyDescriptor(
+    "RecipeHashKeyRecipeValue".getBytes(),
+    columnFamilyOptions
+  )
 
   type DecisionStages   = List[Decision]
   type Generation[Case] = Free[GenerationOperation, Case]
@@ -87,7 +110,9 @@ object TrialsImplementation {
   case class ResetComplexity[Case](complexity: Int)
       extends GenerationOperation[Unit]
 
-  def rocksDbResource(readOnly: Boolean = false): Resource[SyncIO, RocksDB] =
+  def rocksDbResource(
+      readOnly: Boolean = false
+  ): Resource[SyncIO, (RocksDB, ColumnFamilyHandle)] =
     Resource.make(acquire = SyncIO {
       Option(System.getProperty(temporaryDirectoryJavaProperty)).fold(ifEmpty =
         throw new RuntimeException(
@@ -98,27 +123,44 @@ object TrialsImplementation {
           System.getProperty(runDatabaseJavaPropertyName)
         ).getOrElse(runDatabaseDefault)
 
-        if (readOnly)
-          RocksDB.openReadOnly(
-            Path
-              .of(directory)
-              .resolve(runDatabase)
-              .toString
+        val columnFamilyDescriptors =
+          ImmutableList.of(
+            defaultColumnFamilyDescriptor,
+            columnFamilyDescriptorForRecipeHashes
           )
-        else
-          RocksDB.open(
-            Path
-              .of(directory)
-              .resolve(runDatabase)
-              .toString
-          )
+
+        val columnFamilyHandles = new JavaArrayList[ColumnFamilyHandle]()
+
+        val rocksDB =
+          if (readOnly)
+            RocksDB.openReadOnly(
+              rocksDbOptions,
+              Path
+                .of(directory)
+                .resolve(runDatabase)
+                .toString,
+              columnFamilyDescriptors,
+              columnFamilyHandles
+            )
+          else
+            RocksDB.open(
+              rocksDbOptions,
+              Path
+                .of(directory)
+                .resolve(runDatabase)
+                .toString,
+              columnFamilyDescriptors,
+              columnFamilyHandles
+            )
+
+        rocksDB -> columnFamilyHandles.get(1)
       }
-    })(release =
-      rocksDB =>
-        SyncIO {
-          rocksDB.close()
-        }
-    )
+    })(release = { case (rocksDB, columnFamilyForRecipeHashes) =>
+      SyncIO {
+        columnFamilyForRecipeHashes.close()
+        rocksDB.close()
+      }
+    })
 
   final case class NonEmptyDecisionStages(
       latestDecision: Decision,
@@ -687,7 +729,9 @@ case class TrialsImplementation[Case](
         }
       }
 
-      private def raiseTrialException(rocksDb: Option[RocksDB])(
+      private def raiseTrialException(
+          rocksDb: Option[(RocksDB, ColumnFamilyHandle)]
+      )(
           throwable: Throwable,
           caze: Case,
           decisionStages: DecisionStages
@@ -701,12 +745,13 @@ case class TrialsImplementation[Case](
         // TODO: suppose this throws an exception? Probably best to
         // just log it and carry on, as the user wants to see a test
         // failure rather than an issue with the database.
-        rocksDb.foreach(
-          _.put(
+        rocksDb.foreach { case (rocksDb, columnFamilyForRecipeHashes) =>
+          rocksDb.put(
+            columnFamilyForRecipeHashes,
             jsonHashInHexadecimal.map(_.toByte).toArray,
             json.map(_.toByte).toArray
           )
-        )
+        }
 
         Fs2Stream.raiseError[SyncIO](new TrialException(throwable) {
           override def provokingCase: Case = caze
@@ -778,8 +823,8 @@ case class TrialsImplementation[Case](
             )
               Fs2Stream
                 .resource(rocksDbResource())
-                .flatMap(rocksDb =>
-                  raiseTrialException(Some(rocksDb))(
+                .flatMap(rocksDbPayload =>
+                  raiseTrialException(Some(rocksDbPayload))(
                     throwable,
                     caze,
                     decisionStages
@@ -830,8 +875,8 @@ case class TrialsImplementation[Case](
                           if 1 < numberOfShrinksInPanicModeIncludingThisOne && caze == potentialShrunkCase =>
                         Fs2Stream
                           .resource(rocksDbResource())
-                          .flatMap(rocksDb =>
-                            raiseTrialException(Some(rocksDb))(
+                          .flatMap(rocksDbPayload =>
+                            raiseTrialException(Some(rocksDbPayload))(
                               throwable,
                               caze,
                               decisionStages
@@ -891,8 +936,10 @@ case class TrialsImplementation[Case](
 
                                     Fs2Stream
                                       .resource(rocksDbResource())
-                                      .flatMap(rocksDb =>
-                                        raiseTrialException(Some(rocksDb))(
+                                      .flatMap(rocksDbPayload =>
+                                        raiseTrialException(
+                                          Some(rocksDbPayload)
+                                        )(
                                           throwableFromPotentialShrunkCase,
                                           potentialShrunkCase,
                                           decisionStagesForPotentialShrunkCase
@@ -933,8 +980,8 @@ case class TrialsImplementation[Case](
                 // further up the call chain...
                 Fs2Stream
                   .resource(rocksDbResource())
-                  .flatMap(rocksDb =>
-                    raiseTrialException(Some(rocksDb))(
+                  .flatMap(rocksDbPayload =>
+                    raiseTrialException(Some(rocksDbPayload))(
                       throwable,
                       caze,
                       decisionStages
@@ -987,11 +1034,14 @@ case class TrialsImplementation[Case](
         }(recipeHash =>
           Fs2Stream
             .resource(rocksDbResource(readOnly = true))
-            .flatMap { rocksDb =>
+            .flatMap { case (rocksDb, columnFamilyForRecipeHashes) =>
               val singleTestIntegrationContext = Fs2Stream
                 .eval(SyncIO {
                   val recipe = rocksDb
-                    .get(recipeHash.map(_.toByte).toArray)
+                    .get(
+                      columnFamilyForRecipeHashes,
+                      recipeHash.map(_.toByte).toArray
+                    )
                     .map(_.toChar)
                     .mkString
 
