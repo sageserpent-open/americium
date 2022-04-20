@@ -118,6 +118,60 @@ object TrialsImplementation {
           rocksDB.close()
         }
     )
+
+  final case class NonEmptyDecisionStages(
+      latestDecision: Decision,
+      previousDecisions: DecisionStagesInReverseOrder
+  )
+
+  case object NoDecisionStages extends DecisionStagesInReverseOrder
+
+  final case class InternedDecisionStages(index: Int)
+      extends DecisionStagesInReverseOrder
+
+  private val nonEmptyToAndFromInternedDecisionStages
+      : BiMap[NonEmptyDecisionStages, InternedDecisionStages] =
+    HashBiMap.create()
+
+  private def interned(
+      nonEmptyDecisionStages: NonEmptyDecisionStages
+  ): InternedDecisionStages =
+    Option(
+      nonEmptyToAndFromInternedDecisionStages.computeIfAbsent(
+        nonEmptyDecisionStages,
+        _ => {
+          val freshIndex = nonEmptyToAndFromInternedDecisionStages.size
+          InternedDecisionStages(freshIndex)
+        }
+      )
+    ).get
+
+  sealed trait DecisionStagesInReverseOrder {
+    def reverse: DecisionStages = appendInReverseOnTo(List.empty)
+
+    @tailrec
+    final def appendInReverseOnTo(
+        partialResult: DecisionStages
+    ): DecisionStages = this match {
+      case NoDecisionStages => partialResult
+      case _: InternedDecisionStages =>
+        Option(
+          nonEmptyToAndFromInternedDecisionStages.inverse().get(this)
+        ) match {
+          case Some(
+                NonEmptyDecisionStages(latestDecision, previousDecisions)
+              ) =>
+            previousDecisions.appendInReverseOnTo(
+              latestDecision :: partialResult
+            )
+        }
+    }
+
+    def addLatest(decision: Decision): DecisionStagesInReverseOrder =
+      interned(
+        NonEmptyDecisionStages(decision, this)
+      )
+  }
 }
 
 case class TrialsImplementation[Case](
@@ -265,59 +319,6 @@ case class TrialsImplementation[Case](
     with ScalaTrialsScaffolding.SupplyToSyntax[Case] =
     new JavaTrialsScaffolding.SupplyToSyntax[Case]
       with ScalaTrialsScaffolding.SupplyToSyntax[Case] {
-      final case class NonEmptyDecisionStages(
-          latestDecision: Decision,
-          previousDecisions: DecisionStagesInReverseOrder
-      )
-
-      case object NoDecisionStages extends DecisionStagesInReverseOrder
-
-      final case class InternedDecisionStages(index: Int)
-          extends DecisionStagesInReverseOrder
-
-      private val nonEmptyToAndFromInternedDecisionStages
-          : BiMap[NonEmptyDecisionStages, InternedDecisionStages] =
-        HashBiMap.create()
-
-      private def interned(
-          nonEmptyDecisionStages: NonEmptyDecisionStages
-      ): InternedDecisionStages =
-        Option(
-          nonEmptyToAndFromInternedDecisionStages.computeIfAbsent(
-            nonEmptyDecisionStages,
-            _ => {
-              val freshIndex = nonEmptyToAndFromInternedDecisionStages.size
-              InternedDecisionStages(freshIndex)
-            }
-          )
-        ).get
-
-      sealed trait DecisionStagesInReverseOrder {
-        def reverse: DecisionStages = appendInReverseOnTo(List.empty)
-
-        @tailrec
-        final def appendInReverseOnTo(
-            partialResult: DecisionStages
-        ): DecisionStages = this match {
-          case NoDecisionStages => partialResult
-          case _: InternedDecisionStages =>
-            Option(
-              nonEmptyToAndFromInternedDecisionStages.inverse().get(this)
-            ) match {
-              case Some(
-                    NonEmptyDecisionStages(latestDecision, previousDecisions)
-                  ) =>
-                previousDecisions.appendInReverseOnTo(
-                  latestDecision :: partialResult
-                )
-            }
-        }
-
-        def addLatest(decision: Decision): DecisionStagesInReverseOrder =
-          interned(
-            NonEmptyDecisionStages(decision, this)
-          )
-      }
 
       private def cases(
           limit: Int,
