@@ -6,4 +6,6 @@ public interface TestIntegrationContext<Case> {
     CaseFailureReporting caseFailureReporting();
 
     InlinedCaseFiltration inlinedCaseFiltration();
+
+    boolean isPartOfShrinkage();
 }

@@ -1,3 +1,4 @@
+import sbt.Tests.{Group, SubProcess}
 import sbtrelease.ReleaseStateTransformations._
 import xerial.sbt.Sonatype._
 
@@ -74,6 +75,29 @@ lazy val settings = Seq(
 
     case _ => Seq.empty
   }),
+  Test / testGrouping := {
+    val tests = (Test / definedTests).value
+
+    tests
+      .groupBy(_.name)
+      .map { case (groupName, group) =>
+        new Group(
+          groupName,
+          group,
+          SubProcess(
+            (Test / forkOptions).value.withRunJVMOptions(
+              Vector(
+                s"-Dtrials.runDatabase=trialsRunDatabaseForGroup$groupName"
+              )
+            )
+          )
+        )
+      }
+      .toSeq
+  },
+  Global / concurrentRestrictions := Seq(Tags.limit(Tags.ForkedTestGroup, 6)),
+  Test / fork                     := true,
+  Test / testForkedParallel       := false,
   libraryDependencies += "org.typelevel" %% "cats-core"             % "2.7.0",
   libraryDependencies += "org.typelevel" %% "cats-free"             % "2.7.0",
   libraryDependencies += "org.typelevel" %% "cats-collections-core" % "0.9.3",
@@ -84,6 +108,7 @@ lazy val settings = Seq(
   libraryDependencies += "com.google.guava" % "guava"   % "30.1.1-jre",
   libraryDependencies += "com.oath.cyclops" % "cyclops" % "10.4.0",
   libraryDependencies += "org.junit.jupiter" % "junit-jupiter-params" % "5.8.2",
+  libraryDependencies += "org.rocksdb"       % "rocksdbjni"           % "7.1.1",
   libraryDependencies += "org.typelevel"  %% "cats-laws"  % "2.7.0"  % Test,
   libraryDependencies += "org.scalatest"  %% "scalatest"  % "3.2.9"  % Test,
   libraryDependencies += "org.scalacheck" %% "scalacheck" % "1.15.4" % Test,

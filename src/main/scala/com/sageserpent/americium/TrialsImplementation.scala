@@ -1,11 +1,14 @@
 package com.sageserpent.americium
 
 import cats.data.{OptionT, State, StateT}
+import cats.effect.SyncIO
+import cats.effect.kernel.Resource
 import cats.free.Free
 import cats.free.Free.liftF
 import cats.implicits.*
 import cats.{Eval, ~>}
 import com.google.common.collect.{Ordering as _, *}
+import com.google.common.hash
 import com.sageserpent.americium.TrialsApis.{javaApi, scalaApi}
 import com.sageserpent.americium.java.TrialsScaffolding.OptionalLimits
 import com.sageserpent.americium.java.{
@@ -24,13 +27,19 @@ import com.sageserpent.americium.{
   TrialsSkeletalImplementation as ScalaTrialsSkeletalImplementation
 }
 import cyclops.control.Either as JavaEither
-import fs2.{Fallible, Pull, Pure, Stream as Fs2Stream}
+import fs2.{Pull, Stream as Fs2Stream}
 import io.circe.generic.auto.*
 import io.circe.parser.*
 import io.circe.syntax.*
+import org.rocksdb.*
 
+import _root_.java.nio.file.Path
 import _root_.java.util.function.{Consumer, Predicate}
-import _root_.java.util.{Iterator as JavaIterator, Optional as JavaOptional}
+import _root_.java.util.{
+  ArrayList as JavaArrayList,
+  Iterator as JavaIterator,
+  Optional as JavaOptional
+}
 import scala.annotation.tailrec
 import scala.collection.immutable.SortedMap
 import scala.collection.mutable
@@ -38,7 +47,34 @@ import scala.jdk.CollectionConverters.*
 import scala.util.Random
 
 object TrialsImplementation {
+  val temporaryDirectoryJavaProperty = "java.io.tmpdir"
+
+  val runDatabaseJavaPropertyName = "trials.runDatabase"
+
+  val recipeHashJavaPropertyName = "trials.recipeHash"
+
+  val runDatabaseDefault = "trialsRunDatabase"
+
   val maximumScaleDeflationLevel = 50
+
+  val rocksDbOptions = new DBOptions()
+    .optimizeForSmallDb()
+    .setCreateIfMissing(true)
+    .setCreateMissingColumnFamilies(true)
+
+  val columnFamilyOptions = new ColumnFamilyOptions()
+    .setCompressionType(CompressionType.LZ4_COMPRESSION)
+    .setBottommostCompressionType(CompressionType.ZSTD_COMPRESSION)
+
+  val defaultColumnFamilyDescriptor = new ColumnFamilyDescriptor(
+    RocksDB.DEFAULT_COLUMN_FAMILY,
+    columnFamilyOptions
+  )
+
+  val columnFamilyDescriptorForRecipeHashes = new ColumnFamilyDescriptor(
+    "RecipeHashKeyRecipeValue".getBytes(),
+    columnFamilyOptions
+  )
 
   type DecisionStages   = List[Decision]
   type Generation[Case] = Free[GenerationOperation, Case]
@@ -73,6 +109,112 @@ object TrialsImplementation {
 
   case class ResetComplexity[Case](complexity: Int)
       extends GenerationOperation[Unit]
+
+  def rocksDbResource(
+      readOnly: Boolean = false
+  ): Resource[SyncIO, (RocksDB, ColumnFamilyHandle)] =
+    Resource.make(acquire = SyncIO {
+      Option(System.getProperty(temporaryDirectoryJavaProperty)).fold(ifEmpty =
+        throw new RuntimeException(
+          s"No definition of Java property: `$temporaryDirectoryJavaProperty`"
+        )
+      ) { directory =>
+        val runDatabase = Option(
+          System.getProperty(runDatabaseJavaPropertyName)
+        ).getOrElse(runDatabaseDefault)
+
+        val columnFamilyDescriptors =
+          ImmutableList.of(
+            defaultColumnFamilyDescriptor,
+            columnFamilyDescriptorForRecipeHashes
+          )
+
+        val columnFamilyHandles = new JavaArrayList[ColumnFamilyHandle]()
+
+        val rocksDB =
+          if (readOnly)
+            RocksDB.openReadOnly(
+              rocksDbOptions,
+              Path
+                .of(directory)
+                .resolve(runDatabase)
+                .toString,
+              columnFamilyDescriptors,
+              columnFamilyHandles
+            )
+          else
+            RocksDB.open(
+              rocksDbOptions,
+              Path
+                .of(directory)
+                .resolve(runDatabase)
+                .toString,
+              columnFamilyDescriptors,
+              columnFamilyHandles
+            )
+
+        rocksDB -> columnFamilyHandles.get(1)
+      }
+    })(release = { case (rocksDB, columnFamilyForRecipeHashes) =>
+      SyncIO {
+        columnFamilyForRecipeHashes.close()
+        rocksDB.close()
+      }
+    })
+
+  final case class NonEmptyDecisionStages(
+      latestDecision: Decision,
+      previousDecisions: DecisionStagesInReverseOrder
+  )
+
+  case object NoDecisionStages extends DecisionStagesInReverseOrder
+
+  final case class InternedDecisionStages(index: Int)
+      extends DecisionStagesInReverseOrder
+
+  private val nonEmptyToAndFromInternedDecisionStages
+      : BiMap[NonEmptyDecisionStages, InternedDecisionStages] =
+    HashBiMap.create()
+
+  private def interned(
+      nonEmptyDecisionStages: NonEmptyDecisionStages
+  ): InternedDecisionStages =
+    Option(
+      nonEmptyToAndFromInternedDecisionStages.computeIfAbsent(
+        nonEmptyDecisionStages,
+        _ => {
+          val freshIndex = nonEmptyToAndFromInternedDecisionStages.size
+          InternedDecisionStages(freshIndex)
+        }
+      )
+    ).get
+
+  sealed trait DecisionStagesInReverseOrder {
+    def reverse: DecisionStages = appendInReverseOnTo(List.empty)
+
+    @tailrec
+    final def appendInReverseOnTo(
+        partialResult: DecisionStages
+    ): DecisionStages = this match {
+      case NoDecisionStages => partialResult
+      case _: InternedDecisionStages =>
+        Option(
+          nonEmptyToAndFromInternedDecisionStages.inverse().get(this)
+        ) match {
+          case Some(
+                NonEmptyDecisionStages(latestDecision, previousDecisions)
+              ) =>
+            previousDecisions.appendInReverseOnTo(
+              latestDecision :: partialResult
+            )
+        }
+    }
+
+    def addLatest(decision: Decision): DecisionStagesInReverseOrder =
+      interned(
+        NonEmptyDecisionStages(decision, this)
+      )
+  }
 }
 
 case class TrialsImplementation[Case](
@@ -84,15 +226,16 @@ case class TrialsImplementation[Case](
   override type SupplySyntaxType = ScalaTrialsScaffolding.SupplyToSyntax[Case]
 
   type StreamedCases =
-    Fs2Stream[Fallible, (Case, CaseFailureReporting, InlinedCaseFiltration)]
+    Fs2Stream[SyncIO, TestIntegrationContext[Case]]
 
   type PullOfCases =
-    Pull[Fallible, (Case, CaseFailureReporting, InlinedCaseFiltration), Unit]
+    Pull[SyncIO, TestIntegrationContext[Case], Unit]
 
   case class TestIntegrationContextImplementation(
       caze: Case,
       caseFailureReporting: CaseFailureReporting,
-      inlinedCaseFiltration: InlinedCaseFiltration
+      inlinedCaseFiltration: InlinedCaseFiltration,
+      isPartOfShrinkage: Boolean
   ) extends com.sageserpent.americium.java.TestIntegrationContext[Case] {}
 
   import TrialsImplementation.*
@@ -219,59 +362,6 @@ case class TrialsImplementation[Case](
     with ScalaTrialsScaffolding.SupplyToSyntax[Case] =
     new JavaTrialsScaffolding.SupplyToSyntax[Case]
       with ScalaTrialsScaffolding.SupplyToSyntax[Case] {
-      final case class NonEmptyDecisionStages(
-          latestDecision: Decision,
-          previousDecisions: DecisionStagesInReverseOrder
-      )
-
-      case object NoDecisionStages extends DecisionStagesInReverseOrder
-
-      final case class InternedDecisionStages(index: Int)
-          extends DecisionStagesInReverseOrder
-
-      private val nonEmptyToAndFromInternedDecisionStages
-          : BiMap[NonEmptyDecisionStages, InternedDecisionStages] =
-        HashBiMap.create()
-
-      private def interned(
-          nonEmptyDecisionStages: NonEmptyDecisionStages
-      ): InternedDecisionStages =
-        Option(
-          nonEmptyToAndFromInternedDecisionStages.computeIfAbsent(
-            nonEmptyDecisionStages,
-            _ => {
-              val freshIndex = nonEmptyToAndFromInternedDecisionStages.size
-              InternedDecisionStages(freshIndex)
-            }
-          )
-        ).get
-
-      sealed trait DecisionStagesInReverseOrder {
-        def reverse: DecisionStages = appendInReverseOnTo(List.empty)
-
-        @tailrec
-        final def appendInReverseOnTo(
-            partialResult: DecisionStages
-        ): DecisionStages = this match {
-          case NoDecisionStages => partialResult
-          case _: InternedDecisionStages =>
-            Option(
-              nonEmptyToAndFromInternedDecisionStages.inverse().get(this)
-            ) match {
-              case Some(
-                    NonEmptyDecisionStages(latestDecision, previousDecisions)
-                  ) =>
-                previousDecisions.appendInReverseOnTo(
-                  latestDecision :: partialResult
-                )
-            }
-        }
-
-        def addLatest(decision: Decision): DecisionStagesInReverseOrder =
-          interned(
-            NonEmptyDecisionStages(decision, this)
-          )
-      }
 
       private def cases(
           limit: Int,
@@ -280,7 +370,7 @@ case class TrialsImplementation[Case](
           scaleDeflationLevel: Option[Int],
           decisionStagesToGuideShrinkage: Option[DecisionStages]
       ): (
-          Fs2Stream[Pure, (DecisionStagesInReverseOrder, Case)],
+          Fs2Stream[SyncIO, (DecisionStagesInReverseOrder, Case)],
           InlinedCaseFiltration
       ) = {
         scaleDeflationLevel.foreach(level =>
@@ -566,40 +656,41 @@ case class TrialsImplementation[Case](
             }
 
           def emitCases()
-              : Fs2Stream[Pure, (DecisionStagesInReverseOrder, Case)] = {
-            val remainingGap = limit - numberOfUniqueCasesProduced
+              : Fs2Stream[SyncIO, (DecisionStagesInReverseOrder, Case)] =
+            Fs2Stream.force(SyncIO {
+              val remainingGap = limit - numberOfUniqueCasesProduced
 
-            val moreToDo = 0 < remainingGap && 0 < starvationCountdown
+              val moreToDo = 0 < remainingGap && 0 < starvationCountdown
 
-            if (moreToDo)
-              Fs2Stream
-                .emit {
-                  generation
-                    .foldMap(interpreter(depth = 0))
-                    .run(State.initial)
-                    .value
-                    .value match {
-                    case Some((State(_, decisionStages, _), caze))
-                        if potentialDuplicates.add(decisionStages) =>
-                      {
-                        numberOfUniqueCasesProduced += 1
-                        backupOfStarvationCountdown = starvationCountdown
-                        starvationCountdown = Math
-                          .round(Math.sqrt(limit * remainingGap))
-                          .toInt
+              if (moreToDo)
+                Fs2Stream
+                  .eval(SyncIO {
+                    generation
+                      .foldMap(interpreter(depth = 0))
+                      .run(State.initial)
+                      .value
+                      .value match {
+                      case Some((State(_, decisionStages, _), caze))
+                          if potentialDuplicates.add(decisionStages) =>
+                        {
+                          numberOfUniqueCasesProduced += 1
+                          backupOfStarvationCountdown = starvationCountdown
+                          starvationCountdown = Math
+                            .round(Math.sqrt(limit * remainingGap))
+                            .toInt
+                        }
+
+                        Some(decisionStages -> caze)
+                      case _ => {
+                        starvationCountdown -= 1
+
+                        None
                       }
-
-                      Some(decisionStages -> caze)
-                    case _ => {
-                      starvationCountdown -= 1
-
-                      None
                     }
-                  }
-                }
-                .collect { case Some(caze) => caze } ++ emitCases()
-            else Fs2Stream.empty
-          }
+                  })
+                  .collect { case Some(caze) => caze } ++ emitCases()
+              else Fs2Stream.empty
+            })
 
           emitCases() -> inlinedCaseFiltration
         }
@@ -627,237 +718,65 @@ case class TrialsImplementation[Case](
             .stream
             .head
             .compile
-            .last match {
+            .last
+            .attempt
+            .unsafeRunSync() match {
             case Left(throwable) =>
               throw throwable
             case Right(cargo) =>
-              cargo.map {
-                case (
-                      (caze, caseFailureReporting, inlinedCaseFiltration),
-                      tail
-                    ) =>
-                  TestIntegrationContextImplementation(
-                    caze = caze,
-                    caseFailureReporting = caseFailureReporting,
-                    inlinedCaseFiltration = inlinedCaseFiltration
-                  ) -> tail
-              }
+              cargo
           }
         }
       }
+
+      private def raiseTrialException(
+          rocksDb: Option[(RocksDB, ColumnFamilyHandle)]
+      )(
+          throwable: Throwable,
+          caze: Case,
+          decisionStages: DecisionStages
+      ): StreamedCases = {
+        val json = decisionStages.asJson.spaces4
+        val jsonHashInHexadecimal = hash.Hashing
+          .murmur3_128()
+          .hashUnencodedChars(json)
+          .toString
+
+        // TODO: suppose this throws an exception? Probably best to
+        // just log it and carry on, as the user wants to see a test
+        // failure rather than an issue with the database.
+        rocksDb.foreach { case (rocksDb, columnFamilyForRecipeHashes) =>
+          rocksDb.put(
+            columnFamilyForRecipeHashes,
+            jsonHashInHexadecimal.map(_.toByte).toArray,
+            json.map(_.toByte).toArray
+          )
+        }
+
+        Fs2Stream.raiseError[SyncIO](new TrialException(throwable) {
+          override def provokingCase: Case = caze
+
+          override def recipe: String = json
+
+          override def recipeHash: String = jsonHashInHexadecimal
+        })
+      }
+
       private def shrinkableCases(): StreamedCases = {
-        val randomBehaviour = new Random(734874)
-
         var shrinkageCasesFromDownstream: Option[StreamedCases] = None
-
-        def wrapInTrialException(
-            throwable: Throwable,
-            caze: Case,
-            decisionStages: DecisionStages
-        ): StreamedCases =
-          Fs2Stream.raiseError[Fallible](new TrialException(throwable) {
-            override def provokingCase: Case = caze
-
-            override def recipe: String =
-              decisionStages.asJson.spaces4
-          })
-
-        def shrink(
-            caze: Case,
-            throwable: Throwable,
-            decisionStages: DecisionStages,
-            shrinkageAttemptIndex: Int,
-            scaleDeflationLevel: Int,
-            casesLimit: Int,
-            numberOfShrinksInPanicModeIncludingThisOne: Int,
-            externalStoppingCondition: Case => Boolean
-        ): StreamedCases = {
-          if (
-            shrinkageAttemptsLimit == shrinkageAttemptIndex || externalStoppingCondition(
-              caze
-            )
-          ) wrapInTrialException(throwable, caze, decisionStages)
-          else {
-            require(shrinkageAttemptsLimit > shrinkageAttemptIndex)
-
-            val numberOfDecisionStages = decisionStages.size
-
-            val mainProcessing = if (0 < numberOfDecisionStages) {
-              // NOTE: there's some voodoo in choosing the exponential scaling
-              // factor - if it's too high, say 2, then the solutions are
-              // hardly shrunk at all. If it is unity, then the solutions are
-              // shrunk a bit but can be still involve overly 'large' values,
-              // in the sense that the factory input values are large. This
-              // needs finessing, but will do for now...
-              val limitWithExtraLeewayThatHasBeenObservedToFindBetterShrunkCases =
-                (100 * casesLimit / 99) max casesLimit
-
-              val conservativelyShrunkCases: StreamedCases = cases(
-                limitWithExtraLeewayThatHasBeenObservedToFindBetterShrunkCases,
-                numberOfDecisionStages,
-                randomBehaviour,
-                scaleDeflationLevel = Some(scaleDeflationLevel),
-                decisionStagesToGuideShrinkage = Option.when(
-                  0 < numberOfShrinksInPanicModeIncludingThisOne
-                )(decisionStages)
-              ) match {
-                case (cases, inlinedCaseFiltration) =>
-                  cases.flatMap {
-                    case (
-                          _,
-                          potentialShrunkCase
-                        )
-                        // NOTE: we have to make sure that the calling
-                        // invocation of `shrink` was also in panic mode, as
-                        // it is legitimate for the first panic shrinkage to
-                        // arrive at the same result as a non-panic calling
-                        // invocation, and this does indeed occur for some
-                        // non-trivial panic mode shrinkage sequences at the
-                        // start of panic mode. Otherwise if we were already
-                        // in panic mode in the calling invocation, this is as
-                        // sign that there is nothing left to usefully shrink
-                        // down, as otherwise the failure won't be provoked at
-                        // all.
-                        if 1 < numberOfShrinksInPanicModeIncludingThisOne && caze == potentialShrunkCase =>
-                      wrapInTrialException(throwable, caze, decisionStages)
-
-                    case (
-                          decisionStagesForPotentialShrunkCaseInReverseOrder,
-                          potentialShrunkCase
-                        ) if caze != potentialShrunkCase =>
-                      Fs2Stream.emit(
-                        (
-                          potentialShrunkCase,
-                          (throwableFromPotentialShrunkCase: Throwable) => {
-                            val decisionStagesForPotentialShrunkCase =
-                              decisionStagesForPotentialShrunkCaseInReverseOrder.reverse
-
-                            assert(
-                              decisionStagesForPotentialShrunkCase.size <= numberOfDecisionStages
-                            )
-
-                            val lessComplex =
-                              decisionStagesForPotentialShrunkCase.size < numberOfDecisionStages
-
-                            val stillEnoughRoomToDecreaseScale =
-                              scaleDeflationLevel < maximumScaleDeflationLevel
-
-                            shrinkageCasesFromDownstream = Some(
-                              if (
-                                lessComplex || stillEnoughRoomToDecreaseScale
-                              ) {
-                                val scaleDeflationLevelForRecursion =
-                                  if (!lessComplex)
-                                    1 + scaleDeflationLevel
-                                  else scaleDeflationLevel
-
-                                shrink(
-                                  caze = potentialShrunkCase,
-                                  throwable = throwableFromPotentialShrunkCase,
-                                  decisionStages =
-                                    decisionStagesForPotentialShrunkCase,
-                                  shrinkageAttemptIndex =
-                                    1 + shrinkageAttemptIndex,
-                                  scaleDeflationLevel =
-                                    scaleDeflationLevelForRecursion,
-                                  casesLimit =
-                                    limitWithExtraLeewayThatHasBeenObservedToFindBetterShrunkCases,
-                                  numberOfShrinksInPanicModeIncludingThisOne =
-                                    0,
-                                  externalStoppingCondition =
-                                    externalStoppingCondition
-                                )
-
-                              } else
-                                wrapInTrialException(
-                                  throwableFromPotentialShrunkCase,
-                                  potentialShrunkCase,
-                                  decisionStagesForPotentialShrunkCase
-                                )
-                            )
-                          },
-                          inlinedCaseFiltration
-                        )
-                      )
-
-                    case _ => Fs2Stream.empty
-                  }
-              }
-
-              conservativelyShrunkCases ++
-                // At this point, slogging through the potential shrunk cases
-                // failed to find any failures; go into (or remain in) panic
-                // mode...
-                shrink(
-                  caze = caze,
-                  throwable = throwable,
-                  decisionStages = decisionStages,
-                  shrinkageAttemptIndex = 1 + shrinkageAttemptIndex,
-                  scaleDeflationLevel = scaleDeflationLevel,
-                  casesLimit =
-                    limitWithExtraLeewayThatHasBeenObservedToFindBetterShrunkCases,
-                  numberOfShrinksInPanicModeIncludingThisOne =
-                    1 + numberOfShrinksInPanicModeIncludingThisOne,
-                  externalStoppingCondition = externalStoppingCondition
-                )
-            } else Fs2Stream.empty
-
-            mainProcessing ++
-              // At this point the recursion hasn't found a failing case, so we
-              // call it a day and go with the best we've got from further up
-              // the call chain...
-              wrapInTrialException(throwable, caze, decisionStages)
-          }
-        }
-
-        val businessAsUsualCases: StreamedCases = cases(
-          casesLimit,
-          complexityLimit,
-          randomBehaviour,
-          None,
-          decisionStagesToGuideShrinkage = None
-        ) match {
-          case (cases, inlinedCaseFiltration) =>
-            cases.map {
-              case (
-                    decisionStagesInReverseOrder: DecisionStagesInReverseOrder,
-                    caze: Case
-                  ) =>
-                (
-                  caze,
-                  (throwable: Throwable) => {
-                    val decisionStages = decisionStagesInReverseOrder.reverse
-
-                    shrinkageCasesFromDownstream = Some(
-                      shrink(
-                        caze = caze,
-                        throwable = throwable,
-                        decisionStages = decisionStages,
-                        shrinkageAttemptIndex = 0,
-                        scaleDeflationLevel = 0,
-                        casesLimit = casesLimit,
-                        numberOfShrinksInPanicModeIncludingThisOne = 0,
-                        externalStoppingCondition = shrinkageStop()
-                      )
-                    )
-                  },
-                  inlinedCaseFiltration
-                )
-            }
-        }
 
         def carryOnButSwitchToShrinkageApproachOnCaseFailure(
             businessAsUsualCases: StreamedCases
         ): PullOfCases = Pull
-          .pure { () =>
+          .eval(SyncIO {
             val capture = shrinkageCasesFromDownstream
 
             capture.foreach { _ => shrinkageCasesFromDownstream = None }
 
             capture
-          }
+          })
           .flatMap(
-            _.apply().fold
+            _.fold
               // If there are no shrinkage cases from downstream, we need to
               // pull a single case and carry on with the remaining business
               // as usual via a recursive call to this method.
@@ -866,9 +785,9 @@ case class TrialsImplementation[Case](
                   .flatMap(
                     _.fold(ifEmpty =
                       Pull.done
-                        .covary[Fallible]
+                        .covary[SyncIO]
                         .covaryOutput[
-                          (Case, CaseFailureReporting, InlinedCaseFiltration)
+                          TestIntegrationContext[Case]
                         ]
                     ) { case (headCase, remainingCases) =>
                       Pull.output1(
@@ -884,21 +803,295 @@ case class TrialsImplementation[Case](
               (carryOnButSwitchToShrinkageApproachOnCaseFailure)
           )
 
-        carryOnButSwitchToShrinkageApproachOnCaseFailure(
-          businessAsUsualCases
-        ).stream
+        Option(System.getProperty(recipeHashJavaPropertyName)).fold {
+          val randomBehaviour = new Random(734874)
+
+          def shrink(
+              caze: Case,
+              throwable: Throwable,
+              decisionStages: DecisionStages,
+              shrinkageAttemptIndex: Int,
+              scaleDeflationLevel: Int,
+              casesLimit: Int,
+              numberOfShrinksInPanicModeIncludingThisOne: Int,
+              externalStoppingCondition: Case => Boolean
+          ): StreamedCases = {
+            if (
+              shrinkageAttemptsLimit == shrinkageAttemptIndex || externalStoppingCondition(
+                caze
+              )
+            )
+              Fs2Stream
+                .resource(rocksDbResource())
+                .flatMap(rocksDbPayload =>
+                  raiseTrialException(Some(rocksDbPayload))(
+                    throwable,
+                    caze,
+                    decisionStages
+                  )
+                )
+            else {
+              require(shrinkageAttemptsLimit > shrinkageAttemptIndex)
+
+              val numberOfDecisionStages = decisionStages.size
+
+              val mainProcessing = if (0 < numberOfDecisionStages) {
+                // NOTE: there's some voodoo in choosing the exponential
+                // scaling factor - if it's too high, say 2, then the
+                // solutions are hardly shrunk at all. If it is unity, then
+                // the solutions are shrunk a bit but can be still involve
+                // overly 'large' values, in the sense that the factory input
+                // values are large. This needs finessing, but will do for
+                // now...
+                val limitWithExtraLeewayThatHasBeenObservedToFindBetterShrunkCases =
+                  (100 * casesLimit / 99) max casesLimit
+
+                val conservativelyShrunkCases: StreamedCases = cases(
+                  limitWithExtraLeewayThatHasBeenObservedToFindBetterShrunkCases,
+                  numberOfDecisionStages,
+                  randomBehaviour,
+                  scaleDeflationLevel = Some(scaleDeflationLevel),
+                  decisionStagesToGuideShrinkage = Option.when(
+                    0 < numberOfShrinksInPanicModeIncludingThisOne
+                  )(decisionStages)
+                ) match {
+                  case (cases, inlinedCaseFiltration) =>
+                    cases.flatMap {
+                      case (
+                            _,
+                            potentialShrunkCase
+                          )
+                          // NOTE: we have to make sure that the calling
+                          // invocation of `shrink` was also in panic mode, as
+                          // it is legitimate for the first panic shrinkage to
+                          // arrive at the same result as a non-panic calling
+                          // invocation, and this does indeed occur for some
+                          // non-trivial panic mode shrinkage sequences at the
+                          // start of panic mode. Otherwise if we were already
+                          // in panic mode in the calling invocation, this is
+                          // a sign that there is nothing left to usefully
+                          // shrink down, as otherwise the failure won't be
+                          // provoked at all.
+                          if 1 < numberOfShrinksInPanicModeIncludingThisOne && caze == potentialShrunkCase =>
+                        Fs2Stream
+                          .resource(rocksDbResource())
+                          .flatMap(rocksDbPayload =>
+                            raiseTrialException(Some(rocksDbPayload))(
+                              throwable,
+                              caze,
+                              decisionStages
+                            )
+                          )
+
+                      case (
+                            decisionStagesForPotentialShrunkCaseInReverseOrder,
+                            potentialShrunkCase
+                          ) if caze != potentialShrunkCase =>
+                        Fs2Stream.emit(
+                          TestIntegrationContextImplementation(
+                            caze = potentialShrunkCase,
+                            caseFailureReporting =
+                              (throwableFromPotentialShrunkCase: Throwable) => {
+                                val decisionStagesForPotentialShrunkCase =
+                                  decisionStagesForPotentialShrunkCaseInReverseOrder.reverse
+
+                                assert(
+                                  decisionStagesForPotentialShrunkCase.size <= numberOfDecisionStages
+                                )
+
+                                val lessComplex =
+                                  decisionStagesForPotentialShrunkCase.size < numberOfDecisionStages
+
+                                val stillEnoughRoomToDecreaseScale =
+                                  scaleDeflationLevel < maximumScaleDeflationLevel
+
+                                shrinkageCasesFromDownstream = Some(
+                                  if (
+                                    lessComplex || stillEnoughRoomToDecreaseScale
+                                  ) {
+                                    val scaleDeflationLevelForRecursion =
+                                      if (!lessComplex)
+                                        1 + scaleDeflationLevel
+                                      else scaleDeflationLevel
+
+                                    shrink(
+                                      caze = potentialShrunkCase,
+                                      throwable =
+                                        throwableFromPotentialShrunkCase,
+                                      decisionStages =
+                                        decisionStagesForPotentialShrunkCase,
+                                      shrinkageAttemptIndex =
+                                        1 + shrinkageAttemptIndex,
+                                      scaleDeflationLevel =
+                                        scaleDeflationLevelForRecursion,
+                                      casesLimit =
+                                        limitWithExtraLeewayThatHasBeenObservedToFindBetterShrunkCases,
+                                      numberOfShrinksInPanicModeIncludingThisOne =
+                                        0,
+                                      externalStoppingCondition =
+                                        externalStoppingCondition
+                                    )
+
+                                  } else
+
+                                    Fs2Stream
+                                      .resource(rocksDbResource())
+                                      .flatMap(rocksDbPayload =>
+                                        raiseTrialException(
+                                          Some(rocksDbPayload)
+                                        )(
+                                          throwableFromPotentialShrunkCase,
+                                          potentialShrunkCase,
+                                          decisionStagesForPotentialShrunkCase
+                                        )
+                                      )
+                                )
+                              },
+                            inlinedCaseFiltration = inlinedCaseFiltration,
+                            isPartOfShrinkage = true
+                          )
+                        )
+
+                      case _ => Fs2Stream.empty
+                    }
+                }
+
+                conservativelyShrunkCases ++
+                  // At this point, slogging through the potential shrunk
+                  // cases failed to find any failures; go into (or remain in)
+                  // panic mode...
+                  shrink(
+                    caze = caze,
+                    throwable = throwable,
+                    decisionStages = decisionStages,
+                    shrinkageAttemptIndex = 1 + shrinkageAttemptIndex,
+                    scaleDeflationLevel = scaleDeflationLevel,
+                    casesLimit =
+                      limitWithExtraLeewayThatHasBeenObservedToFindBetterShrunkCases,
+                    numberOfShrinksInPanicModeIncludingThisOne =
+                      1 + numberOfShrinksInPanicModeIncludingThisOne,
+                    externalStoppingCondition = externalStoppingCondition
+                  )
+              } else Fs2Stream.empty
+
+              mainProcessing ++
+                // At this point the recursion hasn't found a failing case, so
+                // we call it a day and go with the best we've got from
+                // further up the call chain...
+                Fs2Stream
+                  .resource(rocksDbResource())
+                  .flatMap(rocksDbPayload =>
+                    raiseTrialException(Some(rocksDbPayload))(
+                      throwable,
+                      caze,
+                      decisionStages
+                    )
+                  )
+            }
+          }
+
+          val businessAsUsualCases: StreamedCases = cases(
+            casesLimit,
+            complexityLimit,
+            randomBehaviour,
+            None,
+            decisionStagesToGuideShrinkage = None
+          ) match {
+            case (cases, inlinedCaseFiltration) =>
+              cases.map {
+                case (
+                      decisionStagesInReverseOrder: DecisionStagesInReverseOrder,
+                      caze: Case
+                    ) =>
+                  TestIntegrationContextImplementation(
+                    caze = caze,
+                    caseFailureReporting = (throwable: Throwable) => {
+                      val decisionStages =
+                        decisionStagesInReverseOrder.reverse
+
+                      shrinkageCasesFromDownstream = Some(
+                        shrink(
+                          caze = caze,
+                          throwable = throwable,
+                          decisionStages = decisionStages,
+                          shrinkageAttemptIndex = 0,
+                          scaleDeflationLevel = 0,
+                          casesLimit = casesLimit,
+                          numberOfShrinksInPanicModeIncludingThisOne = 0,
+                          externalStoppingCondition = shrinkageStop()
+                        )
+                      )
+                    },
+                    inlinedCaseFiltration = inlinedCaseFiltration,
+                    isPartOfShrinkage = false
+                  )
+              }
+          }
+
+          carryOnButSwitchToShrinkageApproachOnCaseFailure(
+            businessAsUsualCases
+          ).stream
+        }(recipeHash =>
+          Fs2Stream
+            .resource(rocksDbResource(readOnly = true))
+            .flatMap { case (rocksDb, columnFamilyForRecipeHashes) =>
+              val singleTestIntegrationContext = Fs2Stream
+                .eval(SyncIO {
+                  val recipe = rocksDb
+                    .get(
+                      columnFamilyForRecipeHashes,
+                      recipeHash.map(_.toByte).toArray
+                    )
+                    .map(_.toChar)
+                    .mkString
+
+                  {
+                    val decisionStages = parseDecisionIndices(recipe)
+                    val caze           = reproduce(decisionStages)
+
+                    TestIntegrationContextImplementation(
+                      caze = caze,
+                      caseFailureReporting = { (throwable: Throwable) =>
+                        shrinkageCasesFromDownstream = Some(
+                          raiseTrialException(None)(
+                            throwable,
+                            caze,
+                            decisionStages
+                          )
+                        )
+                      },
+                      inlinedCaseFiltration = {
+                        (
+                            runnable: Runnable,
+                            additionalExceptionsToHandleAsFiltration: Array[
+                              Class[_ <: Throwable]
+                            ]
+                        ) =>
+                          runnable.run()
+                          true
+                      },
+                      isPartOfShrinkage = false
+                    )
+                  }
+                })
+              carryOnButSwitchToShrinkageApproachOnCaseFailure(
+                singleTestIntegrationContext
+              ).stream
+            }
+        )
       }
 
       // Scala-only API ...
       override def supplyTo(consumer: Case => Unit): Unit = {
         shrinkableCases()
           .flatMap {
-            case (
+            case TestIntegrationContextImplementation(
                   caze: Case,
                   caseFailureReporting: CaseFailureReporting,
-                  inlinedCaseFiltration: InlinedCaseFiltration
+                  inlinedCaseFiltration: InlinedCaseFiltration,
+                  _
                 ) =>
-              Fs2Stream.emit {
+              Fs2Stream.eval(SyncIO {
                 try {
                   inlinedCaseFiltration.executeInFiltrationContext(
                     () => consumer(caze),
@@ -908,10 +1101,12 @@ case class TrialsImplementation[Case](
                   case throwable: Throwable =>
                     caseFailureReporting.report(throwable)
                 }
-              }
+              })
           }
           .compile
           .drain
+          .attempt
+          .unsafeRunSync()
           .toTry
           .get
       }
@@ -941,12 +1136,12 @@ case class TrialsImplementation[Case](
 
       override def testIntegrationContexts()
           : JavaIterator[TestIntegrationContext[Case]] =
-        Seq(
+        Seq({
+          val decisionStages = parseDecisionIndices(recipe)
+          val caze           = reproduce(decisionStages)
+
           TestIntegrationContextImplementation(
-            caze = {
-              val decisionStages = parseDecisionIndices(recipe)
-              reproduce(decisionStages)
-            },
+            caze = caze,
             caseFailureReporting = { (throwable: Throwable) => },
             inlinedCaseFiltration = {
               (
@@ -957,9 +1152,10 @@ case class TrialsImplementation[Case](
               ) =>
                 runnable.run()
                 true
-            }
-          ): TestIntegrationContext[Case]
-        ).asJava.iterator()
+            },
+            isPartOfShrinkage = false
+          )
+        }: TestIntegrationContext[Case]).asJava.iterator()
 
       // Scala-only API ...
       override def supplyTo(consumer: Case => Unit): Unit = {
@@ -970,10 +1166,17 @@ case class TrialsImplementation[Case](
           consumer(reproducedCase)
         } catch {
           case exception: Throwable =>
+            val json = decisionStages.asJson.spaces4
+
             throw new TrialException(exception) {
               override def provokingCase: Case = reproducedCase
 
-              override def recipe: String = decisionStages.asJson.spaces4
+              override def recipe: String = json
+
+              // NOTE: as we are reproducing using a recipe, we can assume that
+              // the recipe hash is already stored from back when the recipe was
+              // generated.
+              override def recipeHash: String = json.hashCode().toHexString
             }
         }
       }
