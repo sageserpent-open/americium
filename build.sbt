@@ -1,5 +1,7 @@
+import sbt.Tests.{Group, SubProcess}
+
 lazy val scala2_13_Version = "2.13.8"
-lazy val scala3_Version    = "3.1.1"
+lazy val scala3_Version    = "3.1.2"
 lazy val settings = Seq(
   crossScalaVersions := Seq(scala2_13_Version, scala3_Version),
   name               := "americium",
@@ -14,7 +16,7 @@ lazy val settings = Seq(
     case _ => Nil
   }),
   javacOptions ++= Seq("-source", javaVersion, "-target", javaVersion),
-  libraryDependencies += "com.sageserpent" %% "americium"  % "1.3.0",
+  libraryDependencies += "com.sageserpent" %% "americium"  % "1.3.3",
   libraryDependencies += "org.typelevel"   %% "cats-laws"  % "2.7.0"  % Test,
   libraryDependencies += "org.scalatest"   %% "scalatest"  % "3.2.9"  % Test,
   libraryDependencies += "org.scalacheck"  %% "scalacheck" % "1.15.4" % Test,
@@ -25,7 +27,30 @@ lazy val settings = Seq(
     "org.junit.platform" % "junit-platform-runner" % "1.8.2" % Test,
     "org.junit.jupiter"  % "junit-jupiter-engine"  % "5.8.2" % Test
   ),
-  libraryDependencies += "org.hamcrest" % "hamcrest" % "2.2" % Test
+  libraryDependencies += "org.hamcrest" % "hamcrest" % "2.2" % Test,
+  Test / testGrouping := {
+    val tests = (Test / definedTests).value
+
+    tests
+      .groupBy(_.name)
+      .map { case (groupName, group) =>
+        new Group(
+          groupName,
+          group,
+          SubProcess(
+            (Test / forkOptions).value.withRunJVMOptions(
+              Vector(
+                s"-Dtrials.runDatabase=trialsRunDatabaseForGroup$groupName"
+              )
+            )
+          )
+        )
+      }
+      .toSeq
+  },
+  Global / concurrentRestrictions := Seq(Tags.limit(Tags.ForkedTestGroup, 6)),
+  Test / fork                     := true,
+  Test / testForkedParallel       := false
 )
 lazy val americium = (project in file(".")).settings(settings: _*)
 
