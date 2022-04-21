@@ -1,21 +1,17 @@
 # Americium - **_Test cases galore! Automatic case shrinkage! Bring your own test style. For Scala and Java..._**
 
-[![Build Status](https://travis-ci.com/sageserpent-open/americium.svg?branch=master)](https://travis-ci.com/sageserpent-open/americium)
 [![Maven Central](https://index.scala-lang.org/sageserpent-open/americium/americium/latest-by-scala-version.svg?color=2465cd&style=flat)](https://index.scala-lang.org/sageserpent-open/americium/americium)
 
 ```java
-// JShell...
-
 import com.google.common.collect.ImmutableList;
 import com.sageserpent.americium.java.Trials;
 import com.sageserpent.americium.java.TrialsApi;
 import com.sageserpent.americium.java.TrialsFactoring;
+import org.junit.jupiter.api.Test;
 
 import java.util.Collection;
 
-final TrialsApi api=Trials.api();
-
-class SystemUnderTest {
+public class SystemUnderTest {
     public static void printSum(Collection<Integer> input) {
         final int sum =
                 input.stream().reduce((lhs, rhs) -> lhs + rhs).get(); // Oops.
@@ -24,25 +20,34 @@ class SystemUnderTest {
     }
 }
 
+class ReallySimpleTestSuite {
+    final TrialsApi api = Trials.api();
+
     final Trials<ImmutableList<Integer>> trials =
             api.integers().immutableLists();
 
-    try{
+    @Test
+    void doesItEmitSmoke() {
+        try {
             trials.withLimit(100).supplyTo(SystemUnderTest::printSum);
-            }catch(TrialsFactoring.TrialException exception){
+        } catch (
+                TrialsFactoring.TrialException exception) {
             System.out.println(exception.getCause()); // java.util.NoSuchElementException: No value present
             System.out.println(exception.provokingCase()); // []
             System.out.println(exception.recipe()); // [{"ChoiceOf" : {"index" : 0}}]
-            }
+        }
 
-            try{
+        try {
             trials.withRecipe("[{\"ChoiceOf\" : {\"index\" : 0}}]")
-            .supplyTo(SystemUnderTest::printSum);
-            }catch(TrialsFactoring.TrialException exception){
+                  .supplyTo(SystemUnderTest::printSum);
+        } catch (
+                TrialsFactoring.TrialException exception) {
             System.out.println(exception.getCause()); // java.util.NoSuchElementException: No value present
             System.out.println(exception.provokingCase()); // []
             System.out.println(exception.recipe()); // [{"ChoiceOf" : {"index" : 0}}]
-            }
+        }
+    }
+}
 ```
 
 ## What? Why? ##
@@ -593,9 +598,10 @@ class Cookbook extends AnyFlatSpec {
       .withLimit(50)
       .supplyTo { when =>
         val localDate = when.toLocalDate
-        try assert(
-          !(localDate.getMonth == Month.FEBRUARY) || localDate.getDayOfMonth != 29
-        )
+        try
+          assert(
+            !(localDate.getMonth == Month.FEBRUARY) || localDate.getDayOfMonth != 29
+          )
         catch {
           case exception =>
             println(when) // Watch the shrinkage in action!
