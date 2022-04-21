@@ -123,6 +123,27 @@ trait TrialsApiImplementation extends CommonApi with TrialsApiWart {
           }
       )
 
+  override def collections[Case, Collection](
+      iterableOfTrials: JavaIterable[JavaTrials[Case]],
+      builderFactory: Supplier[Builder[Case, Collection]]
+  ): JavaTrials[Collection] =
+    // NASTY HACK: make a throwaway trials of type `TrialsImplementation` to
+    // act as a springboard to flatmap the 'real' result into the correct
+    // type.
+    scalaApi
+      .only(())
+      .flatMap((_: Unit) =>
+        scalaApi
+          .sequences[Case, List](
+            iterableOfTrials.asScala.map(_.scalaTrials).toList
+          )
+          .map { sequence =>
+            val builder = builderFactory.get()
+            sequence.foreach(builder.add)
+            builder.build()
+          }
+      )
+
   override def complexities(): TrialsImplementation[JavaInteger] =
     scalaApi.complexities.map(Int.box)
 

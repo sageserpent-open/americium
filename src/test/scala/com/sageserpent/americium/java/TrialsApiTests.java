@@ -244,6 +244,57 @@ public class TrialsApiTests {
     }
 
     @ParameterizedTest
+    @ValueSource(ints = {0, 1, 2, 5, 10})
+    void testDriveCollectionTrialsFromListOfTrials(int numberOfElements) {
+        final Trials<ImmutableList<Integer>> lists;
+
+        {
+            final ImmutableList.Builder<Trials<Integer>> builder =
+                    ImmutableList.builder();
+
+            for (int size = 1; numberOfElements >= size; ++size) {
+                builder.add(api.choose(Stream
+                                               .iterate(0,
+                                                        previous -> 1 +
+                                                                    previous)
+                                               .limit(size)
+                                               .toArray(Integer[]::new)));
+            }
+
+            lists = api.collections(builder.build(), () -> new Builder<Integer,
+                    ImmutableList<Integer>>() {
+                final ImmutableList.Builder<Integer> underlyingBuilder =
+                        ImmutableList.builder();
+
+                @Override
+                public void add(Integer caze) {
+                    underlyingBuilder.add(caze);
+                }
+
+                @Override
+                public ImmutableList<Integer> build() {
+                    return underlyingBuilder.build();
+                }
+            });
+        }
+
+        lists.withLimit(100).supplyTo(list -> {
+            assertThat("The size of the list should be number of element " +
+                       "trials",
+                       list.size(),
+                       equalTo(numberOfElements));
+
+            System.out.println(list);
+
+            for (int index = 0; numberOfElements > index; ++index) {
+                assertThat("The range should not exceed the index",
+                           list.get(index),
+                           lessThanOrEqualTo(index));
+            }
+        });
+    }
+
+    @ParameterizedTest
     @ValueSource(ints = {0, 1, 2, 5, 10, 100000})
     void testDriveSizedListTrials(int numberOfElements) {
         final Trials<ImmutableList<Integer>> lists =

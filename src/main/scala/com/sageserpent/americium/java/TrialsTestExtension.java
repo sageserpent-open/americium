@@ -12,25 +12,21 @@ import org.opentest4j.TestAbortedException;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class TrialsTestExtension
         implements TestTemplateInvocationContextProvider {
-    private Iterator<TestIntegrationContext<ImmutableList<Object>>>
-            testIntegrationContexts;
-
     private final static Class<? extends Throwable>[]
             additionalExceptionsToHandleAsFiltration =
             ImmutableSet
                     .of(TestAbortedException.class)
                     .stream()
                     .toArray(Class[]::new);
+    private Iterator<TestIntegrationContext<List<Object>>>
+            testIntegrationContexts;
 
     private void setUpFromAnnotation(
             ExtensionContext context) {
@@ -100,9 +96,26 @@ public class TrialsTestExtension
                     }
                 }).collect(Collectors.toList());
 
-        final Trials<ImmutableList<Object>> lists = Trials.api().lists(trials);
+        final Trials<List<Object>> lists = Trials
+                .api()
+                .collections(trials, () -> new Builder<Object, List<Object>>() {
+                    // This builder tolerates null elements, which is why we
+                    // use `.collections` here instead of `.lists`, which
+                    // would seem to be the natural choice.
+                    final List<Object> buffer = new LinkedList<>();
 
-        final TrialsScaffolding.SupplyToSyntax<ImmutableList<Object>>
+                    @Override
+                    public void add(Object caze) {
+                        buffer.add(caze);
+                    }
+
+                    @Override
+                    public List<Object> build() {
+                        return Collections.unmodifiableList(buffer);
+                    }
+                });
+
+        final TrialsScaffolding.SupplyToSyntax<List<Object>>
                 supplyToSyntax =
                 lists.withLimits(annotation.casesLimit(),
                                  TrialsScaffolding.OptionalLimits
@@ -156,12 +169,15 @@ public class TrialsTestExtension
                                     ParameterContext parameterContext,
                                     ExtensionContext extensionContext)
                                     throws ParameterResolutionException {
-                                return parameterContext
-                                        .getParameter()
-                                        .getType()
-                                        .isInstance(testIntegrationContext
+                                return Optional
+                                        .ofNullable(testIntegrationContext
                                                             .caze()
-                                                            .get(parameterContext.getIndex()));
+                                                            .get(parameterContext.getIndex()))
+                                        .map(parameter -> parameterContext
+                                                .getParameter()
+                                                .getType()
+                                                .isInstance(parameter))
+                                        .orElse(true);
                             }
 
                             @Override

@@ -113,7 +113,33 @@ public interface TrialsApi {
      *                     resulting {@Trials} instance.
      * @return A {@link Trials} instance that yields lists of the same size.
      */
-    <Case> Trials<ImmutableList<Case>> lists(List<Trials<Case>> listOfTrials);
+    <Case> Trials<ImmutableList<Case>> lists(
+            List<Trials<Case>> listOfTrials);
+
+    /**
+     * Combine an iterable of trials instances into a single trials instance
+     * that yields collections, where each collection is built from elements
+     * taken in sequence from the corresponding trials instances in {@code
+     * iterableOfTrials}. {@link Collection} is some kind of collection that
+     * can be built from elements of type {@link Case} by a {@link Builder}.
+     *
+     * @param iterableOfTrials Several trials that act as sources for the
+     *                         elements of collections yielded by the
+     *                         resulting {@Trials} instance. The assumption
+     *                         is made that this can be traversed multiple
+     *                         times and yield the same elements.
+     * @param builderFactory   A {@link Supplier} that should construct a
+     *                         *fresh* instance of a {@link Builder}.
+     * @param <Case>           The type of the collection elements yielded by
+     *                         the resulting {@Trials} instance.
+     * @param <Collection>     Any kind of collection that can take an
+     *                         arbitrary number of elements of type
+     *                         {@link Case}.
+     * @return A {@link Trials} instance that yields collections.
+     */
+    <Case, Collection> Trials<Collection> collections(
+            Iterable<Trials<Case>> iterableOfTrials,
+            Supplier<Builder<Case, Collection>> builderFactory);
 
     /**
      * This is for advanced usage, where there is a need to control how
