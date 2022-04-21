@@ -818,6 +818,32 @@ configuring the maximum number of shrinkage attempts and counting the shrinkages
 where the shrinkage mechanism has not yet managed to shrink further on a previous failing case, but is still retrying,
 whereas the shrinkage stop predicate is only invoked with freshly shrunk cases where progress has been made.
 
+### How do I directly run a minimised test failure without modifying or duplicating my failing test? ###
+
+Ah yes, `.withRecipe` is all well and good - it takes you straight to the minimised test failure, but it means you
+either have to temporarily modify your existing test, or duplicate it, or add some ugly conditional path to choose
+either `.withLimits` or `.withRecipe`. This isn't a problem if you like to preserve the minimised test failures as tests
+in their own right, say for bug reproduction work, but is annoying most of the time.
+
+Fortunately, there is a way to force your existing test that uses `.withLimit` / `.withLimits` to focus on just the
+minimised test failure - use a _recipe hash_.
+
+Whenever the `Trials` machinery finds a minimised test failure, it stores a mapping between a hash of the recipe JSON -
+the recipe hash - and the recipe JSON itself in a database located in the Java temporary directory location.
+
+This database usually has a default name, but if you want to override this, set the Java property `trials.runDatabase`
+accordingly.
+
+Anyway, the `TrialsException` thrown when `Trials` decides it has found the minimised test failure contains both the
+full recipe JSON *and* the recipe hash - so make a note of the recipe hash.
+
+You can then re-execute the same test without modification, setting the Java property `trials.recipeHash` to be the
+recipe hash you just noted. This will tell the `Trials` machinery to go straight to the minimised test failure without
+generating any other cases.
+
+Once you've debugged and fixed the failure, remove the property setting and the test will go back to the usual mode of
+operation. Easy! This also works with the JUnit5 integration too.
+
 ### Suppose a test wants to reject a test case based on the test's own logic?  ###
 
 Presumably you've examined the `Trials.filter` method and found it wanting - maybe there is something about the validity
@@ -859,7 +885,7 @@ and here is
 a [Scala example](https://github.com/sageserpent-open/americium/blob/03128c4ae691114294eba6583f42ff5e587fb047/src/test/scala/com/sageserpent/americium/SortingExample.scala#L67)
 .
 
-### JUnit5 Integration ###
+### How does the JUnit5 integration work? ###
 
 The core API of `Trials` doesn't try to force a testing style over and above supplying test cases to a lambda that is
 your test code. However, if you've used the standard `@ParameterizedTest` annotation supplied by JUnit5, then you might
