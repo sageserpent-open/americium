@@ -60,20 +60,18 @@ Welcome to Americium, the home of the `Trials` testing utility for Scala and Jav
 2. Offers automatic and efficient shrinkage to a minimal or nearly-minimal test case. __Yes, invariants are preserved on
    test case data.__ No, you don't need to write custom shrinkage code.
 3. Offers __direct reproduction of a failing, minimised test case__.
-5. Gets out of the way of testing style - doesn't care about whether the tests are pure functional or imperative,
+4. Gets out of the way of testing style - doesn't care about whether the tests are pure functional or imperative,
    doesn't offer a DSL or try to structure your test suite.
-6. Supports Scala and Java as first class citizens.
-
-
+5. Supports Scala and Java as first class citizens.
+   <br><br>
 7. Has an __optional__ integration with JUnit5 in the spirit of the `@ParameterizedTest` annotation.
-
-
-8. Covers finite combinations of atomic cases without duplication when building composite cases.
-9. Supports covariance of test case generation in Scala, so cases for a subclass can be substituted for cases for a
-   supertrait/superclass.
-10. Supports covariance of test case generation in Java, so cases for a subclass can be substituted for cases for a
+   <br><br>
+9. Covers finite combinations of atomic cases without duplication when building composite cases.
+10. Supports covariance of test case generation in Scala, so cases for a subclass can be substituted for cases for a
+    supertrait/superclass.
+11. Supports covariance of test case generation in Java, so cases for a subclass can be substituted for cases for a
     superinterface/superclass.
-11. Allows automatic derivation of test case generation for sum/product types (aka case class hierarchies) in the spirit
+12. Allows automatic derivation of test case generation for sum/product types (aka case class hierarchies) in the spirit
     of Scalacheck Shapeless.
 
 In addition, there are some enhancements to the Scala `Random` class that might also pique your interest, but go see for
