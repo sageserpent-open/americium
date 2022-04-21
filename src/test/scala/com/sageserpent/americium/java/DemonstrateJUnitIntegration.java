@@ -11,6 +11,25 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 
 public class DemonstrateJUnitIntegration {
+    private static final TrialsApi api = Trials.api();
+    private static final Trials<Long> longs = api.longs();
+    private static final Trials<String> strings =
+            api.choose("Fred", "Harold", "Ethel");
+    private static final Trials<String> first =
+            api.integers(1, 10)
+               .flatMap(size -> api
+                       .characters('a', 'z', 'a')
+                       .collectionsOfSize(size, Builder::stringBuilder))
+               .filter(string -> string.endsWith("h"));
+    private static final Trials<String> second =
+            api.integers(0, 10)
+               .flatMap(size -> api
+                       .characters('0', '9', '0')
+                       .collectionsOfSize(size, Builder::stringBuilder))
+               .filter(string -> string.length() >= 1);
+    private static final Trials<String> potentialNulls =
+            api.alternate(api.strings(), api.only(null));
+
     @BeforeEach
     void beforeEach() {
         System.out.println("Before each...");
@@ -20,27 +39,6 @@ public class DemonstrateJUnitIntegration {
     void afterEach() {
         System.out.println("...after each.");
     }
-
-    private static final TrialsApi api = Trials.api();
-
-    private static final Trials<Long> longs = api.longs();
-
-    private static final Trials<String> strings =
-            api.choose("Fred", "Harold", "Ethel");
-
-    private static final Trials<String> first =
-            api.integers(1, 10)
-               .flatMap(size -> api
-                       .characters('a', 'z', 'a')
-                       .collectionsOfSize(size, Builder::stringBuilder))
-               .filter(string -> string.endsWith("h"));
-
-    private static final Trials<String> second =
-            api.integers(0, 10)
-               .flatMap(size -> api
-                       .characters('0', '9', '0')
-                       .collectionsOfSize(size, Builder::stringBuilder))
-               .filter(string -> string.length() >= 1);
 
     @TrialsTest(trials = "longs", casesLimit = 100)
     void testWithALong(Long longCase) {
@@ -77,5 +75,21 @@ public class DemonstrateJUnitIntegration {
                    " or 5 characters" + " in this test.",
                    4 > concatenation.length() ||
                    5 < concatenation.length());
+    }
+
+
+    @TrialsTest(trials = {"strings", "strings"}, casesLimit = 10)
+    void allShouldBeWellWithRepeatedTrialsFields(String oneThing,
+                                                 String another) {
+    }
+
+    @TrialsTest(trials = "potentialNulls", casesLimit = 10)
+    void allShouldBeWellWithANullableParameter(String potentiallyThisIsANull) {
+    }
+
+    @TrialsTest(trials = {"potentialNulls", "potentialNulls"}, casesLimit = 10)
+    void allShouldBeWellWithMultipleNullableParameters(
+            String potentiallyThisIsANull,
+            String potentiallyThisIsANullToo) {
     }
 }
