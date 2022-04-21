@@ -859,6 +859,44 @@ and here is
 a [Scala example](https://github.com/sageserpent-open/americium/blob/03128c4ae691114294eba6583f42ff5e587fb047/src/test/scala/com/sageserpent/americium/SortingExample.scala#L67)
 .
 
+### JUnit5 Integration ###
+
+The core API of `Trials` doesn't try to force a testing style over and above supplying test cases to a lambda that is
+your test code. However, if you've used the standard `@ParameterizedTest` annotation supplied by JUnit5, then you might
+want to stick with that style of setting out your tests.
+
+If so, you're in luck as there is a similar annotation: `@TrialsTest`. This replaces the combination
+of `@ParameterizedTest` and whichever of `@ValueSource` / `@MethodSource` / etc that you would have used - the idea is
+to place the `@TrialsTest` annotation on your parameterised test method instead.
+
+The connection between the test method parameters and `Trials` is made by the `trials` attribute in the annotation -
+this lists the names of fields of type `Trials` that you define in your JUnit5 test suite; these may be static or
+non-static according to taste. Currently, each trials field is mapped one to one with a parameter of the annotated test
+method.
+
+Additional attributes in the annotation configure the test case generation analogously to calls to `.withLimits`. Take a
+look
+here: [JUnit5 integration](https://github.com/sageserpent-open/americium/blob/159e7203b957dff7517aaa5aa09f00b38be54bdb/src/test/scala/com/sageserpent/americium/java/DemonstrateJUnitIntegration.java#L59)
+, it's pretty straightforward to set up.
+
+As with `@ParameterizedTest`, test templates are used, thus the use of setup and teardown methods via `@BeforeEach`
+and `@AfterEach` are supported for each test template.
+
+The test templates are guided by shrinkage, so as soon as an individual test template fails, subsequent test templates
+will start to shrink down to a minimised test template; the overall JUnit5 test run will report the minimised test case
+along with details as to how to reproduce it directly.
+
+If your IDE supports clicking on a test template run to re-execute it, then this is also supported, in so far as the
+test template is *deterministically* generated - this is down to how JUnit5 handles test templates. What this means is
+that all test templates in a completely successful overall run can be directly re-executed this way individually, and
+all test templates that lead up to and including the first failure can also be directly executed this way too.
+
+Test templates created by shrinkage aren't deterministically generated, as the shrinkage needs the context of previous
+test templates in the overall run, so these are labelled as such to avoid confusion.
+
+If you want to directly execute a minimised failing case, use its recipe hash - this works with the JUnit5 integration
+just as well as for the default lean-and-mean style of testing.
+
 ### Why is there a file 'IntelliJCodeStyle.xml' in the project? ###
 
 The author has a real problem with pull requests that consist of a wholesale reformatting of sources that also harbour
