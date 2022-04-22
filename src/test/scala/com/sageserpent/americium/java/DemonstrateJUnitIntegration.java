@@ -41,7 +41,7 @@ public class DemonstrateJUnitIntegration {
     }
 
     @TrialsTest(trials = "longs", casesLimit = 100)
-    void testWithALong(Long longCase) {
+    void testWithALong(long longCase) {
         final boolean assumption = 0 != longCase % 2;
 
         assumeTrue(assumption);
@@ -55,7 +55,7 @@ public class DemonstrateJUnitIntegration {
     }
 
     @TrialsTest(trials = {"longs", "strings"}, casesLimit = 100)
-    void testWithALongAndAString(Long longCase, String stringCase) {
+    void testWithALongAndAString(long longCase, String stringCase) {
         final boolean guardPrecondition =
                 5 != abs(longCase % 10) && stringCase.contains("e");
 
