@@ -10,6 +10,7 @@ import org.junit.platform.commons.support.ReflectionSupport;
 import org.junit.platform.commons.util.ExceptionUtils;
 import org.opentest4j.TestAbortedException;
 
+import java.lang.invoke.MethodType;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.*;
@@ -169,10 +170,23 @@ public class TrialsTestExtension
                                         .ofNullable(testIntegrationContext
                                                             .caze()
                                                             .get(parameterContext.getIndex()))
-                                        .map(parameter -> parameterContext
-                                                .getParameter()
-                                                .getType()
-                                                .isInstance(parameter))
+                                        .map(parameter -> {
+                                            final Class<?> formalParameterType =
+                                                    parameterContext
+                                                            .getParameter()
+                                                            .getType();
+                                            final Class<?>
+                                                    formalParameterReferenceType =
+                                                    formalParameterType.isPrimitive()
+                                                    ? MethodType
+                                                            .methodType(
+                                                                    formalParameterType)
+                                                            .wrap()
+                                                            .returnType()
+                                                    : formalParameterType;
+                                            return formalParameterReferenceType.isInstance(
+                                                    parameter);
+                                        })
                                         .orElse(true);
                             }
 

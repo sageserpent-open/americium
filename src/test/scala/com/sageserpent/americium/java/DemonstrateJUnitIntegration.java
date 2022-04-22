@@ -54,6 +54,20 @@ public class DemonstrateJUnitIntegration {
         });
     }
 
+    @TrialsTest(trials = "longs", casesLimit = 100)
+    void testWithABoxedLong(Long longCase) {
+        final boolean assumption = 0 != longCase % 2;
+
+        assumeTrue(assumption);
+
+        final boolean guardPrecondition = 5 != abs(longCase % 10);
+
+        Trials.whenever(guardPrecondition, () -> {
+            assertTrue(assumption);
+            assertTrue(guardPrecondition);
+        });
+    }
+
     @TrialsTest(trials = {"longs", "strings"}, casesLimit = 100)
     void testWithALongAndAString(long longCase, String stringCase) {
         final boolean guardPrecondition =
