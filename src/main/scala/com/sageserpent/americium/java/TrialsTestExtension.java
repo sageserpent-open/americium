@@ -25,10 +25,8 @@ public class TrialsTestExtension
                     .of(TestAbortedException.class)
                     .stream()
                     .toArray(Class[]::new);
-    private Iterator<TestIntegrationContext<List<Object>>>
-            testIntegrationContexts;
 
-    private void setUpFromAnnotation(
+    private static Iterator<TestIntegrationContext<List<Object>>> testIntegrationContexts(
             ExtensionContext context) {
         final Method testMethod = context.getRequiredTestMethod();
         final TrialsTest annotation =
@@ -124,7 +122,7 @@ public class TrialsTestExtension
                                          .shrinkageAttempts(annotation.shrinkageAttempts())
                                          .build());
 
-        testIntegrationContexts = supplyToSyntax.testIntegrationContexts();
+        return supplyToSyntax.testIntegrationContexts();
     }
 
     @Override
@@ -135,10 +133,8 @@ public class TrialsTestExtension
     @Override
     public Stream<TestTemplateInvocationContext> provideTestTemplateInvocationContexts(
             ExtensionContext context) {
-        setUpFromAnnotation(context);
-
         return Streams
-                .stream(testIntegrationContexts)
+                .stream(testIntegrationContexts(context))
                 .map(testIntegrationContext -> new TestTemplateInvocationContext() {
                     @Override
                     public String getDisplayName(int invocationIndex) {
