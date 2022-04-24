@@ -240,6 +240,8 @@ case class TrialsImplementation[Case](
 
   import TrialsImplementation.*
 
+  override def trials: TrialsImplementation[Case] = this
+
   override def scalaTrials: TrialsImplementation[Case] = this
 
   override def javaTrials: TrialsImplementation[Case] = this

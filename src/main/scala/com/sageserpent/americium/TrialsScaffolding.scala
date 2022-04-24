@@ -78,6 +78,8 @@ object TrialsScaffolding {
 trait TrialsScaffolding[+Case] extends TrialsFactoring[Case] {
   type SupplySyntaxType <: TrialsScaffolding.SupplyToSyntax[Case]
 
+  def trials: Trials[Case]
+
   @deprecated(
     "Use `withLimits` instead."
   )

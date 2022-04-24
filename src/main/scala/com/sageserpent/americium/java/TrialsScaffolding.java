@@ -18,6 +18,17 @@ public interface TrialsScaffolding<Case,
         SupplySyntaxType extends TrialsScaffolding.SupplyToSyntax<Case>>
         extends TrialsFactoring<Case> {
     /**
+     * Use this to lose any specialised supply syntax and go back to the
+     * regular {@link Trials} API. The motivation for this is when the `and`
+     * combinator is used to glue together several trials instances, but
+     * we want to treat the result as a plain trials of tuples, rather than
+     * calling {@link Trials#withLimits} etc there and then.
+     *
+     * @return The equivalent {@Trials} instance.
+     */
+    Trials<Case> trials();
+
+    /**
      * Fluent syntax for configuring a limit to the number of cases
      * supplied to a consumer.
      *

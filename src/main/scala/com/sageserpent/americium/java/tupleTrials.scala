@@ -48,6 +48,8 @@ object tupleTrials {
     private def trialsOfPairs: JavaTrials[JavaTuple2[Case1, Case2]] =
       (firstTrials, secondTrials).mapN(JavaTuple2.of[Case1, Case2])
 
+    override def trials(): JavaTrials[JavaTuple2[Case1, Case2]] = trialsOfPairs
+
     override def reproduce(
         recipe: String
     ): JavaTuple2[Case1, Case2] = trialsOfPairs.reproduce(recipe)
@@ -142,6 +144,9 @@ object tupleTrials {
       (firstTrials, secondTrials, thirdTrials).mapN(
         JavaTuple3.of[Case1, Case2, Case3]
       )
+
+    override def trials(): JavaTrials[JavaTuple3[Case1, Case2, Case3]] =
+      trialsOfTriples
 
     override def reproduce(
         recipe: String
@@ -248,6 +253,9 @@ object tupleTrials {
     ] = (firstTrials, secondTrials, thirdTrials, fourthTrials).mapN(
       JavaTuple4.of[Case1, Case2, Case3, Case4]
     )
+
+    override def trials(): JavaTrials[JavaTuple4[Case1, Case2, Case3, Case4]] =
+      trialsOfQuadruples
 
     override def reproduce(
         recipe: String
