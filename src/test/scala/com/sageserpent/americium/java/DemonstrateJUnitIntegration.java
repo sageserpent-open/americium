@@ -1,5 +1,10 @@
 package com.sageserpent.americium.java;
 
+import com.google.common.collect.ImmutableSet;
+import com.sageserpent.americium.java.TrialsScaffolding.Tuple2Trials;
+import com.sageserpent.americium.java.TrialsScaffolding.Tuple3Trials;
+import cyclops.data.tuple.Tuple2;
+import cyclops.data.tuple.Tuple3;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
@@ -29,6 +34,18 @@ public class DemonstrateJUnitIntegration {
                .filter(string -> string.length() >= 1);
     private static final Trials<String> potentialNulls =
             api.alternate(api.strings(), api.only(null));
+
+    private static final Tuple2Trials<String, Integer> pairs =
+            api.strings().and(api.integers());
+
+    private static final Tuple3Trials<Integer, Boolean, ImmutableSet<Double>>
+            triples = api
+            .choose(-326734, 8484)
+            .and(api.booleans())
+            .and(api.doubles().immutableSets());
+
+    private static final Trials<Tuple3<Integer, Boolean, ImmutableSet<Double>>>
+            plainTriples = triples.trials();
 
     @BeforeEach
     void beforeEach() {
@@ -105,5 +122,60 @@ public class DemonstrateJUnitIntegration {
     void allShouldBeWellWithMultipleNullableParameters(
             String potentiallyThisIsANull,
             String potentiallyThisIsANullToo) {
+    }
+
+    @TrialsTest(trials = {"triples", "longs", "triples", "plainTriples",
+                          "strings", "pairs"}, casesLimit = 10)
+    void casesFromConjoinedTrialsAndTupleTrialsCanBeSuppliedToATestAsIndividualArguments(
+            // From triples...
+            int firstInOne, boolean secondInOne,
+            ImmutableSet<Double> thirdInOne,
+            // From longs...
+            long two,
+            // From triples...
+            int firstInThree, Boolean secondInThree,
+            ImmutableSet<Double> thirdInThree,
+            // From plain triples...
+            Integer firstInFour, boolean secondInFour,
+            ImmutableSet<Double> thirdInFour,
+            // From strings...
+            String five,
+            // From pairs...
+            String firstInSix, int secondInSix) {
+    }
+
+    @TrialsTest(trials = {"triples", "longs", "triples", "plainTriples",
+                          "strings", "pairs"}, casesLimit = 10)
+    void casesFromConjoinedTrialsAndTupleTrialsCanBeSuppliedToATestAsTupledArguments(
+            // From triples...
+            Tuple3<Integer, Boolean, ImmutableSet<Double>> one,
+            // From longs...
+            long two,
+            // From triples...
+            Tuple3<Integer, Boolean, ImmutableSet<Double>> three,
+            // From plain triples...
+            Tuple3<Integer, Boolean, ImmutableSet<Double>> four,
+            // From strings...
+            String five,
+            // From pairs...
+            Tuple2<String, Integer> six) {
+    }
+
+    @TrialsTest(trials = {"triples", "longs", "triples", "plainTriples",
+                          "strings", "pairs"}, casesLimit = 10)
+    void casesFromConjoinedTrialsAndTupleTrialsCanBeSuppliedToATestAsAMixtureOfIndividualAndTupledArguments(
+            // From triples...
+            Tuple3<Integer, Boolean, ImmutableSet<Double>> one,
+            // From longs...
+            long two,
+            // From triples...
+            int firstInThree, Boolean secondInThree,
+            ImmutableSet<Double> thirdInThree,
+            // From plain triples...
+            Tuple3<Integer, Boolean, ImmutableSet<Double>> four,
+            // From strings...
+            String five,
+            // From pairs...
+            String firstInSix, int secondInSix) {
     }
 }
