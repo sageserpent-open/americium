@@ -3,6 +3,10 @@ package com.sageserpent.americium.java;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import cyclops.companion.Streams;
+import cyclops.data.tuple.Tuple2;
+import cyclops.data.tuple.Tuple3;
+import cyclops.data.tuple.Tuple4;
+import lombok.Value;
 import org.junit.jupiter.api.extension.*;
 import org.junit.platform.commons.support.AnnotationSupport;
 import org.junit.platform.commons.support.HierarchyTraversalMode;
@@ -14,6 +18,7 @@ import java.lang.invoke.MethodType;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -26,6 +31,20 @@ public class TrialsTestExtension
                     .of(TestAbortedException.class)
                     .stream()
                     .toArray(Class[]::new);
+    private final static ImmutableList<TupleAdaptation<?>>
+            tupleAdaptations =
+            ImmutableList.of(new TupleAdaptation<>(Tuple2.class,
+                                                   2,
+                                                   (tuple) -> ImmutableList.copyOf(
+                                                           tuple.toArray())),
+                             new TupleAdaptation<>(Tuple3.class,
+                                                   3,
+                                                   (tuple) -> ImmutableList.copyOf(
+                                                           tuple.toArray())),
+                             new TupleAdaptation<>(Tuple4.class,
+                                                   4,
+                                                   (tuple) -> ImmutableList.copyOf(
+                                                           tuple.toArray())));
 
     private static Iterator<TestIntegrationContext<List<Object>>> testIntegrationContexts(
             ExtensionContext context) {
@@ -55,7 +74,7 @@ public class TrialsTestExtension
 
         final Map<String, Field> fieldsByName = supplierFields
                 .stream()
-                .filter(field -> Trials.class.isAssignableFrom(field.getType()))
+                .filter(field -> TrialsScaffolding.class.isAssignableFrom(field.getType()))
                 .collect(Collectors.toMap(Field::getName, Function.identity()));
 
 
@@ -64,7 +83,8 @@ public class TrialsTestExtension
         final List<Trials<Object>> trials =
                 supplierFieldNames.stream().map(fieldName -> {
                     try {
-                        return (Trials<Object>) Optional
+                        return ((TrialsScaffolding<Object, ?
+                                extends TrialsScaffolding.SupplyToSyntax<Object>>) Optional
                                 .ofNullable(fieldsByName.get(fieldName))
                                 .flatMap(field -> ReflectionSupport
                                         .tryToReadFieldValue(fieldsByName.get(
@@ -88,7 +108,7 @@ public class TrialsTestExtension
                                                                              "Failed to find field of name: `%s` in test class `%s`.",
                                                                              fieldName,
                                                                              testClass)))
-                                );
+                                )).trials();
                     } catch (Exception e) {
                         ExceptionUtils.throwAsUncheckedException(e);
                         return null;
@@ -134,6 +154,9 @@ public class TrialsTestExtension
     @Override
     public Stream<TestTemplateInvocationContext> provideTestTemplateInvocationContexts(
             ExtensionContext context) {
+        final Method method = context.getRequiredTestMethod();
+        final Class<?>[] formalParameterTypes = method.getParameterTypes();
+
         return Streams
                 .stream(testIntegrationContexts(context))
                 .map(testIntegrationContext -> new TestTemplateInvocationContext() {
@@ -160,6 +183,63 @@ public class TrialsTestExtension
 
                     @Override
                     public List<Extension> getAdditionalExtensions() {
+                        final List<Object> adaptedArguments =
+                                new LinkedList<>();
+
+                        {
+                            // Behold, Java in all its glory....
+                            final AtomicInteger formalParameterIndex =
+                                    new AtomicInteger(0);
+
+                            final Iterator<Object> argumentIterator =
+                                    testIntegrationContext
+                                            .caze()
+                                            .iterator();
+
+                            while (formalParameterTypes.length >
+                                   formalParameterIndex.get() &&
+                                   argumentIterator.hasNext()) {
+                                final Object argument =
+                                        argumentIterator.next();
+                                final Class<?> formalParameterType =
+                                        formalParameterTypes[formalParameterIndex.get()];
+
+                                if (!formalParameterType.isInstance(argument)) {
+                                    final Optional<TupleAdaptation<?>>
+                                            optionalTupleAdaptation =
+                                            tupleAdaptations
+                                                    .stream()
+                                                    .filter(tupleAdaptation -> tupleAdaptation.type.isInstance(
+                                                            argument))
+                                                    .findFirst();
+                                    if (optionalTupleAdaptation.isPresent()) {
+                                        final TupleAdaptation<Object>
+                                                tupleAdaptation =
+                                                (TupleAdaptation<Object>) optionalTupleAdaptation.get();
+                                        // The actual argument is a
+                                        // tuple, so expand it and
+                                        // hope for the best later.
+                                        formalParameterIndex.addAndGet(
+                                                tupleAdaptation.getArity());
+                                        adaptedArguments.addAll(tupleAdaptation.expansion.apply(
+                                                argument));
+                                    } else {
+                                        // The actual argument is
+                                        // incompatible with the
+                                        // formal argument; this will
+                                        // be picked up later.
+                                        formalParameterIndex.incrementAndGet();
+                                        adaptedArguments.add(argument);
+                                    }
+                                } else {
+                                    // Here, the formal and actual argument
+                                    // types align (they might both be tuples).
+                                    formalParameterIndex.incrementAndGet();
+                                    adaptedArguments.add(argument);
+                                }
+                            }
+                        }
+
                         return ImmutableList.of(new ParameterResolver() {
                             @Override
                             public boolean supportsParameter(
@@ -167,8 +247,7 @@ public class TrialsTestExtension
                                     ExtensionContext extensionContext)
                                     throws ParameterResolutionException {
                                 return Optional
-                                        .ofNullable(testIntegrationContext
-                                                            .caze()
+                                        .ofNullable(adaptedArguments
                                                             .get(parameterContext.getIndex()))
                                         .map(parameter -> {
                                             final Class<?> formalParameterType =
@@ -195,7 +274,7 @@ public class TrialsTestExtension
                                     ParameterContext parameterContext,
                                     ExtensionContext extensionContext)
                                     throws ParameterResolutionException {
-                                return testIntegrationContext.caze().get(
+                                return adaptedArguments.get(
                                         parameterContext.getIndex());
                             }
                         }, new InvocationInterceptor() {
@@ -232,5 +311,12 @@ public class TrialsTestExtension
                         });
                     }
                 });
+    }
+
+    @Value
+    static class TupleAdaptation<Tuple> {
+        Class<Tuple> type;
+        int arity;
+        Function<Tuple, List<Object>> expansion;
     }
 }
