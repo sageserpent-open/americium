@@ -45,7 +45,10 @@ public class DemonstrateJUnitIntegration {
             .and(api.doubles().immutableSets());
 
     private static final Trials<Tuple3<Integer, Boolean, ImmutableSet<Double>>>
-            plainTriples = api.alternate(api.only(null), triples.trials());
+            plainTriples = triples.trials();
+
+    private static final Trials<Tuple3<Integer, Boolean, ImmutableSet<Double>>>
+            nullableTriples = api.alternate(api.only(null), plainTriples);
 
     @BeforeEach
     void beforeEach() {
@@ -125,7 +128,7 @@ public class DemonstrateJUnitIntegration {
     }
 
     @TrialsTest(trials = {"triples", "longs", "triples", "plainTriples",
-                          "strings", "pairs"}, casesLimit = 10)
+                          "strings", "pairs"}, casesLimit = 20)
     void casesFromConjoinedTrialsAndTupleTrialsCanBeSuppliedToATestAsIndividualArguments(
             // From triples...
             int firstInOne, boolean secondInOne,
@@ -158,8 +161,11 @@ public class DemonstrateJUnitIntegration {
                           secondInSix);
     }
 
-    @TrialsTest(trials = {"triples", "longs", "triples", "plainTriples",
-                          "strings", "pairs"}, casesLimit = 10)
+    @TrialsTest(trials = {"triples", "longs", "triples",
+            /* In this case we can pass potentially null values, as they
+            won't be expanded to match multiple formal parameters... */
+                          "nullableTriples",
+                          "strings", "pairs"}, casesLimit = 20)
     void casesFromConjoinedTrialsAndTupleTrialsCanBeSuppliedToATestAsTupledArguments(
             // From triples...
             Tuple3<Integer, Boolean, ImmutableSet<Double>> one,
@@ -183,7 +189,7 @@ public class DemonstrateJUnitIntegration {
     }
 
     @TrialsTest(trials = {"triples", "longs", "triples", "plainTriples",
-                          "strings", "pairs"}, casesLimit = 10)
+                          "strings", "pairs"}, casesLimit = 20)
     void casesFromConjoinedTrialsAndTupleTrialsCanBeSuppliedToATestAsAMixtureOfIndividualAndTupledArguments(
             // From triples...
             Tuple3<Integer, Boolean, ImmutableSet<Double>> one,
