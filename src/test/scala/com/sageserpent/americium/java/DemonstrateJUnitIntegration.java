@@ -36,7 +36,7 @@ public class DemonstrateJUnitIntegration {
             api.alternate(api.strings(), api.only(null));
 
     private static final Tuple2Trials<String, Integer> pairs =
-            api.strings().and(api.integers());
+            potentialNulls.and(api.integers());
 
     private static final Tuple3Trials<Integer, Boolean, ImmutableSet<Double>>
             triples = api
@@ -45,7 +45,7 @@ public class DemonstrateJUnitIntegration {
             .and(api.doubles().immutableSets());
 
     private static final Trials<Tuple3<Integer, Boolean, ImmutableSet<Double>>>
-            plainTriples = triples.trials();
+            plainTriples = api.alternate(api.only(null), triples.trials());
 
     @BeforeEach
     void beforeEach() {
