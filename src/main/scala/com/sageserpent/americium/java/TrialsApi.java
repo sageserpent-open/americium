@@ -113,7 +113,7 @@ public interface TrialsApi {
      *                     resulting {@Trials} instance.
      * @return A {@link Trials} instance that yields lists of the same size.
      */
-    <Case> Trials<ImmutableList<Case>> lists(
+    <Case> Trials<ImmutableList<Case>> immutableLists(
             List<Trials<Case>> listOfTrials);
 
     /**

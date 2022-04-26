@@ -224,7 +224,7 @@ public class TrialsApiTests {
                                                .toArray(Integer[]::new)));
             }
 
-            lists = api.lists(builder.build());
+            lists = api.immutableLists(builder.build());
         }
 
         lists.withLimit(100).supplyTo(list -> {

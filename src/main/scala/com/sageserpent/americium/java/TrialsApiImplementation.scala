@@ -103,7 +103,7 @@ trait TrialsApiImplementation extends CommonApi with TrialsApiWart {
     )
   )
 
-  override def lists[Case](
+  override def immutableLists[Case](
       listOfTrials: JavaList[JavaTrials[Case]]
   ): TrialsImplementation[ImmutableList[Case]] =
     // NASTY HACK: make a throwaway trials of type `TrialsImplementation` to
