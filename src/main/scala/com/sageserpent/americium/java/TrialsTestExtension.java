@@ -34,15 +34,12 @@ public class TrialsTestExtension
     private final static ImmutableList<TupleAdaptation<?>>
             tupleAdaptations =
             ImmutableList.of(new TupleAdaptation<>(Tuple2.class,
-                                                   2,
                                                    (tuple) -> ImmutableList.copyOf(
                                                            tuple.toArray())),
                              new TupleAdaptation<>(Tuple3.class,
-                                                   3,
                                                    (tuple) -> ImmutableList.copyOf(
                                                            tuple.toArray())),
                              new TupleAdaptation<>(Tuple4.class,
-                                                   4,
                                                    (tuple) -> ImmutableList.copyOf(
                                                            tuple.toArray())));
 
@@ -219,10 +216,11 @@ public class TrialsTestExtension
                                         // The actual argument is a
                                         // tuple, so expand it and
                                         // hope for the best later.
-                                        formalParameterIndex.addAndGet(
-                                                tupleAdaptation.getArity());
-                                        adaptedArguments.addAll(tupleAdaptation.expansion.apply(
-                                                argument));
+                                        final List<Object> expansion =
+                                                tupleAdaptation.expansion.apply(
+                                                        argument);
+                                        formalParameterIndex.addAndGet(expansion.size());
+                                        adaptedArguments.addAll(expansion);
                                     } else {
                                         // The actual argument is
                                         // incompatible with the
@@ -316,7 +314,6 @@ public class TrialsTestExtension
     @Value
     static class TupleAdaptation<Tuple> {
         Class<Tuple> type;
-        int arity;
         Function<Tuple, List<Object>> expansion;
     }
 }

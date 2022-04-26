@@ -142,6 +142,20 @@ public class DemonstrateJUnitIntegration {
             String five,
             // From pairs...
             String firstInSix, int secondInSix) {
+        System.out.format("%s %s %s %s %s %s %s %s %s %s %s %s %s",
+                          firstInOne,
+                          secondInOne,
+                          thirdInOne,
+                          two,
+                          firstInThree,
+                          secondInThree,
+                          thirdInThree,
+                          firstInFour,
+                          secondInFour,
+                          thirdInFour,
+                          five,
+                          firstInSix,
+                          secondInSix);
     }
 
     @TrialsTest(trials = {"triples", "longs", "triples", "plainTriples",
@@ -159,6 +173,13 @@ public class DemonstrateJUnitIntegration {
             String five,
             // From pairs...
             Tuple2<String, Integer> six) {
+        System.out.format("%s %s %s %s %s %s",
+                          one,
+                          two,
+                          three,
+                          four,
+                          five,
+                          six);
     }
 
     @TrialsTest(trials = {"triples", "longs", "triples", "plainTriples",
@@ -177,5 +198,15 @@ public class DemonstrateJUnitIntegration {
             String five,
             // From pairs...
             String firstInSix, int secondInSix) {
+        System.out.format("%s %s %s %s %s %s %s %s %s",
+                          one,
+                          two,
+                          firstInThree,
+                          secondInThree,
+                          thirdInThree,
+                          four,
+                          five,
+                          firstInSix,
+                          secondInSix);
     }
 }
