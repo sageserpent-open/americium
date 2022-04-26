@@ -34,14 +34,17 @@ public class TrialsTestExtension
     private final static ImmutableList<TupleAdaptation<?>>
             tupleAdaptations =
             ImmutableList.of(new TupleAdaptation<>(Tuple2.class,
-                                                   (tuple) -> ImmutableList.copyOf(
-                                                           tuple.toArray())),
+                                                   (tuple) -> Collections.unmodifiableList(
+                                                           Arrays.asList(
+                                                                   tuple.toArray()))),
                              new TupleAdaptation<>(Tuple3.class,
-                                                   (tuple) -> ImmutableList.copyOf(
-                                                           tuple.toArray())),
+                                                   (tuple) -> Collections.unmodifiableList(
+                                                           Arrays.asList(
+                                                                   tuple.toArray()))),
                              new TupleAdaptation<>(Tuple4.class,
-                                                   (tuple) -> ImmutableList.copyOf(
-                                                           tuple.toArray())));
+                                                   (tuple) -> Collections.unmodifiableList(
+                                                           Arrays.asList(
+                                                                   tuple.toArray()))));
 
     private static Iterator<TestIntegrationContext<List<Object>>> testIntegrationContexts(
             ExtensionContext context) {
