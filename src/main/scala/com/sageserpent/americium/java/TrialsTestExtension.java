@@ -183,6 +183,9 @@ public class TrialsTestExtension
                         final List<Object> adaptedArguments =
                                 new LinkedList<>();
 
+                        final Map<Integer, TupleAdaptation<Object>>
+                                cachedTupleAdaptations = new HashMap<>();
+
                         {
                             // Behold, Java in all its glory....
                             final AtomicInteger formalParameterIndex =
@@ -201,40 +204,23 @@ public class TrialsTestExtension
                                 final Class<?> formalParameterType =
                                         formalParameterTypes[formalParameterIndex.get()];
 
-                                if (!formalParameterType.isInstance(argument)) {
-                                    final Optional<TupleAdaptation<?>>
-                                            optionalTupleAdaptation =
-                                            tupleAdaptations
-                                                    .stream()
-                                                    .filter(tupleAdaptation -> tupleAdaptation.type.isInstance(
-                                                            argument))
-                                                    .findFirst();
-                                    if (optionalTupleAdaptation.isPresent()) {
-                                        final TupleAdaptation<Object>
-                                                tupleAdaptation =
-                                                (TupleAdaptation<Object>) optionalTupleAdaptation.get();
-                                        // The actual argument is a
-                                        // tuple, so expand it and
-                                        // hope for the best later.
-                                        final List<Object> expansion =
-                                                tupleAdaptation.expansion.apply(
-                                                        argument);
-                                        formalParameterIndex.addAndGet(expansion.size());
-                                        adaptedArguments.addAll(expansion);
-                                    } else {
-                                        // The actual argument is
-                                        // incompatible with the
-                                        // formal argument; this will
-                                        // be picked up later.
-                                        formalParameterIndex.incrementAndGet();
-                                        adaptedArguments.add(argument);
-                                    }
-                                } else {
-                                    // Here, the formal and actual argument
-                                    // types align (they might both be tuples).
-                                    formalParameterIndex.incrementAndGet();
-                                    adaptedArguments.add(argument);
-                                }
+                                final List<Object> expansion =
+                                        cachedTupleAdaptations.computeIfAbsent(
+                                                formalParameterIndex.get(),
+                                                unused ->
+                                                        formalParameterType.isInstance(
+                                                                argument) ?
+                                                        (TupleAdaptation<Object>) TupleAdaptation.fallbackForNonTuples
+                                                                          :
+                                                        (TupleAdaptation<Object>) tupleAdaptations
+                                                                .stream()
+                                                                .filter(tupleAdaptation -> tupleAdaptation.type.isInstance(
+                                                                        argument))
+                                                                .findFirst()
+                                                                .orElse(TupleAdaptation.fallbackForNonTuples)).expansion.apply(
+                                                argument);
+                                formalParameterIndex.addAndGet(expansion.size());
+                                adaptedArguments.addAll(expansion);
                             }
                         }
 
@@ -313,6 +299,9 @@ public class TrialsTestExtension
 
     @Value
     static class TupleAdaptation<Tuple> {
+        public static TupleAdaptation<?> fallbackForNonTuples =
+                new TupleAdaptation<>(Object.class, Collections::singletonList);
+
         Class<Tuple> type;
         Function<Tuple, List<Object>> expansion;
     }
