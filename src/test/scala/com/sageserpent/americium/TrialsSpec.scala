@@ -383,6 +383,44 @@ class TrialsSpec
       }
     }
 
+  "lots of cases" should "be possible" in forAll(
+    Table(
+      "factory"    -> "limit",
+      api.integers -> 10000,
+      api.doubles  -> 10000,
+      api.stream(new CaseFactory[Long] {
+        override def apply(input: Long): Long     = input
+        override def lowerBoundInput(): Long      = Long.MinValue
+        override def upperBoundInput(): Long      = Long.MaxValue
+        override def maximallyShrunkInput(): Long = 0L
+      })           -> 10000,
+      api.integers -> 100000,
+      api.doubles  -> 100000,
+      api.stream(new CaseFactory[Long] {
+        override def apply(input: Long): Long     = input
+        override def lowerBoundInput(): Long      = Long.MinValue
+        override def upperBoundInput(): Long      = Long.MaxValue
+        override def maximallyShrunkInput(): Long = 0L
+      })           -> 100000,
+      api.integers -> 500000,
+      api.doubles  -> 500000,
+      api.stream(new CaseFactory[Long] {
+        override def apply(input: Long): Long     = input
+        override def lowerBoundInput(): Long      = Long.MinValue
+        override def upperBoundInput(): Long      = Long.MaxValue
+        override def maximallyShrunkInput(): Long = 0L
+      }) -> 500000
+    )
+  ) { case (factory, limit) =>
+    inMockitoSession {
+      val mockConsumer: Any => Unit = mock(classOf[Any => Unit])
+
+      factory.withLimit(limit).supplyTo(mockConsumer)
+
+      verify(mockConsumer, times(limit)).apply(any())
+    }
+  }
+
   it should "result in an exception that references it even when trials are joined with `and`" in
     forAll(
       Table(
