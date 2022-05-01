@@ -996,7 +996,7 @@ case class TrialsImplementation[Case](
             casesLimit,
             complexityLimit,
             randomBehaviour,
-            None,
+            scaleDeflationLevel = None,
             decisionStagesToGuideShrinkage = None
           ) match {
             case (cases, inlinedCaseFiltration) =>
