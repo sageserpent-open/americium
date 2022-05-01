@@ -678,7 +678,7 @@ case class TrialsImplementation[Case](
                           numberOfUniqueCasesProduced += 1
                           backupOfStarvationCountdown = starvationCountdown
                           starvationCountdown = Math
-                            .round(Math.sqrt(limit * remainingGap))
+                            .round(Math.sqrt(limit.toDouble * remainingGap))
                             .toInt
                         }
 
