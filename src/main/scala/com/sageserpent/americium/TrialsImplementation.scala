@@ -996,8 +996,6 @@ case class TrialsImplementation[Case](
                             )
                           )
                         }
-
-                      case _ => Fs2Stream.empty
                     }
                 }
               } else Fs2Stream.empty
