@@ -809,6 +809,8 @@ case class TrialsImplementation[Case](
               externalStoppingCondition: Case => Boolean,
               exhaustionStrategy: => StreamedCases
           ): StreamedCases = {
+            require(decisionStages.nonEmpty)
+
             if (
               shrinkageAttemptsLimit == shrinkageAttemptIndex || externalStoppingCondition(
                 caze
@@ -828,155 +830,138 @@ case class TrialsImplementation[Case](
 
               val numberOfDecisionStages = decisionStages.size
 
-              val mainProcessing = if (0 == numberOfDecisionStages) {
-                // The only way this can occur is if `caze` was lifted into the
-                // `Trials` instance that supplied it without using any decision
-                // steps - so that would be a standalone call to
-                // `TrialsApi.only` without any enclosing flat-mapping. Such a
-                // case cannot be shrunk, so go with it as it is.
-                Fs2Stream
-                  .resource(rocksDbResource())
-                  .flatMap(rocksDbPayload =>
-                    raiseTrialException(Some(rocksDbPayload))(
-                      throwable,
-                      caze,
-                      decisionStages
-                    )
-                  )
-              } else {
-                // NOTE: there's some voodoo in choosing the exponential
-                // scaling factor - if it's too high, say 2, then the
-                // solutions are hardly shrunk at all. If it is unity, then
-                // the solutions are shrunk a bit but can be still involve
-                // overly 'large' values, in the sense that the factory input
-                // values are large. This needs finessing, but will do for
-                // now...
-                val limitWithExtraLeewayThatHasBeenObservedToFindBetterShrunkCases =
-                  (100 * casesLimit / 99) max casesLimit
+              // NOTE: there's some voodoo in choosing the exponential
+              // scaling factor - if it's too high, say 2, then the
+              // solutions are hardly shrunk at all. If it is unity, then
+              // the solutions are shrunk a bit but can be still involve
+              // overly 'large' values, in the sense that the factory input
+              // values are large. This needs finessing, but will do for
+              // now...
+              val limitWithExtraLeewayThatHasBeenObservedToFindBetterShrunkCases =
+                (100 * casesLimit / 99) max casesLimit
 
-                cases(
-                  limitWithExtraLeewayThatHasBeenObservedToFindBetterShrunkCases,
-                  numberOfDecisionStages,
-                  randomBehaviour,
-                  scaleDeflationLevel = Some(scaleDeflationLevel),
-                  decisionStagesToGuideShrinkage = Option.when(
-                    0 < numberOfShrinksInPanicModeIncludingThisOne
-                  )(decisionStages)
-                ) match {
-                  case (cases, inlinedCaseFiltration) =>
-                    cases.flatMap {
-                      case (
-                            decisionStagesForPotentialShrunkCaseInReverseOrder,
-                            potentialShrunkCase
-                          ) =>
-                        val decisionStagesForPotentialShrunkCase =
-                          decisionStagesForPotentialShrunkCaseInReverseOrder.reverse
+              val mainProcessing = cases(
+                limitWithExtraLeewayThatHasBeenObservedToFindBetterShrunkCases,
+                numberOfDecisionStages,
+                randomBehaviour,
+                scaleDeflationLevel = Some(scaleDeflationLevel),
+                decisionStagesToGuideShrinkage = Option.when(
+                  0 < numberOfShrinksInPanicModeIncludingThisOne
+                )(decisionStages)
+              ) match {
+                case (cases, inlinedCaseFiltration) =>
+                  cases.flatMap {
+                    case (
+                          decisionStagesForPotentialShrunkCaseInReverseOrder,
+                          potentialShrunkCase
+                        ) =>
+                      val decisionStagesForPotentialShrunkCase =
+                        decisionStagesForPotentialShrunkCaseInReverseOrder.reverse
 
-                        if (
-                          decisionStages == decisionStagesForPotentialShrunkCase && 1 < numberOfShrinksInPanicModeIncludingThisOne
-                        ) {
-                          // NOTE: we have to make sure that the calling
-                          // invocation of `shrink` was also in panic mode, as
-                          // it is legitimate for the first panic shrinkage to
-                          // arrive at the same result as a non-panic calling
-                          // invocation, and this does indeed occur for some
-                          // non-trivial panic mode shrinkage sequences at the
-                          // start of panic mode. Otherwise if we were already
-                          // in panic mode in the calling invocation, this is
-                          // a sign that there is nothing left to usefully
-                          // shrink down, as otherwise the failure won't be
-                          // provoked at all.
+                      if (
+                        decisionStages == decisionStagesForPotentialShrunkCase && 1 < numberOfShrinksInPanicModeIncludingThisOne
+                      ) {
+                        // NOTE: we have to make sure that the calling
+                        // invocation of `shrink` was also in panic mode, as
+                        // it is legitimate for the first panic shrinkage to
+                        // arrive at the same result as a non-panic calling
+                        // invocation, and this does indeed occur for some
+                        // non-trivial panic mode shrinkage sequences at the
+                        // start of panic mode. Otherwise if we were already
+                        // in panic mode in the calling invocation, this is
+                        // a sign that there is nothing left to usefully
+                        // shrink down, as otherwise the failure won't be
+                        // provoked at all.
 
-                          Fs2Stream.empty
-                        } else {
-                          Fs2Stream.emit(
-                            TestIntegrationContextImplementation(
-                              caze = potentialShrunkCase,
-                              caseFailureReporting =
-                                (throwableFromPotentialShrunkCase: Throwable) => {
+                        Fs2Stream.empty
+                      } else {
+                        Fs2Stream.emit(
+                          TestIntegrationContextImplementation(
+                            caze = potentialShrunkCase,
+                            caseFailureReporting =
+                              (throwableFromPotentialShrunkCase: Throwable) => {
 
-                                  assert(
-                                    decisionStagesForPotentialShrunkCase.size <= numberOfDecisionStages
-                                  )
+                                assert(
+                                  decisionStagesForPotentialShrunkCase.size <= numberOfDecisionStages
+                                )
 
-                                  val lessComplex =
-                                    decisionStagesForPotentialShrunkCase.size < numberOfDecisionStages
+                                val lessComplex =
+                                  decisionStagesForPotentialShrunkCase.size < numberOfDecisionStages
 
-                                  val stillEnoughRoomToDecreaseScale =
-                                    scaleDeflationLevel < maximumScaleDeflationLevel
+                                val stillEnoughRoomToDecreaseScale =
+                                  scaleDeflationLevel < maximumScaleDeflationLevel
 
-                                  shrinkageCasesFromDownstream = Some(
-                                    {
-                                      val scaleDeflationLevelForRecursion =
-                                        if (
-                                          stillEnoughRoomToDecreaseScale && !lessComplex
-                                        )
-                                          1 + scaleDeflationLevel
-                                        else scaleDeflationLevel
-
-                                      shrink(
-                                        caze = potentialShrunkCase,
-                                        throwable =
-                                          throwableFromPotentialShrunkCase,
-                                        decisionStages =
-                                          decisionStagesForPotentialShrunkCase,
-                                        shrinkageAttemptIndex =
-                                          1 + shrinkageAttemptIndex,
-                                        scaleDeflationLevel =
-                                          scaleDeflationLevelForRecursion,
-                                        casesLimit =
-                                          limitWithExtraLeewayThatHasBeenObservedToFindBetterShrunkCases,
-                                        numberOfShrinksInPanicModeIncludingThisOne =
-                                          0,
-                                        externalStoppingCondition =
-                                          externalStoppingCondition,
-                                        exhaustionStrategy = {
-                                          // At this point, slogging through the
-                                          // potential shrunk cases failed to
-                                          // find any failures; go into (or
-                                          // remain in) panic mode...
-                                          shrink(
-                                            caze = potentialShrunkCase,
-                                            throwable =
-                                              throwableFromPotentialShrunkCase,
-                                            decisionStages =
-                                              decisionStagesForPotentialShrunkCase,
-                                            shrinkageAttemptIndex =
-                                              1 + shrinkageAttemptIndex,
-                                            scaleDeflationLevel =
-                                              scaleDeflationLevel,
-                                            casesLimit =
-                                              limitWithExtraLeewayThatHasBeenObservedToFindBetterShrunkCases,
-                                            numberOfShrinksInPanicModeIncludingThisOne =
-                                              1 + numberOfShrinksInPanicModeIncludingThisOne,
-                                            externalStoppingCondition =
-                                              externalStoppingCondition,
-                                            exhaustionStrategy = {
-                                              Fs2Stream
-                                                .resource(rocksDbResource())
-                                                .flatMap(rocksDbPayload =>
-                                                  raiseTrialException(
-                                                    Some(rocksDbPayload)
-                                                  )(
-                                                    throwableFromPotentialShrunkCase,
-                                                    potentialShrunkCase,
-                                                    decisionStagesForPotentialShrunkCase
-                                                  )
-                                                )
-                                            }
-                                          )
-                                        }
+                                shrinkageCasesFromDownstream = Some(
+                                  {
+                                    val scaleDeflationLevelForRecursion =
+                                      if (
+                                        stillEnoughRoomToDecreaseScale && !lessComplex
                                       )
-                                    }
-                                  )
-                                },
-                              inlinedCaseFiltration = inlinedCaseFiltration,
-                              isPartOfShrinkage = true
-                            )
+                                        1 + scaleDeflationLevel
+                                      else scaleDeflationLevel
+
+                                    shrink(
+                                      caze = potentialShrunkCase,
+                                      throwable =
+                                        throwableFromPotentialShrunkCase,
+                                      decisionStages =
+                                        decisionStagesForPotentialShrunkCase,
+                                      shrinkageAttemptIndex =
+                                        1 + shrinkageAttemptIndex,
+                                      scaleDeflationLevel =
+                                        scaleDeflationLevelForRecursion,
+                                      casesLimit =
+                                        limitWithExtraLeewayThatHasBeenObservedToFindBetterShrunkCases,
+                                      numberOfShrinksInPanicModeIncludingThisOne =
+                                        0,
+                                      externalStoppingCondition =
+                                        externalStoppingCondition,
+                                      exhaustionStrategy = {
+                                        // At this point, slogging through the
+                                        // potential shrunk cases failed to
+                                        // find any failures; go into (or
+                                        // remain in) panic mode...
+                                        shrink(
+                                          caze = potentialShrunkCase,
+                                          throwable =
+                                            throwableFromPotentialShrunkCase,
+                                          decisionStages =
+                                            decisionStagesForPotentialShrunkCase,
+                                          shrinkageAttemptIndex =
+                                            1 + shrinkageAttemptIndex,
+                                          scaleDeflationLevel =
+                                            scaleDeflationLevel,
+                                          casesLimit =
+                                            limitWithExtraLeewayThatHasBeenObservedToFindBetterShrunkCases,
+                                          numberOfShrinksInPanicModeIncludingThisOne =
+                                            1 + numberOfShrinksInPanicModeIncludingThisOne,
+                                          externalStoppingCondition =
+                                            externalStoppingCondition,
+                                          exhaustionStrategy = {
+                                            Fs2Stream
+                                              .resource(rocksDbResource())
+                                              .flatMap(rocksDbPayload =>
+                                                raiseTrialException(
+                                                  Some(rocksDbPayload)
+                                                )(
+                                                  throwableFromPotentialShrunkCase,
+                                                  potentialShrunkCase,
+                                                  decisionStagesForPotentialShrunkCase
+                                                )
+                                              )
+                                          }
+                                        )
+                                      }
+                                    )
+                                  }
+                                )
+                              },
+                            inlinedCaseFiltration = inlinedCaseFiltration,
+                            isPartOfShrinkage = true
                           )
-                        }
-                    }
-                }
+                        )
+                      }
+                  }
               }
 
               mainProcessing ++ exhaustionStrategy
@@ -1003,27 +988,38 @@ case class TrialsImplementation[Case](
                         decisionStagesInReverseOrder.reverse
 
                       shrinkageCasesFromDownstream = Some(
-                        shrink(
-                          caze = caze,
-                          throwable = throwable,
-                          decisionStages = decisionStages,
-                          shrinkageAttemptIndex = 0,
-                          scaleDeflationLevel = 0,
-                          casesLimit = casesLimit,
-                          numberOfShrinksInPanicModeIncludingThisOne = 0,
-                          externalStoppingCondition = shrinkageStop(),
-                          exhaustionStrategy = {
-                            Fs2Stream
-                              .resource(rocksDbResource())
-                              .flatMap(rocksDbPayload =>
-                                raiseTrialException(Some(rocksDbPayload))(
-                                  throwable,
-                                  caze,
-                                  decisionStages
+                        if (decisionStages.nonEmpty)
+                          shrink(
+                            caze = caze,
+                            throwable = throwable,
+                            decisionStages = decisionStages,
+                            shrinkageAttemptIndex = 0,
+                            scaleDeflationLevel = 0,
+                            casesLimit = casesLimit,
+                            numberOfShrinksInPanicModeIncludingThisOne = 0,
+                            externalStoppingCondition = shrinkageStop(),
+                            exhaustionStrategy = {
+                              Fs2Stream
+                                .resource(rocksDbResource())
+                                .flatMap(rocksDbPayload =>
+                                  raiseTrialException(Some(rocksDbPayload))(
+                                    throwable,
+                                    caze,
+                                    decisionStages
+                                  )
                                 )
+                            }
+                          )
+                        else
+                          Fs2Stream
+                            .resource(rocksDbResource())
+                            .flatMap(rocksDbPayload =>
+                              raiseTrialException(Some(rocksDbPayload))(
+                                throwable,
+                                caze,
+                                decisionStages
                               )
-                          }
-                        )
+                            )
                       )
                     },
                     inlinedCaseFiltration = inlinedCaseFiltration,
