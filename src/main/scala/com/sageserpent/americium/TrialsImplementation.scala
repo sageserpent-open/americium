@@ -828,7 +828,22 @@ case class TrialsImplementation[Case](
 
               val numberOfDecisionStages = decisionStages.size
 
-              val mainProcessing = if (0 < numberOfDecisionStages) {
+              val mainProcessing = if (0 == numberOfDecisionStages) {
+                // The only way this can occur is if `caze` was lifted into the
+                // `Trials` instance that supplied it without using any decision
+                // steps - so that would be a standalone call to
+                // `TrialsApi.only` without any enclosing flat-mapping. Such a
+                // case cannot be shrunk, so go with it as it is.
+                Fs2Stream
+                  .resource(rocksDbResource())
+                  .flatMap(rocksDbPayload =>
+                    raiseTrialException(Some(rocksDbPayload))(
+                      throwable,
+                      caze,
+                      decisionStages
+                    )
+                  )
+              } else {
                 // NOTE: there's some voodoo in choosing the exponential
                 // scaling factor - if it's too high, say 2, then the
                 // solutions are hardly shrunk at all. If it is unity, then
@@ -891,11 +906,11 @@ case class TrialsImplementation[Case](
                                     scaleDeflationLevel < maximumScaleDeflationLevel
 
                                   shrinkageCasesFromDownstream = Some(
-                                    if (
-                                      lessComplex || stillEnoughRoomToDecreaseScale
-                                    ) {
+                                    {
                                       val scaleDeflationLevelForRecursion =
-                                        if (!lessComplex)
+                                        if (
+                                          stillEnoughRoomToDecreaseScale && !lessComplex
+                                        )
                                           1 + scaleDeflationLevel
                                         else scaleDeflationLevel
 
@@ -952,43 +967,7 @@ case class TrialsImplementation[Case](
                                           )
                                         }
                                       )
-
-                                    } else
-
-                                      // At this point, slogging through the
-                                      // potential shrunk cases failed to find
-                                      // any failures; go into (or remain in)
-                                      // panic mode...
-                                      shrink(
-                                        caze = potentialShrunkCase,
-                                        throwable =
-                                          throwableFromPotentialShrunkCase,
-                                        decisionStages =
-                                          decisionStagesForPotentialShrunkCase,
-                                        shrinkageAttemptIndex =
-                                          1 + shrinkageAttemptIndex,
-                                        scaleDeflationLevel =
-                                          scaleDeflationLevel,
-                                        casesLimit =
-                                          limitWithExtraLeewayThatHasBeenObservedToFindBetterShrunkCases,
-                                        numberOfShrinksInPanicModeIncludingThisOne =
-                                          1 + numberOfShrinksInPanicModeIncludingThisOne,
-                                        externalStoppingCondition =
-                                          externalStoppingCondition,
-                                        exhaustionStrategy = {
-                                          Fs2Stream
-                                            .resource(rocksDbResource())
-                                            .flatMap(rocksDbPayload =>
-                                              raiseTrialException(
-                                                Some(rocksDbPayload)
-                                              )(
-                                                throwableFromPotentialShrunkCase,
-                                                potentialShrunkCase,
-                                                decisionStagesForPotentialShrunkCase
-                                              )
-                                            )
-                                        }
-                                      )
+                                    }
                                   )
                                 },
                               inlinedCaseFiltration = inlinedCaseFiltration,
@@ -998,7 +977,7 @@ case class TrialsImplementation[Case](
                         }
                     }
                 }
-              } else Fs2Stream.empty
+              }
 
               mainProcessing ++ exhaustionStrategy
             }
