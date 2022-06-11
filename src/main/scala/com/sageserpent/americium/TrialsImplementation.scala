@@ -373,7 +373,7 @@ case class TrialsImplementation[Case](
       case class CaseData(
           caze: Case,
           decisionStagesInReverseOrder: DecisionStagesInReverseOrder,
-          factoryInputsCost: BigInt
+          cost: BigInt
       )
 
       private def cases(
@@ -404,30 +404,18 @@ case class TrialsImplementation[Case](
             decisionStagesToGuideShrinkage: Option[DecisionStages],
             decisionStagesInReverseOrder: DecisionStagesInReverseOrder,
             complexity: Int,
-            factoryInputsCost: BigInt
+            cost: BigInt
         ) {
           def update(
               remainingGuidance: Option[DecisionStages],
-              decision: ChoiceOf
-          ): State = copy(
-            decisionStagesToGuideShrinkage = remainingGuidance,
-            decisionStagesInReverseOrder =
-              decisionStagesInReverseOrder.addLatest(decision),
-            complexity = 1 + complexity
-          )
-
-          def update(
-              remainingGuidance: Option[DecisionStages],
-              decision: FactoryInputOf,
-              maximallyShrunkInput: Long
+              decision: Decision,
+              costIncrement: BigInt = BigInt(0)
           ): State = copy(
             decisionStagesToGuideShrinkage = remainingGuidance,
             decisionStagesInReverseOrder =
               decisionStagesInReverseOrder.addLatest(decision),
             complexity = 1 + complexity,
-            factoryInputsCost = factoryInputsCost + (BigInt(
-              decision.input
-            ) - maximallyShrunkInput).pow(2)
+            cost = cost + costIncrement
           )
         }
 
@@ -436,7 +424,7 @@ case class TrialsImplementation[Case](
             decisionStagesToGuideShrinkage = decisionStagesToGuideShrinkage,
             decisionStagesInReverseOrder = NoDecisionStages,
             complexity = 0,
-            factoryInputsCost = BigInt(0)
+            cost = BigInt(0)
           )
         }
 
@@ -525,15 +513,15 @@ case class TrialsImplementation[Case](
                     .flatMap(state =>
                       state.decisionStagesToGuideShrinkage match {
                         case Some(
-                              FactoryInputOf(guideIndex) :: remainingGuidance
+                              FactoryInputOf(guideInput) :: remainingGuidance
                             )
                             if factory
-                              .lowerBoundInput() <= guideIndex && factory
-                              .upperBoundInput() >= guideIndex =>
-                          val index = Math
+                              .lowerBoundInput() <= guideInput && factory
+                              .upperBoundInput() >= guideInput =>
+                          val input = Math
                             .round(
                               factory.maximallyShrunkInput() + randomBehaviour
-                                .nextDouble() * (guideIndex - factory
+                                .nextDouble() * (guideInput - factory
                                 .maximallyShrunkInput())
                             )
 
@@ -541,11 +529,12 @@ case class TrialsImplementation[Case](
                             _ <- StateT.set[DeferredOption, State](
                               state.update(
                                 Some(remainingGuidance),
-                                FactoryInputOf(index),
-                                factory.maximallyShrunkInput()
+                                FactoryInputOf(input),
+                                (BigInt(input) - factory.maximallyShrunkInput())
+                                  .pow(2)
                               )
                             )
-                          } yield factory(index)
+                          } yield factory(input)
                         case _ =>
                           for {
                             _ <- liftUnitIfTheComplexityIsNotTooLarge(state)
@@ -602,7 +591,8 @@ case class TrialsImplementation[Case](
                               state.update(
                                 None,
                                 FactoryInputOf(input),
-                                factory.maximallyShrunkInput()
+                                (BigInt(input) - factory.maximallyShrunkInput())
+                                  .pow(2)
                               )
                             )
                           } yield factory(input)
@@ -903,7 +893,11 @@ case class TrialsImplementation[Case](
                   cases.flatMap {
                     case potentialShrunkCaseData
                         if potentialShrunkCaseData.decisionStagesInReverseOrder.size < caseData.decisionStagesInReverseOrder.size
-                          || potentialShrunkCaseData.factoryInputsCost <= caseData.factoryInputsCost =>
+                        // The next sub-clause is a weak inequality, as the
+                        // shrinkage may have arrived at a run of cases whose
+                        // cost is independent of their specifics - eg. based on
+                        // just choices and no factories.
+                          || potentialShrunkCaseData.cost <= caseData.cost =>
                       if (
                         caseData.decisionStagesInReverseOrder == potentialShrunkCaseData.decisionStagesInReverseOrder
                       ) {
