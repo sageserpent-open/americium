@@ -354,6 +354,11 @@ case class TrialsImplementation[Case](
           )
       }
 
+      case class CaseData(
+          caze: Case,
+          decisionStagesInReverseOrder: DecisionStagesInReverseOrder
+      )
+
       private def cases(
           limit: Int,
           complexityLimit: Int,
@@ -361,7 +366,7 @@ case class TrialsImplementation[Case](
           scaleDeflationLevel: Option[Int],
           decisionStagesToGuideShrinkage: Option[DecisionStages]
       ): (
-          Fs2Stream[SyncIO, (DecisionStagesInReverseOrder, Case)],
+          Fs2Stream[SyncIO, CaseData],
           InlinedCaseFiltration
       ) = {
         scaleDeflationLevel.foreach(level =>
@@ -646,8 +651,7 @@ case class TrialsImplementation[Case](
               }
             }
 
-          def emitCases()
-              : Fs2Stream[SyncIO, (DecisionStagesInReverseOrder, Case)] =
+          def emitCases(): Fs2Stream[SyncIO, CaseData] =
             Fs2Stream.force(SyncIO {
               val remainingGap = limit - numberOfUniqueCasesProduced
 
@@ -671,7 +675,7 @@ case class TrialsImplementation[Case](
                             .toInt
                         }
 
-                        Some(decisionStages -> caze)
+                        Some(CaseData(caze, decisionStages))
                       case _ =>
                         {
                           starvationCountdown -= 1
@@ -851,9 +855,9 @@ case class TrialsImplementation[Case](
               ) match {
                 case (cases, inlinedCaseFiltration) =>
                   cases.flatMap {
-                    case (
-                          decisionStagesForPotentialShrunkCaseInReverseOrder,
-                          potentialShrunkCase
+                    case CaseData(
+                          potentialShrunkCase,
+                          decisionStagesForPotentialShrunkCaseInReverseOrder
                         ) =>
                       val decisionStagesForPotentialShrunkCase =
                         decisionStagesForPotentialShrunkCaseInReverseOrder.reverse
@@ -977,9 +981,9 @@ case class TrialsImplementation[Case](
           ) match {
             case (cases, inlinedCaseFiltration) =>
               cases.map {
-                case (
-                      decisionStagesInReverseOrder: DecisionStagesInReverseOrder,
-                      caze: Case
+                case CaseData(
+                      caze: Case,
+                      decisionStagesInReverseOrder: DecisionStagesInReverseOrder
                     ) =>
                   TestIntegrationContextImplementation(
                     caze = caze,
