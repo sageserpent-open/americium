@@ -863,7 +863,7 @@ case class TrialsImplementation[Case](
                         decisionStagesForPotentialShrunkCaseInReverseOrder.reverse
 
                       if (
-                        decisionStages == decisionStagesForPotentialShrunkCase && 1 < numberOfShrinksInPanicModeIncludingThisOne
+                        decisionStages == decisionStagesForPotentialShrunkCase
                       ) {
                         // NOTE: we have to make sure that the calling
                         // invocation of `shrink` was also in panic mode, as
