@@ -774,6 +774,19 @@ case class TrialsImplementation[Case](
         })
       }
 
+      private def raiseTrialException(
+          throwable: Throwable,
+          caseData: CaseData
+      ): StreamedCases = Fs2Stream
+        .resource(rocksDbResource())
+        .flatMap(rocksDbPayload =>
+          raiseTrialException(Some(rocksDbPayload))(
+            throwable,
+            caseData.caze,
+            caseData.decisionStagesInReverseOrder.reverse
+          )
+        )
+
       private def shrinkableCases(): StreamedCases = {
         var shrinkageCasesFromDownstream: Option[StreamedCases] = None
 
@@ -834,16 +847,7 @@ case class TrialsImplementation[Case](
               shrinkageAttemptsLimit == shrinkageAttemptIndex || externalStoppingCondition(
                 caseData.caze
               )
-            )
-              Fs2Stream
-                .resource(rocksDbResource())
-                .flatMap(rocksDbPayload =>
-                  raiseTrialException(Some(rocksDbPayload))(
-                    throwable,
-                    caseData.caze,
-                    caseData.decisionStagesInReverseOrder.reverse
-                  )
-                )
+            ) raiseTrialException(throwable, caseData)
             else {
               require(shrinkageAttemptsLimit > shrinkageAttemptIndex)
 
@@ -947,17 +951,10 @@ case class TrialsImplementation[Case](
                                         externalStoppingCondition =
                                           externalStoppingCondition,
                                         exhaustionStrategy = {
-                                          Fs2Stream
-                                            .resource(rocksDbResource())
-                                            .flatMap(rocksDbPayload =>
-                                              raiseTrialException(
-                                                Some(rocksDbPayload)
-                                              )(
-                                                throwableFromPotentialShrunkCase,
-                                                potentialShrunkCaseData.caze,
-                                                potentialShrunkCaseData.decisionStagesInReverseOrder.reverse
-                                              )
-                                            )
+                                          raiseTrialException(
+                                            throwableFromPotentialShrunkCase,
+                                            potentialShrunkCaseData
+                                          )
                                         }
                                       )
                                     }
@@ -1000,27 +997,11 @@ case class TrialsImplementation[Case](
                           numberOfShrinksInPanicModeIncludingThisOne = 0,
                           externalStoppingCondition = shrinkageStop(),
                           exhaustionStrategy = {
-                            Fs2Stream
-                              .resource(rocksDbResource())
-                              .flatMap(rocksDbPayload =>
-                                raiseTrialException(Some(rocksDbPayload))(
-                                  throwable,
-                                  caseData.caze,
-                                  caseData.decisionStagesInReverseOrder.reverse
-                                )
-                              )
+                            raiseTrialException(throwable, caseData)
                           }
                         )
                       else
-                        Fs2Stream
-                          .resource(rocksDbResource())
-                          .flatMap(rocksDbPayload =>
-                            raiseTrialException(Some(rocksDbPayload))(
-                              throwable,
-                              caseData.caze,
-                              caseData.decisionStagesInReverseOrder.reverse
-                            )
-                          )
+                        raiseTrialException(throwable, caseData)
                     )
                   },
                   inlinedCaseFiltration = inlinedCaseFiltration,
