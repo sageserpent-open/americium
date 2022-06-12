@@ -901,18 +901,6 @@ case class TrialsImplementation[Case](
                       if (
                         caseData.decisionStagesInReverseOrder == potentialShrunkCaseData.decisionStagesInReverseOrder
                       ) {
-                        // NOTE: we have to make sure that the calling
-                        // invocation of `shrink` was also in panic mode, as
-                        // it is legitimate for the first panic shrinkage to
-                        // arrive at the same result as a non-panic calling
-                        // invocation, and this does indeed occur for some
-                        // non-trivial panic mode shrinkage sequences at the
-                        // start of panic mode. Otherwise if we were already
-                        // in panic mode in the calling invocation, this is
-                        // a sign that there is nothing left to usefully
-                        // shrink down, as otherwise the failure won't be
-                        // provoked at all.
-
                         Fs2Stream.empty
                       } else {
                         Fs2Stream.emit(
