@@ -515,7 +515,13 @@ case class TrialsImplementation[Case](
                         case Some(
                               FactoryInputOf(guideInput) :: remainingGuidance
                             )
-                            if factory
+                            if (remainingGuidance.forall(_ match {
+                              case _: FactoryInputOf => false
+                              case _: ChoiceOf       => true
+                            }) || 1 < randomBehaviour
+                              .chooseAnyNumberFromOneTo(
+                                1 + remainingGuidance.size
+                              )) && factory
                               .lowerBoundInput() <= guideInput && factory
                               .upperBoundInput() >= guideInput =>
                           val input = Math
@@ -589,7 +595,8 @@ case class TrialsImplementation[Case](
                             }
                             _ <- StateT.set[DeferredOption, State](
                               state.update(
-                                None,
+                                state.decisionStagesToGuideShrinkage
+                                  .map(_.tail),
                                 FactoryInputOf(input),
                                 (BigInt(input) - factory.maximallyShrunkInput())
                                   .pow(2)
