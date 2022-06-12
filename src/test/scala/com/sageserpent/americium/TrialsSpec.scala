@@ -2,12 +2,7 @@ package com.sageserpent.americium
 
 import com.sageserpent.americium.TrialsImplementation.recipeHashJavaPropertyName
 import com.sageserpent.americium.TrialsScaffolding.noShrinking
-import com.sageserpent.americium.java.{
-  Builder,
-  CaseFactory,
-  Trials as JavaTrials,
-  TrialsApi as JavaTrialsApi
-}
+import com.sageserpent.americium.java.{Builder, CaseFactory, Trials as JavaTrials, TrialsApi as JavaTrialsApi}
 import cyclops.control.Either as JavaEither
 import org.mockito.ArgumentMatchers.{any, argThat}
 import org.mockito.Mockito
@@ -1594,26 +1589,26 @@ class TrialsSpec
 
   it should "be shrunk when the complexity is dependent on a factory produced value" in forAll(
     Table(
-      ("maximumSize", "limit", "lowerBound", "upperBound"),
-      (100, -900, -1250, 0),
-      (100, 900, 0, 1250),
-      (100, -900, -1000, 0),
-      (100, 900, 0, 1000),
-      (1000, -900, -1250, 0),
-      (1000, 900, 0, 1250),
-      (1000, -900, -1000, 0),
-      (10000, 900, 0, 1000),
-      (10000, -900, -1250, 0),
-      (10000, 900, 0, 1250),
-      (10000, -900, -1000, 0),
-      (10000, 900, 0, 1000)
+      ("maximumSize", "cutoff", "lowerBound", "upperBound", "casesLimit"),
+      (100, -900, -1250, 0, 400),
+      (100, 900, 0, 1250, 400),
+      (100, -900, -1000, 0, 500),
+      (100, 900, 0, 1000, 200),
+      (1000, -900, -1250, 0, 500),
+      (1000, 900, 0, 1250, 500),
+      (1000, -900, -1000, 0, 500),
+      (10000, 900, 0, 1000, 200),
+      (10000, -900, -1250, 0, 700),
+      (10000, 900, 0, 1250, 500),
+      (10000, -900, -1000, 0, 200),
+      (10000, 900, 0, 1000, 200)
     )
-  ) { case (maximumSize, limit, lowerBound, upperBound) =>
+  ) { case (maximumSize, cutoff, lowerBound, upperBound, limit) =>
     println(
       "--------------------------------------------------------------------------"
     )
     println(
-      s"maximum size: $maximumSize, limit: $limit, lowerBound: $lowerBound, upperBound: $upperBound"
+      s"maximum size: $maximumSize, limit: $cutoff, lowerBound: $lowerBound, upperBound: $upperBound"
     )
 
     val sut = api
@@ -1622,16 +1617,16 @@ class TrialsSpec
 
     val exception = intercept[sut.TrialException] {
       sut
-        .withLimit(200)
+        .withLimit(limit)
         .supplyTo(list => {
-          if (list.map(_.abs).max >= limit.abs) {
+          if (list.map(_.abs).max >= cutoff.abs) {
             println(list)
             throw new RuntimeException
           }
         })
     }
 
-    exception.provokingCase shouldBe List(limit)
+    exception.provokingCase shouldBe List(cutoff)
   }
 
   "test driving a trials for a recursive data structure" should "not produce smoke" in {
