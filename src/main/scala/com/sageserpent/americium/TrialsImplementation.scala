@@ -520,7 +520,12 @@ case class TrialsImplementation[Case](
                               case _: ChoiceOf       => true
                             }) || 1 < randomBehaviour
                               .chooseAnyNumberFromOneTo(
-                                1 + remainingGuidance.size
+                                1 + remainingGuidance
+                                  .filter(_ match {
+                                    case _: FactoryInputOf => true
+                                    case _: ChoiceOf       => false
+                                  })
+                                  .size
                               )) && factory
                               .lowerBoundInput() <= guideInput && factory
                               .upperBoundInput() >= guideInput =>
