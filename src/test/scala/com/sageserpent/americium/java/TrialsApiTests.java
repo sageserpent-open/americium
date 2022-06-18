@@ -11,6 +11,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.*;
 import java.util.stream.Stream;
 
@@ -23,6 +24,16 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class TrialsApiTests {
     private final static TrialsApi api = Trials.api();
+
+    static Iterator<ImmutableSet<String>> sets() {
+        return JUnit5Provider.of(30, api.strings().immutableSets());
+    }
+
+    static Iterator<Arguments> mixtures() {
+        return JUnit5Provider.of(32,
+                                 api.integers(),
+                                 api.strings().immutableMaps(api.booleans()));
+    }
 
     Trials<String> chainedIntegers() {
         return api.alternate(
@@ -165,20 +176,10 @@ public class TrialsApiTests {
                 .supplyTo(System.out::println);
     }
 
-    static Iterator<ImmutableSet<String>> sets() {
-        return JUnit5Provider.of(30, api.strings().immutableSets());
-    }
-
     @ParameterizedTest
     @MethodSource(value = "sets")
     void testDriveSetsProvider(ImmutableSet<String> distinctStrings) {
         System.out.println(distinctStrings);
-    }
-
-    static Iterator<Arguments> mixtures() {
-        return JUnit5Provider.of(32,
-                                 api.integers(),
-                                 api.strings().immutableMaps(api.booleans()));
     }
 
     @ParameterizedTest
@@ -438,6 +439,60 @@ public class TrialsApiTests {
                     third,
                     fourth);
             throw throwable;
+        }
+    }
+
+    @Test
+    void instantsCanBeShrunkToo() {
+        final Instant lowerBound = Instant.parse("2007-12-03T10:15:30.00Z");
+        final Instant upperBound = Instant.parse("2007-12-03T10:15:40.00Z");
+        final Instant shrinkageTarget =
+                Instant.parse("2007-12-03T10:15:30.12Z");
+
+        {
+            final Trials<Instant> instants =
+                    api.instants(lowerBound,
+                                 upperBound);
+
+            final TrialsFactoring.TrialException trialException = assertThrows(
+                    TrialsFactoring.TrialException.class,
+                    () -> instants.withLimit(10).supplyTo(unused -> {
+                        throw new RuntimeException();
+                    }));
+
+            assertThat(trialException.provokingCase(),
+                       equalTo(lowerBound));
+        }
+
+        {
+            final Trials<Instant> instants =
+                    api.instants(Instant.EPOCH.minusSeconds(25),
+                                 Instant.EPOCH);
+
+            final TrialsFactoring.TrialException trialException = assertThrows(
+                    TrialsFactoring.TrialException.class,
+                    () -> instants.withLimit(10).supplyTo(unused -> {
+                        throw new RuntimeException();
+                    }));
+
+            assertThat(trialException.provokingCase(),
+                       equalTo(Instant.EPOCH));
+        }
+
+        {
+            final Trials<Instant> instants =
+                    api.instants(lowerBound,
+                                 upperBound,
+                                 shrinkageTarget);
+
+            final TrialsFactoring.TrialException trialException = assertThrows(
+                    TrialsFactoring.TrialException.class,
+                    () -> instants.withLimit(10).supplyTo(unused -> {
+                        throw new RuntimeException();
+                    }));
+
+            assertThat(trialException.provokingCase(),
+                       equalTo(shrinkageTarget));
         }
     }
 

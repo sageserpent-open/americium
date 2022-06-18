@@ -243,5 +243,10 @@ public interface TrialsApi {
 
     Trials<Instant> instants();
 
+    Trials<Instant> instants(Instant lowerBound, Instant upperBound);
+
+    Trials<Instant> instants(Instant lowerBound, Instant upperBound,
+                             Instant shrinkageTarget);
+
     Trials<String> strings();
 }

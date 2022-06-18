@@ -99,5 +99,13 @@ trait TrialsApi {
 
   def instants: Trials[Instant]
 
+  def instants(lowerBound: Instant, upperBound: Instant): Trials[Instant]
+
+  def instants(
+      lowerBound: Instant,
+      upperBound: Instant,
+      shrinkageTarget: Instant
+  ): Trials[Instant]
+
   def strings: Trials[String]
 }
