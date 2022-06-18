@@ -1,13 +1,8 @@
 package com.sageserpent.americium
 
 import com.sageserpent.americium.TrialsImplementation.recipeHashJavaPropertyName
-import com.sageserpent.americium.TrialsScaffolding.noShrinking
-import com.sageserpent.americium.java.{
-  Builder,
-  CaseFactory,
-  Trials as JavaTrials,
-  TrialsApi as JavaTrialsApi
-}
+import com.sageserpent.americium.TrialsScaffolding.{noShrinking, noStopping}
+import com.sageserpent.americium.java.{Builder, CaseFactory, Trials as JavaTrials, TrialsApi as JavaTrialsApi}
 import cyclops.control.Either as JavaEither
 import org.mockito.ArgumentMatchers.{any, argThat}
 import org.mockito.Mockito
@@ -1849,18 +1844,34 @@ class TrialsSpec
 
     val suts = api.longs and api.longs and api.longs
 
-    val trialException = {
-      // NOTE: have to crank the limit up to 50 to get such a nice minimisation,
-      // although 40 yields a pretty decent result too.
-      intercept[suts.TrialException](suts.withLimit(50).supplyTo {
-        case (x, y, z) =>
-          predicate(threshold = 10)(x, y, z) shouldEqual predicate(threshold =
-            9
-          )(x, y, z)
-      })
-    }
+    val provokingCase =
+      intercept[suts.TrialException](
+        suts
+          .withLimits(casesLimit = 800, shrinkageStop = noShrinking)
+          .supplyTo { case (x, y, z) =>
+            predicate(threshold = 10)(x, y, z) shouldEqual predicate(threshold =
+              9
+            )(x, y, z)
+          }
+      ).provokingCase
 
-    println(trialException.provokingCase)
+    println(s"Provoking case: $provokingCase")
+
+    val minimisedProvokingCase =
+      intercept[suts.TrialException](
+        suts.withLimits(casesLimit = 800, shrinkageStop = noStopping).supplyTo {
+          case (x, y, z) =>
+            predicate(threshold = 10)(x, y, z) shouldEqual predicate(threshold =
+              9
+            )(x, y, z)
+        }
+      ).provokingCase
+
+    println(s"Minimised provoking case: $minimisedProvokingCase")
+
+    minimisedProvokingCase._1.abs shouldBe <(provokingCase._1.abs)
+    minimisedProvokingCase._2.abs shouldBe <(provokingCase._2.abs)
+    minimisedProvokingCase._3.abs shouldBe <(provokingCase._3.abs)
   }
 
   "combination with Scala `.or`" should "cover alternate finite choices" in {
