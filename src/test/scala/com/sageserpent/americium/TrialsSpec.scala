@@ -1,13 +1,8 @@
 package com.sageserpent.americium
 
 import com.sageserpent.americium.TrialsImplementation.recipeHashJavaPropertyName
-import com.sageserpent.americium.TrialsScaffolding.noShrinking
-import com.sageserpent.americium.java.{
-  Builder,
-  CaseFactory,
-  Trials as JavaTrials,
-  TrialsApi as JavaTrialsApi
-}
+import com.sageserpent.americium.TrialsScaffolding.{noShrinking, noStopping}
+import com.sageserpent.americium.java.{Builder, CaseFactory, Trials as JavaTrials, TrialsApi as JavaTrialsApi}
 import cyclops.control.Either as JavaEither
 import org.mockito.ArgumentMatchers.{any, argThat}
 import org.mockito.Mockito
@@ -1592,6 +1587,48 @@ class TrialsSpec
     failureCounterWithoutAnyShrinkage.numberOfFailures should be(1)
   }
 
+  it should "be shrunk when the complexity is dependent on a factory produced value" in forAll(
+    Table(
+      ("maximumSize", "cutoff", "lowerBound", "upperBound", "casesLimit"),
+      (100, -900, -1250, 0, 400),
+      (100, 900, 0, 1250, 400),
+      (100, -900, -1000, 0, 500),
+      (100, 900, 0, 1000, 200),
+      (1000, -900, -1250, 0, 500),
+      (1000, 900, 0, 1250, 500),
+      (1000, -900, -1000, 0, 500),
+      (10000, 900, 0, 1000, 200),
+      (10000, -900, -1250, 0, 700),
+      (10000, 900, 0, 1250, 500),
+      (10000, -900, -1000, 0, 200),
+      (10000, 900, 0, 1000, 200)
+    )
+  ) { case (maximumSize, cutoff, lowerBound, upperBound, limit) =>
+    println(
+      "--------------------------------------------------------------------------"
+    )
+    println(
+      s"maximum size: $maximumSize, limit: $cutoff, lowerBound: $lowerBound, upperBound: $upperBound"
+    )
+
+    val sut = api
+      .integers(1, maximumSize)
+      .flatMap(api.integers(lowerBound, upperBound).listsOfSize(_))
+
+    val exception = intercept[sut.TrialException] {
+      sut
+        .withLimit(limit)
+        .supplyTo(list => {
+          if (list.map(_.abs).max >= cutoff.abs) {
+            println(list)
+            throw new RuntimeException
+          }
+        })
+    }
+
+    exception.provokingCase shouldBe List(cutoff)
+  }
+
   "test driving a trials for a recursive data structure" should "not produce smoke" in {
     listTrials
       .withLimit(limit)
@@ -1807,16 +1844,34 @@ class TrialsSpec
 
     val suts = api.longs and api.longs and api.longs
 
-    val trialException = {
-      // NOTE: have to crank the limit up to 50 to get such a nice minimisation,
-      // although 40 yields a pretty decent result too.
-      intercept[suts.TrialException](suts.withLimit(50).supplyTo {
-        case (x, y, z) =>
-          predicate(10)(x, y, z) shouldEqual predicate(9)(x, y, z)
-      })
-    }
+    val provokingCase =
+      intercept[suts.TrialException](
+        suts
+          .withLimits(casesLimit = 800, shrinkageStop = noShrinking)
+          .supplyTo { case (x, y, z) =>
+            predicate(threshold = 10)(x, y, z) shouldEqual predicate(threshold =
+              9
+            )(x, y, z)
+          }
+      ).provokingCase
 
-    println(trialException.provokingCase)
+    println(s"Provoking case: $provokingCase")
+
+    val minimisedProvokingCase =
+      intercept[suts.TrialException](
+        suts.withLimits(casesLimit = 800, shrinkageStop = noStopping).supplyTo {
+          case (x, y, z) =>
+            predicate(threshold = 10)(x, y, z) shouldEqual predicate(threshold =
+              9
+            )(x, y, z)
+        }
+      ).provokingCase
+
+    println(s"Minimised provoking case: $minimisedProvokingCase")
+
+    minimisedProvokingCase._1.abs shouldBe <(provokingCase._1.abs)
+    minimisedProvokingCase._2.abs shouldBe <(provokingCase._2.abs)
+    minimisedProvokingCase._3.abs shouldBe <(provokingCase._3.abs)
   }
 
   "combination with Scala `.or`" should "cover alternate finite choices" in {
@@ -1933,7 +1988,7 @@ class TrialsSpec
   }
 }
 
-class TrialsSpecInJVMProcessQuarantine
+class TrialsSpecInQuarantineDueToUseOfSystemProperty
     extends AnyFlatSpec
     with Matchers
     with TableDrivenPropertyChecks
@@ -2023,6 +2078,52 @@ class TrialsSpecInJVMProcessQuarantine
       exceptionRecreatedViaRecipeHash.recipeHash shouldBe exception.recipeHash
 
       verify(mockConsumer).apply(any())
+    }
+  }
+}
+
+class TrialsSpecInQuarantineDueToTheTestBeingLongRunning
+    extends AnyFlatSpec
+    with Matchers
+    with TableDrivenPropertyChecks
+    with MockitoSessionSupport {
+  import TrialsSpec.*
+
+  "lots of cases" should "be possible" in forAll(
+    Table(
+      "factory"    -> "limit",
+      api.integers -> 10000,
+      api.doubles  -> 10000,
+      api.stream(new CaseFactory[Long] {
+        override def apply(input: Long): Long     = input
+        override def lowerBoundInput(): Long      = Long.MinValue
+        override def upperBoundInput(): Long      = Long.MaxValue
+        override def maximallyShrunkInput(): Long = 0L
+      })           -> 10000,
+      api.integers -> 100000,
+      api.doubles  -> 100000,
+      api.stream(new CaseFactory[Long] {
+        override def apply(input: Long): Long     = input
+        override def lowerBoundInput(): Long      = Long.MinValue
+        override def upperBoundInput(): Long      = Long.MaxValue
+        override def maximallyShrunkInput(): Long = 0L
+      })           -> 100000,
+      api.integers -> 500000,
+      api.doubles  -> 500000,
+      api.stream(new CaseFactory[Long] {
+        override def apply(input: Long): Long     = input
+        override def lowerBoundInput(): Long      = Long.MinValue
+        override def upperBoundInput(): Long      = Long.MaxValue
+        override def maximallyShrunkInput(): Long = 0L
+      }) -> 500000
+    )
+  ) { case (factory, limit) =>
+    inMockitoSession {
+      val mockConsumer: Any => Unit = mock(classOf[Any => Unit])
+
+      factory.withLimit(limit).supplyTo(mockConsumer)
+
+      verify(mockConsumer, times(limit)).apply(any())
     }
   }
 }

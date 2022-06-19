@@ -11,6 +11,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.*;
 import java.util.stream.Stream;
 
@@ -23,6 +24,16 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class TrialsApiTests {
     private final static TrialsApi api = Trials.api();
+
+    static Iterator<ImmutableSet<String>> sets() {
+        return JUnit5Provider.of(30, api.strings().immutableSets());
+    }
+
+    static Iterator<Arguments> mixtures() {
+        return JUnit5Provider.of(32,
+                                 api.integers(),
+                                 api.strings().immutableMaps(api.booleans()));
+    }
 
     Trials<String> chainedIntegers() {
         return api.alternate(
@@ -165,20 +176,10 @@ public class TrialsApiTests {
                 .supplyTo(System.out::println);
     }
 
-    static Iterator<ImmutableSet<String>> sets() {
-        return JUnit5Provider.of(30, api.strings().immutableSets());
-    }
-
     @ParameterizedTest
     @MethodSource(value = "sets")
     void testDriveSetsProvider(ImmutableSet<String> distinctStrings) {
         System.out.println(distinctStrings);
-    }
-
-    static Iterator<Arguments> mixtures() {
-        return JUnit5Provider.of(32,
-                                 api.integers(),
-                                 api.strings().immutableMaps(api.booleans()));
     }
 
     @ParameterizedTest
@@ -224,7 +225,58 @@ public class TrialsApiTests {
                                                .toArray(Integer[]::new)));
             }
 
-            lists = api.lists(builder.build());
+            lists = api.immutableLists(builder.build());
+        }
+
+        lists.withLimit(100).supplyTo(list -> {
+            assertThat("The size of the list should be number of element " +
+                       "trials",
+                       list.size(),
+                       equalTo(numberOfElements));
+
+            System.out.println(list);
+
+            for (int index = 0; numberOfElements > index; ++index) {
+                assertThat("The range should not exceed the index",
+                           list.get(index),
+                           lessThanOrEqualTo(index));
+            }
+        });
+    }
+
+    @ParameterizedTest
+    @ValueSource(ints = {0, 1, 2, 5, 10})
+    void testDriveCollectionTrialsFromListOfTrials(int numberOfElements) {
+        final Trials<ImmutableList<Integer>> lists;
+
+        {
+            final ImmutableList.Builder<Trials<Integer>> builder =
+                    ImmutableList.builder();
+
+            for (int size = 1; numberOfElements >= size; ++size) {
+                builder.add(api.choose(Stream
+                                               .iterate(0,
+                                                        previous -> 1 +
+                                                                    previous)
+                                               .limit(size)
+                                               .toArray(Integer[]::new)));
+            }
+
+            lists = api.collections(builder.build(), () -> new Builder<Integer,
+                    ImmutableList<Integer>>() {
+                final ImmutableList.Builder<Integer> underlyingBuilder =
+                        ImmutableList.builder();
+
+                @Override
+                public void add(Integer caze) {
+                    underlyingBuilder.add(caze);
+                }
+
+                @Override
+                public ImmutableList<Integer> build() {
+                    return underlyingBuilder.build();
+                }
+            });
         }
 
         lists.withLimit(100).supplyTo(list -> {
@@ -387,6 +439,60 @@ public class TrialsApiTests {
                     third,
                     fourth);
             throw throwable;
+        }
+    }
+
+    @Test
+    void instantsCanBeShrunkToo() {
+        final Instant lowerBound = Instant.parse("2007-12-03T10:15:30.00Z");
+        final Instant upperBound = Instant.parse("2007-12-03T10:15:40.00Z");
+        final Instant shrinkageTarget =
+                Instant.parse("2007-12-03T10:15:30.12Z");
+
+        {
+            final Trials<Instant> instants =
+                    api.instants(lowerBound,
+                                 upperBound);
+
+            final TrialsFactoring.TrialException trialException = assertThrows(
+                    TrialsFactoring.TrialException.class,
+                    () -> instants.withLimit(10).supplyTo(unused -> {
+                        throw new RuntimeException();
+                    }));
+
+            assertThat(trialException.provokingCase(),
+                       equalTo(lowerBound));
+        }
+
+        {
+            final Trials<Instant> instants =
+                    api.instants(Instant.EPOCH.minusSeconds(25),
+                                 Instant.EPOCH);
+
+            final TrialsFactoring.TrialException trialException = assertThrows(
+                    TrialsFactoring.TrialException.class,
+                    () -> instants.withLimit(10).supplyTo(unused -> {
+                        throw new RuntimeException();
+                    }));
+
+            assertThat(trialException.provokingCase(),
+                       equalTo(Instant.EPOCH));
+        }
+
+        {
+            final Trials<Instant> instants =
+                    api.instants(lowerBound,
+                                 upperBound,
+                                 shrinkageTarget);
+
+            final TrialsFactoring.TrialException trialException = assertThrows(
+                    TrialsFactoring.TrialException.class,
+                    () -> instants.withLimit(10).supplyTo(unused -> {
+                        throw new RuntimeException();
+                    }));
+
+            assertThat(trialException.provokingCase(),
+                       equalTo(shrinkageTarget));
         }
     }
 

@@ -900,6 +900,10 @@ this lists the names of fields of type `Trials` that you define in your JUnit5 t
 non-static according to taste. Currently, each trials field is mapped one to one with a parameter of the annotated test
 method.
 
+(Remember, if you use non-static fields for your `Trials`, then you will have to annotate the test class
+with `@TestInstance(TestInstance.Lifecycle.PER_CLASS)`, analogously to how `@MethodSource` picks up non-static factory
+methods)
+
 Additional attributes in the annotation configure the test case generation analogously to calls to `.withLimits`. Take a
 look
 here: [JUnit5 integration](https://github.com/sageserpent-open/americium/blob/159e7203b957dff7517aaa5aa09f00b38be54bdb/src/test/scala/com/sageserpent/americium/java/DemonstrateJUnitIntegration.java#L59)
