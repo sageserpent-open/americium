@@ -2,12 +2,7 @@ package com.sageserpent.americium
 
 import com.sageserpent.americium.TrialsImplementation.recipeHashJavaPropertyName
 import com.sageserpent.americium.TrialsScaffolding.noShrinking
-import com.sageserpent.americium.java.{
-  Builder,
-  CaseFactory,
-  Trials as JavaTrials,
-  TrialsApi as JavaTrialsApi
-}
+import com.sageserpent.americium.java.{Builder, CaseFactory, Trials as JavaTrials, TrialsApi as JavaTrialsApi}
 import cyclops.control.Either as JavaEither
 import org.mockito.ArgumentMatchers.{any, argThat}
 import org.mockito.Mockito
@@ -16,6 +11,7 @@ import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.prop.TableDrivenPropertyChecks
 
+import _root_.java.lang.Integer as JavaInteger
 import _root_.java.util.function.{Consumer, Predicate, Function as JavaFunction}
 import _root_.java.util.stream.IntStream
 import _root_.java.util.{Optional, UUID, LinkedList as JavaLinkedList}
@@ -1214,6 +1210,37 @@ class TrialsSpec
       exceptionCriterion: Vector[X] => Boolean,
       limit: Int
   )
+
+  it should "not change when increasing the limit on how many cases are examined" in {
+    val maximumPowerOfTwo = JavaInteger.bitCount(JavaInteger.MAX_VALUE)
+
+    val sut: Trials[Int] = api.alternateWithWeights(
+      1 until maximumPowerOfTwo map (power =>
+        (1 max (maximumPowerOfTwo - power)) -> api.integers(0, (2 << power) - 1)
+      )
+    )
+
+    val baseLimit = 1000
+
+    def harvestExceptionUsingLimit(limit: Int) = {
+      intercept[sut.TrialException] {
+        sut.and(sut).withLimit(limit).supplyTo {
+          case (first: Int, second: Int) =>
+            if (10 >= first && first == second) throw new RuntimeException
+        }
+      }
+    }
+
+    val exceptionUsingBaseLimit = harvestExceptionUsingLimit(baseLimit)
+
+    (2 to 10) map (_ * baseLimit) map (limit =>
+      limit -> harvestExceptionUsingLimit(limit)
+    ) foreach { case (limit, exception) =>
+      withClue(s"Limit: $limit") {
+        exception.provokingCase shouldBe (exceptionUsingBaseLimit.provokingCase)
+      }
+    }
+  }
 
   it should "be shrunk to a simple case" in {
     def testBodyInWildcardCapture[X](
