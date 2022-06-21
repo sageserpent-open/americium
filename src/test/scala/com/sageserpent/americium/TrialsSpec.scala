@@ -1226,7 +1226,7 @@ class TrialsSpec
       intercept[sut.TrialException] {
         sut.and(sut).withLimit(limit).supplyTo {
           case (first: Int, second: Int) =>
-            if (10 >= first && first == second) throw new RuntimeException
+            if (10 <= first && first == second) throw new RuntimeException
         }
       }
     }
