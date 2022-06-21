@@ -1237,7 +1237,7 @@ class TrialsSpec
       limit -> harvestExceptionUsingLimit(limit)
     ) foreach { case (limit, exception) =>
       withClue(s"Limit: $limit") {
-        exception.provokingCase shouldBe (exceptionUsingBaseLimit.provokingCase)
+        exception.provokingCase shouldBe exceptionUsingBaseLimit.provokingCase
       }
     }
   }
