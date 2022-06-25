@@ -11,9 +11,21 @@ import com.google.common.collect.{Ordering as _, *}
 import com.google.common.hash
 import com.sageserpent.americium.TrialsApis.{javaApi, scalaApi}
 import com.sageserpent.americium.java.TrialsScaffolding.OptionalLimits
-import com.sageserpent.americium.java.{Builder, CaseFactory, CaseFailureReporting, InlinedCaseFiltration, TestIntegrationContext, TrialsScaffolding as JavaTrialsScaffolding, TrialsSkeletalImplementation as JavaTrialsSkeletalImplementation}
+import com.sageserpent.americium.java.{
+  Builder,
+  CaseFactory,
+  CaseFailureReporting,
+  InlinedCaseFiltration,
+  TestIntegrationContext,
+  TrialsScaffolding as JavaTrialsScaffolding,
+  TrialsSkeletalImplementation as JavaTrialsSkeletalImplementation
+}
 import com.sageserpent.americium.randomEnrichment.RichRandom
-import com.sageserpent.americium.{Trials as ScalaTrials, TrialsScaffolding as ScalaTrialsScaffolding, TrialsSkeletalImplementation as ScalaTrialsSkeletalImplementation}
+import com.sageserpent.americium.{
+  Trials as ScalaTrials,
+  TrialsScaffolding as ScalaTrialsScaffolding,
+  TrialsSkeletalImplementation as ScalaTrialsSkeletalImplementation
+}
 import cyclops.control.Either as JavaEither
 import fs2.{Pull, Stream as Fs2Stream}
 import io.circe.generic.auto.*
@@ -23,7 +35,11 @@ import org.rocksdb.*
 
 import _root_.java.nio.file.Path
 import _root_.java.util.function.{Consumer, Predicate}
-import _root_.java.util.{ArrayList as JavaArrayList, Iterator as JavaIterator, Optional as JavaOptional}
+import _root_.java.util.{
+  ArrayList as JavaArrayList,
+  Iterator as JavaIterator,
+  Optional as JavaOptional
+}
 import scala.annotation.tailrec
 import scala.collection.immutable.SortedMap
 import scala.collection.mutable

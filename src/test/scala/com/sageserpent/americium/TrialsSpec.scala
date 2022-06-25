@@ -2,7 +2,12 @@ package com.sageserpent.americium
 
 import com.sageserpent.americium.TrialsImplementation.recipeHashJavaPropertyName
 import com.sageserpent.americium.TrialsScaffolding.{noShrinking, noStopping}
-import com.sageserpent.americium.java.{Builder, CaseFactory, Trials as JavaTrials, TrialsApi as JavaTrialsApi}
+import com.sageserpent.americium.java.{
+  Builder,
+  CaseFactory,
+  Trials as JavaTrials,
+  TrialsApi as JavaTrialsApi
+}
 import cyclops.control.Either as JavaEither
 import org.mockito.ArgumentMatchers.{any, argThat}
 import org.mockito.Mockito
@@ -1623,17 +1628,17 @@ class TrialsSpec
     Table(
       ("maximumSize", "cutoff", "lowerBound", "upperBound", "casesLimit"),
       (100, -900, -1250, 0, 400),
-      (100, 900, 0, 1250, 400),
+      (100, 900, 0, 1250, 420),
       (100, -900, -1000, 0, 500),
       (100, 900, 0, 1000, 200),
       (1000, -900, -1250, 0, 500),
       (1000, 900, 0, 1250, 500),
       (1000, -900, -1000, 0, 500),
-      (10000, 900, 0, 1000, 200),
+      (10000, 900, 0, 1000, 230),
       (10000, -900, -1250, 0, 700),
       (10000, 900, 0, 1250, 500),
       (10000, -900, -1000, 0, 200),
-      (10000, 900, 0, 1000, 200)
+      (10000, 900, 0, 1000, 230)
     )
   ) { case (maximumSize, cutoff, lowerBound, upperBound, limit) =>
     println(
