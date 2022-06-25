@@ -1,7 +1,7 @@
 package com.sageserpent.americium
 
 import com.sageserpent.americium.TrialsImplementation.recipeHashJavaPropertyName
-import com.sageserpent.americium.TrialsScaffolding.noShrinking
+import com.sageserpent.americium.TrialsScaffolding.{noShrinking, noStopping}
 import com.sageserpent.americium.java.{Builder, CaseFactory, Trials as JavaTrials, TrialsApi as JavaTrialsApi}
 import cyclops.control.Either as JavaEither
 import org.mockito.ArgumentMatchers.{any, argThat}
@@ -1621,26 +1621,26 @@ class TrialsSpec
 
   it should "be shrunk when the complexity is dependent on a factory produced value" in forAll(
     Table(
-      ("maximumSize", "limit", "lowerBound", "upperBound"),
-      (100, -900, -1250, 0),
-      (100, 900, 0, 1250),
-      (100, -900, -1000, 0),
-      (100, 900, 0, 1000),
-      (1000, -900, -1250, 0),
-      (1000, 900, 0, 1250),
-      (1000, -900, -1000, 0),
-      (10000, 900, 0, 1000),
-      (10000, -900, -1250, 0),
-      (10000, 900, 0, 1250),
-      (10000, -900, -1000, 0),
-      (10000, 900, 0, 1000)
+      ("maximumSize", "cutoff", "lowerBound", "upperBound", "casesLimit"),
+      (100, -900, -1250, 0, 400),
+      (100, 900, 0, 1250, 400),
+      (100, -900, -1000, 0, 500),
+      (100, 900, 0, 1000, 200),
+      (1000, -900, -1250, 0, 500),
+      (1000, 900, 0, 1250, 500),
+      (1000, -900, -1000, 0, 500),
+      (10000, 900, 0, 1000, 200),
+      (10000, -900, -1250, 0, 700),
+      (10000, 900, 0, 1250, 500),
+      (10000, -900, -1000, 0, 200),
+      (10000, 900, 0, 1000, 200)
     )
-  ) { case (maximumSize, limit, lowerBound, upperBound) =>
+  ) { case (maximumSize, cutoff, lowerBound, upperBound, limit) =>
     println(
       "--------------------------------------------------------------------------"
     )
     println(
-      s"maximum size: $maximumSize, limit: $limit, lowerBound: $lowerBound, upperBound: $upperBound"
+      s"maximum size: $maximumSize, limit: $cutoff, lowerBound: $lowerBound, upperBound: $upperBound"
     )
 
     val sut = api
@@ -1649,16 +1649,16 @@ class TrialsSpec
 
     val exception = intercept[sut.TrialException] {
       sut
-        .withLimit(200)
+        .withLimit(limit)
         .supplyTo(list => {
-          if (list.map(_.abs).max >= limit.abs) {
+          if (list.map(_.abs).max >= cutoff.abs) {
             println(list)
             throw new RuntimeException
           }
         })
     }
 
-    exception.provokingCase shouldBe List(limit)
+    exception.provokingCase shouldBe List(cutoff)
   }
 
   "test driving a trials for a recursive data structure" should "not produce smoke" in {
@@ -1876,18 +1876,34 @@ class TrialsSpec
 
     val suts = api.longs and api.longs and api.longs
 
-    val trialException = {
-      // NOTE: have to crank the limit up to 50 to get such a nice minimisation,
-      // although 40 yields a pretty decent result too.
-      intercept[suts.TrialException](suts.withLimit(50).supplyTo {
-        case (x, y, z) =>
-          predicate(threshold = 10)(x, y, z) shouldEqual predicate(threshold =
-            9
-          )(x, y, z)
-      })
-    }
+    val provokingCase =
+      intercept[suts.TrialException](
+        suts
+          .withLimits(casesLimit = 800, shrinkageStop = noShrinking)
+          .supplyTo { case (x, y, z) =>
+            predicate(threshold = 10)(x, y, z) shouldEqual predicate(threshold =
+              9
+            )(x, y, z)
+          }
+      ).provokingCase
 
-    println(trialException.provokingCase)
+    println(s"Provoking case: $provokingCase")
+
+    val minimisedProvokingCase =
+      intercept[suts.TrialException](
+        suts.withLimits(casesLimit = 800, shrinkageStop = noStopping).supplyTo {
+          case (x, y, z) =>
+            predicate(threshold = 10)(x, y, z) shouldEqual predicate(threshold =
+              9
+            )(x, y, z)
+        }
+      ).provokingCase
+
+    println(s"Minimised provoking case: $minimisedProvokingCase")
+
+    minimisedProvokingCase._1.abs shouldBe <(provokingCase._1.abs)
+    minimisedProvokingCase._2.abs shouldBe <(provokingCase._2.abs)
+    minimisedProvokingCase._3.abs shouldBe <(provokingCase._3.abs)
   }
 
   "combination with Scala `.or`" should "cover alternate finite choices" in {

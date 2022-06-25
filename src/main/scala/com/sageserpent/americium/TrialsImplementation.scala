@@ -39,6 +39,8 @@ object TrialsImplementation {
 
   val runDatabaseDefault = "trialsRunDatabase"
 
+  val minimumScaleDeflationLevel = 0
+
   val maximumScaleDeflationLevel = 50
 
   val rocksDbOptions = new DBOptions()
@@ -373,7 +375,7 @@ case class TrialsImplementation[Case](
       case class CaseData(
           caze: Case,
           decisionStagesInReverseOrder: DecisionStagesInReverseOrder,
-          factoryInputsCost: BigInt
+          cost: BigInt
       )
 
       type ShrinkageIsImproving =
@@ -394,7 +396,11 @@ case class TrialsImplementation[Case](
           InlinedCaseFiltration
       ) = {
         scaleDeflationLevel.foreach(level =>
-          require((0 to maximumScaleDeflationLevel).contains(level))
+          require(
+            (minimumScaleDeflationLevel to maximumScaleDeflationLevel).contains(
+              level
+            )
+          )
         )
 
         // This is used instead of a straight `Option[Case]` to avoid stack
@@ -411,30 +417,18 @@ case class TrialsImplementation[Case](
             decisionStagesToGuideShrinkage: Option[DecisionStages],
             decisionStagesInReverseOrder: DecisionStagesInReverseOrder,
             complexity: Int,
-            factoryInputsCost: BigInt
+            cost: BigInt
         ) {
           def update(
               remainingGuidance: Option[DecisionStages],
-              decision: ChoiceOf
-          ): State = copy(
-            decisionStagesToGuideShrinkage = remainingGuidance,
-            decisionStagesInReverseOrder =
-              decisionStagesInReverseOrder.addLatest(decision),
-            complexity = 1 + complexity
-          )
-
-          def update(
-              remainingGuidance: Option[DecisionStages],
-              decision: FactoryInputOf,
-              maximallyShrunkInput: Long
+              decision: Decision,
+              costIncrement: BigInt = BigInt(0)
           ): State = copy(
             decisionStagesToGuideShrinkage = remainingGuidance,
             decisionStagesInReverseOrder =
               decisionStagesInReverseOrder.addLatest(decision),
             complexity = 1 + complexity,
-            factoryInputsCost = factoryInputsCost + (BigInt(
-              decision.input
-            ) - maximallyShrunkInput).pow(2)
+            cost = cost + costIncrement
           )
         }
 
@@ -443,7 +437,7 @@ case class TrialsImplementation[Case](
             decisionStagesToGuideShrinkage = decisionStagesToGuideShrinkage,
             decisionStagesInReverseOrder = NoDecisionStages,
             complexity = 0,
-            factoryInputsCost = BigInt(0)
+            cost = BigInt(0)
           )
         }
 
@@ -463,7 +457,7 @@ case class TrialsImplementation[Case](
         val possibilitiesThatFollowSomeChoiceOfDecisionStages =
           mutable.Map.empty[DecisionStagesInReverseOrder, Possibilities]
 
-        def interpreter(depth: Int): GenerationOperation ~> StateUpdating =
+        def interpreter(): GenerationOperation ~> StateUpdating =
           new (GenerationOperation ~> StateUpdating) {
             override def apply[Case](
                 generationOperation: GenerationOperation[Case]
@@ -532,15 +526,26 @@ case class TrialsImplementation[Case](
                     .flatMap(state =>
                       state.decisionStagesToGuideShrinkage match {
                         case Some(
-                              FactoryInputOf(guideIndex) :: remainingGuidance
+                              FactoryInputOf(guideInput) :: remainingGuidance
                             )
-                            if factory
-                              .lowerBoundInput() <= guideIndex && factory
-                              .upperBoundInput() >= guideIndex =>
-                          val index = Math
+                            if (remainingGuidance.forall(_ match {
+                              case _: FactoryInputOf => false
+                              case _: ChoiceOf       => true
+                            }) || 1 < randomBehaviour
+                              .chooseAnyNumberFromOneTo(
+                                1 + remainingGuidance
+                                  .filter(_ match {
+                                    case _: FactoryInputOf => true
+                                    case _: ChoiceOf       => false
+                                  })
+                                  .size
+                              )) && factory
+                              .lowerBoundInput() <= guideInput && factory
+                              .upperBoundInput() >= guideInput =>
+                          val input = Math
                             .round(
                               factory.maximallyShrunkInput() + randomBehaviour
-                                .nextDouble() * (guideIndex - factory
+                                .nextDouble() * (guideInput - factory
                                 .maximallyShrunkInput())
                             )
 
@@ -548,11 +553,12 @@ case class TrialsImplementation[Case](
                             _ <- StateT.set[DeferredOption, State](
                               state.update(
                                 Some(remainingGuidance),
-                                FactoryInputOf(index),
-                                factory.maximallyShrunkInput()
+                                FactoryInputOf(input),
+                                (BigInt(input) - factory.maximallyShrunkInput())
+                                  .pow(2)
                               )
                             )
-                          } yield factory(index)
+                          } yield factory(input)
                         case _ =>
                           for {
                             _ <- liftUnitIfTheComplexityIsNotTooLarge(state)
@@ -575,15 +581,18 @@ case class TrialsImplementation[Case](
                                 // Calibrate the scale to come out at around one
                                 // at maximum shrinkage, even though the guard
                                 // clause above handles maximum shrinkage
-                                // explicitly.
+                                // explicitly. Also handle an explicit scale
+                                // deflation level of zero in the same manner as
+                                // the implicit situation.
                                 val scale: BigDecimal =
-                                  scaleDeflationLevel.fold(maximumScale)(
-                                    level =>
+                                  scaleDeflationLevel
+                                    .filter(minimumScaleDeflationLevel < _)
+                                    .fold(maximumScale)(level =>
                                       maximumScale / Math.pow(
                                         maximumScale.toDouble,
                                         level.toDouble / maximumScaleDeflationLevel
                                       )
-                                  )
+                                    )
                                 val blend: BigDecimal = scale / maximumScale
 
                                 val midPoint: BigDecimal =
@@ -607,9 +616,11 @@ case class TrialsImplementation[Case](
                             }
                             _ <- StateT.set[DeferredOption, State](
                               state.update(
-                                None,
+                                state.decisionStagesToGuideShrinkage
+                                  .map(_.tail),
                                 FactoryInputOf(input),
-                                factory.maximallyShrunkInput()
+                                (BigInt(input) - factory.maximallyShrunkInput())
+                                  .pow(2)
                               )
                             )
                           } yield factory(input)
@@ -625,6 +636,7 @@ case class TrialsImplementation[Case](
                   } yield state.complexity
 
                 case ResetComplexity(complexity)
+                    // NOTE: only when *not* shrinking.
                     if scaleDeflationLevel.isEmpty =>
                   for {
                     _ <- StateT.modify[DeferredOption, State](
@@ -704,7 +716,7 @@ case class TrialsImplementation[Case](
                 Fs2Stream
                   .eval(SyncIO {
                     generation
-                      .foldMap(interpreter(depth = 0))
+                      .foldMap(interpreter())
                       .run(State.initial)
                       .value
                       .value match {
@@ -906,7 +918,7 @@ case class TrialsImplementation[Case](
                 shrinkageIsImproving = {
                   case (decisionStagesInReverseOrder, factoryInputsCost) =>
                     decisionStagesInReverseOrder.size < caseData.decisionStagesInReverseOrder.size
-                    || (factoryInputsCost <= caseData.factoryInputsCost)
+                    || (factoryInputsCost <= caseData.cost)
                 },
                 decisionStagesToGuideShrinkage = Option.when(
                   0 < numberOfShrinksInPanicModeIncludingThisOne
