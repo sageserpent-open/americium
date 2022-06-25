@@ -376,11 +376,18 @@ case class TrialsImplementation[Case](
           factoryInputsCost: BigInt
       )
 
+      type ShrinkageIsImproving =
+        Function[(DecisionStagesInReverseOrder, BigInt), Boolean]
+
+      val potentialDuplicates =
+        mutable.Set.empty[DecisionStagesInReverseOrder]
+
       private def cases(
           limit: Int,
           complexityLimit: Int,
           randomBehaviour: Random,
           scaleDeflationLevel: Option[Int],
+          shrinkageIsImproving: ShrinkageIsImproving,
           decisionStagesToGuideShrinkage: Option[DecisionStages]
       ): (
           Fs2Stream[SyncIO, CaseData],
@@ -648,8 +655,6 @@ case class TrialsImplementation[Case](
           var starvationCountdown: Int         = limit
           var backupOfStarvationCountdown      = 0
           var numberOfUniqueCasesProduced: Int = 0
-          val potentialDuplicates =
-            mutable.Set.empty[DecisionStagesInReverseOrder]
 
           val inlinedCaseFiltration: InlinedCaseFiltration =
             new InlinedCaseFiltration {
@@ -708,14 +713,17 @@ case class TrialsImplementation[Case](
                               State(_, decisionStages, _, factoryInputsCost),
                               caze
                             )
-                          ) if potentialDuplicates.add(decisionStages) =>
-                        {
-                          numberOfUniqueCasesProduced += 1
-                          backupOfStarvationCountdown = starvationCountdown
-                          starvationCountdown = Math
-                            .round(Math.sqrt(limit.toDouble * remainingGap))
-                            .toInt
-                        }
+                          )
+                          if potentialDuplicates
+                            .add(decisionStages) && shrinkageIsImproving(
+                            decisionStages,
+                            factoryInputsCost
+                          ) =>
+                        backupOfStarvationCountdown = starvationCountdown
+                        starvationCountdown = Math
+                          .round(Math.sqrt(limit.toDouble * remainingGap))
+                          .toInt
+                        numberOfUniqueCasesProduced += 1
 
                         Some(CaseData(caze, decisionStages, factoryInputsCost))
                       case _ =>
@@ -895,108 +903,89 @@ case class TrialsImplementation[Case](
                 numberOfDecisionStages,
                 randomBehaviour,
                 scaleDeflationLevel = Some(scaleDeflationLevel),
+                shrinkageIsImproving = {
+                  case (decisionStagesInReverseOrder, factoryInputsCost) =>
+                    decisionStagesInReverseOrder.size < caseData.decisionStagesInReverseOrder.size
+                    || (factoryInputsCost <= caseData.factoryInputsCost)
+                },
                 decisionStagesToGuideShrinkage = Option.when(
                   0 < numberOfShrinksInPanicModeIncludingThisOne
                 )(caseData.decisionStagesInReverseOrder.reverse)
               ) match {
                 case (cases, inlinedCaseFiltration) =>
-                  cases.flatMap {
-                    case potentialShrunkCaseData
-                        if potentialShrunkCaseData.decisionStagesInReverseOrder.size < caseData.decisionStagesInReverseOrder.size
-                          || potentialShrunkCaseData.factoryInputsCost <= caseData.factoryInputsCost =>
-                      if (
-                        caseData.decisionStagesInReverseOrder == potentialShrunkCaseData.decisionStagesInReverseOrder
-                      ) {
-                        // NOTE: we have to make sure that the calling
-                        // invocation of `shrink` was also in panic mode, as
-                        // it is legitimate for the first panic shrinkage to
-                        // arrive at the same result as a non-panic calling
-                        // invocation, and this does indeed occur for some
-                        // non-trivial panic mode shrinkage sequences at the
-                        // start of panic mode. Otherwise if we were already
-                        // in panic mode in the calling invocation, this is
-                        // a sign that there is nothing left to usefully
-                        // shrink down, as otherwise the failure won't be
-                        // provoked at all.
+                  cases.flatMap { case potentialShrunkCaseData =>
+                    Fs2Stream.emit(
+                      TestIntegrationContextImplementation(
+                        caze = potentialShrunkCaseData.caze,
+                        caseFailureReporting =
+                          (throwableFromPotentialShrunkCase: Throwable) => {
 
-                        Fs2Stream.empty
-                      } else {
-                        Fs2Stream.emit(
-                          TestIntegrationContextImplementation(
-                            caze = potentialShrunkCaseData.caze,
-                            caseFailureReporting =
-                              (throwableFromPotentialShrunkCase: Throwable) => {
+                            assert(
+                              potentialShrunkCaseData.decisionStagesInReverseOrder.size <= numberOfDecisionStages
+                            )
 
-                                assert(
-                                  potentialShrunkCaseData.decisionStagesInReverseOrder.size <= numberOfDecisionStages
-                                )
+                            val lessComplex =
+                              potentialShrunkCaseData.decisionStagesInReverseOrder.size < numberOfDecisionStages
 
-                                val lessComplex =
-                                  potentialShrunkCaseData.decisionStagesInReverseOrder.size < numberOfDecisionStages
+                            val stillEnoughRoomToDecreaseScale =
+                              scaleDeflationLevel < maximumScaleDeflationLevel
 
-                                val stillEnoughRoomToDecreaseScale =
-                                  scaleDeflationLevel < maximumScaleDeflationLevel
+                            shrinkageCasesFromDownstream = Some(
+                              {
+                                val scaleDeflationLevelForRecursion =
+                                  if (
+                                    stillEnoughRoomToDecreaseScale && !lessComplex
+                                  )
+                                    1 + scaleDeflationLevel
+                                  else scaleDeflationLevel
 
-                                shrinkageCasesFromDownstream = Some(
-                                  {
-                                    val scaleDeflationLevelForRecursion =
-                                      if (
-                                        stillEnoughRoomToDecreaseScale && !lessComplex
-                                      )
-                                        1 + scaleDeflationLevel
-                                      else scaleDeflationLevel
-
+                                shrink(
+                                  caseData = potentialShrunkCaseData,
+                                  throwable = throwableFromPotentialShrunkCase,
+                                  shrinkageAttemptIndex =
+                                    1 + shrinkageAttemptIndex,
+                                  scaleDeflationLevel =
+                                    scaleDeflationLevelForRecursion,
+                                  casesLimit =
+                                    limitWithExtraLeewayThatHasBeenObservedToFindBetterShrunkCases,
+                                  numberOfShrinksInPanicModeIncludingThisOne =
+                                    0,
+                                  externalStoppingCondition =
+                                    externalStoppingCondition,
+                                  exhaustionStrategy = {
+                                    // At this point, slogging through the
+                                    // potential shrunk cases failed to
+                                    // find any failures; go into (or
+                                    // remain in) panic mode...
                                     shrink(
                                       caseData = potentialShrunkCaseData,
                                       throwable =
                                         throwableFromPotentialShrunkCase,
                                       shrinkageAttemptIndex =
                                         1 + shrinkageAttemptIndex,
-                                      scaleDeflationLevel =
-                                        scaleDeflationLevelForRecursion,
+                                      scaleDeflationLevel = scaleDeflationLevel,
                                       casesLimit =
                                         limitWithExtraLeewayThatHasBeenObservedToFindBetterShrunkCases,
                                       numberOfShrinksInPanicModeIncludingThisOne =
-                                        0,
+                                        1 + numberOfShrinksInPanicModeIncludingThisOne,
                                       externalStoppingCondition =
                                         externalStoppingCondition,
                                       exhaustionStrategy = {
-                                        // At this point, slogging through the
-                                        // potential shrunk cases failed to
-                                        // find any failures; go into (or
-                                        // remain in) panic mode...
-                                        shrink(
-                                          caseData = potentialShrunkCaseData,
-                                          throwable =
-                                            throwableFromPotentialShrunkCase,
-                                          shrinkageAttemptIndex =
-                                            1 + shrinkageAttemptIndex,
-                                          scaleDeflationLevel =
-                                            scaleDeflationLevel,
-                                          casesLimit =
-                                            limitWithExtraLeewayThatHasBeenObservedToFindBetterShrunkCases,
-                                          numberOfShrinksInPanicModeIncludingThisOne =
-                                            1 + numberOfShrinksInPanicModeIncludingThisOne,
-                                          externalStoppingCondition =
-                                            externalStoppingCondition,
-                                          exhaustionStrategy = {
-                                            raiseTrialException(
-                                              throwableFromPotentialShrunkCase,
-                                              potentialShrunkCaseData
-                                            )
-                                          }
+                                        raiseTrialException(
+                                          throwableFromPotentialShrunkCase,
+                                          potentialShrunkCaseData
                                         )
                                       }
                                     )
                                   }
                                 )
-                              },
-                            inlinedCaseFiltration = inlinedCaseFiltration,
-                            isPartOfShrinkage = true
-                          )
-                        )
-                      }
-                    case _ => Fs2Stream.empty
+                              }
+                            )
+                          },
+                        inlinedCaseFiltration = inlinedCaseFiltration,
+                        isPartOfShrinkage = true
+                      )
+                    )
                   }
               }
 
@@ -1009,6 +998,7 @@ case class TrialsImplementation[Case](
             complexityLimit,
             randomBehaviour,
             scaleDeflationLevel = None,
+            shrinkageIsImproving = _ => true,
             decisionStagesToGuideShrinkage = None
           ) match {
             case (cases, inlinedCaseFiltration) =>
