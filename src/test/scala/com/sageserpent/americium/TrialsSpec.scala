@@ -1211,33 +1211,55 @@ class TrialsSpec
       limit: Int
   )
 
-  it should "not change when increasing the limit on how many cases are examined" in {
+  it should "only produce additional shrunk cases after revisiting shrunk cases yielded with a lesser cases limit" in {
     val maximumPowerOfTwo = JavaInteger.bitCount(JavaInteger.MAX_VALUE)
 
-    val sut: Trials[Int] = api.alternateWithWeights(
-      1 until maximumPowerOfTwo map (power =>
-        (1 max (maximumPowerOfTwo - power)) -> api.integers(0, (2 << power) - 1)
+    val scaleForClusteredValues = 10000
+
+    val sut: Trials[Int] = api
+      .integers(1, 1 << (maximumPowerOfTwo / 3))
+      .map(x =>
+        (scaleForClusteredValues + x * x) * x / (scaleForClusteredValues + x)
       )
-    )
 
-    val baseLimit = 1000
+    val baseLimit = 200
 
-    def harvestExceptionUsingLimit(limit: Int) = {
-      intercept[sut.TrialException] {
+    def shrinkageSequenceUsingLimit(limit: Int): Seq[(Int, (Int, Int))] = {
+      val shrinkageSequence: mutable.ListBuffer[(Int, (Int, Int))] =
+        mutable.ListBuffer.empty
+
+      var count = 0
+
+      assertThrows[sut.TrialException] {
         sut.and(sut).withLimit(limit).supplyTo {
           case (first: Int, second: Int) =>
-            if (10 >= first && first == second) throw new RuntimeException
+            val capturedCount = count
+
+            count += 1
+
+            if (10 <= first && (1 to 4 contains (first - second).abs)) {
+              println(s"Count: $capturedCount Case: ${first -> second}")
+
+              shrinkageSequence += ((count, first -> second))
+
+              throw new RuntimeException
+            }
         }
       }
+
+      shrinkageSequence.toSeq
     }
 
-    val exceptionUsingBaseLimit = harvestExceptionUsingLimit(baseLimit)
+    val shrinkageSequenceUsingBaseLimit = shrinkageSequenceUsingLimit(baseLimit)
 
-    (2 to 10) map (_ * baseLimit) map (limit =>
-      limit -> harvestExceptionUsingLimit(limit)
-    ) foreach { case (limit, exception) =>
-      withClue(s"Limit: $limit") {
-        exception.provokingCase shouldBe (exceptionUsingBaseLimit.provokingCase)
+    (2 to 10) map (_ * baseLimit) foreach { casesLimit =>
+      println(s"----- Cases limit: $casesLimit -----")
+      val shrinkageSequence = shrinkageSequenceUsingLimit(casesLimit)
+
+      withClue(s"Cases limit: $casesLimit") {
+        shrinkageSequence.take(
+          shrinkageSequenceUsingBaseLimit.size
+        ) should contain theSameElementsInOrderAs shrinkageSequenceUsingBaseLimit
       }
     }
   }
