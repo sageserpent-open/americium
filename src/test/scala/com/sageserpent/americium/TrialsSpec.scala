@@ -2,12 +2,7 @@ package com.sageserpent.americium
 
 import com.sageserpent.americium.TrialsImplementation.recipeHashJavaPropertyName
 import com.sageserpent.americium.TrialsScaffolding.{noShrinking, noStopping}
-import com.sageserpent.americium.java.{
-  Builder,
-  CaseFactory,
-  Trials as JavaTrials,
-  TrialsApi as JavaTrialsApi
-}
+import com.sageserpent.americium.java.{Builder, CaseFactory, Trials as JavaTrials, TrialsApi as JavaTrialsApi}
 import cyclops.control.Either as JavaEither
 import org.mockito.ArgumentMatchers.{any, argThat}
 import org.mockito.Mockito
@@ -1216,7 +1211,7 @@ class TrialsSpec
       limit: Int
   )
 
-  it should "not change when increasing the limit on how many cases are examined" in {
+  it should "not change when increasing the limit on how many cases are examined if failing cases are readily available" in {
     val maximumPowerOfTwo = JavaInteger.bitCount(JavaInteger.MAX_VALUE)
 
     val sut: Trials[Int] = api.alternateWithWeights(
@@ -1231,17 +1226,22 @@ class TrialsSpec
       intercept[sut.TrialException] {
         sut.and(sut).withLimit(limit).supplyTo {
           case (first: Int, second: Int) =>
-            if (10 <= first && first == second) throw new RuntimeException
+            if (10 <= first && first == second) {
+              println(s"Failing case: ${first -> second}")
+
+              throw new RuntimeException
+            }
         }
       }
     }
 
     val exceptionUsingBaseLimit = harvestExceptionUsingLimit(baseLimit)
 
-    (2 to 10) map (_ * baseLimit) map (limit =>
+    (2 to 10) map (_ * baseLimit) map { limit =>
+      println(s"Limit $limit")
       limit -> harvestExceptionUsingLimit(limit)
-    ) foreach { case (limit, exception) =>
-      withClue(s"Limit: $limit") {
+    } foreach { case (limit, exception) =>
+      withClue(s"------ Limit: $limit ------") {
         exception.provokingCase shouldBe exceptionUsingBaseLimit.provokingCase
       }
     }
