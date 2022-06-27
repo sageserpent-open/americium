@@ -1227,7 +1227,7 @@ class TrialsSpec
         (scaleForClusteredValues + x * x) * x / (scaleForClusteredValues + x)
       )
 
-    val baseLimit = 200
+    val baseLimit = 1000
 
     def shrinkageSequenceUsingLimit(casesLimit: Int): Seq[(Int, (Int, Int))] = {
       println(s"----- Cases limit: $casesLimit -----")
@@ -1244,7 +1244,7 @@ class TrialsSpec
 
             count += 1
 
-            if (10 <= first && (1 to 4 contains (first - second).abs)) {
+            if (10 <= first && first == second) {
               println(s"Count: $capturedCount Case: ${first -> second}")
 
               shrinkageSequence += ((count, first -> second))
@@ -1258,12 +1258,12 @@ class TrialsSpec
     }
 
     val shrinkageSequencesByLimit =
-      ((1 to 10) map (_ * baseLimit) map (casesLimit =>
+      ((1 to 25) map (_ * baseLimit) map (casesLimit =>
         casesLimit -> shrinkageSequenceUsingLimit(casesLimit)
       ))
 
-    val commonPrefixes = shrinkageSequencesByLimit.tail
-      .zip(shrinkageSequencesByLimit)
+    val commonPrefixes = shrinkageSequencesByLimit
+      .zip(shrinkageSequencesByLimit.tail)
       .map {
         case (
               (_, precedingShrinkageSequence),
@@ -1276,7 +1276,7 @@ class TrialsSpec
 
       }
 
-    commonPrefixes.tail.zip(commonPrefixes).foreach {
+    commonPrefixes.zip(commonPrefixes.tail).foreach {
       case (
             (precedingCasesLimit, precedingCommonPrefix),
             (casesLimit, commonPrefix)
@@ -1666,6 +1666,48 @@ class TrialsSpec
     failureCounterWithoutAnyShrinkage.numberOfFailures should be(1)
   }
 
+  it should "be shrunk when the complexity is dependent on a factory produced value" in forAll(
+    Table(
+      ("maximumSize", "limit", "lowerBound", "upperBound"),
+      (100, -900, -1250, 0),
+      (100, 900, 0, 1250),
+      (100, -900, -1000, 0),
+      (100, 900, 0, 1000),
+      (1000, -900, -1250, 0),
+      (1000, 900, 0, 1250),
+      (1000, -900, -1000, 0),
+      (10000, 900, 0, 1000),
+      (10000, -900, -1250, 0),
+      (10000, 900, 0, 1250),
+      (10000, -900, -1000, 0),
+      (10000, 900, 0, 1000)
+    )
+  ) { case (maximumSize, limit, lowerBound, upperBound) =>
+    println(
+      "--------------------------------------------------------------------------"
+    )
+    println(
+      s"maximum size: $maximumSize, limit: $limit, lowerBound: $lowerBound, upperBound: $upperBound"
+    )
+
+    val sut = api
+      .integers(1, maximumSize)
+      .flatMap(api.integers(lowerBound, upperBound).listsOfSize(_))
+
+    val exception = intercept[sut.TrialException] {
+      sut
+        .withLimit(200)
+        .supplyTo(list => {
+          if (list.map(_.abs).max >= limit.abs) {
+            println(list)
+            throw new RuntimeException
+          }
+        })
+    }
+
+    exception.provokingCase shouldBe List(limit)
+  }
+
   "test driving a trials for a recursive data structure" should "not produce smoke" in {
     listTrials
       .withLimit(limit)
@@ -1886,7 +1928,9 @@ class TrialsSpec
       // although 40 yields a pretty decent result too.
       intercept[suts.TrialException](suts.withLimit(50).supplyTo {
         case (x, y, z) =>
-          predicate(10)(x, y, z) shouldEqual predicate(9)(x, y, z)
+          predicate(threshold = 10)(x, y, z) shouldEqual predicate(threshold =
+            9
+          )(x, y, z)
       })
     }
 
