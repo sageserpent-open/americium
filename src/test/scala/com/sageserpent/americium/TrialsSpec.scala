@@ -1227,7 +1227,7 @@ class TrialsSpec
         (scaleForClusteredValues + x * x) * x / (scaleForClusteredValues + x)
       )
 
-    val baseLimit = 200
+    val baseLimit = 1000
 
     def shrinkageSequenceUsingLimit(casesLimit: Int): Seq[(Int, (Int, Int))] = {
       println(s"----- Cases limit: $casesLimit -----")
@@ -1244,7 +1244,7 @@ class TrialsSpec
 
             count += 1
 
-            if (10 <= first && (1 to 4 contains (first - second).abs)) {
+            if (10 <= first && first == second) {
               println(s"Count: $capturedCount Case: ${first -> second}")
 
               shrinkageSequence += ((count, first -> second))
@@ -1258,12 +1258,12 @@ class TrialsSpec
     }
 
     val shrinkageSequencesByLimit =
-      ((1 to 10) map (_ * baseLimit) map (casesLimit =>
+      ((1 to 25) map (_ * baseLimit) map (casesLimit =>
         casesLimit -> shrinkageSequenceUsingLimit(casesLimit)
       ))
 
-    val commonPrefixes = shrinkageSequencesByLimit.tail
-      .zip(shrinkageSequencesByLimit)
+    val commonPrefixes = shrinkageSequencesByLimit
+      .zip(shrinkageSequencesByLimit.tail)
       .map {
         case (
               (_, precedingShrinkageSequence),
@@ -1276,7 +1276,7 @@ class TrialsSpec
 
       }
 
-    commonPrefixes.tail.zip(commonPrefixes).foreach {
+    commonPrefixes.zip(commonPrefixes.tail).foreach {
       case (
             (precedingCasesLimit, precedingCommonPrefix),
             (casesLimit, commonPrefix)
