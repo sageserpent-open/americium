@@ -1240,12 +1240,10 @@ class TrialsSpec
       assertThrows[sut.TrialException] {
         sut.and(sut).withLimit(casesLimit).supplyTo {
           case (first: Int, second: Int) =>
-            val capturedCount = count
-
             count += 1
 
             if (10 <= first && first == second) {
-              println(s"Count: $capturedCount Case: ${first -> second}")
+              println(s"Count: $count Case: ${first -> second}")
 
               shrinkageSequence += ((count, first -> second))
 
