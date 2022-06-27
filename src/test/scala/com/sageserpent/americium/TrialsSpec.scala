@@ -1229,14 +1229,16 @@ class TrialsSpec
 
     val baseLimit = 200
 
-    def shrinkageSequenceUsingLimit(limit: Int): Seq[(Int, (Int, Int))] = {
+    def shrinkageSequenceUsingLimit(casesLimit: Int): Seq[(Int, (Int, Int))] = {
+      println(s"----- Cases limit: $casesLimit -----")
+
       val shrinkageSequence: mutable.ListBuffer[(Int, (Int, Int))] =
         mutable.ListBuffer.empty
 
       var count = 0
 
       assertThrows[sut.TrialException] {
-        sut.and(sut).withLimit(limit).supplyTo {
+        sut.and(sut).withLimit(casesLimit).supplyTo {
           case (first: Int, second: Int) =>
             val capturedCount = count
 
@@ -1255,17 +1257,35 @@ class TrialsSpec
       shrinkageSequence.toSeq
     }
 
-    val shrinkageSequenceUsingBaseLimit = shrinkageSequenceUsingLimit(baseLimit)
+    val shrinkageSequencesByLimit =
+      ((1 to 10) map (_ * baseLimit) map (casesLimit =>
+        casesLimit -> shrinkageSequenceUsingLimit(casesLimit)
+      ))
 
-    (2 to 10) map (_ * baseLimit) foreach { casesLimit =>
-      println(s"----- Cases limit: $casesLimit -----")
-      val shrinkageSequence = shrinkageSequenceUsingLimit(casesLimit)
+    val commonPrefixes = shrinkageSequencesByLimit.tail
+      .zip(shrinkageSequencesByLimit)
+      .map {
+        case (
+              (_, precedingShrinkageSequence),
+              (casesLimit, shrinkageSequence)
+            ) =>
+          casesLimit -> precedingShrinkageSequence
+            .zip(shrinkageSequence)
+            .takeWhile { case (left, right) => left == right }
+            .map(_._1)
 
-      withClue(s"Cases limit: $casesLimit") {
-        shrinkageSequence.take(
-          shrinkageSequenceUsingBaseLimit.size
-        ) should contain theSameElementsInOrderAs shrinkageSequenceUsingBaseLimit
       }
+
+    commonPrefixes.tail.zip(commonPrefixes).foreach {
+      case (
+            (precedingCasesLimit, precedingCommonPrefix),
+            (casesLimit, commonPrefix)
+          ) =>
+        withClue(
+          s"Checking sizes of common prefixes for cases limits of: $precedingCasesLimit with prefix: $precedingCommonPrefix and: $casesLimit withPrefix: $commonPrefix ..."
+        ) {
+          precedingCommonPrefix.size should be <= commonPrefix.size
+        }
     }
   }
 
