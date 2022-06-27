@@ -2,16 +2,9 @@ package com.sageserpent.americium
 import cats.Traverse
 import cats.free.Free
 import cats.implicits.*
-import com.sageserpent.americium.TrialsImplementation.{
-  Choice,
-  NoteComplexity,
-  ResetComplexity
-}
+import com.sageserpent.americium.TrialsImplementation.{Choice, NoteComplexity, ResetComplexity}
 import com.sageserpent.americium.java.CaseFactory
-import com.sageserpent.americium.{
-  Trials as ScalaTrials,
-  TrialsApi as ScalaTrialsApi
-}
+import com.sageserpent.americium.{Trials as ScalaTrials, TrialsApi as ScalaTrialsApi}
 
 import _root_.java.lang.Double as JavaDouble
 import _root_.java.time.Instant
@@ -245,6 +238,24 @@ class TrialsApiImplementation extends CommonApi with ScalaTrialsApi {
 
   override def instants: TrialsImplementation[Instant] =
     longs.map(Instant.ofEpochMilli)
+
+  override def instants(
+      lowerBound: Instant,
+      upperBound: Instant
+  ): TrialsImplementation[Instant] =
+    longs(lowerBound.toEpochMilli, upperBound.toEpochMilli).map(
+      Instant.ofEpochMilli
+    )
+
+  override def instants(
+      lowerBound: Instant,
+      upperBound: Instant,
+      shrinkageTarget: Instant
+  ): TrialsImplementation[Instant] = longs(
+    lowerBound.toEpochMilli,
+    upperBound.toEpochMilli,
+    shrinkageTarget.toEpochMilli
+  ).map(Instant.ofEpochMilli)
 
   override def strings: TrialsImplementation[String] = {
     characters.several[String]
