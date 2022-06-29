@@ -1921,10 +1921,12 @@ class TrialsSpec
 
     val suts = api.longs and api.longs and api.longs
 
+    val casesLimit = 200
+
     val provokingCase =
       intercept[suts.TrialException](
         suts
-          .withLimits(casesLimit = 800, shrinkageStop = noShrinking)
+          .withLimits(casesLimit = casesLimit, shrinkageStop = noShrinking)
           .supplyTo { case (x, y, z) =>
             predicate(threshold = 10)(x, y, z) shouldEqual predicate(threshold =
               9
@@ -1936,12 +1938,13 @@ class TrialsSpec
 
     val minimisedProvokingCase =
       intercept[suts.TrialException](
-        suts.withLimits(casesLimit = 800, shrinkageStop = noStopping).supplyTo {
-          case (x, y, z) =>
+        suts
+          .withLimits(casesLimit = casesLimit, shrinkageStop = noStopping)
+          .supplyTo { case (x, y, z) =>
             predicate(threshold = 10)(x, y, z) shouldEqual predicate(threshold =
               9
             )(x, y, z)
-        }
+          }
       ).provokingCase
 
     println(s"Minimised provoking case: $minimisedProvokingCase")
