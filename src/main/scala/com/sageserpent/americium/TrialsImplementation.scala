@@ -680,55 +680,76 @@ case class TrialsImplementation[Case](
           }
 
         {
-          var starvationCountdown: Int         = limit
-          var backupOfStarvationCountdown      = 0
-          var numberOfUniqueCasesProduced: Int = 0
+          class CasesLimitStrategy {
+            val casesLimit: Int                  = limit
+            var starvationCountdown: Int         = casesLimit
+            var backupOfStarvationCountdown      = 0
+            var numberOfUniqueCasesProduced: Int = 0
+
+            def noteRejectionOfCase() = {
+              numberOfUniqueCasesProduced -= 1
+              starvationCountdown = backupOfStarvationCountdown - 1
+            }
+
+            def remainingGap() =
+              casesLimit - numberOfUniqueCasesProduced
+
+            def moreToDo() =
+              0 < remainingGap && 0 < starvationCountdown
+
+            def noteEmissionOfCase(): Unit = {
+              backupOfStarvationCountdown = starvationCountdown
+              starvationCountdown = Math
+                .round(
+                  Math.sqrt(
+                    casesLimit.toDouble * remainingGap()
+                  )
+                )
+                .toInt
+              numberOfUniqueCasesProduced += 1
+            }
+
+            def noteStarvation(): Unit = {
+              starvationCountdown -= 1
+            }
+          }
+
+          val casesLimitStrategy = new CasesLimitStrategy();
 
           val inlinedCaseFiltration: InlinedCaseFiltration =
-            new InlinedCaseFiltration {
-              override def executeInFiltrationContext(
-                  runnable: Runnable,
-                  additionalExceptionsToNoteAsFiltration: Array[
-                    Class[_ <: Throwable]
-                  ]
-              ): Boolean = {
-                val inlineFilterRejection = new RuntimeException
+            (
+                runnable: Runnable,
+                additionalExceptionsToNoteAsFiltration: Array[
+                  Class[_ <: Throwable]
+                ]
+            ) => {
+              val inlineFilterRejection = new RuntimeException
 
-                try {
-                  Trials.throwInlineFilterRejection.withValue(() =>
-                    throw inlineFilterRejection
-                  ) { runnable.run() }
+              try {
+                Trials.throwInlineFilterRejection.withValue(() =>
+                  throw inlineFilterRejection
+                ) { runnable.run() }
 
-                  true
-                } catch {
-                  case exception: RuntimeException
-                      if inlineFilterRejection == exception =>
-                    noteRejectionOfCase()
+                true
+              } catch {
+                case exception: RuntimeException
+                    if inlineFilterRejection == exception =>
+                  casesLimitStrategy.noteRejectionOfCase()
 
-                    false
-                  case throwable: Throwable
-                      if additionalExceptionsToNoteAsFiltration.exists(
-                        _.isInstance(throwable)
-                      ) =>
-                    noteRejectionOfCase()
+                  false
+                case throwable: Throwable
+                    if additionalExceptionsToNoteAsFiltration.exists(
+                      _.isInstance(throwable)
+                    ) =>
+                  casesLimitStrategy.noteRejectionOfCase()
 
-                    throw throwable
-                }
-              }
-
-              private def noteRejectionOfCase() = {
-                numberOfUniqueCasesProduced -= 1
-                starvationCountdown = backupOfStarvationCountdown - 1
+                  throw throwable
               }
             }
 
           def emitCases(): Fs2Stream[SyncIO, CaseData] =
             Fs2Stream.force(SyncIO {
-              val remainingGap = limit - numberOfUniqueCasesProduced
-
-              val moreToDo = 0 < remainingGap && 0 < starvationCountdown
-
-              if (moreToDo)
+              if (casesLimitStrategy.moreToDo())
                 Fs2Stream
                   .eval(SyncIO {
                     generation
@@ -747,17 +768,11 @@ case class TrialsImplementation[Case](
                             decisionStages,
                             factoryInputsCost
                           ) =>
-                        backupOfStarvationCountdown = starvationCountdown
-                        starvationCountdown = Math
-                          .round(Math.sqrt(limit.toDouble * remainingGap))
-                          .toInt
-                        numberOfUniqueCasesProduced += 1
+                        casesLimitStrategy.noteEmissionOfCase()
 
                         Some(CaseData(caze, decisionStages, factoryInputsCost))
                       case _ =>
-                        {
-                          starvationCountdown -= 1
-                        }
+                        casesLimitStrategy.noteStarvation()
 
                         None
                     }
