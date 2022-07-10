@@ -15,6 +15,7 @@ import com.sageserpent.americium.java.{
   Builder,
   CaseFactory,
   CaseFailureReporting,
+  CasesLimitStrategy,
   InlinedCaseFiltration,
   TestIntegrationContext,
   TrialsScaffolding as JavaTrialsScaffolding,
@@ -680,41 +681,38 @@ case class TrialsImplementation[Case](
           }
 
         {
-          class CasesLimitStrategy {
-            val casesLimit: Int                  = limit
-            var starvationCountdown: Int         = casesLimit
-            var backupOfStarvationCountdown      = 0
-            var numberOfUniqueCasesProduced: Int = 0
+          object casesLimitStrategy extends CasesLimitStrategy {
+            private var starvationCountdown: Int         = limit
+            private var backupOfStarvationCountdown      = 0
+            private var numberOfUniqueCasesProduced: Int = 0
 
-            def noteRejectionOfCase() = {
+            override def moreToDo() =
+              0 < remainingGap && 0 < starvationCountdown
+
+            override def noteRejectionOfCase() = {
               numberOfUniqueCasesProduced -= 1
               starvationCountdown = backupOfStarvationCountdown - 1
             }
 
-            def remainingGap() =
-              casesLimit - numberOfUniqueCasesProduced
-
-            def moreToDo() =
-              0 < remainingGap && 0 < starvationCountdown
-
-            def noteEmissionOfCase(): Unit = {
+            override def noteEmissionOfCase(): Unit = {
               backupOfStarvationCountdown = starvationCountdown
               starvationCountdown = Math
                 .round(
                   Math.sqrt(
-                    casesLimit.toDouble * remainingGap()
+                    limit.toDouble * remainingGap()
                   )
                 )
                 .toInt
               numberOfUniqueCasesProduced += 1
             }
 
-            def noteStarvation(): Unit = {
+            override def noteStarvation(): Unit = {
               starvationCountdown -= 1
             }
-          }
 
-          val casesLimitStrategy = new CasesLimitStrategy();
+            private def remainingGap() =
+              limit - numberOfUniqueCasesProduced
+          }
 
           val inlinedCaseFiltration: InlinedCaseFiltration =
             (
