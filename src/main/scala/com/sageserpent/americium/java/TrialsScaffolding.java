@@ -17,6 +17,9 @@ import static com.sageserpent.americium.java.TrialsDefaults.defaultShrinkageAtte
 public interface TrialsScaffolding<Case,
         SupplySyntaxType extends TrialsScaffolding.SupplyToSyntax<Case>>
         extends TrialsFactoring<Case> {
+    ShrinkageStop<Object> noStopping = () -> (unused -> false);
+    ShrinkageStop<Object> noShrinking = () -> (unused -> true);
+
     /**
      * Use this to lose any specialised supply syntax and go back to the
      * regular {@link Trials} API. The motivation for this is when the `and`
@@ -36,9 +39,7 @@ public interface TrialsScaffolding<Case,
      *              that this is no guarantee that so many cases will be
      *              supplied, it is simply a limit.
      * @return An instance of {@link SupplyToSyntax} with the limit configured.
-     * @deprecated Use {@link Trials#withLimits(int, OptionalLimits)} instead.
      */
-    @Deprecated
     SupplySyntaxType withLimit(final int limit);
 
     /**
@@ -65,64 +66,6 @@ public interface TrialsScaffolding<Case,
     @Deprecated
     SupplySyntaxType withLimit(final int limit,
                                final int complexityLimit);
-
-    /**
-     * Allows the shrinkage process to be terminated externally by a stateful
-     * predicate supplied by the user. That predicate is free to use a timer,
-     * counts, consult the heap usage, or examine the best shrunken case seen
-     * so far.
-     *
-     * @param <Case> The type or supertype of the cases yielded by a trials
-     *               instance.
-     */
-    @FunctionalInterface
-    interface ShrinkageStop<Case> {
-        /**
-         * @return A predicate that examines both state captured by the
-         * instance of {@link ShrinkageStop} and the case passed to it. When
-         * the predicate holds, the shrinkage is terminated.
-         * @apiNote Building the predicate is expected to set up or capture
-         * any state required by it, such as a freshly started timer or count
-         * set to zero.
-         */
-        Predicate<Case> build();
-    }
-
-    ShrinkageStop<Object> noStopping = () -> (unused -> false);
-
-    ShrinkageStop<Object> noShrinking = () -> (unused -> true);
-
-    @lombok.Builder
-    @lombok.EqualsAndHashCode
-    class OptionalLimits {
-        public static OptionalLimits defaults =
-                OptionalLimits.builder().build();
-
-        /**
-         * The maximum permitted complexity when generating a case.
-         *
-         * @apiNote Complexity is something associated with the production of
-         * a {@link Case} when a {@link Trials} is supplied to some test
-         * consumer. It ranges from one up to (and including) the {@code
-         * complexityLimit} and captures some sense of the case being more
-         * elaborately constructed as it increases - as an example, the use
-         * of flatmapping to combine inputs from multiple trials instances
-         * drives the complexity up for each flatmap stage. In practice, this
-         * results in larger collection instances having greater complexity.
-         * Deeply recursive trials also result in high complexity.
-         */
-        @lombok.Builder.Default
-        public final int complexity = defaultComplexityLimit;
-
-        /**
-         * The maximum number of shrinkage attempts when shrinking a case.
-         * Setting this to zero disables shrinkage and will thus yield the
-         * original failing case.
-         */
-        @lombok.Builder.Default
-        public final int shrinkageAttempts =
-                defaultShrinkageAttemptsLimit;
-    }
 
     /**
      * Fluent syntax for configuring a limit to the number of cases supplied
@@ -167,6 +110,28 @@ public interface TrialsScaffolding<Case,
      * reproduced trial case.
      */
     SupplySyntaxType withRecipe(final String recipe);
+
+    /**
+     * Allows the shrinkage process to be terminated externally by a stateful
+     * predicate supplied by the user. That predicate is free to use a timer,
+     * counts, consult the heap usage, or examine the best shrunken case seen
+     * so far.
+     *
+     * @param <Case> The type or supertype of the cases yielded by a trials
+     *               instance.
+     */
+    @FunctionalInterface
+    interface ShrinkageStop<Case> {
+        /**
+         * @return A predicate that examines both state captured by the
+         * instance of {@link ShrinkageStop} and the case passed to it. When
+         * the predicate holds, the shrinkage is terminated.
+         * @apiNote Building the predicate is expected to set up or capture
+         * any state required by it, such as a freshly started timer or count
+         * set to zero.
+         */
+        Predicate<Case> build();
+    }
 
     interface SupplyToSyntax<Case> {
         /**
@@ -227,5 +192,37 @@ public interface TrialsScaffolding<Case,
                 extends SupplyToSyntax<Tuple4<Case1, Case2, Case3, Case4>> {
             void supplyTo(Consumer4<Case1, Case2, Case3, Case4> quadConsumer);
         }
+    }
+
+    @lombok.Builder
+    @lombok.EqualsAndHashCode
+    class OptionalLimits {
+        public static OptionalLimits defaults =
+                OptionalLimits.builder().build();
+
+        /**
+         * The maximum permitted complexity when generating a case.
+         *
+         * @apiNote Complexity is something associated with the production of
+         * a {@link Case} when a {@link Trials} is supplied to some test
+         * consumer. It ranges from one up to (and including) the {@code
+         * complexityLimit} and captures some sense of the case being more
+         * elaborately constructed as it increases - as an example, the use
+         * of flatmapping to combine inputs from multiple trials instances
+         * drives the complexity up for each flatmap stage. In practice, this
+         * results in larger collection instances having greater complexity.
+         * Deeply recursive trials also result in high complexity.
+         */
+        @lombok.Builder.Default
+        public final int complexity = defaultComplexityLimit;
+
+        /**
+         * The maximum number of shrinkage attempts when shrinking a case.
+         * Setting this to zero disables shrinkage and will thus yield the
+         * original failing case.
+         */
+        @lombok.Builder.Default
+        public final int shrinkageAttempts =
+                defaultShrinkageAttemptsLimit;
     }
 }

@@ -10,6 +10,7 @@ import cats.{Eval, ~>}
 import com.google.common.collect.{Ordering as _, *}
 import com.google.common.hash
 import com.sageserpent.americium.TrialsApis.{javaApi, scalaApi}
+import com.sageserpent.americium.TrialsScaffolding.ShrinkageStop
 import com.sageserpent.americium.java.TrialsScaffolding.OptionalLimits
 import com.sageserpent.americium.java.{
   Builder,
@@ -310,6 +311,57 @@ case class TrialsImplementation[Case](
       shrinkageAttemptsLimit: Int,
       shrinkageStop: ScalaTrialsScaffolding.ShrinkageStop[Case]
   ): JavaTrialsScaffolding.SupplyToSyntax[Case]
+    with ScalaTrialsScaffolding.SupplyToSyntax[Case] = {
+    val simpleStrategyFactory: () => CasesLimitStrategy = () =>
+      new CasesLimitStrategy {
+        private var starvationCountdown: Int         = casesLimit
+        private var backupOfStarvationCountdown      = 0
+        private var numberOfUniqueCasesProduced: Int = 0
+
+        override def moreToDo() =
+          0 < remainingGap && 0 < starvationCountdown
+
+        override def noteRejectionOfCase() = {
+          numberOfUniqueCasesProduced -= 1
+          starvationCountdown = backupOfStarvationCountdown - 1
+        }
+
+        override def noteEmissionOfCase(): Unit = {
+          backupOfStarvationCountdown = starvationCountdown
+          starvationCountdown = Math
+            .round(
+              Math.sqrt(
+                casesLimit.toDouble * remainingGap()
+              )
+            )
+            .toInt
+          numberOfUniqueCasesProduced += 1
+        }
+
+        override def noteStarvation(): Unit = {
+          starvationCountdown -= 1
+        }
+
+        private def remainingGap() =
+          casesLimit - numberOfUniqueCasesProduced
+      }
+
+    withStrategy(
+      simpleStrategyFactory,
+      complexityLimit,
+      shrinkageAttemptsLimit,
+      shrinkageStop
+    )
+  }
+
+  override def withStrategy(
+      casesLimitStrategyFactory: () => CasesLimitStrategy,
+      complexityLimit: Int,
+      shrinkageAttemptsLimit: Int,
+      shrinkageStop: ShrinkageStop[
+        Case
+      ]
+  ): JavaTrialsScaffolding.SupplyToSyntax[Case]
     with ScalaTrialsScaffolding.SupplyToSyntax[Case] =
     new JavaTrialsScaffolding.SupplyToSyntax[Case]
       with ScalaTrialsScaffolding.SupplyToSyntax[Case] {
@@ -402,7 +454,7 @@ case class TrialsImplementation[Case](
         mutable.Set.empty[DecisionStagesInReverseOrder]
 
       private def cases(
-          limit: Int,
+          casesLimitStrategyFactory: () => CasesLimitStrategy,
           complexityLimit: Int,
           randomBehaviour: Random,
           scaleDeflationLevel: Option[Int],
@@ -681,38 +733,7 @@ case class TrialsImplementation[Case](
           }
 
         {
-          object casesLimitStrategy extends CasesLimitStrategy {
-            private var starvationCountdown: Int         = limit
-            private var backupOfStarvationCountdown      = 0
-            private var numberOfUniqueCasesProduced: Int = 0
-
-            override def moreToDo() =
-              0 < remainingGap && 0 < starvationCountdown
-
-            override def noteRejectionOfCase() = {
-              numberOfUniqueCasesProduced -= 1
-              starvationCountdown = backupOfStarvationCountdown - 1
-            }
-
-            override def noteEmissionOfCase(): Unit = {
-              backupOfStarvationCountdown = starvationCountdown
-              starvationCountdown = Math
-                .round(
-                  Math.sqrt(
-                    limit.toDouble * remainingGap()
-                  )
-                )
-                .toInt
-              numberOfUniqueCasesProduced += 1
-            }
-
-            override def noteStarvation(): Unit = {
-              starvationCountdown -= 1
-            }
-
-            private def remainingGap() =
-              limit - numberOfUniqueCasesProduced
-          }
+          val casesLimitStrategy = casesLimitStrategyFactory()
 
           val inlinedCaseFiltration: InlinedCaseFiltration =
             (
@@ -911,7 +932,7 @@ case class TrialsImplementation[Case](
               throwable: Throwable,
               shrinkageAttemptIndex: Int,
               scaleDeflationLevel: Int,
-              casesLimit: Int,
+              casesLimitStrategyFactory: () => CasesLimitStrategy,
               numberOfShrinksInPanicModeIncludingThisOne: Int,
               externalStoppingCondition: Case => Boolean,
               exhaustionStrategy: => StreamedCases
@@ -929,18 +950,8 @@ case class TrialsImplementation[Case](
               val numberOfDecisionStages =
                 caseData.decisionStagesInReverseOrder.size
 
-              // NOTE: there's some voodoo in choosing the exponential
-              // scaling factor - if it's too high, say 2, then the
-              // solutions are hardly shrunk at all. If it is unity, then
-              // the solutions are shrunk a bit but can be still involve
-              // overly 'large' values, in the sense that the factory input
-              // values are large. This needs finessing, but will do for
-              // now...
-              val limitWithExtraLeewayThatHasBeenObservedToFindBetterShrunkCases =
-                (100 * casesLimit / 99) max casesLimit
-
               val mainProcessing = cases(
-                limitWithExtraLeewayThatHasBeenObservedToFindBetterShrunkCases,
+                casesLimitStrategyFactory,
                 numberOfDecisionStages,
                 randomBehaviour,
                 scaleDeflationLevel = Some(scaleDeflationLevel),
@@ -987,8 +998,8 @@ case class TrialsImplementation[Case](
                                     1 + shrinkageAttemptIndex,
                                   scaleDeflationLevel =
                                     scaleDeflationLevelForRecursion,
-                                  casesLimit =
-                                    limitWithExtraLeewayThatHasBeenObservedToFindBetterShrunkCases,
+                                  casesLimitStrategyFactory =
+                                    casesLimitStrategyFactory,
                                   numberOfShrinksInPanicModeIncludingThisOne =
                                     0,
                                   externalStoppingCondition =
@@ -1005,8 +1016,8 @@ case class TrialsImplementation[Case](
                                       shrinkageAttemptIndex =
                                         1 + shrinkageAttemptIndex,
                                       scaleDeflationLevel = scaleDeflationLevel,
-                                      casesLimit =
-                                        limitWithExtraLeewayThatHasBeenObservedToFindBetterShrunkCases,
+                                      casesLimitStrategyFactory =
+                                        casesLimitStrategyFactory,
                                       numberOfShrinksInPanicModeIncludingThisOne =
                                         1 + numberOfShrinksInPanicModeIncludingThisOne,
                                       externalStoppingCondition =
@@ -1035,7 +1046,7 @@ case class TrialsImplementation[Case](
           }
 
           val businessAsUsualCases: StreamedCases = cases(
-            casesLimit,
+            casesLimitStrategyFactory,
             complexityLimit,
             randomBehaviour,
             scaleDeflationLevel = None,
@@ -1054,7 +1065,7 @@ case class TrialsImplementation[Case](
                           throwable = throwable,
                           shrinkageAttemptIndex = 0,
                           scaleDeflationLevel = 0,
-                          casesLimit = casesLimit,
+                          casesLimitStrategyFactory = casesLimitStrategyFactory,
                           numberOfShrinksInPanicModeIncludingThisOne = 0,
                           externalStoppingCondition = shrinkageStop(),
                           exhaustionStrategy = {

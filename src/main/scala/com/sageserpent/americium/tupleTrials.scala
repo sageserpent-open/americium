@@ -2,6 +2,7 @@ package com.sageserpent.americium
 
 import cats.implicits.*
 import com.sageserpent.americium.TrialsScaffolding.ShrinkageStop
+import com.sageserpent.americium.java.CasesLimitStrategy
 
 object tupleTrials {
   // TODO: the same stuff that is on the todo list for the equivalent to this in
@@ -51,6 +52,23 @@ object tupleTrials {
       trialsOfPairs
         .withLimits(
           casesLimit,
+          complexityLimit,
+          shrinkageAttemptsLimit,
+          shrinkageStop
+        )
+        .supplyTo(consumer)
+
+    override def withStrategy(
+        casesLimitStrategyFactory: () => CasesLimitStrategy,
+        complexityLimit: Int,
+        shrinkageAttemptsLimit: Int,
+        shrinkageStop: ShrinkageStop[
+          (Case1, Case2)
+        ]
+    ): SupplyToSyntaxTuple2 = (consumer: ((Case1, Case2)) => Unit) =>
+      trialsOfPairs
+        .withStrategy(
+          casesLimitStrategyFactory,
           complexityLimit,
           shrinkageAttemptsLimit,
           shrinkageStop
@@ -109,6 +127,23 @@ object tupleTrials {
       trialsOfTriples
         .withLimits(
           casesLimit,
+          complexityLimit,
+          shrinkageAttemptsLimit,
+          shrinkageStop
+        )
+        .supplyTo(consumer)
+
+    override def withStrategy(
+        casesLimitStrategyFactory: () => CasesLimitStrategy,
+        complexityLimit: Int,
+        shrinkageAttemptsLimit: Int,
+        shrinkageStop: ShrinkageStop[
+          (Case1, Case2, Case3)
+        ]
+    ): SupplyToSyntaxTuple3 = (consumer: ((Case1, Case2, Case3)) => Unit) =>
+      trialsOfTriples
+        .withStrategy(
+          casesLimitStrategyFactory,
           complexityLimit,
           shrinkageAttemptsLimit,
           shrinkageStop
@@ -174,6 +209,24 @@ object tupleTrials {
         trialsOfQuadruples
           .withLimits(
             casesLimit,
+            complexityLimit,
+            shrinkageAttemptsLimit,
+            shrinkageStop
+          )
+          .supplyTo(consumer)
+
+    override def withStrategy(
+        casesLimitStrategyFactory: () => CasesLimitStrategy,
+        complexityLimit: Int,
+        shrinkageAttemptsLimit: Int,
+        shrinkageStop: ShrinkageStop[
+          (Case1, Case2, Case3, Case4)
+        ]
+    ): SupplyToSyntaxTuple4 =
+      (consumer: ((Case1, Case2, Case3, Case4)) => Unit) =>
+        trialsOfQuadruples
+          .withStrategy(
+            casesLimitStrategyFactory,
             complexityLimit,
             shrinkageAttemptsLimit,
             shrinkageStop

@@ -3,6 +3,13 @@ package com.sageserpent.americium.java;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
+/**
+ * Strategy used to limit the emission of cases by the implementation of
+ * {@link Trials}. This can be supplied by client code, or supplied by the
+ * implementation itself to handle
+ * {@link Trials#withLimits(int, TrialsScaffolding.OptionalLimits)},
+ * {@link Trials#withLimit(int)} and their overloads.
+ */
 public interface CasesLimitStrategy {
     /**
      * Query used by the implementation of {@link Trials} to control the

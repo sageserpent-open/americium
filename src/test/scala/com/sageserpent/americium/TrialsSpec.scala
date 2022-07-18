@@ -1677,7 +1677,7 @@ class TrialsSpec
       (10000, 900, 0, 1000, 230),
       (10000, -900, -1250, 0, 700),
       (10000, 900, 0, 1250, 500),
-      (10000, -900, -1000, 0, 200),
+      (10000, -900, -1000, 0, 230),
       (10000, 900, 0, 1000, 230)
     )
   ) { case (maximumSize, cutoff, lowerBound, upperBound, limit) =>
@@ -1921,7 +1921,7 @@ class TrialsSpec
 
     val suts = api.longs and api.longs and api.longs
 
-    val casesLimit = 200
+    val casesLimit = 202
 
     val provokingCase =
       intercept[suts.TrialException](

@@ -4,7 +4,7 @@ import com.sageserpent.americium.java.TrialsDefaults.{
   defaultComplexityLimit,
   defaultShrinkageAttemptsLimit
 }
-import com.sageserpent.americium.java.TrialsFactoring
+import com.sageserpent.americium.java.{CasesLimitStrategy, TrialsFactoring}
 
 import _root_.java.time.Instant
 import scala.concurrent.duration.{Duration, FiniteDuration}
@@ -80,9 +80,6 @@ trait TrialsScaffolding[+Case] extends TrialsFactoring[Case] {
 
   def trials: Trials[Case]
 
-  @deprecated(
-    "Use `withLimits` instead."
-  )
   def withLimit(limit: Int): SupplySyntaxType
 
   @deprecated(
@@ -92,6 +89,13 @@ trait TrialsScaffolding[+Case] extends TrialsFactoring[Case] {
 
   def withLimits(
       casesLimit: Int,
+      complexityLimit: Int = defaultComplexityLimit,
+      shrinkageAttemptsLimit: Int = defaultShrinkageAttemptsLimit,
+      shrinkageStop: ShrinkageStop[Case] = noStopping
+  ): SupplySyntaxType
+
+  def withStrategy(
+      casesLimitStrategyFactory: () => CasesLimitStrategy,
       complexityLimit: Int = defaultComplexityLimit,
       shrinkageAttemptsLimit: Int = defaultShrinkageAttemptsLimit,
       shrinkageStop: ShrinkageStop[Case] = noStopping
