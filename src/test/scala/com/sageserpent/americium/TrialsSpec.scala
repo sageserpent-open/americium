@@ -5,6 +5,7 @@ import com.sageserpent.americium.TrialsScaffolding.{noShrinking, noStopping}
 import com.sageserpent.americium.java.{
   Builder,
   CaseFactory,
+  CasesLimitStrategy,
   Trials as JavaTrials,
   TrialsApi as JavaTrialsApi
 }
@@ -1103,6 +1104,103 @@ class TrialsSpec
         sut.withLimit(limit).supplyTo(mockConsumer)
 
         verify(mockConsumer, times(limit)).apply(any())
+      }
+    }
+
+  they should "produce cases only as long as the cases limit strategy permits" in
+    forAll(
+      Table(
+        "maximum emission" -> "maximum starvation",
+        0                  -> 0,
+        1                  -> 0,
+        0                  -> 1,
+        1                  -> 1,
+        1                  -> 20000,
+        20                 -> 20000,
+        100                -> 3900,
+        100                -> 4000,
+        100                -> 5000,
+        20000              -> 5000,
+        100                -> 20000,
+        20000              -> 20000,
+        101                -> 5000,
+        20001              -> 5000,
+        101                -> 20000,
+        20001              -> 20000
+      )
+    ) { (maximumEmission, maximumStarvation) =>
+      inMockitoSession {
+        val cases = api.integers.filter(0 == _ % 2).lists
+
+        var emissionBalance: Int  = 0
+        var rejectionBalance: Int = 0
+
+        val casesLimitStrategyFactory = { () =>
+          new CasesLimitStrategy {
+            var rejectionCount  = 0
+            var emissionCount   = 0
+            var starvationCount = 0
+
+            var limitReached = false
+
+            override def moreToDo(): Boolean = {
+              require(!limitReached)
+
+              val result =
+                emissionCount < maximumEmission && starvationCount < maximumStarvation
+
+              if (!result) {
+                limitReached = true
+                println(
+                  s"Limit reached - Maximum emission: $maximumEmission, actual emission: $emissionCount, maximum starvation: $maximumStarvation, actual starvation: $starvationCount"
+                )
+              }
+
+              result
+            }
+
+            override def noteRejectionOfCase(): Unit = {
+              require(!limitReached)
+
+              rejectionCount += 1
+              rejectionBalance += 1
+            }
+
+            override def noteEmissionOfCase(): Unit = {
+              require(!limitReached)
+
+              emissionCount += 1
+              emissionBalance += 1
+            }
+
+            override def noteStarvation(): Unit = {
+              require(!limitReached)
+
+              starvationCount += 1
+            }
+          }
+        }
+
+        try {
+          cases.withStrategy(casesLimitStrategyFactory).supplyTo { caze =>
+            emissionBalance -= 1
+            rejectionBalance -= 1
+
+            Trials.whenever(0 == caze.hashCode() % 13) {
+              rejectionBalance += 1 // NASTY HACK: undo the speculative compensation of the rejection balance, as no such rejection has actually taken place.
+
+              if (0 == caze.sum % 12) throw new RuntimeException
+            }
+          }
+        } catch {
+          case failure: cases.TrialException =>
+            println(
+              s"Maximum emission: $maximumEmission, maximum starvation: $maximumStarvation, failing case: ${failure.provokingCase}"
+            )
+        }
+
+        emissionBalance shouldBe 0
+        rejectionBalance shouldBe 0
       }
     }
 
