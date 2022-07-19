@@ -1,18 +1,24 @@
 package com.sageserpent.americium.java;
 
+import com.google.common.base.Supplier;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.hash.Hashing;
 import cyclops.control.Try;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.*;
+import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 import static org.hamcrest.CoreMatchers.allOf;
@@ -21,7 +27,10 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.lessThanOrEqualTo;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.Mockito.*;
 
+@ExtendWith(MockitoExtension.class)
 public class TrialsApiTests {
     private final static TrialsApi api = Trials.api();
 
@@ -557,5 +566,51 @@ public class TrialsApiTests {
             assertThat((int) trialException.provokingCase(),
                        greaterThan(upperBoundOfFinalShrunkCase));
         }
+    }
+
+    @Test
+    void customCasesLimitStrategy(@Mock Consumer<Integer> consumer) {
+        final Supplier<CasesLimitStrategy> casesLimitStrategySupplier =
+                () -> new CasesLimitStrategy() {
+                    final Instant startedAt = Instant.now();
+
+                    @Override
+                    public boolean moreToDo() {
+                        return startedAt
+                                .plus(Duration.ofSeconds(3))
+                                .isAfter(Instant.now());
+                    }
+
+                    @Override
+                    public void noteRejectionOfCase() {
+
+                    }
+
+                    @Override
+                    public void noteEmissionOfCase() {
+
+                    }
+
+                    @Override
+                    public void noteStarvation() {
+
+                    }
+                };
+
+        final int highestMagnitude = 100;
+
+        doAnswer(invocation -> {
+            System.out.println(invocation.<Integer>getArgument(0));
+            return null;
+        }).when(consumer).accept(anyInt());
+
+        api
+                .integers(-highestMagnitude, 2 * highestMagnitude)
+                .filter(value -> highestMagnitude >= Math.abs(value))
+                .withStrategy(casesLimitStrategySupplier,
+                              TrialsScaffolding.OptionalLimits.defaults)
+                .supplyTo(consumer);
+
+        verify(consumer, times(1 + 2 * highestMagnitude)).accept(anyInt());
     }
 }

@@ -10,6 +10,7 @@ import java.util.Iterator;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 
 import static com.sageserpent.americium.java.TrialsDefaults.defaultComplexityLimit;
 import static com.sageserpent.americium.java.TrialsDefaults.defaultShrinkageAttemptsLimit;
@@ -81,6 +82,10 @@ public interface TrialsScaffolding<Case,
     SupplySyntaxType withLimits(final int casesLimit,
                                 final OptionalLimits optionalLimits);
 
+    SupplySyntaxType withStrategy(
+            final Supplier<CasesLimitStrategy> casesLimitStrategySupplier,
+            final OptionalLimits optionalLimits);
+
     /**
      * Fluent syntax for configuring a limit to the number of cases supplied
      * to a consumer.
@@ -98,6 +103,11 @@ public interface TrialsScaffolding<Case,
     SupplySyntaxType withLimits(final int casesLimit,
                                 final OptionalLimits optionalLimits,
                                 final ShrinkageStop<? super Case> shrinkageStop);
+
+    SupplySyntaxType withStrategy(
+            final Supplier<CasesLimitStrategy> casesLimitStrategySupplier,
+            final OptionalLimits optionalLimits,
+            final ShrinkageStop<? super Case> shrinkageStop);
 
     /**
      * Reproduce a trial case using a recipe. This is intended to repeatedly
