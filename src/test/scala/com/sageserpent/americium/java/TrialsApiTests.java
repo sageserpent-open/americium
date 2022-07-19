@@ -18,7 +18,7 @@ import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.*;
-import java.util.function.Consumer;
+import java.util.function.BiConsumer;
 import java.util.stream.Stream;
 
 import static org.hamcrest.CoreMatchers.allOf;
@@ -569,7 +569,7 @@ public class TrialsApiTests {
     }
 
     @Test
-    void customCasesLimitStrategy(@Mock Consumer<Integer> consumer) {
+    void customCasesLimitStrategy(@Mock BiConsumer<Integer, Integer> consumer) {
         final Supplier<CasesLimitStrategy> casesLimitStrategySupplier =
                 () -> new CasesLimitStrategy() {
                     final Instant startedAt = Instant.now();
@@ -577,7 +577,7 @@ public class TrialsApiTests {
                     @Override
                     public boolean moreToDo() {
                         return startedAt
-                                .plus(Duration.ofSeconds(3))
+                                .plus(Duration.ofSeconds(1))
                                 .isAfter(Instant.now());
                     }
 
@@ -599,18 +599,21 @@ public class TrialsApiTests {
 
         final int highestMagnitude = 100;
 
-        doAnswer(invocation -> {
-            System.out.println(invocation.<Integer>getArgument(0));
-            return null;
-        }).when(consumer).accept(anyInt());
-
         api
                 .integers(-highestMagnitude, 2 * highestMagnitude)
                 .filter(value -> highestMagnitude >= Math.abs(value))
+                .and(api.integers())
                 .withStrategy(casesLimitStrategySupplier,
                               TrialsScaffolding.OptionalLimits.defaults)
                 .supplyTo(consumer);
 
-        verify(consumer, times(1 + 2 * highestMagnitude)).accept(anyInt());
+        int countDown = highestMagnitude;
+
+        do {
+            verify(consumer, atLeast(2)).accept(eq(countDown),
+                                                anyInt());
+        } while (0 < countDown--);
+
+        verify(consumer, atLeast(1)).accept(eq(0), anyInt());
     }
 }
