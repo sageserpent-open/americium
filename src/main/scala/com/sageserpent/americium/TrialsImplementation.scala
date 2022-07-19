@@ -357,7 +357,7 @@ case class TrialsImplementation[Case](
         private var numberOfUniqueCasesProduced: Int = 0
 
         override def moreToDo() =
-          0 < remainingGap && 0 < starvationCountdown
+          0 < remainingGap() && 0 < starvationCountdown
 
         override def noteRejectionOfCase() = {
           numberOfUniqueCasesProduced -= 1
