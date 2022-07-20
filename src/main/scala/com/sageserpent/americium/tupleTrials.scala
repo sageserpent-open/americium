@@ -2,7 +2,7 @@ package com.sageserpent.americium
 
 import cats.implicits.*
 import com.sageserpent.americium.TrialsScaffolding.ShrinkageStop
-import com.sageserpent.americium.java.CasesLimitStrategy
+import com.sageserpent.americium.java.{CaseSupplyCycle, CasesLimitStrategy}
 
 object tupleTrials {
   // TODO: the same stuff that is on the todo list for the equivalent to this in
@@ -59,7 +59,7 @@ object tupleTrials {
         .supplyTo(consumer)
 
     override def withStrategy(
-        casesLimitStrategyFactory: () => CasesLimitStrategy,
+        casesLimitStrategyFactory: CaseSupplyCycle => CasesLimitStrategy,
         complexityLimit: Int,
         shrinkageAttemptsLimit: Int,
         shrinkageStop: ShrinkageStop[
@@ -134,7 +134,7 @@ object tupleTrials {
         .supplyTo(consumer)
 
     override def withStrategy(
-        casesLimitStrategyFactory: () => CasesLimitStrategy,
+        casesLimitStrategyFactory: CaseSupplyCycle => CasesLimitStrategy,
         complexityLimit: Int,
         shrinkageAttemptsLimit: Int,
         shrinkageStop: ShrinkageStop[
@@ -216,7 +216,7 @@ object tupleTrials {
           .supplyTo(consumer)
 
     override def withStrategy(
-        casesLimitStrategyFactory: () => CasesLimitStrategy,
+        casesLimitStrategyFactory: CaseSupplyCycle => CasesLimitStrategy,
         complexityLimit: Int,
         shrinkageAttemptsLimit: Int,
         shrinkageStop: ShrinkageStop[
