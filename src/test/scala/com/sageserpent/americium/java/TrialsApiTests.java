@@ -1,6 +1,5 @@
 package com.sageserpent.americium.java;
 
-import com.google.common.base.Supplier;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.hash.Hashing;
@@ -19,6 +18,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.*;
 import java.util.function.BiConsumer;
+import java.util.function.Function;
 import java.util.stream.Stream;
 
 import static org.hamcrest.CoreMatchers.allOf;
@@ -570,8 +570,9 @@ public class TrialsApiTests {
 
     @Test
     void customCasesLimitStrategy(@Mock BiConsumer<Integer, Integer> consumer) {
-        final Supplier<CasesLimitStrategy> casesLimitStrategySupplier =
-                () -> new CasesLimitStrategy() {
+        final Function<CaseSupplyCycle, CasesLimitStrategy>
+                casesLimitStrategyFactory =
+                unused -> new CasesLimitStrategy() {
                     final Instant startedAt = Instant.now();
 
                     @Override
@@ -603,7 +604,7 @@ public class TrialsApiTests {
                 .integers(-highestMagnitude, 2 * highestMagnitude)
                 .filter(value -> highestMagnitude >= Math.abs(value))
                 .and(api.integers())
-                .withStrategy(casesLimitStrategySupplier,
+                .withStrategy(casesLimitStrategyFactory,
                               TrialsScaffolding.OptionalLimits.defaults)
                 .supplyTo(consumer);
 

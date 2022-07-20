@@ -9,8 +9,8 @@ import cyclops.function.Consumer4;
 import java.util.Iterator;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.Predicate;
-import java.util.function.Supplier;
 
 import static com.sageserpent.americium.java.TrialsDefaults.defaultComplexityLimit;
 import static com.sageserpent.americium.java.TrialsDefaults.defaultShrinkageAttemptsLimit;
@@ -83,7 +83,7 @@ public interface TrialsScaffolding<Case,
                                 final OptionalLimits optionalLimits);
 
     SupplySyntaxType withStrategy(
-            final Supplier<CasesLimitStrategy> casesLimitStrategySupplier,
+            final Function<CaseSupplyCycle, CasesLimitStrategy> casesLimitStrategyFactory,
             final OptionalLimits optionalLimits);
 
     /**
@@ -105,7 +105,7 @@ public interface TrialsScaffolding<Case,
                                 final ShrinkageStop<? super Case> shrinkageStop);
 
     SupplySyntaxType withStrategy(
-            final Supplier<CasesLimitStrategy> casesLimitStrategySupplier,
+            Function<CaseSupplyCycle, CasesLimitStrategy> casesLimitStrategyFactory,
             final OptionalLimits optionalLimits,
             final ShrinkageStop<? super Case> shrinkageStop);
 

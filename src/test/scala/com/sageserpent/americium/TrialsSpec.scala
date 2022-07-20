@@ -5,6 +5,7 @@ import com.sageserpent.americium.TrialsScaffolding.{noShrinking, noStopping}
 import com.sageserpent.americium.java.{
   Builder,
   CaseFactory,
+  CaseSupplyCycle,
   CasesLimitStrategy,
   Trials as JavaTrials,
   TrialsApi as JavaTrialsApi
@@ -1110,32 +1111,37 @@ class TrialsSpec
   they should "produce cases only as long as the cases limit strategy permits" in
     forAll(
       Table(
-        "maximum emission" -> "maximum starvation",
-        0                  -> 0,
-        1                  -> 0,
-        0                  -> 1,
-        1                  -> 1,
-        1                  -> 20000,
-        20                 -> 20000,
-        100                -> 3900,
-        100                -> 4000,
-        100                -> 5000,
-        20000              -> 5000,
-        100                -> 20000,
-        20000              -> 20000,
-        101                -> 5000,
-        20001              -> 5000,
-        101                -> 20000,
-        20001              -> 20000
+        ("maximum emission", "maximum starvation", "shrinkageAttemptsLimit"),
+        (0, 0, 10),
+        (1, 0, 5),
+        (0, 1, 2),
+        (1, 1, 0),
+        (1, 20000, 0),
+        (20, 20000, 1),
+        (100, 3900, 2),
+        (100, 4000, 3),
+        (100, 5000, 20),
+        (20000, 5000, 0),
+        (100, 20000, 1),
+        (20000, 20000, 2),
+        (101, 5000, 3),
+        (20001, 5000, 20),
+        (101, 20000, 5),
+        (20001, 20000, 5)
       )
-    ) { (maximumEmission, maximumStarvation) =>
+    ) { (maximumEmission, maximumStarvation, shrinkageAttemptsLimit) =>
       inMockitoSession {
         val cases = api.integers.filter(0 == _ % 2).lists
 
         var emissionBalance: Int  = 0
         var rejectionBalance: Int = 0
 
-        val casesLimitStrategyFactory = { () =>
+        val casesLimitStrategyFactory = { (caseSupplyCycle: CaseSupplyCycle) =>
+          require(
+            shrinkageAttemptsLimit >= caseSupplyCycle
+              .numberOfPreviousShrinkages()
+          )
+
           new CasesLimitStrategy {
             var rejectionCount  = 0
             var emissionCount   = 0
@@ -1182,16 +1188,21 @@ class TrialsSpec
         }
 
         try {
-          cases.withStrategy(casesLimitStrategyFactory).supplyTo { caze =>
-            emissionBalance -= 1
-            rejectionBalance -= 1
+          cases
+            .withStrategy(
+              casesLimitStrategyFactory = casesLimitStrategyFactory,
+              shrinkageAttemptsLimit = shrinkageAttemptsLimit
+            )
+            .supplyTo { caze =>
+              emissionBalance -= 1
+              rejectionBalance -= 1
 
-            Trials.whenever(0 == caze.hashCode() % 13) {
-              rejectionBalance += 1 // NASTY HACK: undo the speculative compensation of the rejection balance, as no such rejection has actually taken place.
+              Trials.whenever(0 == caze.hashCode() % 13) {
+                rejectionBalance += 1 // NASTY HACK: undo the speculative compensation of the rejection balance, as no such rejection has actually taken place.
 
-              if (0 == caze.sum % 12) throw new RuntimeException
+                if (0 == caze.sum % 12) throw new RuntimeException
+              }
             }
-          }
         } catch {
           case failure: cases.TrialException =>
             println(
