@@ -2,7 +2,13 @@ package com.sageserpent.americium
 
 import com.sageserpent.americium.TrialsImplementation.recipeHashJavaPropertyName
 import com.sageserpent.americium.TrialsScaffolding.{noShrinking, noStopping}
-import com.sageserpent.americium.java.{Builder, CaseFactory, Trials as JavaTrials, TrialsApi as JavaTrialsApi}
+import com.sageserpent.americium.java.{
+  Builder,
+  CaseFactory,
+  CasesLimitStrategy,
+  Trials as JavaTrials,
+  TrialsApi as JavaTrialsApi
+}
 import cyclops.control.Either as JavaEither
 import org.mockito.ArgumentMatchers.{any, argThat}
 import org.mockito.Mockito
@@ -11,6 +17,7 @@ import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.prop.TableDrivenPropertyChecks
 
+import _root_.java.lang.Integer as JavaInteger
 import _root_.java.util.function.{Consumer, Predicate, Function as JavaFunction}
 import _root_.java.util.stream.IntStream
 import _root_.java.util.{Optional, UUID, LinkedList as JavaLinkedList}
@@ -1100,6 +1107,103 @@ class TrialsSpec
       }
     }
 
+  they should "produce cases only as long as the cases limit strategy permits" in
+    forAll(
+      Table(
+        "maximum emission" -> "maximum starvation",
+        0                  -> 0,
+        1                  -> 0,
+        0                  -> 1,
+        1                  -> 1,
+        1                  -> 20000,
+        20                 -> 20000,
+        100                -> 3900,
+        100                -> 4000,
+        100                -> 5000,
+        20000              -> 5000,
+        100                -> 20000,
+        20000              -> 20000,
+        101                -> 5000,
+        20001              -> 5000,
+        101                -> 20000,
+        20001              -> 20000
+      )
+    ) { (maximumEmission, maximumStarvation) =>
+      inMockitoSession {
+        val cases = api.integers.filter(0 == _ % 2).lists
+
+        var emissionBalance: Int  = 0
+        var rejectionBalance: Int = 0
+
+        val casesLimitStrategyFactory = { () =>
+          new CasesLimitStrategy {
+            var rejectionCount  = 0
+            var emissionCount   = 0
+            var starvationCount = 0
+
+            var limitReached = false
+
+            override def moreToDo(): Boolean = {
+              require(!limitReached)
+
+              val result =
+                emissionCount < maximumEmission && starvationCount < maximumStarvation
+
+              if (!result) {
+                limitReached = true
+                println(
+                  s"Limit reached - Maximum emission: $maximumEmission, actual emission: $emissionCount, maximum starvation: $maximumStarvation, actual starvation: $starvationCount"
+                )
+              }
+
+              result
+            }
+
+            override def noteRejectionOfCase(): Unit = {
+              require(!limitReached)
+
+              rejectionCount += 1
+              rejectionBalance += 1
+            }
+
+            override def noteEmissionOfCase(): Unit = {
+              require(!limitReached)
+
+              emissionCount += 1
+              emissionBalance += 1
+            }
+
+            override def noteStarvation(): Unit = {
+              require(!limitReached)
+
+              starvationCount += 1
+            }
+          }
+        }
+
+        try {
+          cases.withStrategy(casesLimitStrategyFactory).supplyTo { caze =>
+            emissionBalance -= 1
+            rejectionBalance -= 1
+
+            Trials.whenever(0 == caze.hashCode() % 13) {
+              rejectionBalance += 1 // NASTY HACK: undo the speculative compensation of the rejection balance, as no such rejection has actually taken place.
+
+              if (0 == caze.sum % 12) throw new RuntimeException
+            }
+          }
+        } catch {
+          case failure: cases.TrialException =>
+            println(
+              s"Maximum emission: $maximumEmission, maximum starvation: $maximumStarvation, failing case: ${failure.provokingCase}"
+            )
+        }
+
+        emissionBalance shouldBe 0
+        rejectionBalance shouldBe 0
+      }
+    }
+
   they should "yield repeatable exceptions" in
     forAll(
       Table(
@@ -1209,6 +1313,77 @@ class TrialsSpec
       exceptionCriterion: Vector[X] => Boolean,
       limit: Int
   )
+
+  it should "only produce additional shrunk cases after revisiting shrunk cases yielded with a lesser cases limit" in {
+    val maximumPowerOfTwo = JavaInteger.bitCount(JavaInteger.MAX_VALUE)
+
+    val scaleForClusteredValues = 10000
+
+    val sut: Trials[Int] = api
+      .integers(1, 1 << (maximumPowerOfTwo / 3))
+      .map(x =>
+        (scaleForClusteredValues + x * x) * x / (scaleForClusteredValues + x)
+      )
+
+    val baseLimit = 1000
+
+    def shrinkageSequenceUsingLimit(casesLimit: Int): Seq[(Int, (Int, Int))] = {
+      println(s"----- Cases limit: $casesLimit -----")
+
+      val shrinkageSequence: mutable.ListBuffer[(Int, (Int, Int))] =
+        mutable.ListBuffer.empty
+
+      var count = 0
+
+      assertThrows[sut.TrialException] {
+        sut.and(sut).withLimit(casesLimit).supplyTo {
+          case (first: Int, second: Int) =>
+            count += 1
+
+            if (10 <= first && first == second) {
+              println(s"Count: $count Case: ${first -> second}")
+
+              shrinkageSequence += ((count, first -> second))
+
+              throw new RuntimeException
+            }
+        }
+      }
+
+      shrinkageSequence.toSeq
+    }
+
+    val shrinkageSequencesByLimit =
+      ((1 to 25) map (_ * baseLimit) map (casesLimit =>
+        casesLimit -> shrinkageSequenceUsingLimit(casesLimit)
+      ))
+
+    val commonPrefixes = shrinkageSequencesByLimit
+      .zip(shrinkageSequencesByLimit.tail)
+      .map {
+        case (
+              (_, precedingShrinkageSequence),
+              (casesLimit, shrinkageSequence)
+            ) =>
+          casesLimit -> precedingShrinkageSequence
+            .zip(shrinkageSequence)
+            .takeWhile { case (left, right) => left == right }
+            .map(_._1)
+
+      }
+
+    commonPrefixes.zip(commonPrefixes.tail).foreach {
+      case (
+            (precedingCasesLimit, precedingCommonPrefix),
+            (casesLimit, commonPrefix)
+          ) =>
+        withClue(
+          s"Checking sizes of common prefixes for cases limits of: $precedingCasesLimit with prefix: $precedingCommonPrefix and: $casesLimit withPrefix: $commonPrefix ..."
+        ) {
+          precedingCommonPrefix.size should be <= commonPrefix.size
+        }
+    }
+  }
 
   it should "be shrunk to a simple case" in {
     def testBodyInWildcardCapture[X](
@@ -1591,17 +1766,17 @@ class TrialsSpec
     Table(
       ("maximumSize", "cutoff", "lowerBound", "upperBound", "casesLimit"),
       (100, -900, -1250, 0, 400),
-      (100, 900, 0, 1250, 400),
+      (100, 900, 0, 1250, 420),
       (100, -900, -1000, 0, 500),
       (100, 900, 0, 1000, 200),
       (1000, -900, -1250, 0, 500),
       (1000, 900, 0, 1250, 500),
       (1000, -900, -1000, 0, 500),
-      (10000, 900, 0, 1000, 200),
+      (10000, 900, 0, 1000, 230),
       (10000, -900, -1250, 0, 700),
       (10000, 900, 0, 1250, 500),
-      (10000, -900, -1000, 0, 200),
-      (10000, 900, 0, 1000, 200)
+      (10000, -900, -1000, 0, 230),
+      (10000, 900, 0, 1000, 230)
     )
   ) { case (maximumSize, cutoff, lowerBound, upperBound, limit) =>
     println(
@@ -1844,10 +2019,12 @@ class TrialsSpec
 
     val suts = api.longs and api.longs and api.longs
 
+    val casesLimit = 202
+
     val provokingCase =
       intercept[suts.TrialException](
         suts
-          .withLimits(casesLimit = 800, shrinkageStop = noShrinking)
+          .withLimits(casesLimit = casesLimit, shrinkageStop = noShrinking)
           .supplyTo { case (x, y, z) =>
             predicate(threshold = 10)(x, y, z) shouldEqual predicate(threshold =
               9
@@ -1859,12 +2036,13 @@ class TrialsSpec
 
     val minimisedProvokingCase =
       intercept[suts.TrialException](
-        suts.withLimits(casesLimit = 800, shrinkageStop = noStopping).supplyTo {
-          case (x, y, z) =>
+        suts
+          .withLimits(casesLimit = casesLimit, shrinkageStop = noStopping)
+          .supplyTo { case (x, y, z) =>
             predicate(threshold = 10)(x, y, z) shouldEqual predicate(threshold =
               9
             )(x, y, z)
-        }
+          }
       ).provokingCase
 
     println(s"Minimised provoking case: $minimisedProvokingCase")

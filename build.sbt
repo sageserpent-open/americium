@@ -16,12 +16,13 @@ lazy val settings = Seq(
     case _ => Nil
   }),
   javacOptions ++= Seq("-source", javaVersion, "-target", javaVersion),
-  libraryDependencies += "com.sageserpent" %% "americium"  % "1.4.6",
+  libraryDependencies += "com.sageserpent" %% "americium"  % "1.6.0",
   libraryDependencies += "org.typelevel"   %% "cats-laws"  % "2.7.0"  % Test,
   libraryDependencies += "org.scalatest"   %% "scalatest"  % "3.2.9"  % Test,
   libraryDependencies += "org.scalacheck"  %% "scalacheck" % "1.15.4" % Test,
   libraryDependencies += "org.scalatestplus" %% "scalacheck-1-15" % "3.2.9.0" % Test,
   libraryDependencies += "org.mockito" % "mockito-core" % "4.2.0" % Test,
+  libraryDependencies += "org.mockito" % "mockito-junit-jupiter" % "4.2.0" % Test,
   libraryDependencies += "net.aichler" % "jupiter-interface" % JupiterKeys.jupiterVersion.value % Test,
   libraryDependencies ++= Seq(
     "org.junit.platform" % "junit-platform-runner" % "1.8.2" % Test,
