@@ -24,6 +24,13 @@ import java.lang.annotation.*;
  * require a full run over invocations to be reproduced - except for the
  * minimised failing test case, as this can be reproduced via its recipe
  * hash, consult the test console output for instructions on how to do this.
+ * <p>
+ * In contrast to {@link ConfiguredTrialsTest}, this annotation explicitly
+ * lists all the fields that provide {@link Trials} instances used to build
+ * the test cases, and puts the limit configuration inline in the annotation
+ * usage.
+ *
+ * @see ConfiguredTrialsTest
  */
 @Target({ElementType.ANNOTATION_TYPE, ElementType.METHOD})
 @Retention(RetentionPolicy.RUNTIME)
@@ -35,9 +42,10 @@ public @interface TrialsTest {
      * The name of a field or multiple fields of type {@link Trials} declared
      * in the class housing the annotated test method; the instances
      * referenced by the fields will collectively supply cases to the
-     * annotated test. These fields should be static if the annotated class
+     * annotated test. These fields should be either static if the annotated
+     * class
      * uses {@link org.junit.jupiter.api.TestInstance.Lifecycle#PER_METHOD},
-     * and non-static if
+     * or non-static if
      * {@link org.junit.jupiter.api.TestInstance.Lifecycle#PER_CLASS} is used.
      */
     String[] trials() default "";
