@@ -82,6 +82,24 @@ public interface TrialsScaffolding<Case,
     SupplySyntaxType withLimits(final int casesLimit,
                                 final OptionalLimits optionalLimits);
 
+    /**
+     * Fluent syntax for configuring a limit strategy for the number of cases
+     * supplied to a consumer.
+     *
+     * @param casesLimitStrategyFactory A factory method that should produce
+     *                                  a *fresh* instance of a
+     *                                  {@link CasesLimitStrategy} on each call.
+     * @param optionalLimits            Optional limits used to configure
+     *                                  other aspects of supplying and
+     *                                  shrinkage.
+     * @return An instance of {@link SupplyToSyntax} with the strategy
+     * configured.
+     * @apiNote The factory {@code casesLimitStrategyFactory} takes an
+     * argument of {@link CaseSupplyCycle}; this can be used to dynamically
+     * configure the strategy depending on which cycle the strategy is
+     * intended for, or simply disregarded if a one-size-fits-all approach is
+     * desired.
+     */
     SupplySyntaxType withStrategy(
             final Function<CaseSupplyCycle, CasesLimitStrategy> casesLimitStrategyFactory,
             final OptionalLimits optionalLimits);
@@ -104,6 +122,29 @@ public interface TrialsScaffolding<Case,
                                 final OptionalLimits optionalLimits,
                                 final ShrinkageStop<? super Case> shrinkageStop);
 
+    /**
+     * Fluent syntax for configuring a limit strategy for the number of cases
+     * supplied to a consumer.
+     *
+     * @param casesLimitStrategyFactory A factory method that should produce
+     *                                  a *fresh* instance of a
+     *                                  {@link CasesLimitStrategy} on each call.
+     * @param optionalLimits            Optional limits used to configure
+     *                                  other aspects of supplying and
+     *                                  shrinkage.
+     * @param shrinkageStop             Allows external control of the
+     *                                  shrinkage process in addition to what
+     *                                  is configured by the {@code
+     *                                  optionalLimits}. See also
+     *                                  {@link ShrinkageStop}.
+     * @return An instance of {@link SupplyToSyntax} with the strategy
+     * configured.
+     * @apiNote The factory {@code casesLimitStrategyFactory} takes an
+     * argument of {@link CaseSupplyCycle}; this can be used to dynamically
+     * configure the strategy depending on which cycle the strategy is
+     * intended for, or simply disregarded if a one-size-fits-all approach is
+     * desired.
+     */
     SupplySyntaxType withStrategy(
             Function<CaseSupplyCycle, CasesLimitStrategy> casesLimitStrategyFactory,
             final OptionalLimits optionalLimits,
