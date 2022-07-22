@@ -37,18 +37,28 @@ public class DemonstrateJUnitIntegration {
 
     private static final Tuple2Trials<String, Integer> pairs =
             potentialNulls.and(api.integers());
-
+    private static final TrialsScaffolding.SupplyToSyntax<String>
+            configuredPotentialNulls =
+            potentialNulls.withStrategy(TrialsApiTests::timed,
+                                        TrialsScaffolding.OptionalLimits.defaults);
     private static final Tuple3Trials<Integer, Boolean, ImmutableSet<Double>>
             triples = api
             .choose(-326734, 8484)
             .and(api.booleans())
             .and(api.doubles().immutableSets());
-
     private static final Trials<Tuple3<Integer, Boolean, ImmutableSet<Double>>>
             plainTriples = triples.trials();
-
     private static final Trials<Tuple3<Integer, Boolean, ImmutableSet<Double>>>
             nullableTriples = api.alternate(api.only(null), plainTriples);
+    private static final TrialsScaffolding.SupplyToSyntax<Tuple3<Integer,
+            Boolean, ImmutableSet<Double>>>
+            configuredNullableTriples =
+            nullableTriples.withStrategy(TrialsApiTests::timed,
+                                         TrialsScaffolding.OptionalLimits.defaults);
+    private static final Tuple3Trials.SupplyToSyntaxTuple3<Integer, Boolean,
+            ImmutableSet<Double>>
+            configuredTriples = triples.withStrategy(TrialsApiTests::timed,
+                                                     TrialsScaffolding.OptionalLimits.defaults);
 
     @BeforeEach
     void beforeEach() {
@@ -145,7 +155,7 @@ public class DemonstrateJUnitIntegration {
             String five,
             // From pairs...
             String firstInSix, int secondInSix) {
-        System.out.format("%s %s %s %s %s %s %s %s %s %s %s %s %s",
+        System.out.format("%s %s %s %s %s %s %s %s %s %s %s %s %s\n",
                           firstInOne,
                           secondInOne,
                           thirdInOne,
@@ -179,7 +189,7 @@ public class DemonstrateJUnitIntegration {
             String five,
             // From pairs...
             Tuple2<String, Integer> six) {
-        System.out.format("%s %s %s %s %s %s",
+        System.out.format("%s %s %s %s %s %s\n",
                           one,
                           two,
                           three,
@@ -204,7 +214,7 @@ public class DemonstrateJUnitIntegration {
             String five,
             // From pairs...
             String firstInSix, int secondInSix) {
-        System.out.format("%s %s %s %s %s %s %s %s %s",
+        System.out.format("%s %s %s %s %s %s %s %s %s\n",
                           one,
                           two,
                           firstInThree,
@@ -214,5 +224,23 @@ public class DemonstrateJUnitIntegration {
                           five,
                           firstInSix,
                           secondInSix);
+    }
+
+    @ConfiguredTrialsTest("configuredTriples")
+    void casesFromConfiguredTrials(int first, boolean second,
+                                   ImmutableSet<Double> third) {
+        System.out.format("%s %s %s\n", first, second, third);
+    }
+
+    @ConfiguredTrialsTest("configuredPotentialNulls")
+    void casesFromConfiguredTrialsWithANullableParameter(
+            String potentiallyThisIsANull) {
+        System.out.format("%s\n", potentiallyThisIsANull);
+    }
+
+    @ConfiguredTrialsTest("configuredNullableTriples")
+    void casesFromConfiguredTrialsWithANullableTupledParameter(
+            Tuple3<Integer, Boolean, ImmutableSet<Double>> potentiallyThisIsANull) {
+        System.out.format("%s\n", potentiallyThisIsANull);
     }
 }
