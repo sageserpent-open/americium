@@ -32,6 +32,11 @@ public class DemonstrateJUnitIntegration {
                        .characters('0', '9', '0')
                        .collectionsOfSize(size, Builder::stringBuilder))
                .filter(string -> string.length() >= 1);
+    private static final Tuple2Trials.SupplyToSyntaxTuple2<String, String>
+            configuredStringPairs = first
+            .and(second)
+            .withStrategy(TrialsApiTests::timed,
+                          TrialsScaffolding.OptionalLimits.defaults);
     private static final Trials<String> potentialNulls =
             api.alternate(api.strings(), api.only(null));
 
@@ -111,7 +116,7 @@ public class DemonstrateJUnitIntegration {
     @Disabled
     // This now detects the 'failing' test case correctly - but it is still a
     // test failure. Need to rethink what this test should look like....
-    @TrialsTest(trials = {"first", "second"}, casesLimit = 125)
+    @ConfiguredTrialsTest("configuredStringPairs")
     void copiedFromJqwik(String first, String second) {
         System.out.format("%s, %s\n", first, second);
         final String concatenation = first + second;
