@@ -1,4 +1,5 @@
 package com.sageserpent.americium.java
+
 import com.google.common.collect.ImmutableList
 import com.sageserpent.americium.java.SoonToBeRemovedTrialsTestExtension.testIntegrationContexts
 import cyclops.companion.Streams
@@ -16,43 +17,57 @@ import java.lang.reflect.Method
 import java.util
 import java.util.Collections
 import java.util.stream.Stream
+import scala.collection.mutable
 
-class TrialsTestExtension extends SoonToBeRemovedTrialsTestExtension {
+object TrialsTestExtension {
   private val additionalExceptionsToHandleAsFiltration
       : Array[Class[_ <: Throwable]] =
-    Set(classOf[TestAbortedException]).toArray
+    Array(classOf[TestAbortedException])
 
   private def wrap(listOrSingleItem: Any) = if (
     listOrSingleItem.isInstanceOf[util.List[_]]
   ) listOrSingleItem.asInstanceOf[util.List[Any]]
   else Collections.singletonList(listOrSingleItem)
 
-  case class TupleAdaptation[Tuple](
-      clazz: Class[Tuple],
-      expansion: Tuple => util.List[Any]
-  )
+  trait TupleAdaptation[-PotentialTuple] {
+    def clazz: Class[_ >: PotentialTuple]
+    def expand(potentialTuple: PotentialTuple): List[Any]
+  }
 
-  val fallbackForNonTuples: TupleAdaptation[Any] =
-    TupleAdaptation(classOf[Any], Collections.singletonList[Any])
+  val fallbackForNonTuples: TupleAdaptation[Any] = {
+    new TupleAdaptation[Any] {
+      override def clazz: Class[Any] = classOf[Any]
+      override def expand(potentialTuple: Any): List[Any] =
+        List(potentialTuple)
+    }
+  }
 
-  protected val tupleAdaptations: ImmutableList[TupleAdaptation[_]] =
-    ImmutableList.of(
-      new TupleAdaptation[JavaTuple2[_, _]](
-        classOf[JavaTuple2[_, _]],
-        (tuple: JavaTuple2[_, _]) =>
-          Collections.unmodifiableList(util.Arrays.asList(tuple.toArray: _*))
-      ),
-      new TupleAdaptation[JavaTuple3[_, _, _]](
-        classOf[JavaTuple3[_, _, _]],
-        (tuple: JavaTuple3[_, _, _]) =>
-          Collections.unmodifiableList(util.Arrays.asList(tuple.toArray: _*))
-      ),
-      new TupleAdaptation[JavaTuple4[_, _, _, _]](
-        classOf[JavaTuple4[_, _, _, _]],
-        (tuple: JavaTuple4[_, _, _, _]) =>
-          Collections.unmodifiableList(util.Arrays.asList(tuple.toArray: _*))
-      )
+  protected val tupleAdaptations: List[TupleAdaptation[_]] =
+    List(
+      new TupleAdaptation[JavaTuple2[_, _]] {
+        override def clazz: Class[JavaTuple2[_, _]] = classOf[JavaTuple2[_, _]]
+        override def expand(potentialTuple: JavaTuple2[_, _]): List[Any] =
+          potentialTuple.toArray.toList
+      },
+      new TupleAdaptation[JavaTuple3[_, _, _]] {
+        override def clazz: Class[JavaTuple3[_, _, _]] =
+          classOf[JavaTuple3[_, _, _]]
+        override def expand(
+            potentialTuple: JavaTuple3[_, _, _]
+        ): List[Any] = potentialTuple.toArray.toList
+      },
+      new TupleAdaptation[JavaTuple4[_, _, _, _]] {
+        override def clazz: Class[JavaTuple4[_, _, _, _]] =
+          classOf[JavaTuple4[_, _, _, _]]
+        override def expand(
+            potentialTuple: JavaTuple4[_, _, _, _]
+        ): List[Any] = potentialTuple.toArray.toList
+      }
     )
+}
+
+class TrialsTestExtension extends SoonToBeRemovedTrialsTestExtension {
+  import TrialsTestExtension.*
 
   override def supportsTestTemplate(context: ExtensionContext) = true
 
@@ -61,6 +76,50 @@ class TrialsTestExtension extends SoonToBeRemovedTrialsTestExtension {
   ): Stream[TestTemplateInvocationContext] = {
     val method               = context.getRequiredTestMethod
     val formalParameterTypes = method.getParameterTypes
+
+    def extractedArguments(
+        testIntegrationContext: TestIntegrationContext[Any]
+    ): Array[Any] = {
+      // Ported from Java code, and staying with that style...
+      val adaptedArguments = new mutable.ArrayBuffer[Any]
+
+      {
+        val cachedTupleAdaptations =
+          new mutable.HashMap[Integer, TupleAdaptation[Any]]
+        var formalParameterIndex = 0
+        val argumentIterator     = wrap(testIntegrationContext.caze).iterator
+
+        while ({
+          formalParameterTypes.length > formalParameterIndex && argumentIterator.hasNext
+        }) {
+          val argument = argumentIterator.next
+          val formalParameterType =
+            formalParameterTypes(formalParameterIndex)
+          val expansion = cachedTupleAdaptations
+            .getOrElseUpdate(
+              formalParameterIndex, {
+                if (formalParameterType.isInstance(argument))
+                  fallbackForNonTuples
+                    .asInstanceOf[TupleAdaptation[
+                      Any
+                    ]]
+                else
+                  tupleAdaptations
+                    .find(_.clazz.isInstance(argument))
+                    .getOrElse(fallbackForNonTuples)
+                    .asInstanceOf[TupleAdaptation[
+                      Any
+                    ]]
+              }
+            )
+            .expand(argument)
+          formalParameterIndex += expansion.size
+          adaptedArguments.addAll(expansion)
+        }
+      }
+
+      adaptedArguments.toArray
+    }
     Streams
       .stream(testIntegrationContexts(context))
       .map((testIntegrationContext: TestIntegrationContext[Any]) =>
@@ -80,46 +139,7 @@ class TrialsTestExtension extends SoonToBeRemovedTrialsTestExtension {
           }
 
           override def getAdditionalExtensions: util.List[Extension] = {
-            val adaptedArguments = new util.LinkedList[Any]
-            val cachedTupleAdaptations =
-              new util.HashMap[Integer, TupleAdaptation[
-                Any
-              ]]
-            var formalParameterIndex = 0
-            val argumentIterator = wrap(testIntegrationContext.caze).iterator
-            while ({
-              formalParameterTypes.length > formalParameterIndex && argumentIterator.hasNext
-            }) {
-              val argument = argumentIterator.next
-              val formalParameterType =
-                formalParameterTypes(formalParameterIndex)
-              val expansion = cachedTupleAdaptations
-                .computeIfAbsent(
-                  formalParameterIndex,
-                  (unused: Integer) =>
-                    if (formalParameterType.isInstance(argument))
-                      fallbackForNonTuples
-                        .asInstanceOf[TupleAdaptation[
-                          Any
-                        ]]
-                    else
-                      tupleAdaptations.stream
-                        .filter(
-                          (tupleAdaptation: TupleAdaptation[
-                            _
-                          ]) => tupleAdaptation.clazz.isInstance(argument)
-                        )
-                        .findFirst
-                        .orElse(fallbackForNonTuples)
-                        .asInstanceOf[TupleAdaptation[
-                          Any
-                        ]]
-                )
-                .expansion
-                .apply(argument)
-              formalParameterIndex += expansion.size
-              adaptedArguments.addAll(expansion)
-            }
+            val adaptedArguments = extractedArguments(testIntegrationContext)
 
             ImmutableList.of(
               new ParameterResolver() {
@@ -127,7 +147,7 @@ class TrialsTestExtension extends SoonToBeRemovedTrialsTestExtension {
                     parameterContext: ParameterContext,
                     extensionContext: ExtensionContext
                 ): Boolean = Option(
-                  adaptedArguments.get(parameterContext.getIndex)
+                  adaptedArguments(parameterContext.getIndex)
                 ).forall((parameter: Any) => {
                   val formalParameterType =
                     parameterContext.getParameter.getType
@@ -143,7 +163,7 @@ class TrialsTestExtension extends SoonToBeRemovedTrialsTestExtension {
                 override def resolveParameter(
                     parameterContext: ParameterContext,
                     extensionContext: ExtensionContext
-                ): Any = adaptedArguments.get(parameterContext.getIndex)
+                ): Any = adaptedArguments(parameterContext.getIndex)
               },
               new InvocationInterceptor() {
                 override def interceptTestTemplateMethod(
