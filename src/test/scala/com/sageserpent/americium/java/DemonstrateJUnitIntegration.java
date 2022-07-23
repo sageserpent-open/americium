@@ -42,6 +42,9 @@ public class DemonstrateJUnitIntegration {
 
     private static final Tuple2Trials<String, Integer> pairs =
             potentialNulls.and(api.integers());
+    private static final Tuple2Trials.SupplyToSyntaxTuple2<String, Integer>
+            configuredPairs = pairs.withStrategy(TrialsApiTests::timed,
+                                                 TrialsScaffolding.OptionalLimits.defaults);
     private static final TrialsScaffolding.SupplyToSyntax<String>
             configuredPotentialNulls =
             potentialNulls.withStrategy(TrialsApiTests::timed,
@@ -235,6 +238,12 @@ public class DemonstrateJUnitIntegration {
     void casesFromConfiguredTrials(int first, boolean second,
                                    ImmutableSet<Double> third) {
         System.out.format("%s %s %s\n", first, second, third);
+    }
+
+    @ConfiguredTrialsTest("configuredPairs")
+    void casesFromConfiguredTrialsWithEmbeddedNulls(String potentiallyNull,
+                                                    int notNull) {
+        System.out.format("%s %s\n", potentiallyNull, notNull);
     }
 
     @ConfiguredTrialsTest("configuredPotentialNulls")
