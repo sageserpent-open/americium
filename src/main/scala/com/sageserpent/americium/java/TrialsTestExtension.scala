@@ -20,50 +20,48 @@ import java.util.stream.Stream
 import scala.collection.mutable
 
 object TrialsTestExtension {
-  private val additionalExceptionsToHandleAsFiltration
-      : Array[Class[_ <: Throwable]] =
-    Array(classOf[TestAbortedException])
-
-  private def wrap(listOrSingleItem: Any) = if (
-    listOrSingleItem.isInstanceOf[util.List[_]]
-  ) listOrSingleItem.asInstanceOf[util.List[Any]]
-  else Collections.singletonList(listOrSingleItem)
-
-  trait TupleAdaptation[-PotentialTuple] {
-    def clazz: Class[_ >: PotentialTuple]
-    def expand(potentialTuple: PotentialTuple): List[Any]
-  }
-
-  val fallbackForNonTuples: TupleAdaptation[Any] = {
-    new TupleAdaptation[Any] {
-      override def clazz: Class[Any] = classOf[Any]
-      override def expand(potentialTuple: Any): List[Any] =
-        List(potentialTuple)
+  val simpleWrapping: TupleAdaptation[AnyRef] = {
+    new TupleAdaptation[AnyRef] {
+      override def clazz: Class[AnyRef] = classOf[AnyRef]
+      override def expand(potentialTuple: AnyRef): Seq[AnyRef] =
+        Seq(potentialTuple)
     }
   }
-
-  protected val tupleAdaptations: List[TupleAdaptation[_]] =
+  protected val tupleExpansions: List[TupleAdaptation[_ <: AnyRef]] =
     List(
       new TupleAdaptation[JavaTuple2[_, _]] {
         override def clazz: Class[JavaTuple2[_, _]] = classOf[JavaTuple2[_, _]]
-        override def expand(potentialTuple: JavaTuple2[_, _]): List[Any] =
-          potentialTuple.toArray.toList
+        override def expand(potentialTuple: JavaTuple2[_, _]): Seq[AnyRef] =
+          potentialTuple.toArray
       },
       new TupleAdaptation[JavaTuple3[_, _, _]] {
         override def clazz: Class[JavaTuple3[_, _, _]] =
           classOf[JavaTuple3[_, _, _]]
         override def expand(
             potentialTuple: JavaTuple3[_, _, _]
-        ): List[Any] = potentialTuple.toArray.toList
+        ): Seq[AnyRef] = potentialTuple.toArray
       },
       new TupleAdaptation[JavaTuple4[_, _, _, _]] {
         override def clazz: Class[JavaTuple4[_, _, _, _]] =
           classOf[JavaTuple4[_, _, _, _]]
         override def expand(
             potentialTuple: JavaTuple4[_, _, _, _]
-        ): List[Any] = potentialTuple.toArray.toList
+        ): Seq[AnyRef] = potentialTuple.toArray
       }
     )
+  private val additionalExceptionsToHandleAsFiltration
+      : Array[Class[_ <: Throwable]] =
+    Array(classOf[TestAbortedException])
+
+  private def wrap(listOrSingleItem: AnyRef) = listOrSingleItem match {
+    case _: util.List[_] => listOrSingleItem.asInstanceOf[util.List[AnyRef]]
+    case _               => Collections.singletonList(listOrSingleItem)
+  }
+
+  trait TupleAdaptation[-PotentialTuple <: AnyRef] {
+    def clazz: Class[_ >: PotentialTuple]
+    def expand(potentialTuple: PotentialTuple): Seq[AnyRef]
+  }
 }
 
 class TrialsTestExtension extends SoonToBeRemovedTrialsTestExtension {
@@ -78,14 +76,14 @@ class TrialsTestExtension extends SoonToBeRemovedTrialsTestExtension {
     val formalParameterTypes = method.getParameterTypes
 
     def extractedArguments(
-        testIntegrationContext: TestIntegrationContext[Any]
+        testIntegrationContext: TestIntegrationContext[AnyRef]
     ): Array[Any] = {
       // Ported from Java code, and staying with that style...
-      val adaptedArguments = new mutable.ArrayBuffer[Any]
+      val adaptedArguments = new mutable.ArrayBuffer[AnyRef]
 
       {
         val cachedTupleAdaptations =
-          new mutable.HashMap[Integer, TupleAdaptation[Any]]
+          new mutable.HashMap[Integer, TupleAdaptation[AnyRef]]
         var formalParameterIndex = 0
         val argumentIterator     = wrap(testIntegrationContext.caze).iterator
 
@@ -98,18 +96,17 @@ class TrialsTestExtension extends SoonToBeRemovedTrialsTestExtension {
           val expansion = cachedTupleAdaptations
             .getOrElseUpdate(
               formalParameterIndex, {
+                // NOTE: don't use pattern matching on `argument` here - we want
+                // to adapt based on the *formal* argument type, not on the
+                // actual runtime type (which may implement additional
+                // interfaces).
                 if (formalParameterType.isInstance(argument))
-                  fallbackForNonTuples
-                    .asInstanceOf[TupleAdaptation[
-                      Any
-                    ]]
+                  simpleWrapping
                 else
-                  tupleAdaptations
+                  tupleExpansions
                     .find(_.clazz.isInstance(argument))
-                    .getOrElse(fallbackForNonTuples)
-                    .asInstanceOf[TupleAdaptation[
-                      Any
-                    ]]
+                    .getOrElse(simpleWrapping)
+                    .asInstanceOf[TupleAdaptation[AnyRef]]
               }
             )
             .expand(argument)
@@ -122,7 +119,7 @@ class TrialsTestExtension extends SoonToBeRemovedTrialsTestExtension {
     }
     Streams
       .stream(testIntegrationContexts(context))
-      .map((testIntegrationContext: TestIntegrationContext[Any]) =>
+      .map((testIntegrationContext: TestIntegrationContext[AnyRef]) =>
         new TestTemplateInvocationContext() {
           override def getDisplayName(invocationIndex: Int): String = {
             val shrinkagePrefix =
