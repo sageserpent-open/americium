@@ -2,7 +2,6 @@ package com.sageserpent.americium.java;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import cyclops.companion.Streams;
 import cyclops.data.tuple.Tuple2;
@@ -49,7 +48,7 @@ public class TrialsTestExtension
                                                                    tuple.toArray()))));
 
 
-    private static Iterator<TestIntegrationContext<List<Object>>> testIntegrationContexts(
+    private static Iterator<TestIntegrationContext<Object>> testIntegrationContexts(
             ExtensionContext context) {
         final Method testMethod = context.getRequiredTestMethod();
 
@@ -90,66 +89,33 @@ public class TrialsTestExtension
                                              }
                                          });
 
-                    return lists
+                    return (TrialsScaffolding.SupplyToSyntax) lists
                             .withLimits(annotation.casesLimit(),
                                         TrialsScaffolding.OptionalLimits
                                                 .builder()
                                                 .complexity(annotation.complexity())
                                                 .shrinkageAttempts(
                                                         annotation.shrinkageAttempts())
-                                                .build())
-                            .testIntegrationContexts();
+                                                .build());
                 })
-                .orElseGet(() -> {
-                    final Iterator<TestIntegrationContext<Object>>
-                            unadaptedContexts = AnnotationSupport
-                            .findAnnotation(testMethod,
-                                            ConfiguredTrialsTest.class)
-                            .map(annotation -> (TrialsScaffolding.SupplyToSyntax<Object>) instancesReferredToBy(
-                                    Stream
-                                            .of(annotation.value())
-                                            .collect(
-                                                    Collectors.toList()),
-                                    context,
-                                    TrialsScaffolding.SupplyToSyntax.class).get(
-                                    0))
-                            .orElseThrow(() -> {
-                                throw new TestAbortedException(String.format(
-                                        "`TrialsTest` annotation missing from" +
-                                        " " +
-                                        "method: %s",
-                                        testMethod));
-                            }).testIntegrationContexts();
-
-                    return Iterators.transform(unadaptedContexts,
-                                               raw -> new TestIntegrationContext<List<Object>>() {
-                                                   @Override
-                                                   public List<Object> caze() {
-                                                       final List<Object>
-                                                               buffer =
-                                                               new LinkedList<>();
-                                                       buffer.add(raw.caze());
-
-                                                       return Collections.unmodifiableList(
-                                                               buffer);
-                                                   }
-
-                                                   @Override
-                                                   public CaseFailureReporting caseFailureReporting() {
-                                                       return raw.caseFailureReporting();
-                                                   }
-
-                                                   @Override
-                                                   public InlinedCaseFiltration inlinedCaseFiltration() {
-                                                       return raw.inlinedCaseFiltration();
-                                                   }
-
-                                                   @Override
-                                                   public boolean isPartOfShrinkage() {
-                                                       return raw.isPartOfShrinkage();
-                                                   }
-                                               });
-                });
+                .orElseGet(() -> AnnotationSupport
+                        .findAnnotation(testMethod,
+                                        ConfiguredTrialsTest.class)
+                        .map(annotation -> instancesReferredToBy(
+                                Stream
+                                        .of(annotation.value())
+                                        .collect(
+                                                Collectors.toList()),
+                                context,
+                                TrialsScaffolding.SupplyToSyntax.class).get(
+                                0))
+                        .orElseThrow(() -> {
+                            throw new TestAbortedException(String.format(
+                                    "`TrialsTest` annotation missing from" +
+                                    " " +
+                                    "method: %s",
+                                    testMethod));
+                        })).testIntegrationContexts();
     }
 
     private static <Clazz> List<Clazz> instancesReferredToBy(
@@ -224,6 +190,20 @@ public class TrialsTestExtension
         }).collect(Collectors.toList());
     }
 
+    private static List<Object> wrap(Object listOrSingleItem) {
+        if (listOrSingleItem instanceof List)
+            return (List<Object>) listOrSingleItem;
+        else {
+            final List<Object>
+                    buffer =
+                    new LinkedList<>();
+            buffer.add(listOrSingleItem);
+
+            return Collections.unmodifiableList(
+                    buffer);
+        }
+    }
+
     @Override
     public boolean supportsTestTemplate(ExtensionContext context) {
         return true;
@@ -244,19 +224,17 @@ public class TrialsTestExtension
                                 testIntegrationContext.isPartOfShrinkage()
                                 ? "Shrinking ... " : "";
 
+                        final List<Object> caze =
+                                wrap(testIntegrationContext.caze());
                         return String.format("%s%s %s",
                                              shrinkagePrefix,
                                              TestTemplateInvocationContext.super.getDisplayName(
                                                      invocationIndex),
                                              1 <
-                                             testIntegrationContext
-                                                     .caze()
-                                                     .size()
-                                             ? testIntegrationContext.caze()
+                                             caze.size()
+                                             ? caze
                                              :
-                                             testIntegrationContext
-                                                     .caze()
-                                                     .get(0));
+                                             caze.get(0));
                     }
 
                     @Override
@@ -273,9 +251,7 @@ public class TrialsTestExtension
                                     new AtomicInteger(0);
 
                             final Iterator<Object> argumentIterator =
-                                    testIntegrationContext
-                                            .caze()
-                                            .iterator();
+                                    wrap(testIntegrationContext.caze()).iterator();
 
                             while (formalParameterTypes.length >
                                    formalParameterIndex.get() &&
