@@ -1,6 +1,6 @@
 package com.sageserpent.americium.java
 
-import com.google.common.collect.ImmutableList
+import com.sageserpent.americium.Trials as ScalaTrials
 import cyclops.companion.Streams
 import cyclops.data.tuple.{
   Tuple2 as JavaTuple2,
@@ -19,10 +19,9 @@ import org.opentest4j.TestAbortedException
 import java.lang.invoke.MethodType
 import java.lang.reflect.{Field, Method}
 import java.util
-import java.util.Collections
 import java.util.stream.Stream
 import scala.collection.mutable
-import scala.jdk.CollectionConverters.{ListHasAsScala, SeqHasAsJava}
+import scala.jdk.CollectionConverters.*
 import scala.jdk.OptionConverters.RichOptional
 
 object TrialsTestExtension {
@@ -64,33 +63,25 @@ object TrialsTestExtension {
       context: ExtensionContext
   ): util.Iterator[TestIntegrationContext[AnyRef]] = {
     val testMethod = context.getRequiredTestMethod
+
     AnnotationSupport
       .findAnnotation(testMethod, classOf[TrialsTest])
       .toScala
       .map((annotation: TrialsTest) => {
-        val trials: util.List[Trials[AnyRef]] =
+        val trials =
           instancesReferredToBy(
             annotation.trials.toList,
             context,
             classOf[TrialsScaffolding[
               Case,
               _ <: TrialsScaffolding.SupplyToSyntax[Case]
-            ] forSome { type Case }]
-          ).map(_.trials).asJava.asInstanceOf[util.List[Trials[AnyRef]]]
-        val lists: Trials[util.List[AnyRef]] = Trials.api.collections(
-          trials,
-          () =>
-            new Builder[AnyRef, util.List[AnyRef]]() { // This builder tolerates null
-              // elements, which is why we use `.collections` here instead
-              // of
-              // `.lists`, which would seem to be the natural choice.
-              final private[java] val buffer       = new util.LinkedList[AnyRef]
-              override def add(caze: AnyRef): Unit = { buffer.add(caze) }
-              override def build: util.List[AnyRef] =
-                Collections.unmodifiableList(buffer)
-            }
-        )
-        lists
+            ] forSome { type Case <: AnyRef }]
+          ).map(_.trials.scalaTrials()).toVector
+
+        val vectors: ScalaTrials[Vector[AnyRef]] =
+          ScalaTrials.api.sequences(trials)
+
+        vectors.javaTrials
           .withLimits(
             annotation.casesLimit,
             TrialsScaffolding.OptionalLimits.factory(
@@ -177,10 +168,11 @@ object TrialsTestExtension {
     )
   }
 
-  private def wrap(listOrSingleItem: AnyRef) = listOrSingleItem match {
-    case _: util.List[_] => listOrSingleItem.asInstanceOf[util.List[AnyRef]]
-    case _               => Collections.singletonList(listOrSingleItem)
-  }
+  private def wrap(listOrSingleItem: AnyRef): Vector[AnyRef] =
+    listOrSingleItem match {
+      case vector: Vector[AnyRef] => vector
+      case _                      => Vector(listOrSingleItem)
+    }
 
   trait TupleAdaptation[-PotentialTuple <: AnyRef] {
     def clazz: Class[_ >: PotentialTuple]
@@ -255,14 +247,14 @@ class TrialsTestExtension extends TestTemplateInvocationContextProvider {
               shrinkagePrefix,
               super.getDisplayName(invocationIndex),
               if (1 < caze.size) caze
-              else caze.get(0)
+              else caze(0)
             )
           }
 
           override def getAdditionalExtensions: util.List[Extension] = {
             val adaptedArguments = extractedArguments(testIntegrationContext)
 
-            ImmutableList.of(
+            List(
               new ParameterResolver() {
                 override def supportsParameter(
                     parameterContext: ParameterContext,
@@ -321,7 +313,7 @@ class TrialsTestExtension extends TestTemplateInvocationContextProvider {
                   testIntegrationContext.caseFailureReporting.report(cause)
                 }
               }
-            )
+            ).asJava
           }
         }
       )
