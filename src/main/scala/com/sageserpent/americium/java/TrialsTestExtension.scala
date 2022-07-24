@@ -68,14 +68,14 @@ object TrialsTestExtension {
       .findAnnotation(testMethod, classOf[TrialsTest])
       .toScala
       .map((annotation: TrialsTest) => {
-        val trials =
+        val trials: Vector[ScalaTrials[AnyRef]] =
           instancesReferredToBy(
             annotation.trials.toList,
             context,
             classOf[TrialsScaffolding[
-              Case,
-              _ <: TrialsScaffolding.SupplyToSyntax[Case]
-            ] forSome { type Case <: AnyRef }]
+              AnyRef,
+              _ <: TrialsScaffolding.SupplyToSyntax[AnyRef]
+            ]]
           ).map(_.trials.scalaTrials()).toVector
 
         val vectors: ScalaTrials[Vector[AnyRef]] =
@@ -98,7 +98,7 @@ object TrialsTestExtension {
             instancesReferredToBy(
               List(annotation.value),
               context,
-              classOf[TrialsScaffolding.SupplyToSyntax[_]]
+              classOf[TrialsScaffolding.SupplyToSyntax[AnyRef]]
             ).head
           )
           .getOrElse {
