@@ -250,7 +250,6 @@ public interface TrialsScaffolding<Case,
     class OptionalLimits {
         public static OptionalLimits defaults =
                 OptionalLimits.builder().build();
-
         /**
          * The maximum permitted complexity when generating a case.
          *
@@ -266,7 +265,6 @@ public interface TrialsScaffolding<Case,
          */
         @lombok.Builder.Default
         public final int complexity = defaultComplexityLimit;
-
         /**
          * The maximum number of shrinkage attempts when shrinking a case.
          * Setting this to zero disables shrinkage and will thus yield the
@@ -275,5 +273,15 @@ public interface TrialsScaffolding<Case,
         @lombok.Builder.Default
         public final int shrinkageAttempts =
                 defaultShrinkageAttemptsLimit;
+
+        // This is only here to placate the mixed Java and Scala compilation;
+        // that doesn't play well with Lombok.
+        static OptionalLimits factory(int complexity,
+                                      int shrinkageAttempts) {
+            return builder()
+                    .complexity(complexity)
+                    .shrinkageAttempts(shrinkageAttempts)
+                    .build();
+        }
     }
 }

@@ -1,7 +1,6 @@
 package com.sageserpent.americium.java
 
 import com.google.common.collect.ImmutableList
-import com.sageserpent.americium.java.SoonToBeRemovedTrialsTestExtension.testIntegrationContexts
 import cyclops.companion.Streams
 import cyclops.data.tuple.{
   Tuple2 as JavaTuple2,
@@ -9,15 +8,22 @@ import cyclops.data.tuple.{
   Tuple4 as JavaTuple4
 }
 import org.junit.jupiter.api.extension.*
+import org.junit.platform.commons.support.{
+  AnnotationSupport,
+  HierarchyTraversalMode,
+  ReflectionSupport
+}
 import org.junit.platform.commons.util.ExceptionUtils
 import org.opentest4j.TestAbortedException
 
 import java.lang.invoke.MethodType
-import java.lang.reflect.Method
+import java.lang.reflect.{Field, Method}
 import java.util
 import java.util.Collections
 import java.util.stream.Stream
 import scala.collection.mutable
+import scala.jdk.CollectionConverters.{ListHasAsScala, SeqHasAsJava}
+import scala.jdk.OptionConverters.RichOptional
 
 object TrialsTestExtension {
   val simpleWrapping: TupleAdaptation[AnyRef] = {
@@ -49,9 +55,127 @@ object TrialsTestExtension {
         ): Seq[AnyRef] = potentialTuple.toArray
       }
     )
+
   private val additionalExceptionsToHandleAsFiltration
       : Array[Class[_ <: Throwable]] =
     Array(classOf[TestAbortedException])
+
+  protected def testIntegrationContexts(
+      context: ExtensionContext
+  ): util.Iterator[TestIntegrationContext[AnyRef]] = {
+    val testMethod = context.getRequiredTestMethod
+    AnnotationSupport
+      .findAnnotation(testMethod, classOf[TrialsTest])
+      .toScala
+      .map((annotation: TrialsTest) => {
+        val trials: util.List[Trials[AnyRef]] =
+          instancesReferredToBy(
+            annotation.trials.toList,
+            context,
+            classOf[TrialsScaffolding[
+              Case,
+              _ <: TrialsScaffolding.SupplyToSyntax[Case]
+            ] forSome { type Case }]
+          ).map(_.trials).asJava.asInstanceOf[util.List[Trials[AnyRef]]]
+        val lists: Trials[util.List[AnyRef]] = Trials.api.collections(
+          trials,
+          () =>
+            new Builder[AnyRef, util.List[AnyRef]]() { // This builder tolerates null
+              // elements, which is why we use `.collections` here instead
+              // of
+              // `.lists`, which would seem to be the natural choice.
+              final private[java] val buffer       = new util.LinkedList[AnyRef]
+              override def add(caze: AnyRef): Unit = { buffer.add(caze) }
+              override def build: util.List[AnyRef] =
+                Collections.unmodifiableList(buffer)
+            }
+        )
+        lists
+          .withLimits(
+            annotation.casesLimit,
+            TrialsScaffolding.OptionalLimits.factory(
+              annotation.complexity,
+              annotation.shrinkageAttempts
+            )
+          )
+      })
+      .getOrElse {
+        AnnotationSupport
+          .findAnnotation(testMethod, classOf[ConfiguredTrialsTest])
+          .toScala
+          .map((annotation: ConfiguredTrialsTest) =>
+            instancesReferredToBy(
+              List(annotation.value),
+              context,
+              classOf[TrialsScaffolding.SupplyToSyntax[_]]
+            ).head
+          )
+          .getOrElse {
+            throw new TestAbortedException(
+              String.format(
+                "`TrialsTest` annotation missing from method: %s",
+                testMethod
+              )
+            )
+          }
+      }
+      .testIntegrationContexts
+      .asInstanceOf[util.Iterator[TestIntegrationContext[AnyRef]]]
+  }
+
+  private def instancesReferredToBy[Clazz](
+      supplierFieldNames: List[String],
+      context: ExtensionContext,
+      clazz: Class[Clazz]
+  ): List[Clazz] = {
+    val testClass = context.getRequiredTestClass
+    val supplierFields = ReflectionSupport
+      .findFields(
+        testClass,
+        (field: Field) => supplierFieldNames.contains(field.getName),
+        HierarchyTraversalMode.BOTTOM_UP
+      )
+      .asScala
+    val fieldsByName = supplierFields
+      .filter((field: Field) => clazz.isAssignableFrom(field.getType))
+      .map(field => field.getName -> field)
+      .toMap
+    supplierFieldNames.map((fieldName: String) =>
+      {
+        val candidateField = fieldsByName.get(fieldName)
+        candidateField
+          .flatMap((field: Field) =>
+            ReflectionSupport
+              .tryToReadFieldValue(field, context.getTestInstance.orElse(null))
+              .toOptional
+              .toScala
+          )
+          .getOrElse {
+            throw supplierFields
+              .find(fieldName == _.getName)
+              .fold(ifEmpty = {
+                new RuntimeException(
+                  String.format(
+                    "Failed to find field of name: `%s` in test class `%s`.",
+                    fieldName,
+                    testClass
+                  )
+                )
+              })(field =>
+                new RuntimeException(
+                  String.format(
+                    "Field of name `%s` in test class `%s` has the wrong type of `%s` - should be typed as a %s.",
+                    fieldName,
+                    testClass,
+                    field.getType,
+                    clazz
+                  )
+                )
+              )
+          }
+      }.asInstanceOf[Clazz]
+    )
+  }
 
   private def wrap(listOrSingleItem: AnyRef) = listOrSingleItem match {
     case _: util.List[_] => listOrSingleItem.asInstanceOf[util.List[AnyRef]]
@@ -64,7 +188,7 @@ object TrialsTestExtension {
   }
 }
 
-class TrialsTestExtension extends SoonToBeRemovedTrialsTestExtension {
+class TrialsTestExtension extends TestTemplateInvocationContextProvider {
   import TrialsTestExtension.*
 
   override def supportsTestTemplate(context: ExtensionContext) = true
