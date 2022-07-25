@@ -245,7 +245,7 @@ public interface TrialsScaffolding<Case,
         }
     }
 
-    @lombok.Builder
+    @lombok.Builder(toBuilder = true)
     @lombok.EqualsAndHashCode
     class OptionalLimits {
         public static OptionalLimits defaults =
