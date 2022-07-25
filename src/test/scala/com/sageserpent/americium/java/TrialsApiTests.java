@@ -44,32 +44,8 @@ public class TrialsApiTests {
                                  api.strings().immutableMaps(api.booleans()));
     }
 
-    public static CasesLimitStrategy timed(CaseSupplyCycle unused) {
-        return new CasesLimitStrategy() {
-            final Instant startedAt = Instant.now();
-
-            @Override
-            public boolean moreToDo() {
-                return startedAt
-                        .plus(Duration.ofSeconds(1))
-                        .isAfter(Instant.now());
-            }
-
-            @Override
-            public void noteRejectionOfCase() {
-
-            }
-
-            @Override
-            public void noteEmissionOfCase() {
-
-            }
-
-            @Override
-            public void noteStarvation() {
-
-            }
-        };
+    public static CasesLimitStrategy oneSecond(CaseSupplyCycle unused) {
+        return CasesLimitStrategy.timed(Duration.ofSeconds(1));
     }
 
     Trials<String> chainedIntegers() {
@@ -600,7 +576,7 @@ public class TrialsApiTests {
     void customCasesLimitStrategy(@Mock BiConsumer<Integer, Integer> consumer) {
         final Function<CaseSupplyCycle, CasesLimitStrategy>
                 casesLimitStrategyFactory =
-                TrialsApiTests::timed;
+                TrialsApiTests::oneSecond;
 
         final int highestMagnitude = 100;
 
