@@ -61,7 +61,10 @@ public interface CasesLimitStrategy {
      * Emulation of Scalacheck's approach to limiting emission of test cases.
      *
      * @param maximumNumberOfCases   *Upper* limit on the number of cases
-     *                               emitted.
+     *                               emitted. <b>For Scalacheck aficionados:
+     *                               the name reflects the fact that this is
+     *                               a limit, contrast with Scalacheck's
+     *                               {@code minSuccessfulTests}.</b>
      * @param maximumStarvationRatio Maximum ratio of case starvation versus
      *                               case emission.
      * @return A fresh strategy instance.
