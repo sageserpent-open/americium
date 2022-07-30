@@ -31,6 +31,28 @@ class TrialsApiImplementation extends CommonApi with ScalaTrialsApi {
   ): TrialsImplementation[Case] =
     chooseWithWeights(firstChoice +: secondChoice +: otherChoices)
 
+  override def chooseWithWeights[Case](
+      choices: Iterable[(Int, Case)]
+  ): TrialsImplementation[Case] =
+    new TrialsImplementation(
+      Choice(choices.unzip match {
+        case (weights, plainChoices) =>
+          SortedMap.from(
+            weights
+              .scanLeft(0) {
+                case (cumulativeWeight, weight) if 0 < weight =>
+                  cumulativeWeight + weight
+                case (_, weight) =>
+                  throw new IllegalArgumentException(
+                    s"Weight $weight amongst provided weights of $weights must be greater than zero"
+                  )
+              }
+              .drop(1)
+              .zip(plainChoices)
+          )
+      })
+    )
+
   override def alternate[Case](
       firstAlternative: ScalaTrials[Case],
       secondAlternative: ScalaTrials[Case],
@@ -60,28 +82,6 @@ class TrialsApiImplementation extends CommonApi with ScalaTrialsApi {
   ): TrialsImplementation[Case] =
     chooseWithWeights(alternatives).flatMap(identity[ScalaTrials[Case]])
 
-  override def chooseWithWeights[Case](
-      choices: Iterable[(Int, Case)]
-  ): TrialsImplementation[Case] =
-    new TrialsImplementation(
-      Choice(choices.unzip match {
-        case (weights, plainChoices) =>
-          SortedMap.from(
-            weights
-              .scanLeft(0) {
-                case (cumulativeWeight, weight) if 0 < weight =>
-                  cumulativeWeight + weight
-                case (_, weight) =>
-                  throw new IllegalArgumentException(
-                    s"Weight $weight amongst provided weights of $weights must be greater than zero"
-                  )
-              }
-              .drop(1)
-              .zip(plainChoices)
-          )
-      })
-    )
-
   override def sequences[Case, Sequence[_]: Traverse](
       sequenceOfTrials: Sequence[ScalaTrials[Case]]
   )(implicit
@@ -103,26 +103,19 @@ class TrialsApiImplementation extends CommonApi with ScalaTrialsApi {
     })
 
   override def integers: TrialsImplementation[Int] =
-    stream(new CaseFactory[Int] {
-      override def apply(input: Long): Int      = input.toInt
-      override def lowerBoundInput(): Long      = Int.MinValue
-      override def upperBoundInput(): Long      = Int.MaxValue
-      override def maximallyShrunkInput(): Long = 0L
-    })
+    integers(Int.MinValue, Int.MaxValue)
 
   override def integers(
       lowerBound: Int,
       upperBound: Int
-  ): TrialsImplementation[Int] =
-    stream(new CaseFactory[Int] {
-      override def apply(input: Long): Int = input.toInt
-      override def lowerBoundInput(): Long = lowerBound
-      override def upperBoundInput(): Long = upperBound
-      override def maximallyShrunkInput(): Long = if (0L > upperBound)
-        upperBound
-      else if (0L < lowerBound) lowerBound
-      else 0L
-    })
+  ): TrialsImplementation[Int] = integers(
+    lowerBound,
+    upperBound,
+    if (0 > upperBound)
+      upperBound
+    else if (0 < lowerBound) lowerBound
+    else 0
+  )
 
   override def integers(
       lowerBound: Int,
@@ -137,19 +130,39 @@ class TrialsApiImplementation extends CommonApi with ScalaTrialsApi {
     })
 
   override def nonNegativeIntegers: TrialsImplementation[Int] =
-    stream(new CaseFactory[Int] {
-      override def apply(input: Long): Int      = input.toInt
-      override def lowerBoundInput(): Long      = 0L
-      override def upperBoundInput(): Long      = Int.MaxValue
-      override def maximallyShrunkInput(): Long = 0L
-    })
+    integers(0, Int.MaxValue)
 
   override def nonNegativeLongs: TrialsImplementation[Long] =
+    longs(0, Long.MaxValue)
+
+  override def longs(
+      lowerBound: Long,
+      upperBound: Long
+  ): TrialsImplementation[Long] = longs(
+    lowerBound,
+    upperBound,
+    if (0L > upperBound)
+      upperBound
+    else if (0L < lowerBound) lowerBound
+    else 0L
+  )
+
+//  doubles(
+//    Double.MinValue /* If you are thinking of `_root_.java.lang.Double.MinValue`, then
+//    you have the wrong constant in mind. Check the definition of `scala.Double.MinValue`. */,
+//    Double.MaxValue
+//  )
+
+  override def longs(
+      lowerBound: Long,
+      upperBound: Long,
+      shrinkageTarget: Long
+  ): TrialsImplementation[Long] =
     stream(new CaseFactory[Long] {
       override def apply(input: Long): Long     = input
-      override def lowerBoundInput(): Long      = 0L
-      override def upperBoundInput(): Long      = Long.MaxValue
-      override def maximallyShrunkInput(): Long = 0L
+      override def lowerBoundInput(): Long      = lowerBound
+      override def upperBoundInput(): Long      = upperBound
+      override def maximallyShrunkInput(): Long = shrinkageTarget
     })
 
   override def doubles: TrialsImplementation[Double] =
@@ -167,17 +180,6 @@ class TrialsApiImplementation extends CommonApi with ScalaTrialsApi {
           ): ScalaTrials[Double]
       )
 
-  override def streamLegacy[Case](
-      factory: Long => Case
-  ): TrialsImplementation[Case] = stream(
-    new CaseFactory[Case] {
-      override def apply(input: Long): Case   = factory(input)
-      override val lowerBoundInput: Long      = Long.MinValue
-      override val upperBoundInput: Long      = Long.MaxValue
-      override val maximallyShrunkInput: Long = 0L
-    }
-  )
-
   override def booleans: TrialsImplementation[Boolean] =
     choose(true, false)
 
@@ -192,7 +194,14 @@ class TrialsApiImplementation extends CommonApi with ScalaTrialsApi {
   override def doubles(
       lowerBound: Double,
       upperBound: Double
-  ): TrialsImplementation[Double] = ???
+  ): TrialsImplementation[Double] = doubles(
+    lowerBound,
+    upperBound,
+    if (0.0 > upperBound)
+      upperBound
+    else if (0.0 < lowerBound) lowerBound
+    else 0.0
+  )
 
   override def doubles(
       lowerBound: Double,
@@ -226,6 +235,19 @@ class TrialsApiImplementation extends CommonApi with ScalaTrialsApi {
   override def instants: TrialsImplementation[Instant] =
     longs.map(Instant.ofEpochMilli)
 
+  override def longs: TrialsImplementation[Long] = streamLegacy(identity)
+
+  override def streamLegacy[Case](
+      factory: Long => Case
+  ): TrialsImplementation[Case] = stream(
+    new CaseFactory[Case] {
+      override def apply(input: Long): Case   = factory(input)
+      override val lowerBoundInput: Long      = Long.MinValue
+      override val upperBoundInput: Long      = Long.MaxValue
+      override val maximallyShrunkInput: Long = 0L
+    }
+  )
+
   override def instants(
       lowerBound: Instant,
       upperBound: Instant
@@ -243,34 +265,6 @@ class TrialsApiImplementation extends CommonApi with ScalaTrialsApi {
     upperBound.toEpochMilli,
     shrinkageTarget.toEpochMilli
   ).map(Instant.ofEpochMilli)
-
-  override def longs: TrialsImplementation[Long] = streamLegacy(identity)
-
-  override def longs(
-      lowerBound: Long,
-      upperBound: Long
-  ): TrialsImplementation[Long] =
-    stream(new CaseFactory[Long] {
-      override def apply(input: Long): Long = input
-      override def lowerBoundInput(): Long  = lowerBound
-      override def upperBoundInput(): Long  = upperBound
-      override def maximallyShrunkInput(): Long = if (0L > upperBound)
-        upperBound
-      else if (0L < lowerBound) lowerBound
-      else 0L
-    })
-
-  override def longs(
-      lowerBound: Long,
-      upperBound: Long,
-      shrinkageTarget: Long
-  ): TrialsImplementation[Long] =
-    stream(new CaseFactory[Long] {
-      override def apply(input: Long): Long     = input
-      override def lowerBoundInput(): Long      = lowerBound
-      override def upperBoundInput(): Long      = upperBound
-      override def maximallyShrunkInput(): Long = shrinkageTarget
-    })
 
   override def strings: TrialsImplementation[String] = {
     characters.several[String]
