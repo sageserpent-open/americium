@@ -2,9 +2,16 @@ package com.sageserpent.americium
 import cats.Traverse
 import cats.free.Free
 import cats.implicits.*
-import com.sageserpent.americium.TrialsImplementation.{Choice, NoteComplexity, ResetComplexity}
+import com.sageserpent.americium.TrialsImplementation.{
+  Choice,
+  NoteComplexity,
+  ResetComplexity
+}
 import com.sageserpent.americium.java.CaseFactory
-import com.sageserpent.americium.{Trials as ScalaTrials, TrialsApi as ScalaTrialsApi}
+import com.sageserpent.americium.{
+  Trials as ScalaTrials,
+  TrialsApi as ScalaTrialsApi
+}
 
 import _root_.java.lang.Double as JavaDouble
 import _root_.java.time.Instant
@@ -17,49 +24,12 @@ class TrialsApiImplementation extends CommonApi with ScalaTrialsApi {
   ): TrialsImplementation[Case] =
     TrialsImplementation(Free.defer(delayed.generation))
 
-  override def choose[Case](
-      firstChoice: Case,
-      secondChoice: Case,
-      otherChoices: Case*
-  ): TrialsImplementation[Case] = choose(
-    firstChoice +: secondChoice +: otherChoices
-  )
-
-  override def choose[Case](
-      choices: Iterable[Case]
-  ): TrialsImplementation[Case] =
-    new TrialsImplementation(
-      Choice(SortedMap.from(LazyList.from(1).zip(choices)))
-    )
-
   override def chooseWithWeights[Case](
       firstChoice: (Int, Case),
       secondChoice: (Int, Case),
       otherChoices: (Int, Case)*
   ): TrialsImplementation[Case] =
     chooseWithWeights(firstChoice +: secondChoice +: otherChoices)
-
-  override def chooseWithWeights[Case](
-      choices: Iterable[(Int, Case)]
-  ): TrialsImplementation[Case] =
-    new TrialsImplementation(
-      Choice(choices.unzip match {
-        case (weights, plainChoices) =>
-          SortedMap.from(
-            weights
-              .scanLeft(0) {
-                case (cumulativeWeight, weight) if 0 < weight =>
-                  cumulativeWeight + weight
-                case (_, weight) =>
-                  throw new IllegalArgumentException(
-                    s"Weight $weight amongst provided weights of $weights must be greater than zero"
-                  )
-              }
-              .drop(1)
-              .zip(plainChoices)
-          )
-      })
-    )
 
   override def alternate[Case](
       firstAlternative: ScalaTrials[Case],
@@ -90,6 +60,28 @@ class TrialsApiImplementation extends CommonApi with ScalaTrialsApi {
   ): TrialsImplementation[Case] =
     chooseWithWeights(alternatives).flatMap(identity[ScalaTrials[Case]])
 
+  override def chooseWithWeights[Case](
+      choices: Iterable[(Int, Case)]
+  ): TrialsImplementation[Case] =
+    new TrialsImplementation(
+      Choice(choices.unzip match {
+        case (weights, plainChoices) =>
+          SortedMap.from(
+            weights
+              .scanLeft(0) {
+                case (cumulativeWeight, weight) if 0 < weight =>
+                  cumulativeWeight + weight
+                case (_, weight) =>
+                  throw new IllegalArgumentException(
+                    s"Weight $weight amongst provided weights of $weights must be greater than zero"
+                  )
+              }
+              .drop(1)
+              .zip(plainChoices)
+          )
+      })
+    )
+
   override def sequences[Case, Sequence[_]: Traverse](
       sequenceOfTrials: Sequence[ScalaTrials[Case]]
   )(implicit
@@ -101,17 +93,6 @@ class TrialsApiImplementation extends CommonApi with ScalaTrialsApi {
 
   def resetComplexity(complexity: Int): TrialsImplementation[Unit] =
     new TrialsImplementation(ResetComplexity(complexity))
-
-  override def streamLegacy[Case](
-      factory: Long => Case
-  ): TrialsImplementation[Case] = stream(
-    new CaseFactory[Case] {
-      override def apply(input: Long): Case   = factory(input)
-      override val lowerBoundInput: Long      = Long.MinValue
-      override val upperBoundInput: Long      = Long.MaxValue
-      override val maximallyShrunkInput: Long = 0L
-    }
-  )
 
   override def bytes: TrialsImplementation[Byte] =
     stream(new CaseFactory[Byte] {
@@ -163,34 +144,6 @@ class TrialsApiImplementation extends CommonApi with ScalaTrialsApi {
       override def maximallyShrunkInput(): Long = 0L
     })
 
-  override def longs: TrialsImplementation[Long] = streamLegacy(identity)
-
-  override def longs(
-      lowerBound: Long,
-      upperBound: Long
-  ): TrialsImplementation[Long] =
-    stream(new CaseFactory[Long] {
-      override def apply(input: Long): Long = input
-      override def lowerBoundInput(): Long  = lowerBound
-      override def upperBoundInput(): Long  = upperBound
-      override def maximallyShrunkInput(): Long = if (0L > upperBound)
-        upperBound
-      else if (0L < lowerBound) lowerBound
-      else 0L
-    })
-
-  override def longs(
-      lowerBound: Long,
-      upperBound: Long,
-      shrinkageTarget: Long
-  ): TrialsImplementation[Long] =
-    stream(new CaseFactory[Long] {
-      override def apply(input: Long): Long     = input
-      override def lowerBoundInput(): Long      = lowerBound
-      override def upperBoundInput(): Long      = upperBound
-      override def maximallyShrunkInput(): Long = shrinkageTarget
-    })
-
   override def nonNegativeLongs: TrialsImplementation[Long] =
     stream(new CaseFactory[Long] {
       override def apply(input: Long): Long     = input
@@ -214,16 +167,50 @@ class TrialsApiImplementation extends CommonApi with ScalaTrialsApi {
           ): ScalaTrials[Double]
       )
 
+  override def streamLegacy[Case](
+      factory: Long => Case
+  ): TrialsImplementation[Case] = stream(
+    new CaseFactory[Case] {
+      override def apply(input: Long): Case   = factory(input)
+      override val lowerBoundInput: Long      = Long.MinValue
+      override val upperBoundInput: Long      = Long.MaxValue
+      override val maximallyShrunkInput: Long = 0L
+    }
+  )
+
   override def booleans: TrialsImplementation[Boolean] =
     choose(true, false)
 
-  override def characters: TrialsImplementation[Char] =
-    choose(Char.MinValue to Char.MaxValue)
+  override def choose[Case](
+      firstChoice: Case,
+      secondChoice: Case,
+      otherChoices: Case*
+  ): TrialsImplementation[Case] = choose(
+    firstChoice +: secondChoice +: otherChoices
+  )
+
+  override def doubles(
+      lowerBound: Double,
+      upperBound: Double
+  ): TrialsImplementation[Double] = ???
+
+  override def doubles(
+      lowerBound: Double,
+      upperBound: Double,
+      shrinkageTarget: Double
+  ): TrialsImplementation[Double] = ???
 
   override def characters(
       lowerBound: Char,
       upperBound: Char
   ): TrialsImplementation[Char] = choose(lowerBound to upperBound)
+
+  override def choose[Case](
+      choices: Iterable[Case]
+  ): TrialsImplementation[Case] =
+    new TrialsImplementation(
+      Choice(SortedMap.from(LazyList.from(1).zip(choices)))
+    )
 
   override def characters(
       lowerBound: Char,
@@ -257,7 +244,38 @@ class TrialsApiImplementation extends CommonApi with ScalaTrialsApi {
     shrinkageTarget.toEpochMilli
   ).map(Instant.ofEpochMilli)
 
+  override def longs: TrialsImplementation[Long] = streamLegacy(identity)
+
+  override def longs(
+      lowerBound: Long,
+      upperBound: Long
+  ): TrialsImplementation[Long] =
+    stream(new CaseFactory[Long] {
+      override def apply(input: Long): Long = input
+      override def lowerBoundInput(): Long  = lowerBound
+      override def upperBoundInput(): Long  = upperBound
+      override def maximallyShrunkInput(): Long = if (0L > upperBound)
+        upperBound
+      else if (0L < lowerBound) lowerBound
+      else 0L
+    })
+
+  override def longs(
+      lowerBound: Long,
+      upperBound: Long,
+      shrinkageTarget: Long
+  ): TrialsImplementation[Long] =
+    stream(new CaseFactory[Long] {
+      override def apply(input: Long): Long     = input
+      override def lowerBoundInput(): Long      = lowerBound
+      override def upperBoundInput(): Long      = upperBound
+      override def maximallyShrunkInput(): Long = shrinkageTarget
+    })
+
   override def strings: TrialsImplementation[String] = {
     characters.several[String]
   }
+
+  override def characters: TrialsImplementation[Char] =
+    choose(Char.MinValue to Char.MaxValue)
 }

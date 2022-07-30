@@ -232,6 +232,11 @@ public interface TrialsApi {
 
     Trials<Double> doubles();
 
+    Trials<Double> doubles(double lowerBound, double upperBound);
+
+    Trials<Double> doubles(double lowerBound, double upperBound,
+                           double shrinkageTarget);
+
     Trials<Boolean> booleans();
 
     Trials<Character> characters();

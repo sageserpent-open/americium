@@ -85,6 +85,14 @@ trait TrialsApi {
 
   def doubles: Trials[Double]
 
+  def doubles(lowerBound: Double, upperBound: Double): Trials[Double]
+
+  def doubles(
+      lowerBound: Double,
+      upperBound: Double,
+      shrinkageTarget: Double
+  ): Trials[Double]
+
   def booleans: Trials[Boolean]
 
   def characters: Trials[Char]

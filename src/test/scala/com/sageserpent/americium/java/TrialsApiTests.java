@@ -8,6 +8,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
@@ -24,8 +25,7 @@ import java.util.stream.Stream;
 import static org.hamcrest.CoreMatchers.allOf;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.greaterThan;
-import static org.hamcrest.Matchers.lessThanOrEqualTo;
+import static org.hamcrest.Matchers.*;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.*;
@@ -457,34 +457,24 @@ public class TrialsApiTests {
 
     @Test
     void instantsCanBeShrunkToo() {
-        final Instant lowerBound = Instant.parse("2007-12-03T10:15:30.00Z");
-        final Instant upperBound = Instant.parse("2007-12-03T10:15:40.00Z");
-        final Instant shrinkageTarget =
-                Instant.parse("2007-12-03T10:15:30.12Z");
-
         {
+            final Instant lowerBound = Instant.EPOCH.minusSeconds(25);
+            final Instant upperBound = Instant.EPOCH;
+
             final Trials<Instant> instants =
                     api.instants(lowerBound,
                                  upperBound);
 
-            final TrialsFactoring.TrialException trialException = assertThrows(
-                    TrialsFactoring.TrialException.class,
-                    () -> instants.withLimit(10).supplyTo(unused -> {
-                        throw new RuntimeException();
-                    }));
-
-            assertThat(trialException.provokingCase(),
-                       equalTo(lowerBound));
-        }
-
-        {
-            final Trials<Instant> instants =
-                    api.instants(Instant.EPOCH.minusSeconds(25),
-                                 Instant.EPOCH);
+            instants.withLimit(10).supplyTo(instant -> {
+                assertThat(instant, greaterThanOrEqualTo(lowerBound));
+                assertThat(instant, lessThanOrEqualTo(upperBound));
+            });
 
             final TrialsFactoring.TrialException trialException = assertThrows(
                     TrialsFactoring.TrialException.class,
-                    () -> instants.withLimit(10).supplyTo(unused -> {
+                    () -> instants.withLimit(10).supplyTo(instant -> {
+                        assertThat(instant, greaterThanOrEqualTo(lowerBound));
+                        assertThat(instant, lessThanOrEqualTo(upperBound));
                         throw new RuntimeException();
                     }));
 
@@ -493,20 +483,104 @@ public class TrialsApiTests {
         }
 
         {
+            final Instant lowerBound = Instant.parse("2007-12-03T10:15:30.00Z");
+            final Instant upperBound = Instant.parse("2007-12-03T10:15:40.00Z");
+
+            final Trials<Instant> instants =
+                    api.instants(lowerBound,
+                                 upperBound);
+
+            instants.withLimit(10).supplyTo(instant -> {
+                assertThat(instant, greaterThanOrEqualTo(lowerBound));
+                assertThat(instant, lessThanOrEqualTo(upperBound));
+            });
+
+            final TrialsFactoring.TrialException trialException = assertThrows(
+                    TrialsFactoring.TrialException.class,
+                    () -> instants.withLimit(10).supplyTo(instant -> {
+                        assertThat(instant, greaterThanOrEqualTo(lowerBound));
+                        assertThat(instant, lessThanOrEqualTo(upperBound));
+                        throw new RuntimeException();
+                    }));
+
+            assertThat(trialException.provokingCase(),
+                       equalTo(lowerBound));
+        }
+
+        {
+            final Instant lowerBound = Instant.parse("2007-12-03T10:15:30.00Z");
+            final Instant upperBound = Instant.parse("2007-12-03T10:15:40.00Z");
+            final Instant shrinkageTarget =
+                    Instant.parse("2007-12-03T10:15:30.12Z");
+
             final Trials<Instant> instants =
                     api.instants(lowerBound,
                                  upperBound,
                                  shrinkageTarget);
 
+            instants.withLimit(10).supplyTo(instant -> {
+                assertThat(instant, greaterThanOrEqualTo(lowerBound));
+                assertThat(instant, lessThanOrEqualTo(upperBound));
+            });
+
             final TrialsFactoring.TrialException trialException = assertThrows(
                     TrialsFactoring.TrialException.class,
-                    () -> instants.withLimit(10).supplyTo(unused -> {
+                    () -> instants.withLimit(10).supplyTo(instant -> {
+                        assertThat(instant, greaterThanOrEqualTo(lowerBound));
+                        assertThat(instant, lessThanOrEqualTo(upperBound));
                         throw new RuntimeException();
                     }));
 
             assertThat(trialException.provokingCase(),
                        equalTo(shrinkageTarget));
         }
+    }
+
+    @ParameterizedTest
+    @CsvSource(
+            nullValues = {"None"},
+            value = {"0.0, 123.456789, None",
+                     "0.0, 123.456789, 0.0",
+                     "0.0, 123.456789, 1.234567",
+                     "0.0, 123.456789, 123.456789",
+                     "0.0, 123.456789, 123",
+
+                     "-123.456789, 0.0, None",
+                     "-123.456789, 0.0, 0.0",
+                     "-123.456789, 0.0, -1.234567",
+                     "-123.456789, 0.0, -123.456789",
+                     "-123.456789, 0.0, -123",
+
+                     "-123.456789, 123.456789, None",
+                     "-123.456789, 123.456789, 0.0",
+                     "-123.456789, 123.456789, 1.234567",
+                     "-123.456789, 123.456789, 123.456789",
+                     "-123.456789, 123.456789, 123",
+                     "-123.456789, 123.456789, -1.234567",
+                     "-123.456789, 123.456789, -123.456789",
+                     "-123.456789, 123.456789, -123"})
+    void testDoubleCases(double lowerBound, double upperBound,
+                         Double shrinkageTarget) {
+        final Trials<Double> doubles = Optional
+                .ofNullable(shrinkageTarget)
+                .map(target -> api.doubles(lowerBound, upperBound, target))
+                .orElse(api.doubles(lowerBound, upperBound));
+
+        doubles.withLimit(100).supplyTo(aDouble -> {
+            assertThat(aDouble, greaterThanOrEqualTo(lowerBound));
+            assertThat(aDouble, lessThanOrEqualTo(upperBound));
+        });
+
+        final TrialsFactoring.TrialException trialException = assertThrows(
+                TrialsFactoring.TrialException.class,
+                () -> doubles.withLimit(100).supplyTo(aDouble -> {
+                    assertThat(aDouble, greaterThanOrEqualTo(lowerBound));
+                    assertThat(aDouble, lessThanOrEqualTo(upperBound));
+                    throw new RuntimeException();
+                }));
+
+        assertThat(trialException.provokingCase(),
+                   equalTo(shrinkageTarget));
     }
 
     @Test

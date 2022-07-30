@@ -3,7 +3,15 @@ import com.google.common.collect.ImmutableList
 import com.sageserpent.americium.java.Trials as JavaTrials
 import com.sageserpent.americium.{CommonApi, Trials, TrialsImplementation}
 
-import _root_.java.lang.{Boolean as JavaBoolean, Byte as JavaByte, Character as JavaCharacter, Double as JavaDouble, Integer as JavaInteger, Iterable as JavaIterable, Long as JavaLong}
+import _root_.java.lang.{
+  Boolean as JavaBoolean,
+  Byte as JavaByte,
+  Character as JavaCharacter,
+  Double as JavaDouble,
+  Integer as JavaInteger,
+  Iterable as JavaIterable,
+  Long as JavaLong
+}
 import _root_.java.util.function.{Supplier, Function as JavaFunction}
 import _root_.java.util.{List as JavaList, Map as JavaMap}
 import java.time.Instant
@@ -193,6 +201,19 @@ trait TrialsApiImplementation extends CommonApi with TrialsApiWart {
 
   override def doubles(): TrialsImplementation[JavaDouble] =
     scalaApi.doubles.map(Double.box)
+
+  override def doubles(
+      lowerBound: Double,
+      upperBound: Double
+  ): TrialsImplementation[JavaDouble] =
+    scalaApi.doubles(lowerBound, upperBound).map(Double.box)
+
+  override def doubles(
+      lowerBound: Double,
+      upperBound: Double,
+      shrinkageTarget: Double
+  ): TrialsImplementation[JavaDouble] =
+    scalaApi.doubles(lowerBound, upperBound, shrinkageTarget).map(Double.box)
 
   override def booleans(): TrialsImplementation[JavaBoolean] =
     scalaApi.booleans.map(Boolean.box)
