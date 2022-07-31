@@ -558,7 +558,16 @@ public class TrialsApiTests {
                      "-123.456789, 123.456789, 123",
                      "-123.456789, 123.456789, -1.234567",
                      "-123.456789, 123.456789, -123.456789",
-                     "-123.456789, 123.456789, -123"})
+                     "-123.456789, 123.456789, -123",
+
+                     "-12345678.9, 12345678.9, None",
+                     "-12345678.9, 12345678.9, 0.0",
+                     "-12345678.9, 12345678.9, 1.234567",
+                     "-12345678.9, 12345678.9, 12345678.9",
+                     "-12345678.9, 12345678.9, 968676",
+                     "-12345678.9, 12345678.9, -1.234567",
+                     "-12345678.9, 12345678.9, -12345678.9",
+                     "-12345678.9, 12345678.9, -968676"})
     void testDoubleCases(double lowerBound, double upperBound,
                          Double shrinkageTarget) {
         final Trials<Double> doubles = Optional
@@ -579,8 +588,20 @@ public class TrialsApiTests {
                     throw new RuntimeException();
                 }));
 
-        assertThat(trialException.provokingCase(),
-                   equalTo(shrinkageTarget));
+        Optional.ofNullable(shrinkageTarget).ifPresentOrElse(target -> {
+            assertThat((double) trialException.provokingCase(),
+                       closeTo(target, 1e-5));
+        }, () -> {
+            if (0.0 < lowerBound) {
+                assertThat(trialException.provokingCase(), equalTo(lowerBound));
+            } else if (0.0 > upperBound) {
+                assertThat(trialException.provokingCase(), equalTo(upperBound));
+            } else {
+                assertThat(trialException.provokingCase(), equalTo(0.0));
+            }
+        });
+
+
     }
 
     @Test
