@@ -567,7 +567,16 @@ public class TrialsApiTests {
                      "-12345678.9, 12345678.9, 968676",
                      "-12345678.9, 12345678.9, -1.234567",
                      "-12345678.9, 12345678.9, -12345678.9",
-                     "-12345678.9, 12345678.9, -968676"})
+                     "-12345678.9, 12345678.9, -968676",
+
+                     "-0.123456789, 0.123456789, None",
+                     "-0.123456789, 0.123456789, 0.0",
+                     "-0.123456789, 0.123456789, 0.1234567",
+                     "-0.123456789, 0.123456789, 0.123456789",
+                     "-0.123456789, 0.123456789, 0.123",
+                     "-0.123456789, 0.123456789, -0.1234567",
+                     "-0.123456789, 0.123456789, -0.123456789",
+                     "-0.123456789, 0.123456789, -0.123"})
     void testDoubleCases(double lowerBound, double upperBound,
                          Double shrinkageTarget) {
         final Trials<Double> doubles = Optional
@@ -578,6 +587,11 @@ public class TrialsApiTests {
         doubles.withLimit(100).supplyTo(aDouble -> {
             assertThat(aDouble, greaterThanOrEqualTo(lowerBound));
             assertThat(aDouble, lessThanOrEqualTo(upperBound));
+
+            System.out.format("Lower bound: %f, case: %f, upper bound: %f\n",
+                              lowerBound,
+                              aDouble,
+                              upperBound);
         });
 
         final TrialsFactoring.TrialException trialException = assertThrows(

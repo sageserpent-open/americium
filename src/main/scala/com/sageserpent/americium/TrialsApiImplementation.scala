@@ -147,24 +147,6 @@ class TrialsApiImplementation extends CommonApi with ScalaTrialsApi {
     else 0L
   )
 
-//  doubles(
-//    Double.MinValue /* If you are thinking of `_root_.java.lang.Double.MinValue`, then
-//    you have the wrong constant in mind. Check the definition of `scala.Double.MinValue`. */,
-//    Double.MaxValue
-//  )
-
-  override def longs(
-      lowerBound: Long,
-      upperBound: Long,
-      shrinkageTarget: Long
-  ): TrialsImplementation[Long] =
-    stream(new CaseFactory[Long] {
-      override def apply(input: Long): Long     = input
-      override def lowerBoundInput(): Long      = lowerBound
-      override def upperBoundInput(): Long      = upperBound
-      override def maximallyShrunkInput(): Long = shrinkageTarget
-    })
-
   override def doubles: TrialsImplementation[Double] =
     streamLegacy { input =>
       val betweenZeroAndOne = new Random(input).nextDouble()
@@ -179,17 +161,6 @@ class TrialsApiImplementation extends CommonApi with ScalaTrialsApi {
             if (negative) -zeroOrPositive else zeroOrPositive
           ): ScalaTrials[Double]
       )
-
-  override def booleans: TrialsImplementation[Boolean] =
-    choose(true, false)
-
-  override def choose[Case](
-      firstChoice: Case,
-      secondChoice: Case,
-      otherChoices: Case*
-  ): TrialsImplementation[Case] = choose(
-    firstChoice +: secondChoice +: otherChoices
-  )
 
   override def doubles(
       lowerBound: Double,
@@ -207,19 +178,63 @@ class TrialsApiImplementation extends CommonApi with ScalaTrialsApi {
       lowerBound: Double,
       upperBound: Double,
       shrinkageTarget: Double
-  ): TrialsImplementation[Double] = ???
+  ): TrialsImplementation[Double] = {
+    require(lowerBound <= shrinkageTarget)
+    require(shrinkageTarget <= upperBound)
+
+    val convertedLowerBound      = BigDecimal(lowerBound)
+    val convertedUpperBound      = BigDecimal(upperBound)
+    val convertedShrinkageTarget = BigDecimal(shrinkageTarget)
+
+    val imageInterval: BigDecimal = convertedUpperBound - convertedLowerBound
+
+    if (0 != imageInterval)
+      stream(
+        new CaseFactory[Double] {
+
+          override def apply(input: Long): Double = {
+            val convertedInput: BigDecimal = BigDecimal(input)
+            val convertedMaximallyShrunkInput: BigDecimal =
+              BigDecimal(maximallyShrunkInput)
+
+            input.compareTo(maximallyShrunkInput) match {
+              case signed if 0 > signed =>
+                lowerBound max (((convertedInput - lowerBoundInput()) * convertedShrinkageTarget + (convertedMaximallyShrunkInput - convertedInput) * convertedLowerBound) / (convertedMaximallyShrunkInput - lowerBoundInput())).toDouble
+              case signed if 0 < signed =>
+                upperBound min (((convertedInput - convertedMaximallyShrunkInput) * convertedUpperBound + (upperBoundInput() - convertedInput) * convertedShrinkageTarget) / (upperBoundInput() - convertedMaximallyShrunkInput)).toDouble
+              case 0 => shrinkageTarget
+            }
+          }
+          override def lowerBoundInput(): Long = Long.MinValue
+          override def upperBoundInput(): Long = Long.MaxValue
+          override val maximallyShrunkInput =
+            (((convertedShrinkageTarget - convertedLowerBound) * upperBoundInput() + (convertedUpperBound - convertedShrinkageTarget) * lowerBoundInput()) / imageInterval)
+              .setScale(
+                0,
+                BigDecimal.RoundingMode.HALF_EVEN
+              )
+              .rounded
+              .toLong
+        }
+      )
+    else only(shrinkageTarget)
+  }
+
+  override def booleans: TrialsImplementation[Boolean] =
+    choose(true, false)
+
+  override def choose[Case](
+      firstChoice: Case,
+      secondChoice: Case,
+      otherChoices: Case*
+  ): TrialsImplementation[Case] = choose(
+    firstChoice +: secondChoice +: otherChoices
+  )
 
   override def characters(
       lowerBound: Char,
       upperBound: Char
   ): TrialsImplementation[Char] = choose(lowerBound to upperBound)
-
-  override def choose[Case](
-      choices: Iterable[Case]
-  ): TrialsImplementation[Case] =
-    new TrialsImplementation(
-      Choice(SortedMap.from(LazyList.from(1).zip(choices)))
-    )
 
   override def characters(
       lowerBound: Char,
@@ -266,10 +281,29 @@ class TrialsApiImplementation extends CommonApi with ScalaTrialsApi {
     shrinkageTarget.toEpochMilli
   ).map(Instant.ofEpochMilli)
 
+  override def longs(
+      lowerBound: Long,
+      upperBound: Long,
+      shrinkageTarget: Long
+  ): TrialsImplementation[Long] =
+    stream(new CaseFactory[Long] {
+      override def apply(input: Long): Long     = input
+      override def lowerBoundInput(): Long      = lowerBound
+      override def upperBoundInput(): Long      = upperBound
+      override def maximallyShrunkInput(): Long = shrinkageTarget
+    })
+
   override def strings: TrialsImplementation[String] = {
     characters.several[String]
   }
 
   override def characters: TrialsImplementation[Char] =
     choose(Char.MinValue to Char.MaxValue)
+
+  override def choose[Case](
+      choices: Iterable[Case]
+  ): TrialsImplementation[Case] =
+    new TrialsImplementation(
+      Choice(SortedMap.from(LazyList.from(1).zip(choices)))
+    )
 }
