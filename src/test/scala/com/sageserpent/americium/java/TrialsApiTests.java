@@ -1,6 +1,5 @@
 package com.sageserpent.americium.java;
 
-import com.google.common.base.Supplier;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.hash.Hashing;
@@ -9,6 +8,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
@@ -19,13 +19,13 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.*;
 import java.util.function.BiConsumer;
+import java.util.function.Function;
 import java.util.stream.Stream;
 
 import static org.hamcrest.CoreMatchers.allOf;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.greaterThan;
-import static org.hamcrest.Matchers.lessThanOrEqualTo;
+import static org.hamcrest.Matchers.*;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.*;
@@ -42,6 +42,10 @@ public class TrialsApiTests {
         return JUnit5Provider.of(32,
                                  api.integers(),
                                  api.strings().immutableMaps(api.booleans()));
+    }
+
+    public static CasesLimitStrategy oneSecond(CaseSupplyCycle unused) {
+        return CasesLimitStrategy.timed(Duration.ofSeconds(1));
     }
 
     Trials<String> chainedIntegers() {
@@ -453,34 +457,24 @@ public class TrialsApiTests {
 
     @Test
     void instantsCanBeShrunkToo() {
-        final Instant lowerBound = Instant.parse("2007-12-03T10:15:30.00Z");
-        final Instant upperBound = Instant.parse("2007-12-03T10:15:40.00Z");
-        final Instant shrinkageTarget =
-                Instant.parse("2007-12-03T10:15:30.12Z");
-
         {
+            final Instant lowerBound = Instant.EPOCH.minusSeconds(25);
+            final Instant upperBound = Instant.EPOCH;
+
             final Trials<Instant> instants =
                     api.instants(lowerBound,
                                  upperBound);
 
-            final TrialsFactoring.TrialException trialException = assertThrows(
-                    TrialsFactoring.TrialException.class,
-                    () -> instants.withLimit(10).supplyTo(unused -> {
-                        throw new RuntimeException();
-                    }));
-
-            assertThat(trialException.provokingCase(),
-                       equalTo(lowerBound));
-        }
-
-        {
-            final Trials<Instant> instants =
-                    api.instants(Instant.EPOCH.minusSeconds(25),
-                                 Instant.EPOCH);
+            instants.withLimit(10).supplyTo(instant -> {
+                assertThat(instant, greaterThanOrEqualTo(lowerBound));
+                assertThat(instant, lessThanOrEqualTo(upperBound));
+            });
 
             final TrialsFactoring.TrialException trialException = assertThrows(
                     TrialsFactoring.TrialException.class,
-                    () -> instants.withLimit(10).supplyTo(unused -> {
+                    () -> instants.withLimit(10).supplyTo(instant -> {
+                        assertThat(instant, greaterThanOrEqualTo(lowerBound));
+                        assertThat(instant, lessThanOrEqualTo(upperBound));
                         throw new RuntimeException();
                     }));
 
@@ -489,20 +483,161 @@ public class TrialsApiTests {
         }
 
         {
+            final Instant lowerBound = Instant.parse("2007-12-03T10:15:30.00Z");
+            final Instant upperBound = Instant.parse("2007-12-03T10:15:40.00Z");
+
+            final Trials<Instant> instants =
+                    api.instants(lowerBound,
+                                 upperBound);
+
+            instants.withLimit(10).supplyTo(instant -> {
+                assertThat(instant, greaterThanOrEqualTo(lowerBound));
+                assertThat(instant, lessThanOrEqualTo(upperBound));
+            });
+
+            final TrialsFactoring.TrialException trialException = assertThrows(
+                    TrialsFactoring.TrialException.class,
+                    () -> instants.withLimit(10).supplyTo(instant -> {
+                        assertThat(instant, greaterThanOrEqualTo(lowerBound));
+                        assertThat(instant, lessThanOrEqualTo(upperBound));
+                        throw new RuntimeException();
+                    }));
+
+            assertThat(trialException.provokingCase(),
+                       equalTo(lowerBound));
+        }
+
+        {
+            final Instant lowerBound = Instant.parse("2007-12-03T10:15:30.00Z");
+            final Instant upperBound = Instant.parse("2007-12-03T10:15:40.00Z");
+            final Instant shrinkageTarget =
+                    Instant.parse("2007-12-03T10:15:30.12Z");
+
             final Trials<Instant> instants =
                     api.instants(lowerBound,
                                  upperBound,
                                  shrinkageTarget);
 
+            instants.withLimit(10).supplyTo(instant -> {
+                assertThat(instant, greaterThanOrEqualTo(lowerBound));
+                assertThat(instant, lessThanOrEqualTo(upperBound));
+            });
+
             final TrialsFactoring.TrialException trialException = assertThrows(
                     TrialsFactoring.TrialException.class,
-                    () -> instants.withLimit(10).supplyTo(unused -> {
+                    () -> instants.withLimit(10).supplyTo(instant -> {
+                        assertThat(instant, greaterThanOrEqualTo(lowerBound));
+                        assertThat(instant, lessThanOrEqualTo(upperBound));
                         throw new RuntimeException();
                     }));
 
             assertThat(trialException.provokingCase(),
                        equalTo(shrinkageTarget));
         }
+    }
+
+    @ParameterizedTest
+    @CsvSource(
+            nullValues = {"None"},
+            value = {"0.0, 0.0, None",
+                     "0.0, 0.0, 0.0",
+
+                     "123.456789, 123.456789, None",
+                     "123.456789, 123.456789, 123.456789",
+
+                     "-123.456789, -123.456789, None",
+                     "-123.456789, -123.456789, -123.456789",
+                     
+                     "0.0, 4.9e-324, None",
+                     "0.0, 4.9e-324, 0.0",
+                     "0.0, 4.9e-324, 4.9e-324",
+
+                     "-4.9e-324, 0.0, None",
+                     "-4.9e-324, 0.0, -4.9e-324",
+                     "-4.9e-324, 0.0, 0.0",
+
+                     "-4.9e-324, 4.9e-324, None",
+                     "-4.9e-324, 4.9e-324, -4.9e-324",
+                     "-4.9e-324, 4.9e-324, 0.0",
+                     "-4.9e-324, 4.9e-324, 4.9e-324",
+
+                     "0.0, 123.456789, None",
+                     "0.0, 123.456789, 0.0",
+                     "0.0, 123.456789, 1.234567",
+                     "0.0, 123.456789, 123.456789",
+                     "0.0, 123.456789, 123",
+
+                     "-123.456789, 0.0, None",
+                     "-123.456789, 0.0, 0.0",
+                     "-123.456789, 0.0, -1.234567",
+                     "-123.456789, 0.0, -123.456789",
+                     "-123.456789, 0.0, -123",
+
+                     "-123.456789, 123.456789, None",
+                     "-123.456789, 123.456789, 0.0",
+                     "-123.456789, 123.456789, 1.234567",
+                     "-123.456789, 123.456789, 123.456789",
+                     "-123.456789, 123.456789, 123",
+                     "-123.456789, 123.456789, -1.234567",
+                     "-123.456789, 123.456789, -123.456789",
+                     "-123.456789, 123.456789, -123",
+
+                     "-12345678.9, 12345678.9, None",
+                     "-12345678.9, 12345678.9, 0.0",
+                     "-12345678.9, 12345678.9, 1.234567",
+                     "-12345678.9, 12345678.9, 12345678.9",
+                     "-12345678.9, 12345678.9, 968676",
+                     "-12345678.9, 12345678.9, -1.234567",
+                     "-12345678.9, 12345678.9, -12345678.9",
+                     "-12345678.9, 12345678.9, -968676",
+
+                     "-0.123456789, 0.123456789, None",
+                     "-0.123456789, 0.123456789, 0.0",
+                     "-0.123456789, 0.123456789, 0.1234567",
+                     "-0.123456789, 0.123456789, 0.123456789",
+                     "-0.123456789, 0.123456789, 0.123",
+                     "-0.123456789, 0.123456789, -0.1234567",
+                     "-0.123456789, 0.123456789, -0.123456789",
+                     "-0.123456789, 0.123456789, -0.123"})
+    void testDoubleCases(double lowerBound, double upperBound,
+                         Double shrinkageTarget) {
+        final Trials<Double> doubles = Optional
+                .ofNullable(shrinkageTarget)
+                .map(target -> api.doubles(lowerBound, upperBound, target))
+                .orElse(api.doubles(lowerBound, upperBound));
+
+        doubles.withLimit(100).supplyTo(aDouble -> {
+            assertThat(aDouble, greaterThanOrEqualTo(lowerBound));
+            assertThat(aDouble, lessThanOrEqualTo(upperBound));
+
+            System.out.format("Lower bound: %f, case: %f, upper bound: %f\n",
+                              lowerBound,
+                              aDouble,
+                              upperBound);
+        });
+
+        final TrialsFactoring.TrialException trialException = assertThrows(
+                TrialsFactoring.TrialException.class,
+                () -> doubles.withLimit(100).supplyTo(aDouble -> {
+                    assertThat(aDouble, greaterThanOrEqualTo(lowerBound));
+                    assertThat(aDouble, lessThanOrEqualTo(upperBound));
+                    throw new RuntimeException();
+                }));
+
+        Optional.ofNullable(shrinkageTarget).ifPresentOrElse(target -> {
+            assertThat((double) trialException.provokingCase(),
+                       closeTo(target, 1e-5));
+        }, () -> {
+            if (0.0 < lowerBound) {
+                assertThat(trialException.provokingCase(), equalTo(lowerBound));
+            } else if (0.0 > upperBound) {
+                assertThat(trialException.provokingCase(), equalTo(upperBound));
+            } else {
+                assertThat(trialException.provokingCase(), equalTo(0.0));
+            }
+        });
+
+
     }
 
     @Test
@@ -570,32 +705,9 @@ public class TrialsApiTests {
 
     @Test
     void customCasesLimitStrategy(@Mock BiConsumer<Integer, Integer> consumer) {
-        final Supplier<CasesLimitStrategy> casesLimitStrategySupplier =
-                () -> new CasesLimitStrategy() {
-                    final Instant startedAt = Instant.now();
-
-                    @Override
-                    public boolean moreToDo() {
-                        return startedAt
-                                .plus(Duration.ofSeconds(1))
-                                .isAfter(Instant.now());
-                    }
-
-                    @Override
-                    public void noteRejectionOfCase() {
-
-                    }
-
-                    @Override
-                    public void noteEmissionOfCase() {
-
-                    }
-
-                    @Override
-                    public void noteStarvation() {
-
-                    }
-                };
+        final Function<CaseSupplyCycle, CasesLimitStrategy>
+                casesLimitStrategyFactory =
+                TrialsApiTests::oneSecond;
 
         final int highestMagnitude = 100;
 
@@ -603,7 +715,7 @@ public class TrialsApiTests {
                 .integers(-highestMagnitude, 2 * highestMagnitude)
                 .filter(value -> highestMagnitude >= Math.abs(value))
                 .and(api.integers())
-                .withStrategy(casesLimitStrategySupplier,
+                .withStrategy(casesLimitStrategyFactory,
                               TrialsScaffolding.OptionalLimits.defaults)
                 .supplyTo(consumer);
 

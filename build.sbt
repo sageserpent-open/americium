@@ -16,7 +16,7 @@ lazy val settings = Seq(
     case _ => Nil
   }),
   javacOptions ++= Seq("-source", javaVersion, "-target", javaVersion),
-  libraryDependencies += "com.sageserpent" %% "americium"  % "1.6.0",
+  libraryDependencies += "com.sageserpent" %% "americium"  % "1.8.1",
   libraryDependencies += "org.typelevel"   %% "cats-laws"  % "2.7.0"  % Test,
   libraryDependencies += "org.scalatest"   %% "scalatest"  % "3.2.9"  % Test,
   libraryDependencies += "org.scalacheck"  %% "scalacheck" % "1.15.4" % Test,
@@ -57,4 +57,4 @@ lazy val americium = (project in file(".")).settings(settings: _*)
 
 ThisBuild / scalaVersion := scala2_13_Version
 val jUnitVersion = "5.7.0"
-val javaVersion  = "1.8"
+val javaVersion  = "1.9"

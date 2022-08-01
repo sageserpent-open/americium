@@ -18,6 +18,17 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
 public class DemonstrateJUnitIntegration {
     private static final TrialsApi api = Trials.api();
     private static final Trials<Long> longs = api.longs();
+    private static final TrialsScaffolding.SupplyToSyntax<Long>
+            countedLongs =
+            longs.withStrategy(unused -> CasesLimitStrategy.counted(23, 0),
+                               TrialsScaffolding.OptionalLimits.defaults);
+    private static final TrialsScaffolding.SupplyToSyntax<Long>
+            countedEvens =
+            longs
+                    .filter(value -> 0L == value % 2)
+                    .withStrategy(unused -> CasesLimitStrategy.counted(1000,
+                                                                       0.92),
+                                  TrialsScaffolding.OptionalLimits.defaults);
     private static final Trials<String> strings =
             api.choose("Fred", "Harold", "Ethel");
     private static final Trials<String> first =
@@ -32,23 +43,41 @@ public class DemonstrateJUnitIntegration {
                        .characters('0', '9', '0')
                        .collectionsOfSize(size, Builder::stringBuilder))
                .filter(string -> string.length() >= 1);
+    private static final Tuple2Trials.SupplyToSyntaxTuple2<String, String>
+            configuredStringPairs = first
+            .and(second)
+            .withStrategy(TrialsApiTests::oneSecond,
+                          TrialsScaffolding.OptionalLimits.defaults);
     private static final Trials<String> potentialNulls =
             api.alternate(api.strings(), api.only(null));
 
     private static final Tuple2Trials<String, Integer> pairs =
             potentialNulls.and(api.integers());
-
+    private static final Tuple2Trials.SupplyToSyntaxTuple2<String, Integer>
+            configuredPairs = pairs.withStrategy(TrialsApiTests::oneSecond,
+                                                 TrialsScaffolding.OptionalLimits.defaults);
+    private static final TrialsScaffolding.SupplyToSyntax<String>
+            configuredPotentialNulls =
+            potentialNulls.withStrategy(TrialsApiTests::oneSecond,
+                                        TrialsScaffolding.OptionalLimits.defaults);
     private static final Tuple3Trials<Integer, Boolean, ImmutableSet<Double>>
             triples = api
             .choose(-326734, 8484)
             .and(api.booleans())
             .and(api.doubles().immutableSets());
-
     private static final Trials<Tuple3<Integer, Boolean, ImmutableSet<Double>>>
             plainTriples = triples.trials();
-
     private static final Trials<Tuple3<Integer, Boolean, ImmutableSet<Double>>>
             nullableTriples = api.alternate(api.only(null), plainTriples);
+    private static final TrialsScaffolding.SupplyToSyntax<Tuple3<Integer,
+            Boolean, ImmutableSet<Double>>>
+            configuredNullableTriples =
+            nullableTriples.withStrategy(TrialsApiTests::oneSecond,
+                                         TrialsScaffolding.OptionalLimits.defaults);
+    private static final Tuple3Trials.SupplyToSyntaxTuple3<Integer, Boolean,
+            ImmutableSet<Double>>
+            configuredTriples = triples.withStrategy(TrialsApiTests::oneSecond,
+                                                     TrialsScaffolding.OptionalLimits.defaults);
 
     @BeforeEach
     void beforeEach() {
@@ -101,7 +130,7 @@ public class DemonstrateJUnitIntegration {
     @Disabled
     // This now detects the 'failing' test case correctly - but it is still a
     // test failure. Need to rethink what this test should look like....
-    @TrialsTest(trials = {"first", "second"}, casesLimit = 125)
+    @ConfiguredTrialsTest("configuredStringPairs")
     void copiedFromJqwik(String first, String second) {
         System.out.format("%s, %s\n", first, second);
         final String concatenation = first + second;
@@ -145,7 +174,7 @@ public class DemonstrateJUnitIntegration {
             String five,
             // From pairs...
             String firstInSix, int secondInSix) {
-        System.out.format("%s %s %s %s %s %s %s %s %s %s %s %s %s",
+        System.out.format("%s %s %s %s %s %s %s %s %s %s %s %s %s\n",
                           firstInOne,
                           secondInOne,
                           thirdInOne,
@@ -179,7 +208,7 @@ public class DemonstrateJUnitIntegration {
             String five,
             // From pairs...
             Tuple2<String, Integer> six) {
-        System.out.format("%s %s %s %s %s %s",
+        System.out.format("%s %s %s %s %s %s\n",
                           one,
                           two,
                           three,
@@ -204,7 +233,7 @@ public class DemonstrateJUnitIntegration {
             String five,
             // From pairs...
             String firstInSix, int secondInSix) {
-        System.out.format("%s %s %s %s %s %s %s %s %s",
+        System.out.format("%s %s %s %s %s %s %s %s %s\n",
                           one,
                           two,
                           firstInThree,
@@ -214,5 +243,39 @@ public class DemonstrateJUnitIntegration {
                           five,
                           firstInSix,
                           secondInSix);
+    }
+
+    @ConfiguredTrialsTest("configuredTriples")
+    void casesFromConfiguredTrials(int first, boolean second,
+                                   ImmutableSet<Double> third) {
+        System.out.format("%s %s %s\n", first, second, third);
+    }
+
+    @ConfiguredTrialsTest("configuredPairs")
+    void casesFromConfiguredTrialsWithEmbeddedNulls(String potentiallyNull,
+                                                    int notNull) {
+        System.out.format("%s %s\n", potentiallyNull, notNull);
+    }
+
+    @ConfiguredTrialsTest("configuredPotentialNulls")
+    void casesFromConfiguredTrialsWithANullableParameter(
+            String potentiallyThisIsANull) {
+        System.out.format("%s\n", potentiallyThisIsANull);
+    }
+
+    @ConfiguredTrialsTest("configuredNullableTriples")
+    void casesFromConfiguredTrialsWithANullableTupledParameter(
+            Tuple3<Integer, Boolean, ImmutableSet<Double>> potentiallyThisIsANull) {
+        System.out.format("%s\n", potentiallyThisIsANull);
+    }
+
+    @ConfiguredTrialsTest("countedLongs")
+    void casesUsingACountedStrategy(long value) {
+        System.out.println(value);
+    }
+
+    @ConfiguredTrialsTest("countedEvens")
+    void filteredCasesUsingACountedStrategy(long value) {
+        System.out.println(value);
     }
 }
