@@ -1935,7 +1935,7 @@ class TrialsSpec
     }
   }
 
-  it should "be minimise failures to the same failing case as via explicit filtration - Scala" in {
+  it should "minimise failures to the same failing case as via explicit filtration - Scala" in {
     val sets: Trials[Set[_ <: Int]] = api.integers.sets
 
     def predicate(set: Set[_ <: Int]): Boolean = 0 == set.hashCode() % 2
