@@ -10,12 +10,12 @@ public interface CaseSupplyCycle {
      * failure prior to any subsequent shrinkage.
      */
     default boolean isInitial() {
-        return 0 == numberOfPreviousShrinkages();
+        return 0 == numberOfPreviousCycles();
     }
 
     /**
-     * @return The number of shrinkage cycles run previously - will be zero
-     * if and only if {@link #isInitial()} is true.
+     * @return The number of cycles run previously - will be zero if and only
+     * if {@link #isInitial()} is true.
      */
-    int numberOfPreviousShrinkages();
+    int numberOfPreviousCycles();
 }

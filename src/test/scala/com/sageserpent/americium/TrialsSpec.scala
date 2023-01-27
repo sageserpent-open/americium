@@ -1139,7 +1139,7 @@ class TrialsSpec
         val casesLimitStrategyFactory = { (caseSupplyCycle: CaseSupplyCycle) =>
           require(
             shrinkageAttemptsLimit >= caseSupplyCycle
-              .numberOfPreviousShrinkages()
+              .numberOfPreviousCycles()
           )
 
           new CasesLimitStrategy {

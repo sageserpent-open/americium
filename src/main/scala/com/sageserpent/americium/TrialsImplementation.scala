@@ -775,7 +775,7 @@ case class TrialsImplementation[Case](
 
         {
           val caseSupplyCycle = new CaseSupplyCycle {
-            override def numberOfPreviousShrinkages(): Int =
+            override def numberOfPreviousCycles(): Int =
               cycleIndex
           }
 
