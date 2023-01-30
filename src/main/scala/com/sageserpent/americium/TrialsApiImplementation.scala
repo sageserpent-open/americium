@@ -64,17 +64,18 @@ class TrialsApiImplementation extends CommonApi with ScalaTrialsApi {
       choices: Iterable[(Int, Case)]
   ): TrialsImplementation[Case] =
     new TrialsImplementation(
-      Choice(choices.unzip match {
+      Choice(choices.filter(0 != _._1).unzip match {
         case (weights, plainChoices) =>
           SortedMap.from(
             weights
               .scanLeft(0) {
-                case (cumulativeWeight, weight) if 0 < weight =>
-                  cumulativeWeight + weight
-                case (_, weight) =>
+                case (_, weight) if 0 > weight =>
                   throw new IllegalArgumentException(
-                    s"Weight $weight amongst provided weights of $weights must be greater than zero"
+                    s"Weight $weight amongst provided weights of $weights must be non-negative"
                   )
+                case (cumulativeWeight, weight) =>
+                  assert(0 < weight)
+                  cumulativeWeight + weight
               }
               .drop(1)
               .zip(plainChoices)
