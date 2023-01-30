@@ -451,13 +451,17 @@ class TrialsSpec
         1 to 10,
         -5 to 5 map (_.toString),
         Seq(true),
-        Seq(4.3)
+        Seq(4.3),
+        Seq(1, 2, 0, 8, 0,
+          -4) // Make sure there are few things that will hash to a weight of zero.
       )
     ) { possibleChoices =>
       inMockitoSession {
         val weightedChoices =
           possibleChoices.map(choice =>
-            1 + choice.hashCode().abs % 10 -> choice
+            choice
+              .hashCode()
+              .abs % 10 -> choice // NOTE: allow a weighting of zero, too.
           )
 
         val sut: Trials[Any] = api.chooseWithWeights(weightedChoices)
@@ -695,12 +699,16 @@ class TrialsSpec
         Seq(1, "3", 99),
         Seq(1, "3", 2 to 4),
         Seq(1 to 10, Seq(12), -3 to -1),
-        Seq(Seq(0), 1 to 10, 13, -3 to -1)
+        Seq(Seq(0), 1 to 10, 13, -3 to -1),
+        Seq(1, 2, 0, 8, 0,
+          -4) // Make sure there are few things that will hash to a weight of zero.
       )
     ) { alternatives =>
       inMockitoSession {
         val weightedAlternatives =
-          alternatives.map(choice => 1 + choice.hashCode().abs % 10 -> choice)
+          alternatives.map(choice =>
+            choice.hashCode().abs % 10 -> choice
+          ) // NOTE: allow a weighting of zero, too.
 
         val sut: Trials[Any] =
           api.alternateWithWeights(weightedAlternatives map {
