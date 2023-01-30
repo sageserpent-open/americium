@@ -139,15 +139,26 @@ public interface CasesLimitStrategy {
     /**
      * Notes that inlined case filtration in a test body has rejected a case.
      *
-     * @apiNote This is *not* called when the filtration provided by
-     * {@link Trials#filter(Predicate)} rejects a case.
+     * @apiNote This is <b>not</b> called when the filtration provided by
+     * {@link Trials#filter(Predicate)} rejects a case. When this method is
+     * called, there should have been a corresponding call to
+     * {@link CasesLimitStrategy#noteEmissionOfCase} concerning the same
+     * implied test case that is being backed out of by this method's call.
      */
     void noteRejectionOfCase();
 
     /**
      * Notes that a case has been successfully emitted. The case is
-     * guaranteed to be a new one that has *not* been emitted previously in a
-     * call to {@link Trials.SupplyToSyntax#supplyTo(Consumer)}.
+     * guaranteed to have been constructed in a different way from all others
+     * emitted within a call to
+     * {@link Trials.SupplyToSyntax#supplyTo(Consumer)}.
+     *
+     * @apiNote Although each emitted case has been uniquely constructed,
+     * this does not mean that it is definitely unique in terms of equality;
+     * for one thing, the equality may be unable to distinguish between
+     * instances constructed in different ways and for another, the rendition
+     * of a test case may flatten information causing collisions between test
+     * cases built in different ways.
      */
     void noteEmissionOfCase();
 
@@ -157,6 +168,9 @@ public interface CasesLimitStrategy {
      * call to {@link Trials.SupplyToSyntax#supplyTo(Consumer)}, or may be
      * due to the filtration provided by {@link Trials#filter(Predicate)}
      * rejecting a case, or may be due to the complexity limit being breached.
+     *
+     * @apiNote This is  <b>not</b> called due to inlined test filtration -
+     * that is handled by {@link CasesLimitStrategy#noteRejectionOfCase}.
      */
     void noteStarvation();
 }
