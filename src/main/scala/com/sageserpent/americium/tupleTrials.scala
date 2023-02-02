@@ -37,12 +37,6 @@ object tupleTrials {
       (consumer: ((Case1, Case2)) => Unit) =>
         trialsOfPairs.withLimit(limit).supplyTo(consumer)
 
-    override def withLimit(
-        limit: Int,
-        complexityLimit: Int
-    ): SupplyToSyntaxTuple2 = (consumer: ((Case1, Case2)) => Unit) =>
-      trialsOfPairs.withLimit(limit, complexityLimit).supplyTo(consumer)
-
     override def withLimits(
         casesLimit: Int,
         complexityLimit: Int,
@@ -111,12 +105,6 @@ object tupleTrials {
     def withLimit(limit: Int): SupplyToSyntaxTuple3 =
       (consumer: ((Case1, Case2, Case3)) => Unit) =>
         trialsOfTriples.withLimit(limit).supplyTo(consumer)
-
-    override def withLimit(
-        limit: Int,
-        complexityLimit: Int
-    ): SupplyToSyntaxTuple3 = (consumer: ((Case1, Case2, Case3)) => Unit) =>
-      trialsOfTriples.withLimit(limit, complexityLimit).supplyTo(consumer)
 
     override def withLimits(
         casesLimit: Int,
@@ -191,13 +179,6 @@ object tupleTrials {
     ): SupplyToSyntaxTuple4 =
       (consumer: ((Case1, Case2, Case3, Case4)) => Unit) =>
         trialsOfQuadruples.withLimit(limit).supplyTo(consumer)
-
-    override def withLimit(
-        limit: Int,
-        complexityLimit: Int
-    ): SupplyToSyntaxTuple4 =
-      (consumer: ((Case1, Case2, Case3, Case4)) => Unit) =>
-        trialsOfQuadruples.withLimit(limit, complexityLimit).supplyTo(consumer)
 
     override def withLimits(
         casesLimit: Int,

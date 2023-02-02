@@ -149,7 +149,7 @@ public interface TrialsApi {
      * what this means, you probably don't need this.
      * <p>
      * The notion of a complexity limit is described in
-     * {@link Trials#withLimit(int, int)}
+     * {@link TrialsScaffolding.Options#complexity}
      *
      * @return The complexity associated with the trials context, taking into
      * account any flatmapping this call is embedded in.

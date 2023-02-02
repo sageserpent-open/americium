@@ -265,13 +265,6 @@ case class TrialsImplementation[Case](
     with ScalaTrialsScaffolding.SupplyToSyntax[Case] =
     withLimits(casesLimit = limit)
 
-  override def withLimit(
-      limit: Int,
-      complexityLimit: Int
-  ): JavaTrialsScaffolding.SupplyToSyntax[Case]
-    with ScalaTrialsScaffolding.SupplyToSyntax[Case] =
-    withLimits(casesLimit = limit, complexityLimit = complexityLimit)
-
   override def withLimits(
       casesLimit: Int,
       optionalLimits: OptionalLimits

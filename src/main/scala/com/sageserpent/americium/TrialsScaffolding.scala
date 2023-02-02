@@ -87,11 +87,6 @@ trait TrialsScaffolding[+Case] extends TrialsFactoring[Case] {
 
   def withLimit(limit: Int): SupplySyntaxType
 
-  @deprecated(
-    "Use `withLimits` instead."
-  )
-  def withLimit(limit: Int, complexityLimit: Int): SupplySyntaxType
-
   def withLimits(
       casesLimit: Int,
       complexityLimit: Int = defaultComplexityLimit,

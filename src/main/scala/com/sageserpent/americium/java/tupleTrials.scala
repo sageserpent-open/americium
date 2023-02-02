@@ -96,15 +96,6 @@ object tupleTrials {
         trialsOfPairs.withLimit(limit)
     }
 
-    override def withLimit(
-        limit: Int,
-        complexityLimit: Int
-    ): SupplyToSyntaxTuple2 = new SupplyToSyntaxTuple2 {
-      val supplyToSyntax
-          : JavaTrialsScaffolding.SupplyToSyntax[JavaTuple2[Case1, Case2]] =
-        trialsOfPairs.withLimit(limit, complexityLimit)
-    }
-
     override def withLimits(
         casesLimit: Int,
         optionalLimits: TrialsScaffolding.OptionalLimits
@@ -223,16 +214,6 @@ object tupleTrials {
         JavaTuple3[Case1, Case2, Case3]
       ] =
         trialsOfTriples.withLimit(limit)
-    }
-
-    override def withLimit(
-        limit: Int,
-        complexityLimit: Int
-    ): SupplyToSyntaxTuple3 = new SupplyToSyntaxTuple3 {
-      val supplyToSyntax: JavaTrialsScaffolding.SupplyToSyntax[
-        JavaTuple3[Case1, Case2, Case3]
-      ] =
-        trialsOfTriples.withLimit(limit, complexityLimit)
     }
 
     override def withLimits(
@@ -370,16 +351,6 @@ object tupleTrials {
         JavaTuple4[Case1, Case2, Case3, Case4]
       ] =
         trialsOfQuadruples.withLimit(limit)
-    }
-
-    override def withLimit(
-        limit: Int,
-        complexityLimit: Int
-    ): SupplyToSyntaxTuple4 = new SupplyToSyntaxTuple4 {
-      val supplyToSyntax: JavaTrialsScaffolding.SupplyToSyntax[
-        JavaTuple4[Case1, Case2, Case3, Case4]
-      ] =
-        trialsOfQuadruples.withLimit(limit, complexityLimit)
     }
 
     override def withLimits(
