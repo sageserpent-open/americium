@@ -64,6 +64,16 @@ object tupleTrials {
           Case1,
           Case2
         ] {
+      override def withSeed(
+          seed: Long
+      ): SupplyToSyntaxTuple2 = ???
+
+      override def withStoppingCondition(
+          shrinkageStop: TrialsScaffolding.ShrinkageStop[
+            _ >: JavaTuple2[Case1, Case2]
+          ]
+      ): SupplyToSyntaxTuple2 = ???
+
       def supplyTo(biConsumer: BiConsumer[Case1, Case2]): Unit = {
         supplyTo((pair: JavaTuple2[Case1, Case2]) =>
           biConsumer.accept(pair._1, pair._2)
@@ -185,6 +195,16 @@ object tupleTrials {
           Case2,
           Case3
         ] {
+      override def withSeed(
+          seed: Long
+      ): SupplyToSyntaxTuple3 = ???
+
+      override def withStoppingCondition(
+          shrinkageStop: TrialsScaffolding.ShrinkageStop[
+            _ >: JavaTuple3[Case1, Case2, Case3]
+          ]
+      ): SupplyToSyntaxTuple3 = ???
+
       def supplyTo(triConsumer: Consumer3[Case1, Case2, Case3]): Unit = {
         supplyTo((triple: JavaTuple3[Case1, Case2, Case3]) =>
           triConsumer.accept(triple._1, triple._2, triple._3)
@@ -314,6 +334,16 @@ object tupleTrials {
           Case3,
           Case4
         ] {
+      override def withSeed(
+          seed: Long
+      ): SupplyToSyntaxTuple4 = ???
+
+      override def withStoppingCondition(
+          shrinkageStop: TrialsScaffolding.ShrinkageStop[
+            _ >: JavaTuple4[Case1, Case2, Case3, Case4]
+          ]
+      ): SupplyToSyntaxTuple4 = ???
+
       def supplyTo(
           quadConsumer: Consumer4[Case1, Case2, Case3, Case4]
       ): Unit = {

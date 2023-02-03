@@ -844,6 +844,22 @@ case class TrialsImplementation[Case](
       }
 
       // Java-only API ...
+      override def withSeed(
+          seed: Long
+      ): JavaTrialsScaffolding.SupplyToSyntax[
+        Case
+      ] with ScalaTrialsScaffolding.SupplyToSyntax[Case] =
+        this // TODO: use the parameter!
+
+      override def withStoppingCondition(
+          shrinkageStop: JavaTrialsScaffolding.ShrinkageStop[
+            _ >: Case
+          ]
+      ): JavaTrialsScaffolding.SupplyToSyntax[
+        Case
+      ] with ScalaTrialsScaffolding.SupplyToSyntax[Case] =
+        this // TODO: use the parameter!
+
       override def supplyTo(consumer: Consumer[Case]): Unit =
         supplyTo(consumer.accept)
 
@@ -1213,7 +1229,23 @@ case class TrialsImplementation[Case](
     new JavaTrialsScaffolding.SupplyToSyntax[Case]
       with ScalaTrialsScaffolding.SupplyToSyntax[Case] {
       // Java-only API ...
-      override def supplyTo(consumer: Consumer[Case]): Unit =
+      override def withSeed(
+                             seed: Long
+                           ): JavaTrialsScaffolding.SupplyToSyntax[
+        Case
+      ] with ScalaTrialsScaffolding.SupplyToSyntax[Case] =
+        this // TODO: use the parameter!
+
+      override def withStoppingCondition(
+                                          shrinkageStop: JavaTrialsScaffolding.ShrinkageStop[
+                                            _ >: Case
+                                          ]
+                                        ): JavaTrialsScaffolding.SupplyToSyntax[
+        Case
+      ] with ScalaTrialsScaffolding.SupplyToSyntax[Case] =
+        this // TODO: use the parameter!
+
+            override def supplyTo(consumer: Consumer[Case]): Unit =
         supplyTo(consumer.accept)
 
       override def asIterator(): JavaIterator[Case] = Seq {

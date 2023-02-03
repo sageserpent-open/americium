@@ -41,7 +41,7 @@ public interface TrialsScaffolding<Case,
      *              supplied, it is simply a limit.
      * @return An instance of {@link SupplyToSyntax} with the limit configured.
      */
-    SupplySyntaxType withLimit(final int limit);
+    SupplySyntaxType withLimit(int limit);
 
     /**
      * Fluent syntax for configuring a limit to the number of cases supplied
@@ -54,8 +54,8 @@ public interface TrialsScaffolding<Case,
      *                       of supplying and shrinkage.
      * @return An instance of {@link SupplyToSyntax} with the limit configured.
      */
-    SupplySyntaxType withLimits(final int casesLimit,
-                                final OptionalLimits optionalLimits);
+    SupplySyntaxType withLimits(int casesLimit,
+                                OptionalLimits optionalLimits);
 
     /**
      * Fluent syntax for configuring a limit strategy for the number of cases
@@ -76,8 +76,8 @@ public interface TrialsScaffolding<Case,
      * desired.
      */
     SupplySyntaxType withStrategy(
-            final Function<CaseSupplyCycle, CasesLimitStrategy> casesLimitStrategyFactory,
-            final OptionalLimits optionalLimits);
+            Function<CaseSupplyCycle, CasesLimitStrategy> casesLimitStrategyFactory,
+            OptionalLimits optionalLimits);
 
     /**
      * Fluent syntax for configuring a limit to the number of cases supplied
@@ -92,10 +92,14 @@ public interface TrialsScaffolding<Case,
      *                       in addition to what is configured by the {@code
      *                       optionalLimits}. See also {@link ShrinkageStop}.
      * @return An instance of {@link SupplyToSyntax} with the limit configured.
+     * @deprecated Use the other overload of this method in conjunction with
+     * a following call of
+     * {@link TrialsScaffolding.SupplyToSyntax#withStoppingCondition(ShrinkageStop)} instead.
      */
-    SupplySyntaxType withLimits(final int casesLimit,
-                                final OptionalLimits optionalLimits,
-                                final ShrinkageStop<? super Case> shrinkageStop);
+    @Deprecated
+    SupplySyntaxType withLimits(int casesLimit,
+                                OptionalLimits optionalLimits,
+                                ShrinkageStop<? super Case> shrinkageStop);
 
     /**
      * Fluent syntax for configuring a limit strategy for the number of cases
@@ -119,11 +123,15 @@ public interface TrialsScaffolding<Case,
      * configure the strategy depending on which cycle the strategy is
      * intended for, or simply disregarded if a one-size-fits-all approach is
      * desired.
+     * @deprecated Use the other overload of this method in conjunction with
+     * a following call of
+     * {@link TrialsScaffolding.SupplyToSyntax#withStoppingCondition(ShrinkageStop)} instead.
      */
+    @Deprecated
     SupplySyntaxType withStrategy(
             Function<CaseSupplyCycle, CasesLimitStrategy> casesLimitStrategyFactory,
-            final OptionalLimits optionalLimits,
-            final ShrinkageStop<? super Case> shrinkageStop);
+            OptionalLimits optionalLimits,
+            ShrinkageStop<? super Case> shrinkageStop);
 
     /**
      * Reproduce a trial case using a recipe. This is intended to repeatedly
@@ -135,7 +143,7 @@ public interface TrialsScaffolding<Case,
      * @return An instance of {@link SupplyToSyntax} that supplies the
      * reproduced trial case.
      */
-    SupplySyntaxType withRecipe(final String recipe);
+    SupplySyntaxType withRecipe(String recipe);
 
     /**
      * Allows the shrinkage process to be terminated externally by a stateful
@@ -160,6 +168,11 @@ public interface TrialsScaffolding<Case,
     }
 
     interface SupplyToSyntax<Case> {
+        SupplyToSyntax<Case> withSeed(long seed);
+
+        SupplyToSyntax<Case> withStoppingCondition(
+                ShrinkageStop<? super Case> shrinkageStop);
+
         /**
          * Consume trial cases until either there are no more or an exception
          * is thrown by {@code consumer}. If an exception is thrown, attempts
@@ -179,7 +192,7 @@ public interface TrialsScaffolding<Case,
          * the non-duplicated cases have to be supplied, even if
          * they could potentially all fit within the limit.
          */
-        void supplyTo(final Consumer<Case> consumer);
+        void supplyTo(Consumer<Case> consumer);
 
         Iterator<Case> asIterator();
 
