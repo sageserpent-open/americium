@@ -176,7 +176,7 @@ case class TrialsImplementation[Case](
 
   override type SupplySyntaxType = ScalaTrialsScaffolding.SupplyToSyntax[Case]
 
-  case class TestIntegrationContextImplementation(
+  case class TestIntegrationContextImplementation[Case](
       caze: Case,
       caseFailureReporting: CaseFailureReporting,
       inlinedCaseFiltration: InlinedCaseFiltration,
@@ -191,7 +191,7 @@ case class TrialsImplementation[Case](
     ).toTry.get // Just throw the exception, the callers are written in Java style.
   }
 
-  trait SupplyToSyntax // TODO: think of a proper name once extraction is complete.
+  trait SupplyToSyntax[Case]
       extends JavaTrialsScaffolding.SupplyToSyntax[Case]
       with ScalaTrialsScaffolding.SupplyToSyntax[Case] {
     protected val casesLimitStrategyFactory: CaseSupplyCycle => CasesLimitStrategy
@@ -689,38 +689,15 @@ case class TrialsImplementation[Case](
       }
     }
 
-    private def raiseTrialException(
+    protected def reproduce(decisionStages: DecisionStages): Case
+
+    protected def raiseTrialException(
         rocksDb: Option[(RocksDB, ColumnFamilyHandle)]
     )(
         throwable: Throwable,
         caze: Case,
         decisionStages: DecisionStages
-    ): StreamedCases = {
-      val json = decisionStages.asJson.spaces4
-      val jsonHashInHexadecimal = hash.Hashing
-        .murmur3_128()
-        .hashUnencodedChars(json)
-        .toString
-
-      // TODO: suppose this throws an exception? Probably best to
-      // just log it and carry on, as the user wants to see a test
-      // failure rather than an issue with the database.
-      rocksDb.foreach { case (rocksDb, columnFamilyForRecipeHashes) =>
-        rocksDb.put(
-          columnFamilyForRecipeHashes,
-          jsonHashInHexadecimal.map(_.toByte).toArray,
-          json.map(_.toByte).toArray
-        )
-      }
-
-      Fs2Stream.raiseError[SyncIO](new TrialException(throwable) {
-        override def provokingCase: Case = caze
-
-        override def recipe: String = json
-
-        override def recipeHash: String = jsonHashInHexadecimal
-      })
-    }
+    ): StreamedCases
 
     private def raiseTrialException(
         throwable: Throwable,
@@ -818,7 +795,7 @@ case class TrialsImplementation[Case](
               case (cases, inlinedCaseFiltration) =>
                 cases.flatMap { case potentialShrunkCaseData =>
                   Fs2Stream.emit(
-                    TestIntegrationContextImplementation(
+                    TestIntegrationContextImplementation[Case](
                       caze = potentialShrunkCaseData.caze,
                       caseFailureReporting =
                         (throwableFromPotentialShrunkCase: Throwable) => {
@@ -901,7 +878,7 @@ case class TrialsImplementation[Case](
         ) match {
           case (cases, inlinedCaseFiltration) =>
             cases.map { case caseData =>
-              TestIntegrationContextImplementation(
+              TestIntegrationContextImplementation[Case](
                 caze = caseData.caze,
                 caseFailureReporting = (throwable: Throwable) => {
                   shrinkageCasesFromDownstream = Some(
@@ -948,7 +925,7 @@ case class TrialsImplementation[Case](
                   val decisionStages = parseDecisionIndices(recipe)
                   val caze           = reproduce(decisionStages)
 
-                  TestIntegrationContextImplementation(
+                  TestIntegrationContextImplementation[Case](
                     caze = caze,
                     caseFailureReporting = { (throwable: Throwable) =>
                       shrinkageCasesFromDownstream = Some(
@@ -1218,7 +1195,44 @@ case class TrialsImplementation[Case](
         seed: Long,
         shrinkageStop: ShrinkageStop[Case],
         generation: Generation[_ <: Case]
-    ) extends SupplyToSyntax {
+    ) extends SupplyToSyntax[Case] {
+      override protected def reproduce(
+          decisionStages: DecisionStages
+      ): Case = thisTrialsImplementation.reproduce(decisionStages)
+
+      protected override def raiseTrialException(
+          rocksDb: Option[(RocksDB, ColumnFamilyHandle)]
+      )(
+          throwable: Throwable,
+          caze: Case,
+          decisionStages: DecisionStages
+      ): StreamedCases = {
+        val json = decisionStages.asJson.spaces4
+        val jsonHashInHexadecimal = hash.Hashing
+          .murmur3_128()
+          .hashUnencodedChars(json)
+          .toString
+
+        // TODO: suppose this throws an exception? Probably best to
+        // just log it and carry on, as the user wants to see a test
+        // failure rather than an issue with the database.
+        rocksDb.foreach { case (rocksDb, columnFamilyForRecipeHashes) =>
+          rocksDb.put(
+            columnFamilyForRecipeHashes,
+            jsonHashInHexadecimal.map(_.toByte).toArray,
+            json.map(_.toByte).toArray
+          )
+        }
+
+        Fs2Stream.raiseError[SyncIO](new TrialException(throwable) {
+          override def provokingCase: Case = caze
+
+          override def recipe: String = json
+
+          override def recipeHash: String = jsonHashInHexadecimal
+        })
+      }
+
       override def withSeed(
           seed: Long
       ): JavaTrialsScaffolding.SupplyToSyntax[
@@ -1302,7 +1316,7 @@ case class TrialsImplementation[Case](
           val decisionStages = parseDecisionIndices(recipe)
           val caze           = reproduce(decisionStages)
 
-          TestIntegrationContextImplementation(
+          TestIntegrationContextImplementation[Case](
             caze = caze,
             caseFailureReporting = { (throwable: Throwable) => },
             inlinedCaseFiltration = {
