@@ -391,15 +391,16 @@ case class TrialsImplementation[Case](
       ]
   ): JavaTrialsScaffolding.SupplyToSyntax[Case]
     with ScalaTrialsScaffolding.SupplyToSyntax[Case] = {
-    case class SupplyToSyntaxImplementation(
-        casesLimitStrategyFactory: CaseSupplyCycle => CasesLimitStrategy,
-        complexityLimit: Int,
-        shrinkageAttemptsLimit: Int,
-        seed: Long,
-        shrinkageStop: ShrinkageStop[Case],
-        generation: Generation[_ <: Case]
-    ) extends JavaTrialsScaffolding.SupplyToSyntax[Case]
+    trait XMarksTheSpot // TODO: think of a proper name once extraction is complete.
+        extends JavaTrialsScaffolding.SupplyToSyntax[Case]
         with ScalaTrialsScaffolding.SupplyToSyntax[Case] {
+      protected val casesLimitStrategyFactory: CaseSupplyCycle => CasesLimitStrategy
+      protected val complexityLimit: Int
+      protected val shrinkageAttemptsLimit: Int
+      protected val seed: Long
+      protected val shrinkageStop: ShrinkageStop[Case]
+      protected val generation: Generation[_ <: Case]
+
       type StreamedCases =
         Fs2Stream[SyncIO, TestIntegrationContext[Case]]
 
@@ -853,23 +854,9 @@ case class TrialsImplementation[Case](
           seed: Long
       ): JavaTrialsScaffolding.SupplyToSyntax[
         Case
-      ] with ScalaTrialsScaffolding.SupplyToSyntax[Case] =
-        copy(seed = seed)
+      ] with ScalaTrialsScaffolding.SupplyToSyntax[Case]
 
       // Java-only API ...
-      override def withStoppingCondition(
-          shrinkageStop: JavaTrialsScaffolding.ShrinkageStop[
-            _ >: Case
-          ]
-      ): JavaTrialsScaffolding.SupplyToSyntax[
-        Case
-      ] with ScalaTrialsScaffolding.SupplyToSyntax[Case] =
-        copy(shrinkageStop = { () =>
-          val predicate = shrinkageStop.build()
-
-          predicate.test _
-        })
-
       override def supplyTo(consumer: Consumer[Case]): Unit =
         supplyTo(consumer.accept)
 
@@ -1195,12 +1182,6 @@ case class TrialsImplementation[Case](
       }
 
       // Scala-only API ...
-      override def withShrinkageStop(
-          shrinkageStop: ShrinkageStop[Case]
-      ): JavaTrialsScaffolding.SupplyToSyntax[Case]
-        with ScalaTrialsScaffolding.SupplyToSyntax[Case] =
-        copy(shrinkageStop = shrinkageStop)
-
       override def supplyTo(consumer: Case => Unit): Unit = {
         shrinkableCases()
           .flatMap {
@@ -1229,6 +1210,43 @@ case class TrialsImplementation[Case](
           .toTry
           .get
       }
+    }
+
+    case class SupplyToSyntaxImplementation(
+        casesLimitStrategyFactory: CaseSupplyCycle => CasesLimitStrategy,
+        complexityLimit: Int,
+        shrinkageAttemptsLimit: Int,
+        seed: Long,
+        shrinkageStop: ShrinkageStop[Case],
+        generation: Generation[_ <: Case]
+    ) extends XMarksTheSpot {
+      override def withSeed(
+          seed: Long
+      ): JavaTrialsScaffolding.SupplyToSyntax[
+        Case
+      ] with ScalaTrialsScaffolding.SupplyToSyntax[Case] =
+        copy(seed = seed)
+
+      // Java-only API ...
+      override def withStoppingCondition(
+          shrinkageStop: JavaTrialsScaffolding.ShrinkageStop[
+            _ >: Case
+          ]
+      ): JavaTrialsScaffolding.SupplyToSyntax[
+        Case
+      ] with ScalaTrialsScaffolding.SupplyToSyntax[Case] =
+        copy(shrinkageStop = { () =>
+          val predicate = shrinkageStop.build()
+
+          predicate.test _
+        })
+
+      // Scala-only API ...
+      override def withShrinkageStop(
+          shrinkageStop: ShrinkageStop[Case]
+      ): JavaTrialsScaffolding.SupplyToSyntax[Case]
+        with ScalaTrialsScaffolding.SupplyToSyntax[Case] =
+        copy(shrinkageStop = shrinkageStop)
 
     }
 
