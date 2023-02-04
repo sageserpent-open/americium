@@ -34,6 +34,12 @@ object TrialsScaffolding {
   }
 
   trait SupplyToSyntax[+Case] {
+    def withSeed(seed: Long): SupplyToSyntax[Case]
+
+    def withShrinkageStop(
+        shrinkageStop: ShrinkageStop[Case]
+    ): SupplyToSyntax[Case]
+
     def supplyTo(consumer: Case => Unit): Unit
   }
 
@@ -91,6 +97,7 @@ trait TrialsScaffolding[+Case] extends TrialsFactoring[Case] {
       casesLimit: Int,
       complexityLimit: Int = defaultComplexityLimit,
       shrinkageAttemptsLimit: Int = defaultShrinkageAttemptsLimit,
+      @deprecated("Use a following call to `withShrinkageStop` instead.")
       shrinkageStop: ShrinkageStop[Case] = noStopping
   ): SupplySyntaxType
 
@@ -98,6 +105,7 @@ trait TrialsScaffolding[+Case] extends TrialsFactoring[Case] {
       casesLimitStrategyFactory: CaseSupplyCycle => CasesLimitStrategy,
       complexityLimit: Int = defaultComplexityLimit,
       shrinkageAttemptsLimit: Int = defaultShrinkageAttemptsLimit,
+      @deprecated("Use a following call to `withShrinkageStop` instead.")
       shrinkageStop: ShrinkageStop[Case] = noStopping
   ): SupplySyntaxType
 

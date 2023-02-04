@@ -843,7 +843,6 @@ case class TrialsImplementation[Case](
         }
       }
 
-      // Java-only API ...
       override def withSeed(
           seed: Long
       ): JavaTrialsScaffolding.SupplyToSyntax[
@@ -851,6 +850,7 @@ case class TrialsImplementation[Case](
       ] with ScalaTrialsScaffolding.SupplyToSyntax[Case] =
         this // TODO: use the parameter!
 
+      // Java-only API ...
       override def withStoppingCondition(
           shrinkageStop: JavaTrialsScaffolding.ShrinkageStop[
             _ >: Case
@@ -1185,6 +1185,12 @@ case class TrialsImplementation[Case](
       }
 
       // Scala-only API ...
+      override def withShrinkageStop(
+          shrinkageStop: ShrinkageStop[Case]
+      ): JavaTrialsScaffolding.SupplyToSyntax[Case]
+        with ScalaTrialsScaffolding.SupplyToSyntax[Case] =
+        this // TODO: use the parameter!
+
       override def supplyTo(consumer: Case => Unit): Unit = {
         shrinkableCases()
           .flatMap {
@@ -1228,24 +1234,24 @@ case class TrialsImplementation[Case](
     with ScalaTrialsScaffolding.SupplyToSyntax[Case] =
     new JavaTrialsScaffolding.SupplyToSyntax[Case]
       with ScalaTrialsScaffolding.SupplyToSyntax[Case] {
-      // Java-only API ...
       override def withSeed(
-                             seed: Long
-                           ): JavaTrialsScaffolding.SupplyToSyntax[
+          seed: Long
+      ): JavaTrialsScaffolding.SupplyToSyntax[
         Case
       ] with ScalaTrialsScaffolding.SupplyToSyntax[Case] =
         this // TODO: use the parameter!
 
+      // Java-only API ...
       override def withStoppingCondition(
-                                          shrinkageStop: JavaTrialsScaffolding.ShrinkageStop[
-                                            _ >: Case
-                                          ]
-                                        ): JavaTrialsScaffolding.SupplyToSyntax[
+          shrinkageStop: JavaTrialsScaffolding.ShrinkageStop[
+            _ >: Case
+          ]
+      ): JavaTrialsScaffolding.SupplyToSyntax[
         Case
       ] with ScalaTrialsScaffolding.SupplyToSyntax[Case] =
         this // TODO: use the parameter!
 
-            override def supplyTo(consumer: Consumer[Case]): Unit =
+      override def supplyTo(consumer: Consumer[Case]): Unit =
         supplyTo(consumer.accept)
 
       override def asIterator(): JavaIterator[Case] = Seq {
@@ -1277,6 +1283,14 @@ case class TrialsImplementation[Case](
         }: TestIntegrationContext[Case]).asJava.iterator()
 
       // Scala-only API ...
+      override def withShrinkageStop(
+          shrinkageStop: ShrinkageStop[
+            Case
+          ]
+      ): JavaTrialsScaffolding.SupplyToSyntax[
+        Case
+      ] with ScalaTrialsScaffolding.SupplyToSyntax[Case] = this
+
       override def supplyTo(consumer: Case => Unit): Unit = {
         val decisionStages = parseDecisionIndices(recipe)
         val reproducedCase = reproduce(decisionStages)
