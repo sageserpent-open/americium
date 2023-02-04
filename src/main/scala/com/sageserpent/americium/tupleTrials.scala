@@ -28,28 +28,33 @@ object tupleTrials {
 
     trait SupplyToSyntaxTuple2
         extends TrialsScaffolding.SupplyToSyntaxTuple2[Case1, Case2] {
-      def supplyTo(consumer: (Case1, Case2) => Unit): Unit = supplyTo(
-        consumer.tupled
-      )
-    }
+      def supplyTo(consumer: (Case1, Case2) => Unit): Unit =
+        supplyTo(
+          consumer.tupled
+        )
 
-    def withLimit(limit: Int): SupplyToSyntaxTuple2 = new SupplyToSyntaxTuple2 {
       override def withSeed(
           seed: Long
-      ): TrialsScaffolding.SupplyToSyntax[
-        (Case1, Case2)
-      ] = ???
+      ): SupplyToSyntaxTuple2 = ???
 
       override def withShrinkageStop(
           shrinkageStop: ShrinkageStop[
             (Case1, Case2)
           ]
-      ): TrialsScaffolding.SupplyToSyntax[
-        (Case1, Case2)
-      ] = ???
+      ): SupplyToSyntaxTuple2 = ???
 
       override def supplyTo(consumer: ((Case1, Case2)) => Unit): Unit =
-        trialsOfPairs.withLimit(limit).supplyTo(consumer)
+        supplyToSyntax.supplyTo(consumer)
+
+      protected val supplyToSyntax: TrialsScaffolding.SupplyToSyntax[
+        (Case1, Case2)
+      ]
+    }
+
+    def withLimit(limit: Int): SupplyToSyntaxTuple2 = new SupplyToSyntaxTuple2 {
+      override protected val supplyToSyntax
+          : TrialsScaffolding.SupplyToSyntax[(Case1, Case2)] =
+        trialsOfPairs.withLimit(limit)
     }
 
     override def withLimits(
@@ -58,29 +63,14 @@ object tupleTrials {
         shrinkageAttemptsLimit: Int,
         shrinkageStop: ShrinkageStop[(Case1, Case2)]
     ): SupplyToSyntaxTuple2 = new SupplyToSyntaxTuple2 {
-      override def withSeed(
-          seed: Long
-      ): TrialsScaffolding.SupplyToSyntax[
-        (Case1, Case2)
-      ] = ???
-
-      override def withShrinkageStop(
-          shrinkageStop: ShrinkageStop[
-            (Case1, Case2)
-          ]
-      ): TrialsScaffolding.SupplyToSyntax[
-        (Case1, Case2)
-      ] = ???
-
-      override def supplyTo(consumer: ((Case1, Case2)) => Unit): Unit =
-        trialsOfPairs
-          .withLimits(
-            casesLimit,
-            complexityLimit,
-            shrinkageAttemptsLimit,
-            shrinkageStop
-          )
-          .supplyTo(consumer)
+      override protected val supplyToSyntax
+          : TrialsScaffolding.SupplyToSyntax[(Case1, Case2)] = trialsOfPairs
+        .withLimits(
+          casesLimit,
+          complexityLimit,
+          shrinkageAttemptsLimit,
+          shrinkageStop
+        )
     }
 
     override def withStrategy(
@@ -91,21 +81,8 @@ object tupleTrials {
           (Case1, Case2)
         ]
     ): SupplyToSyntaxTuple2 = new SupplyToSyntaxTuple2 {
-      override def withSeed(
-          seed: Long
-      ): TrialsScaffolding.SupplyToSyntax[
-        (Case1, Case2)
-      ] = ???
-
-      override def withShrinkageStop(
-          shrinkageStop: ShrinkageStop[
-            (Case1, Case2)
-          ]
-      ): TrialsScaffolding.SupplyToSyntax[
-        (Case1, Case2)
-      ] = ???
-
-      override def supplyTo(consumer: ((Case1, Case2)) => Unit): Unit =
+      override protected val supplyToSyntax
+          : TrialsScaffolding.SupplyToSyntax[(Case1, Case2)] =
         trialsOfPairs
           .withStrategy(
             casesLimitStrategyFactory,
@@ -113,27 +90,13 @@ object tupleTrials {
             shrinkageAttemptsLimit,
             shrinkageStop
           )
-          .supplyTo(consumer)
     }
 
     def withRecipe(recipe: String): SupplyToSyntaxTuple2 =
       new SupplyToSyntaxTuple2 {
-        override def withSeed(
-            seed: Long
-        ): TrialsScaffolding.SupplyToSyntax[
-          (Case1, Case2)
-        ] = ???
-
-        override def withShrinkageStop(
-            shrinkageStop: ShrinkageStop[
-              (Case1, Case2)
-            ]
-        ): TrialsScaffolding.SupplyToSyntax[
-          (Case1, Case2)
-        ] = ???
-
-        override def supplyTo(consumer: ((Case1, Case2)) => Unit): Unit =
-          trialsOfPairs.withRecipe(recipe).supplyTo(consumer)
+        override protected val supplyToSyntax
+            : TrialsScaffolding.SupplyToSyntax[(Case1, Case2)] =
+          trialsOfPairs.withRecipe(recipe)
       }
   }
 
@@ -163,9 +126,7 @@ object tupleTrials {
       def supplyTo(consumer: (Case1, Case2, Case3) => Unit): Unit = supplyTo(
         consumer.tupled
       )
-    }
 
-    def withLimit(limit: Int): SupplyToSyntaxTuple3 = new SupplyToSyntaxTuple3 {
       override def withSeed(
           seed: Long
       ): TrialsScaffolding.SupplyToSyntax[
@@ -181,7 +142,17 @@ object tupleTrials {
       ] = ???
 
       override def supplyTo(consumer: ((Case1, Case2, Case3)) => Unit): Unit =
-        trialsOfTriples.withLimit(limit).supplyTo(consumer)
+        supplyToSyntax.supplyTo(consumer)
+
+      protected val supplyToSyntax: TrialsScaffolding.SupplyToSyntax[
+        (Case1, Case2, Case3)
+      ]
+    }
+
+    def withLimit(limit: Int): SupplyToSyntaxTuple3 = new SupplyToSyntaxTuple3 {
+      override protected val supplyToSyntax
+          : TrialsScaffolding.SupplyToSyntax[(Case1, Case2, Case3)] =
+        trialsOfTriples.withLimit(limit)
     }
 
     override def withLimits(
@@ -190,21 +161,8 @@ object tupleTrials {
         shrinkageAttemptsLimit: Int,
         shrinkageStop: ShrinkageStop[(Case1, Case2, Case3)]
     ): SupplyToSyntaxTuple3 = new SupplyToSyntaxTuple3 {
-      override def withSeed(
-          seed: Long
-      ): TrialsScaffolding.SupplyToSyntax[
-        (Case1, Case2, Case3)
-      ] = ???
-
-      override def withShrinkageStop(
-          shrinkageStop: ShrinkageStop[
-            (Case1, Case2, Case3)
-          ]
-      ): TrialsScaffolding.SupplyToSyntax[
-        (Case1, Case2, Case3)
-      ] = ???
-
-      override def supplyTo(consumer: ((Case1, Case2, Case3)) => Unit): Unit =
+      override protected val supplyToSyntax
+          : TrialsScaffolding.SupplyToSyntax[(Case1, Case2, Case3)] =
         trialsOfTriples
           .withLimits(
             casesLimit,
@@ -212,7 +170,6 @@ object tupleTrials {
             shrinkageAttemptsLimit,
             shrinkageStop
           )
-          .supplyTo(consumer)
     }
 
     override def withStrategy(
@@ -223,21 +180,8 @@ object tupleTrials {
           (Case1, Case2, Case3)
         ]
     ): SupplyToSyntaxTuple3 = new SupplyToSyntaxTuple3 {
-      override def withSeed(
-          seed: Long
-      ): TrialsScaffolding.SupplyToSyntax[
-        (Case1, Case2, Case3)
-      ] = ???
-
-      override def withShrinkageStop(
-          shrinkageStop: ShrinkageStop[
-            (Case1, Case2, Case3)
-          ]
-      ): TrialsScaffolding.SupplyToSyntax[
-        (Case1, Case2, Case3)
-      ] = ???
-
-      override def supplyTo(consumer: ((Case1, Case2, Case3)) => Unit): Unit =
+      override protected val supplyToSyntax
+          : TrialsScaffolding.SupplyToSyntax[(Case1, Case2, Case3)] =
         trialsOfTriples
           .withStrategy(
             casesLimitStrategyFactory,
@@ -245,27 +189,13 @@ object tupleTrials {
             shrinkageAttemptsLimit,
             shrinkageStop
           )
-          .supplyTo(consumer)
     }
 
     def withRecipe(recipe: String): SupplyToSyntaxTuple3 =
       new SupplyToSyntaxTuple3 {
-        override def withSeed(
-            seed: Long
-        ): TrialsScaffolding.SupplyToSyntax[
-          (Case1, Case2, Case3)
-        ] = ???
-
-        override def withShrinkageStop(
-            shrinkageStop: ShrinkageStop[
-              (Case1, Case2, Case3)
-            ]
-        ): TrialsScaffolding.SupplyToSyntax[
-          (Case1, Case2, Case3)
-        ] = ???
-
-        override def supplyTo(consumer: ((Case1, Case2, Case3)) => Unit): Unit =
-          trialsOfTriples.withRecipe(recipe).supplyTo(consumer)
+        override protected val supplyToSyntax
+            : TrialsScaffolding.SupplyToSyntax[(Case1, Case2, Case3)] =
+          trialsOfTriples.withRecipe(recipe)
       }
   }
 
@@ -298,11 +228,7 @@ object tupleTrials {
         supplyTo(
           consumer.tupled
         )
-    }
 
-    def withLimit(
-        limit: Int
-    ): SupplyToSyntaxTuple4 = new SupplyToSyntaxTuple4 {
       override def withSeed(
           seed: Long
       ): TrialsScaffolding.SupplyToSyntax[
@@ -319,7 +245,19 @@ object tupleTrials {
 
       override def supplyTo(
           consumer: ((Case1, Case2, Case3, Case4)) => Unit
-      ): Unit = trialsOfQuadruples.withLimit(limit).supplyTo(consumer)
+      ): Unit = supplyToSyntax.supplyTo(consumer)
+
+      protected val supplyToSyntax: TrialsScaffolding.SupplyToSyntax[
+        (Case1, Case2, Case3, Case4)
+      ]
+    }
+
+    def withLimit(
+        limit: Int
+    ): SupplyToSyntaxTuple4 = new SupplyToSyntaxTuple4 {
+      override protected val supplyToSyntax
+          : TrialsScaffolding.SupplyToSyntax[(Case1, Case2, Case3, Case4)] =
+        trialsOfQuadruples.withLimit(limit)
     }
 
     override def withLimits(
@@ -328,30 +266,15 @@ object tupleTrials {
         shrinkageAttemptsLimit: Int,
         shrinkageStop: ShrinkageStop[(Case1, Case2, Case3, Case4)]
     ): SupplyToSyntaxTuple4 = new SupplyToSyntaxTuple4 {
-      override def withSeed(
-          seed: Long
-      ): TrialsScaffolding.SupplyToSyntax[
-        (Case1, Case2, Case3, Case4)
-      ] = ???
-
-      override def withShrinkageStop(
-          shrinkageStop: ShrinkageStop[
-            (Case1, Case2, Case3, Case4)
-          ]
-      ): TrialsScaffolding.SupplyToSyntax[
-        (Case1, Case2, Case3, Case4)
-      ] = ???
-
-      override def supplyTo(
-          consumer: ((Case1, Case2, Case3, Case4)) => Unit
-      ): Unit = trialsOfQuadruples
-        .withLimits(
-          casesLimit,
-          complexityLimit,
-          shrinkageAttemptsLimit,
-          shrinkageStop
-        )
-        .supplyTo(consumer)
+      override protected val supplyToSyntax
+          : TrialsScaffolding.SupplyToSyntax[(Case1, Case2, Case3, Case4)] =
+        trialsOfQuadruples
+          .withLimits(
+            casesLimit,
+            complexityLimit,
+            shrinkageAttemptsLimit,
+            shrinkageStop
+          )
     }
 
     override def withStrategy(
@@ -362,52 +285,23 @@ object tupleTrials {
           (Case1, Case2, Case3, Case4)
         ]
     ): SupplyToSyntaxTuple4 = new SupplyToSyntaxTuple4 {
-      override def withSeed(
-          seed: Long
-      ): TrialsScaffolding.SupplyToSyntax[
-        (Case1, Case2, Case3, Case4)
-      ] = ???
-
-      override def withShrinkageStop(
-          shrinkageStop: ShrinkageStop[
-            (Case1, Case2, Case3, Case4)
-          ]
-      ): TrialsScaffolding.SupplyToSyntax[
-        (Case1, Case2, Case3, Case4)
-      ] = ???
-
-      override def supplyTo(
-          consumer: ((Case1, Case2, Case3, Case4)) => Unit
-      ): Unit = trialsOfQuadruples
-        .withStrategy(
-          casesLimitStrategyFactory,
-          complexityLimit,
-          shrinkageAttemptsLimit,
-          shrinkageStop
-        )
-        .supplyTo(consumer)
+      override protected val supplyToSyntax
+          : TrialsScaffolding.SupplyToSyntax[(Case1, Case2, Case3, Case4)] =
+        trialsOfQuadruples
+          .withStrategy(
+            casesLimitStrategyFactory,
+            complexityLimit,
+            shrinkageAttemptsLimit,
+            shrinkageStop
+          )
     }
 
     def withRecipe(
         recipe: String
     ): SupplyToSyntaxTuple4 = new SupplyToSyntaxTuple4 {
-      override def withSeed(
-          seed: Long
-      ): TrialsScaffolding.SupplyToSyntax[
-        (Case1, Case2, Case3, Case4)
-      ] = ???
-
-      override def withShrinkageStop(
-          shrinkageStop: ShrinkageStop[
-            (Case1, Case2, Case3, Case4)
-          ]
-      ): TrialsScaffolding.SupplyToSyntax[
-        (Case1, Case2, Case3, Case4)
-      ] = ???
-
-      override def supplyTo(
-          consumer: ((Case1, Case2, Case3, Case4)) => Unit
-      ): Unit = trialsOfQuadruples.withRecipe(recipe).supplyTo(consumer)
+      override protected val supplyToSyntax
+          : TrialsScaffolding.SupplyToSyntax[(Case1, Case2, Case3, Case4)] =
+        trialsOfQuadruples.withRecipe(recipe)
     }
   }
 }

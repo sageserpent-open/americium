@@ -64,6 +64,11 @@ object tupleTrials {
           Case1,
           Case2
         ] {
+      def supplyTo(biConsumer: BiConsumer[Case1, Case2]): Unit =
+        supplyTo((pair: JavaTuple2[Case1, Case2]) =>
+          biConsumer.accept(pair._1, pair._2)
+        )
+
       override def withSeed(
           seed: Long
       ): SupplyToSyntaxTuple2 = ???
@@ -74,17 +79,9 @@ object tupleTrials {
           ]
       ): SupplyToSyntaxTuple2 = ???
 
-      def supplyTo(biConsumer: BiConsumer[Case1, Case2]): Unit = {
-        supplyTo((pair: JavaTuple2[Case1, Case2]) =>
-          biConsumer.accept(pair._1, pair._2)
-        )
-      }
-
       override def supplyTo(
           consumer: Consumer[JavaTuple2[Case1, Case2]]
-      ): Unit = {
-        supplyToSyntax.supplyTo(consumer)
-      }
+      ): Unit = supplyToSyntax.supplyTo(consumer)
 
       override def asIterator: JavaIterator[JavaTuple2[Case1, Case2]] =
         supplyToSyntax.asIterator
@@ -195,6 +192,11 @@ object tupleTrials {
           Case2,
           Case3
         ] {
+      def supplyTo(triConsumer: Consumer3[Case1, Case2, Case3]): Unit =
+        supplyTo((triple: JavaTuple3[Case1, Case2, Case3]) =>
+          triConsumer.accept(triple._1, triple._2, triple._3)
+        )
+
       override def withSeed(
           seed: Long
       ): SupplyToSyntaxTuple3 = ???
@@ -205,15 +207,9 @@ object tupleTrials {
           ]
       ): SupplyToSyntaxTuple3 = ???
 
-      def supplyTo(triConsumer: Consumer3[Case1, Case2, Case3]): Unit = {
-        supplyTo((triple: JavaTuple3[Case1, Case2, Case3]) =>
-          triConsumer.accept(triple._1, triple._2, triple._3)
-        )
-      }
-
       override def supplyTo(
           consumer: Consumer[JavaTuple3[Case1, Case2, Case3]]
-      ): Unit = { supplyToSyntax.supplyTo(consumer) }
+      ): Unit = supplyToSyntax.supplyTo(consumer)
 
       override def asIterator: JavaIterator[JavaTuple3[Case1, Case2, Case3]] =
         supplyToSyntax.asIterator
@@ -334,6 +330,18 @@ object tupleTrials {
           Case3,
           Case4
         ] {
+      def supplyTo(
+          quadConsumer: Consumer4[Case1, Case2, Case3, Case4]
+      ): Unit =
+        supplyTo((quadruple: JavaTuple4[Case1, Case2, Case3, Case4]) =>
+          quadConsumer.accept(
+            quadruple._1,
+            quadruple._2,
+            quadruple._3,
+            quadruple._4
+          )
+        )
+
       override def withSeed(
           seed: Long
       ): SupplyToSyntaxTuple4 = ???
@@ -344,22 +352,9 @@ object tupleTrials {
           ]
       ): SupplyToSyntaxTuple4 = ???
 
-      def supplyTo(
-          quadConsumer: Consumer4[Case1, Case2, Case3, Case4]
-      ): Unit = {
-        supplyTo((quadruple: JavaTuple4[Case1, Case2, Case3, Case4]) =>
-          quadConsumer.accept(
-            quadruple._1,
-            quadruple._2,
-            quadruple._3,
-            quadruple._4
-          )
-        )
-      }
-
       override def supplyTo(
           consumer: Consumer[JavaTuple4[Case1, Case2, Case3, Case4]]
-      ): Unit = { supplyToSyntax.supplyTo(consumer) }
+      ): Unit = supplyToSyntax.supplyTo(consumer)
 
       override def asIterator
           : JavaIterator[JavaTuple4[Case1, Case2, Case3, Case4]] =
