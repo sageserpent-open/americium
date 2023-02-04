@@ -1045,7 +1045,7 @@ class TrialsSpec
           )
 
         // ... now let's see if we see the same cases.
-        sut.withLimit(limit).supplyTo(mockConsumer)
+        sut.withLimit(limit).withSeed(seed).supplyTo(mockConsumer)
 
         verifyNoMoreInteractions(mockConsumer)
       }
