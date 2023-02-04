@@ -176,12 +176,6 @@ case class TrialsImplementation[Case](
 
   override type SupplySyntaxType = ScalaTrialsScaffolding.SupplyToSyntax[Case]
 
-  type StreamedCases =
-    Fs2Stream[SyncIO, TestIntegrationContext[Case]]
-
-  type PullOfCases =
-    Pull[SyncIO, TestIntegrationContext[Case], Unit]
-
   case class TestIntegrationContextImplementation(
       caze: Case,
       caseFailureReporting: CaseFailureReporting,
@@ -396,9 +390,21 @@ case class TrialsImplementation[Case](
         Case
       ]
   ): JavaTrialsScaffolding.SupplyToSyntax[Case]
-    with ScalaTrialsScaffolding.SupplyToSyntax[Case] =
-    new JavaTrialsScaffolding.SupplyToSyntax[Case]
-      with ScalaTrialsScaffolding.SupplyToSyntax[Case] {
+    with ScalaTrialsScaffolding.SupplyToSyntax[Case] = {
+    case class SupplyToSyntaxImplementation(
+        casesLimitStrategyFactory: CaseSupplyCycle => CasesLimitStrategy,
+        complexityLimit: Int,
+        shrinkageAttemptsLimit: Int,
+        seed: Long,
+        shrinkageStop: ShrinkageStop[Case],
+        generation: Generation[_ <: Case]
+    ) extends JavaTrialsScaffolding.SupplyToSyntax[Case]
+        with ScalaTrialsScaffolding.SupplyToSyntax[Case] {
+      type StreamedCases =
+        Fs2Stream[SyncIO, TestIntegrationContext[Case]]
+
+      type PullOfCases =
+        Pull[SyncIO, TestIntegrationContext[Case], Unit]
 
       final case class NonEmptyDecisionStages(
           latestDecision: Decision,
@@ -848,7 +854,7 @@ case class TrialsImplementation[Case](
       ): JavaTrialsScaffolding.SupplyToSyntax[
         Case
       ] with ScalaTrialsScaffolding.SupplyToSyntax[Case] =
-        this // TODO: use the parameter!
+        copy(seed = seed)
 
       // Java-only API ...
       override def withStoppingCondition(
@@ -858,7 +864,11 @@ case class TrialsImplementation[Case](
       ): JavaTrialsScaffolding.SupplyToSyntax[
         Case
       ] with ScalaTrialsScaffolding.SupplyToSyntax[Case] =
-        this // TODO: use the parameter!
+        copy(shrinkageStop = { () =>
+          val predicate = shrinkageStop.build()
+
+          predicate.test _
+        })
 
       override def supplyTo(consumer: Consumer[Case]): Unit =
         supplyTo(consumer.accept)
@@ -980,7 +990,7 @@ case class TrialsImplementation[Case](
           )
 
         Option(System.getProperty(recipeHashJavaPropertyName)).fold {
-          val randomBehaviour = new Random(734874)
+          val randomBehaviour = new Random(seed)
 
           def shrink(
               caseData: CaseData,
@@ -1189,7 +1199,7 @@ case class TrialsImplementation[Case](
           shrinkageStop: ShrinkageStop[Case]
       ): JavaTrialsScaffolding.SupplyToSyntax[Case]
         with ScalaTrialsScaffolding.SupplyToSyntax[Case] =
-        this // TODO: use the parameter!
+        copy(shrinkageStop = shrinkageStop)
 
       override def supplyTo(consumer: Case => Unit): Unit = {
         shrinkableCases()
@@ -1221,6 +1231,16 @@ case class TrialsImplementation[Case](
       }
 
     }
+
+    SupplyToSyntaxImplementation(
+      casesLimitStrategyFactory = casesLimitStrategyFactory,
+      complexityLimit = complexityLimit,
+      shrinkageAttemptsLimit = shrinkageAttemptsLimit,
+      seed = 734874L,
+      shrinkageStop = shrinkageStop,
+      generation = generation
+    )
+  }
 
   def this(
       generationOperation: TrialsImplementation.GenerationOperation[Case]
