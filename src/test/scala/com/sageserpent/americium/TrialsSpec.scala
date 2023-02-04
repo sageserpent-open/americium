@@ -23,6 +23,7 @@ import _root_.java.util.function.{Consumer, Predicate, Function as JavaFunction}
 import _root_.java.util.stream.IntStream
 import _root_.java.util.{Optional, UUID, LinkedList as JavaLinkedList}
 import scala.collection.mutable
+import scala.collection.mutable.ListBuffer
 import scala.jdk.CollectionConverters.*
 import scala.util.Try
 
@@ -1017,7 +1018,43 @@ class TrialsSpec
     forAll(
       Table(
         "trials",
-        api.only(1),
+        api.only(1)              -> 1L,
+        api.choose(1, false, 99) -> 2L,
+        api.alternate(
+          api.choose(0 until 10 map (_.toString)),
+          api.choose(-10 until 0)
+        )                          -> 3L,
+        api.streamLegacy(_ * 1.46) -> 4L,
+        api.alternate(
+          api.streamLegacy(_ * 1.46),
+          api.choose(0 until 10 map (_.toString)),
+          api.choose(-10 until 0)
+        )                                       -> 5L,
+        implicitly[Factory[Option[Int]]].trials -> 6L
+      )
+    ) { case (sut, seed) =>
+      inMockitoSession {
+        val mockConsumer: Any => Unit = mock(classOf[Any => Unit])
+
+        // Whatever cases are supplied set the expectations...
+        sut
+          .withLimit(limit)
+          .withSeed(seed)
+          .supplyTo(expectedCase =>
+            doReturn(()).when(mockConsumer).apply(expectedCase)
+          )
+
+        // ... now let's see if we see the same cases.
+        sut.withLimit(limit).supplyTo(mockConsumer)
+
+        verifyNoMoreInteractions(mockConsumer)
+      }
+    }
+
+  they should "may yield varying cases if the seed is varied" in
+    forAll(
+      Table(
+        "trials",
         api.choose(1, false, 99),
         api.alternate(
           api.choose(0 until 10 map (_.toString)),
@@ -1032,21 +1069,27 @@ class TrialsSpec
         implicitly[Factory[Option[Int]]].trials
       )
     ) { sut =>
-      inMockitoSession {
-        val mockConsumer: Any => Unit = mock(classOf[Any => Unit])
+      val casesUsingFirstSeed: ListBuffer[Any] = ListBuffer.empty
 
-        // Whatever cases are supplied set the expectations...
-        sut
-          .withLimit(limit)
-          .supplyTo(expectedCase =>
-            doReturn(()).when(mockConsumer).apply(expectedCase)
-          )
+      val firstSeed = 1L
 
-        // ... now let's see if we see the same cases.
-        sut.withLimit(limit).supplyTo(mockConsumer)
+      sut
+        .withLimit(limit)
+        .withSeed(firstSeed)
+        .supplyTo(casesUsingFirstSeed.addOne)
 
-        verifyNoMoreInteractions(mockConsumer)
-      }
+      val casesUsingSecondSeed: ListBuffer[Any] = ListBuffer.empty
+
+      val anotherSeed = 1 + firstSeed
+
+      sut
+        .withLimit(limit)
+        .withSeed(anotherSeed)
+        .supplyTo(casesUsingSecondSeed.addOne)
+
+      casesUsingSecondSeed should not contain theSameElementsInOrderAs(
+        casesUsingFirstSeed
+      )
     }
 
   they should "not invoke stoppage if no failure is found" in {

@@ -1239,7 +1239,7 @@ case class TrialsImplementation[Case](
       ): JavaTrialsScaffolding.SupplyToSyntax[
         Case
       ] with ScalaTrialsScaffolding.SupplyToSyntax[Case] =
-        this // TODO: use the parameter!
+        this // Seeding has no effect, as the reproduction is deterministic according to `recipe`.
 
       // Java-only API ...
       override def withStoppingCondition(
@@ -1249,7 +1249,7 @@ case class TrialsImplementation[Case](
       ): JavaTrialsScaffolding.SupplyToSyntax[
         Case
       ] with ScalaTrialsScaffolding.SupplyToSyntax[Case] =
-        this // TODO: use the parameter!
+        this // Shrinkage does not take place when reproducing a test case.
 
       override def supplyTo(consumer: Consumer[Case]): Unit =
         supplyTo(consumer.accept)
