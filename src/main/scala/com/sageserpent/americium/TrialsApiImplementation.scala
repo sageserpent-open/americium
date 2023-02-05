@@ -2,7 +2,7 @@ package com.sageserpent.americium
 import cats.Traverse
 import cats.free.Free
 import cats.implicits.*
-import com.sageserpent.americium.TrialsImplementation.{
+import com.sageserpent.americium.generation.{
   Choice,
   NoteComplexity,
   ResetComplexity

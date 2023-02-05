@@ -3,7 +3,6 @@ package com.sageserpent.americium
 import cats.data.State
 import cats.effect.SyncIO
 import cats.effect.kernel.Resource
-import cats.free.Free
 import cats.free.Free.liftF
 import cats.implicits.*
 import cats.~>
@@ -11,10 +10,12 @@ import com.google.common.collect.{Ordering as _, *}
 import com.google.common.hash
 import com.sageserpent.americium.TrialsApis.{javaApi, scalaApi}
 import com.sageserpent.americium.TrialsScaffolding.ShrinkageStop
+import com.sageserpent.americium.generation.*
+import com.sageserpent.americium.generation.Decision.DecisionStages
+import com.sageserpent.americium.generation.GenerationOperation.Generation
 import com.sageserpent.americium.java.TrialsScaffolding.OptionalLimits
 import com.sageserpent.americium.java.{
   Builder,
-  CaseFactory,
   CaseSupplyCycle,
   CasesLimitStrategy,
   TestIntegrationContext,
@@ -40,7 +41,6 @@ import _root_.java.util.{
   Iterator as JavaIterator,
   Optional as JavaOptional
 }
-import scala.collection.immutable.SortedMap
 import scala.jdk.CollectionConverters.*
 
 object TrialsImplementation {
@@ -75,39 +75,9 @@ object TrialsImplementation {
     columnFamilyOptions
   )
 
-  type DecisionStages   = List[Decision]
-  type Generation[Case] = Free[GenerationOperation, Case]
-
-  sealed trait Decision
-
-  sealed trait GenerationOperation[Case]
-
   private[americium] trait GenerationSupport[+Case] {
     val generation: Generation[_ <: Case]
   }
-
-  case class ChoiceOf(index: Int) extends Decision
-
-  case class FactoryInputOf(input: Long) extends Decision
-
-  // Use a sorted map keyed by cumulative frequency to implement weighted
-  // choices. That idea is inspired by Scalacheck's `Gen.frequency`.
-  case class Choice[Case](choicesByCumulativeFrequency: SortedMap[Int, Case])
-      extends GenerationOperation[Case]
-
-  case class Factory[Case](factory: CaseFactory[Case])
-      extends GenerationOperation[Case]
-
-  // NASTY HACK: as `Free` does not support `filter/withFilter`, reify
-  // the optional results of a flat-mapped filtration; the interpreter
-  // will deal with these.
-  case class FiltrationResult[Case](result: Option[Case])
-      extends GenerationOperation[Case]
-
-  case object NoteComplexity extends GenerationOperation[Int]
-
-  case class ResetComplexity[Case](complexity: Int)
-      extends GenerationOperation[Unit]
 
   def rocksDbResource(
       readOnly: Boolean = false
@@ -169,7 +139,7 @@ object TrialsImplementation {
 }
 
 case class TrialsImplementation[Case](
-    override val generation: TrialsImplementation.Generation[_ <: Case]
+    override val generation: Generation[_ <: Case]
 ) extends ScalaTrialsSkeletalImplementation[Case]
     with JavaTrialsSkeletalImplementation[Case] {
   thisTrialsImplementation =>
@@ -464,7 +434,7 @@ case class TrialsImplementation[Case](
   }
 
   def this(
-      generationOperation: TrialsImplementation.GenerationOperation[Case]
+      generationOperation: GenerationOperation[Case]
   ) = {
     this(liftF(generationOperation))
   }

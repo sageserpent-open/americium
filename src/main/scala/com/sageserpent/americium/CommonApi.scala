@@ -1,9 +1,6 @@
 package com.sageserpent.americium
 import cats.free.Free.pure
-import com.sageserpent.americium.TrialsImplementation.{
-  Factory,
-  GenerationOperation
-}
+import com.sageserpent.americium.generation.{Factory, GenerationOperation}
 import com.sageserpent.americium.java.CaseFactory
 
 trait CommonApi {

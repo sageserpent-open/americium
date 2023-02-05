@@ -6,6 +6,9 @@ import com.google.common.collect.{Ordering as _, *}
 import com.sageserpent.americium.TrialsImplementation.*
 import com.sageserpent.americium.TrialsScaffolding as ScalaTrialsScaffolding
 import com.sageserpent.americium.TrialsScaffolding.ShrinkageStop
+import com.sageserpent.americium.generation.*
+import com.sageserpent.americium.generation.Decision.DecisionStages
+import com.sageserpent.americium.generation.GenerationOperation.Generation
 import com.sageserpent.americium.java.{
   CaseFailureReporting,
   CaseSupplyCycle,
