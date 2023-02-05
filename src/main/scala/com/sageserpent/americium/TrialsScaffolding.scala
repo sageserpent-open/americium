@@ -36,6 +36,12 @@ object TrialsScaffolding {
   trait SupplyToSyntax[+Case] {
     def withSeed(seed: Long): SupplyToSyntax[Case]
 
+    def withComplexityLimit(complexityLimit: Int): SupplyToSyntax[Case]
+
+    def withShrinkageAttemptsLimit(
+        shrinkageAttemptsLimit: Int
+    ): SupplyToSyntax[Case]
+
     def withShrinkageStop(
         shrinkageStop: ShrinkageStop[Case]
     ): SupplyToSyntax[Case]
@@ -93,9 +99,16 @@ trait TrialsScaffolding[+Case] extends TrialsFactoring[Case] {
 
   def withLimit(limit: Int): SupplySyntaxType
 
+  @deprecated(
+    "Use `withLimit` followed by calls to `withComplexityLimit`, `withShrinkageAttemptsLimit` and `withShrinkageStop`."
+  )
   def withLimits(
       casesLimit: Int,
+      @deprecated("Use a following call to `withComplexityLimit` instead.")
       complexityLimit: Int = defaultComplexityLimit,
+      @deprecated(
+        "Use a following call to `withShrinkageAttemptsLimit` instead."
+      )
       shrinkageAttemptsLimit: Int = defaultShrinkageAttemptsLimit,
       @deprecated("Use a following call to `withShrinkageStop` instead.")
       shrinkageStop: ShrinkageStop[Case] = noStopping
@@ -103,7 +116,11 @@ trait TrialsScaffolding[+Case] extends TrialsFactoring[Case] {
 
   def withStrategy(
       casesLimitStrategyFactory: CaseSupplyCycle => CasesLimitStrategy,
+      @deprecated("Use a following call to `withComplexityLimit` instead.")
       complexityLimit: Int = defaultComplexityLimit,
+      @deprecated(
+        "Use a following call to `withShrinkageAttemptsLimit` instead."
+      )
       shrinkageAttemptsLimit: Int = defaultShrinkageAttemptsLimit,
       @deprecated("Use a following call to `withShrinkageStop` instead.")
       shrinkageStop: ShrinkageStop[Case] = noStopping

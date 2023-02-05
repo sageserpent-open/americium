@@ -42,6 +42,18 @@ object tupleTrials {
           self.supplyToSyntax.withSeed(seed)
       }
 
+      override def withComplexityLimit(
+          complexityLimit: Int
+      ): TrialsScaffolding.SupplyToSyntax[
+        (Case1, Case2)
+      ] = self.supplyToSyntax.withComplexityLimit(complexityLimit)
+
+      override def withShrinkageAttemptsLimit(
+          shrinkageAttemptsLimit: Int
+      ): TrialsScaffolding.SupplyToSyntax[
+        (Case1, Case2)
+      ] = self.supplyToSyntax.withShrinkageAttemptsLimit(shrinkageAttemptsLimit)
+
       override def withShrinkageStop(
           shrinkageStop: ShrinkageStop[
             (Case1, Case2)
@@ -146,6 +158,18 @@ object tupleTrials {
             : TrialsScaffolding.SupplyToSyntax[(Case1, Case2, Case3)] =
           self.supplyToSyntax.withSeed(seed)
       }
+
+      override def withComplexityLimit(
+          complexityLimit: Int
+      ): TrialsScaffolding.SupplyToSyntax[
+        (Case1, Case2, Case3)
+      ] = self.supplyToSyntax.withComplexityLimit(complexityLimit)
+
+      override def withShrinkageAttemptsLimit(
+          shrinkageAttemptsLimit: Int
+      ): TrialsScaffolding.SupplyToSyntax[
+        (Case1, Case2, Case3)
+      ] = self.supplyToSyntax.withShrinkageAttemptsLimit(shrinkageAttemptsLimit)
 
       override def withShrinkageStop(
           shrinkageStop: ShrinkageStop[
@@ -257,6 +281,18 @@ object tupleTrials {
             : TrialsScaffolding.SupplyToSyntax[(Case1, Case2, Case3, Case4)] =
           self.supplyToSyntax.withSeed(seed)
       }
+
+      override def withComplexityLimit(
+          complexityLimit: Int
+      ): TrialsScaffolding.SupplyToSyntax[
+        (Case1, Case2, Case3, Case4)
+      ] = self.supplyToSyntax.withComplexityLimit(complexityLimit)
+
+      override def withShrinkageAttemptsLimit(
+          shrinkageAttemptsLimit: Int
+      ): TrialsScaffolding.SupplyToSyntax[
+        (Case1, Case2, Case3, Case4)
+      ] = self.supplyToSyntax.withShrinkageAttemptsLimit(shrinkageAttemptsLimit)
 
       override def withShrinkageStop(
           shrinkageStop: ShrinkageStop[

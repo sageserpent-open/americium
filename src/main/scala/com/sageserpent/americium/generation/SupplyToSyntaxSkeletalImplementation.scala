@@ -619,6 +619,18 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
     Case
   ] with ScalaTrialsScaffolding.SupplyToSyntax[Case]
 
+  override def withComplexityLimit(
+      complexityLimit: Int
+  ): JavaTrialsScaffolding.SupplyToSyntax[
+    Case
+  ] with ScalaTrialsScaffolding.SupplyToSyntax[Case]
+
+  override def withShrinkageAttemptsLimit(
+      shrinkageAttemptsLimit: Int
+  ): JavaTrialsScaffolding.SupplyToSyntax[
+    Case
+  ] with ScalaTrialsScaffolding.SupplyToSyntax[Case]
+
   // Java-only API ...
   override def supplyTo(consumer: Consumer[Case]): Unit =
     supplyTo(consumer.accept)

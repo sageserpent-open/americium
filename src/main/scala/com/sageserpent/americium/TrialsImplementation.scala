@@ -308,6 +308,20 @@ case class TrialsImplementation[Case](
       ] with ScalaTrialsScaffolding.SupplyToSyntax[Case] =
         copy(seed = seed)
 
+      override def withComplexityLimit(
+          complexityLimit: Int
+      ): JavaTrialsScaffolding.SupplyToSyntax[
+        Case
+      ] with ScalaTrialsScaffolding.SupplyToSyntax[Case] =
+        copy(complexityLimit = complexityLimit)
+
+      override def withShrinkageAttemptsLimit(
+          shrinkageAttemptsLimit: Int
+      ): JavaTrialsScaffolding.SupplyToSyntax[
+        Case
+      ] with ScalaTrialsScaffolding.SupplyToSyntax[Case] =
+        copy(shrinkageAttemptsLimit = shrinkageAttemptsLimit)
+
       // Java-only API ...
       override def withStoppingCondition(
           shrinkageStop: JavaTrialsScaffolding.ShrinkageStop[
@@ -359,6 +373,20 @@ case class TrialsImplementation[Case](
         Case
       ] with ScalaTrialsScaffolding.SupplyToSyntax[Case] =
         this // Seeding has no effect, as the reproduction is deterministic according to `recipe`.
+
+      override def withComplexityLimit(
+          complexityLimit: Int
+      ): JavaTrialsScaffolding.SupplyToSyntax[
+        Case
+      ] with ScalaTrialsScaffolding.SupplyToSyntax[Case] =
+        this // There is no complexity limit, as the reproduction is deterministic according to `recipe`.
+
+      override def withShrinkageAttemptsLimit(
+          shrinkageAttemptsLimit: Int
+      ): JavaTrialsScaffolding.SupplyToSyntax[
+        Case
+      ] with ScalaTrialsScaffolding.SupplyToSyntax[Case] =
+        this // Shrinkage does not take place when reproducing a test case.
 
       // Java-only API ...
       override def withStoppingCondition(

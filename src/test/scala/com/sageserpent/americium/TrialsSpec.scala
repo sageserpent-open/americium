@@ -1241,9 +1241,9 @@ class TrialsSpec
         try {
           cases
             .withStrategy(
-              casesLimitStrategyFactory = casesLimitStrategyFactory,
-              shrinkageAttemptsLimit = shrinkageAttemptsLimit
+              casesLimitStrategyFactory = casesLimitStrategyFactory
             )
+            .withShrinkageAttemptsLimit(shrinkageAttemptsLimit)
             .supplyTo { caze =>
               emissionBalance -= 1
               rejectionBalance -= 1
