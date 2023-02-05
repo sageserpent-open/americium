@@ -22,6 +22,7 @@ import com.sageserpent.americium.generation.SupplyToSyntaxSkeletalImplementation
   rocksDbResource
 }
 import com.sageserpent.americium.java.{
+  CaseFactory,
   CaseFailureReporting,
   CaseSupplyCycle,
   CasesLimitStrategy,
@@ -42,6 +43,7 @@ import _root_.java.util.function.Consumer
 import _root_.java.util.{ArrayList as JavaArrayList, Iterator as JavaIterator}
 import java.nio.file.Path
 import scala.annotation.tailrec
+import scala.collection.immutable.SortedMap
 import scala.collection.mutable
 import scala.jdk.CollectionConverters.*
 import scala.util.Random
@@ -301,6 +303,205 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
     val possibilitiesThatFollowSomeChoiceOfDecisionStages =
       mutable.Map.empty[DecisionStagesInReverseOrder, Possibilities]
 
+    def liftUnitIfTheComplexityIsNotTooLarge[Case](
+        state: State
+    ): StateUpdating[Unit] = {
+      // NOTE: this is called *prior* to the complexity being
+      // potentially increased by one, hence the strong inequality
+      // below; `complexityLimit` *is* inclusive.
+      if (state.complexity < complexityLimit)
+        StateT.pure(())
+      else
+        StateT.liftF[DeferredOption, State, Unit](
+          OptionT.none
+        )
+    }
+
+    def interpretChoice[Case](
+        choicesByCumulativeFrequency: SortedMap[
+          Int,
+          Case
+        ]
+    ): StateUpdating[Case] = {
+      val numberOfChoices =
+        choicesByCumulativeFrequency.keys.lastOption.getOrElse(0)
+      if (0 < numberOfChoices)
+        StateT
+          .get[DeferredOption, State]
+          .flatMap(state =>
+            state.decisionStagesToGuideShrinkage match {
+              case Some(ChoiceOf(guideIndex) :: remainingGuidance)
+                  if guideIndex < numberOfChoices =>
+                // Guided shrinkage - use the same choice index as the one in
+                // the guidance decision stages.
+                for {
+                  _ <- StateT
+                    .set[DeferredOption, State](
+                      state.update(
+                        Some(remainingGuidance),
+                        ChoiceOf(guideIndex)
+                      )
+                    )
+                } yield choicesByCumulativeFrequency
+                  .minAfter(1 + guideIndex)
+                  .get
+                  ._2
+              case _ =>
+                // Unguided shrinkage isn't applicable to a choice - just choose
+                // an index and make sure to cycle in a fair and random way
+                // through the alternative choice index values that could follow
+                // the preceding decision stages each time this code block is
+                // executed.
+                for {
+                  _ <- liftUnitIfTheComplexityIsNotTooLarge(state)
+                  index #:: remainingPossibleIndices =
+                    possibilitiesThatFollowSomeChoiceOfDecisionStages
+                      .get(
+                        state.decisionStagesInReverseOrder
+                      ) match {
+                      case Some(Choices(possibleIndices))
+                          if possibleIndices.nonEmpty =>
+                        possibleIndices
+                      case _ =>
+                        randomBehaviour
+                          .buildRandomSequenceOfDistinctIntegersFromZeroToOneLessThan(
+                            numberOfChoices
+                          )
+                    }
+
+                  _ <- StateT
+                    .set[DeferredOption, State](
+                      state.update(None, ChoiceOf(index))
+                    )
+                } yield {
+                  possibilitiesThatFollowSomeChoiceOfDecisionStages(
+                    state.decisionStagesInReverseOrder
+                  ) = Choices(remainingPossibleIndices)
+                  choicesByCumulativeFrequency
+                    .minAfter(1 + index)
+                    .get
+                    ._2
+                }
+            }
+          )
+      else StateT.liftF(OptionT.none)
+    }
+
+    def interpretFactory[Case](
+        factory: CaseFactory[Case]
+    ): StateUpdating[Case] = {
+      StateT
+        .get[DeferredOption, State]
+        .flatMap(state =>
+          state.decisionStagesToGuideShrinkage match {
+            case Some(
+                  FactoryInputOf(guideInput) :: remainingGuidance
+                )
+                if (remainingGuidance.forall(_ match {
+                  case _: FactoryInputOf => false
+                  case _: ChoiceOf       => true
+                }) || 1 < randomBehaviour
+                  .chooseAnyNumberFromOneTo(
+                    1 + remainingGuidance
+                      .filter(_ match {
+                        case _: FactoryInputOf => true
+                        case _: ChoiceOf       => false
+                      })
+                      .size
+                  )) && factory
+                  .lowerBoundInput() <= guideInput && factory
+                  .upperBoundInput() >= guideInput =>
+              // Guided shrinkage - can choose a factory input somewhere between
+              // the one in the guidance decision stages and the shrinkage
+              // target's value.
+              val input = Math
+                .round(
+                  factory.maximallyShrunkInput() + randomBehaviour
+                    .nextDouble() * (guideInput - factory
+                    .maximallyShrunkInput())
+                )
+
+              for {
+                _ <- StateT.set[DeferredOption, State](
+                  state.update(
+                    Some(remainingGuidance),
+                    FactoryInputOf(input),
+                    (BigInt(input) - factory.maximallyShrunkInput())
+                      .pow(2)
+                  )
+                )
+              } yield factory(input)
+            case _ =>
+              // Unguided shrinkage - choose an input between lower and upper
+              // bounds that tighten towards the shrinkage target value as the
+              // level of shrinkage increases.
+              for {
+                _ <- liftUnitIfTheComplexityIsNotTooLarge(state)
+                input = {
+                  val upperBoundInput: BigDecimal =
+                    factory.upperBoundInput()
+                  val lowerBoundInput: BigDecimal =
+                    factory.lowerBoundInput()
+                  val maximallyShrunkInput: BigDecimal =
+                    factory.maximallyShrunkInput()
+
+                  val maximumScale: BigDecimal =
+                    upperBoundInput - lowerBoundInput
+
+                  if (
+                    scaleDeflationLevel.fold(true)(
+                      maximumScaleDeflationLevel > _
+                    ) && 0 < maximumScale
+                  ) {
+                    // Calibrate the scale to come out at around one
+                    // at maximum shrinkage, even though the guard
+                    // clause above handles maximum shrinkage
+                    // explicitly. Also handle an explicit scale
+                    // deflation level of zero in the same manner as
+                    // the implicit situation.
+                    val scale: BigDecimal =
+                      scaleDeflationLevel
+                        .filter(minimumScaleDeflationLevel < _)
+                        .fold(maximumScale)(level =>
+                          maximumScale / Math.pow(
+                            maximumScale.toDouble,
+                            level.toDouble / maximumScaleDeflationLevel
+                          )
+                        )
+                    val blend: BigDecimal = scale / maximumScale
+
+                    val midPoint: BigDecimal =
+                      blend * (upperBoundInput + lowerBoundInput) / 2 + (1 - blend) * maximallyShrunkInput
+
+                    val sign =
+                      if (randomBehaviour.nextBoolean()) 1 else -1
+
+                    val delta: BigDecimal =
+                      sign * scale * randomBehaviour
+                        .nextDouble() / 2
+
+                    (midPoint + delta)
+                      .setScale(
+                        0,
+                        BigDecimal.RoundingMode.HALF_EVEN
+                      )
+                      .rounded
+                      .toLong
+                  } else { maximallyShrunkInput.toLong }
+                }
+                _ <- StateT.set[DeferredOption, State](
+                  state.update(
+                    state.decisionStagesToGuideShrinkage
+                      .map(_.tail),
+                    FactoryInputOf(input),
+                    (BigInt(input) - factory.maximallyShrunkInput())
+                      .pow(2)
+                  )
+                )
+              } yield factory(input)
+          }
+        )
+    }
     def interpreter(): GenerationOperation ~> StateUpdating =
       new (GenerationOperation ~> StateUpdating) {
         override def apply[Case](
@@ -308,168 +509,10 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
         ): StateUpdating[Case] =
           generationOperation match {
             case Choice(choicesByCumulativeFrequency) =>
-              val numberOfChoices =
-                choicesByCumulativeFrequency.keys.lastOption.getOrElse(0)
-              if (0 < numberOfChoices)
-                StateT
-                  .get[DeferredOption, State]
-                  .flatMap(state =>
-                    state.decisionStagesToGuideShrinkage match {
-                      case Some(ChoiceOf(guideIndex) :: remainingGuidance)
-                          if guideIndex < numberOfChoices =>
-                        for {
-                          _ <- StateT
-                            .set[DeferredOption, State](
-                              state.update(
-                                Some(remainingGuidance),
-                                ChoiceOf(guideIndex)
-                              )
-                            )
-                        } yield choicesByCumulativeFrequency
-                          .minAfter(1 + guideIndex)
-                          .get
-                          ._2
-                      case _ =>
-                        for {
-                          _ <- liftUnitIfTheComplexityIsNotTooLarge(state)
-                          index #:: remainingPossibleIndices =
-                            possibilitiesThatFollowSomeChoiceOfDecisionStages
-                              .get(
-                                state.decisionStagesInReverseOrder
-                              ) match {
-                              case Some(Choices(possibleIndices))
-                                  if possibleIndices.nonEmpty =>
-                                possibleIndices
-                              case _ =>
-                                randomBehaviour
-                                  .buildRandomSequenceOfDistinctIntegersFromZeroToOneLessThan(
-                                    numberOfChoices
-                                  )
-                            }
-
-                          _ <- StateT
-                            .set[DeferredOption, State](
-                              state.update(None, ChoiceOf(index))
-                            )
-                        } yield {
-                          possibilitiesThatFollowSomeChoiceOfDecisionStages(
-                            state.decisionStagesInReverseOrder
-                          ) = Choices(remainingPossibleIndices)
-                          choicesByCumulativeFrequency
-                            .minAfter(1 + index)
-                            .get
-                            ._2
-                        }
-                    }
-                  )
-              else StateT.liftF(OptionT.none)
+              interpretChoice(choicesByCumulativeFrequency)
 
             case Factory(factory) =>
-              StateT
-                .get[DeferredOption, State]
-                .flatMap(state =>
-                  state.decisionStagesToGuideShrinkage match {
-                    case Some(
-                          FactoryInputOf(guideInput) :: remainingGuidance
-                        )
-                        if (remainingGuidance.forall(_ match {
-                          case _: FactoryInputOf => false
-                          case _: ChoiceOf       => true
-                        }) || 1 < randomBehaviour
-                          .chooseAnyNumberFromOneTo(
-                            1 + remainingGuidance
-                              .filter(_ match {
-                                case _: FactoryInputOf => true
-                                case _: ChoiceOf       => false
-                              })
-                              .size
-                          )) && factory
-                          .lowerBoundInput() <= guideInput && factory
-                          .upperBoundInput() >= guideInput =>
-                      val input = Math
-                        .round(
-                          factory.maximallyShrunkInput() + randomBehaviour
-                            .nextDouble() * (guideInput - factory
-                            .maximallyShrunkInput())
-                        )
-
-                      for {
-                        _ <- StateT.set[DeferredOption, State](
-                          state.update(
-                            Some(remainingGuidance),
-                            FactoryInputOf(input),
-                            (BigInt(input) - factory.maximallyShrunkInput())
-                              .pow(2)
-                          )
-                        )
-                      } yield factory(input)
-                    case _ =>
-                      for {
-                        _ <- liftUnitIfTheComplexityIsNotTooLarge(state)
-                        input = {
-                          val upperBoundInput: BigDecimal =
-                            factory.upperBoundInput()
-                          val lowerBoundInput: BigDecimal =
-                            factory.lowerBoundInput()
-                          val maximallyShrunkInput: BigDecimal =
-                            factory.maximallyShrunkInput()
-
-                          val maximumScale: BigDecimal =
-                            upperBoundInput - lowerBoundInput
-
-                          if (
-                            scaleDeflationLevel.fold(true)(
-                              maximumScaleDeflationLevel > _
-                            ) && 0 < maximumScale
-                          ) {
-                            // Calibrate the scale to come out at around one
-                            // at maximum shrinkage, even though the guard
-                            // clause above handles maximum shrinkage
-                            // explicitly. Also handle an explicit scale
-                            // deflation level of zero in the same manner as
-                            // the implicit situation.
-                            val scale: BigDecimal =
-                              scaleDeflationLevel
-                                .filter(minimumScaleDeflationLevel < _)
-                                .fold(maximumScale)(level =>
-                                  maximumScale / Math.pow(
-                                    maximumScale.toDouble,
-                                    level.toDouble / maximumScaleDeflationLevel
-                                  )
-                                )
-                            val blend: BigDecimal = scale / maximumScale
-
-                            val midPoint: BigDecimal =
-                              blend * (upperBoundInput + lowerBoundInput) / 2 + (1 - blend) * maximallyShrunkInput
-
-                            val sign =
-                              if (randomBehaviour.nextBoolean()) 1 else -1
-
-                            val delta: BigDecimal =
-                              sign * scale * randomBehaviour
-                                .nextDouble() / 2
-
-                            (midPoint + delta)
-                              .setScale(
-                                0,
-                                BigDecimal.RoundingMode.HALF_EVEN
-                              )
-                              .rounded
-                              .toLong
-                          } else { maximallyShrunkInput.toLong }
-                        }
-                        _ <- StateT.set[DeferredOption, State](
-                          state.update(
-                            state.decisionStagesToGuideShrinkage
-                              .map(_.tail),
-                            FactoryInputOf(input),
-                            (BigInt(input) - factory.maximallyShrunkInput())
-                              .pow(2)
-                          )
-                        )
-                      } yield factory(input)
-                  }
-                )
+              interpretFactory(factory)
 
             case FiltrationResult(result) =>
               StateT.liftF(OptionT.fromOption(result))
@@ -491,20 +534,6 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
             case ResetComplexity(_) =>
               StateT.pure(())
           }
-
-        private def liftUnitIfTheComplexityIsNotTooLarge[Case](
-            state: State
-        ): StateUpdating[Unit] = {
-          // NOTE: this is called *prior* to the complexity being
-          // potentially increased by one, hence the strong inequality
-          // below; `complexityLimit` *is* inclusive.
-          if (state.complexity < complexityLimit)
-            StateT.pure(())
-          else
-            StateT.liftF[DeferredOption, State, Unit](
-              OptionT.none
-            )
-        }
       }
 
     {
