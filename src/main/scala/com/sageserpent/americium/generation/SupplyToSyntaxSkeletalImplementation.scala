@@ -6,12 +6,35 @@ import cats.effect.kernel.Resource
 import cats.{Eval, ~>}
 import com.google.common.collect.{ImmutableList, Ordering as _, *}
 import com.sageserpent.americium.TrialsScaffolding.ShrinkageStop
-import com.sageserpent.americium.generation.Decision.{DecisionStages, parseDecisionIndices}
+import com.sageserpent.americium.generation.Decision.{
+  DecisionStages,
+  parseDecisionIndices
+}
 import com.sageserpent.americium.generation.GenerationOperation.Generation
-import com.sageserpent.americium.generation.SupplyToSyntaxSkeletalImplementation.{maximumScaleDeflationLevel, minimumScaleDeflationLevel, recipeHashJavaPropertyName, rocksDbResource}
-import com.sageserpent.americium.java.{CaseFailureReporting, CaseSupplyCycle, CasesLimitStrategy, InlinedCaseFiltration, TestIntegrationContext, TrialsScaffolding as JavaTrialsScaffolding}
+import com.sageserpent.americium.generation.JavaPropertyNames.{
+  recipeHashJavaProperty,
+  runDatabaseJavaProperty,
+  temporaryDirectoryJavaProperty
+}
+import com.sageserpent.americium.generation.SupplyToSyntaxSkeletalImplementation.{
+  maximumScaleDeflationLevel,
+  minimumScaleDeflationLevel,
+  rocksDbResource
+}
+import com.sageserpent.americium.java.{
+  CaseFailureReporting,
+  CaseSupplyCycle,
+  CasesLimitStrategy,
+  InlinedCaseFiltration,
+  TestIntegrationContext,
+  TrialsScaffolding as JavaTrialsScaffolding
+}
 import com.sageserpent.americium.randomEnrichment.RichRandom
-import com.sageserpent.americium.{TestIntegrationContextImplementation, Trials, TrialsScaffolding as ScalaTrialsScaffolding}
+import com.sageserpent.americium.{
+  TestIntegrationContextImplementation,
+  Trials,
+  TrialsScaffolding as ScalaTrialsScaffolding
+}
 import fs2.{Pull, Stream as Fs2Stream}
 import org.rocksdb.*
 
@@ -24,11 +47,6 @@ import scala.jdk.CollectionConverters.*
 import scala.util.Random
 
 object SupplyToSyntaxSkeletalImplementation {
-  val temporaryDirectoryJavaProperty = "java.io.tmpdir"
-
-  val runDatabaseJavaPropertyName = "trials.runDatabase"
-
-  val recipeHashJavaPropertyName = "trials.recipeHash"
 
   val runDatabaseDefault = "trialsRunDatabase"
 
@@ -65,7 +83,7 @@ object SupplyToSyntaxSkeletalImplementation {
         )
       ) { directory =>
         val runDatabase = Option(
-          System.getProperty(runDatabaseJavaPropertyName)
+          System.getProperty(runDatabaseJavaProperty)
         ).getOrElse(runDatabaseDefault)
 
         val columnFamilyDescriptors =
@@ -670,7 +688,7 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
           (carryOnButSwitchToShrinkageApproachOnCaseFailure)
       )
 
-    Option(System.getProperty(recipeHashJavaPropertyName)).fold {
+    Option(System.getProperty(recipeHashJavaProperty)).fold {
       val randomBehaviour = new Random(seed)
 
       def shrink(

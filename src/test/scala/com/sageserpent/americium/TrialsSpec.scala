@@ -1,8 +1,15 @@
 package com.sageserpent.americium
 
 import com.sageserpent.americium.TrialsScaffolding.{noShrinking, noStopping}
-import com.sageserpent.americium.generation.SupplyToSyntaxSkeletalImplementation.recipeHashJavaPropertyName
-import com.sageserpent.americium.java.{Builder, CaseFactory, CaseSupplyCycle, CasesLimitStrategy, Trials as JavaTrials, TrialsApi as JavaTrialsApi}
+import com.sageserpent.americium.generation.JavaPropertyNames.recipeHashJavaProperty
+import com.sageserpent.americium.java.{
+  Builder,
+  CaseFactory,
+  CaseSupplyCycle,
+  CasesLimitStrategy,
+  Trials as JavaTrials,
+  TrialsApi as JavaTrialsApi
+}
 import cyclops.control.Either as JavaEither
 import org.mockito.ArgumentMatchers.{any, argThat}
 import org.mockito.Mockito
@@ -2290,7 +2297,7 @@ class TrialsSpecInQuarantineDueToUseOfSystemProperty
       val exceptionRecreatedViaRecipeHash = {
         val previousPropertyValue =
           Option(
-            System.setProperty(recipeHashJavaPropertyName, exception.recipeHash)
+            System.setProperty(recipeHashJavaProperty, exception.recipeHash)
           )
 
         try {
@@ -2299,9 +2306,9 @@ class TrialsSpecInQuarantineDueToUseOfSystemProperty
           )
         } finally {
           previousPropertyValue.fold(ifEmpty =
-            System.clearProperty(recipeHashJavaPropertyName)
+            System.clearProperty(recipeHashJavaProperty)
           )(
-            System.setProperty(recipeHashJavaPropertyName, _)
+            System.setProperty(recipeHashJavaProperty, _)
           )
         }
       }
