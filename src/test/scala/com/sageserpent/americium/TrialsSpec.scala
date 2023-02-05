@@ -1,15 +1,8 @@
 package com.sageserpent.americium
 
-import com.sageserpent.americium.TrialsImplementation.recipeHashJavaPropertyName
 import com.sageserpent.americium.TrialsScaffolding.{noShrinking, noStopping}
-import com.sageserpent.americium.java.{
-  Builder,
-  CaseFactory,
-  CaseSupplyCycle,
-  CasesLimitStrategy,
-  Trials as JavaTrials,
-  TrialsApi as JavaTrialsApi
-}
+import com.sageserpent.americium.generation.SupplyToSyntaxSkeletalImplementation.recipeHashJavaPropertyName
+import com.sageserpent.americium.java.{Builder, CaseFactory, CaseSupplyCycle, CasesLimitStrategy, Trials as JavaTrials, TrialsApi as JavaTrialsApi}
 import cyclops.control.Either as JavaEither
 import org.mockito.ArgumentMatchers.{any, argThat}
 import org.mockito.Mockito

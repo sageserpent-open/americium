@@ -1,32 +1,112 @@
-package com.sageserpent.americium
+package com.sageserpent.americium.generation
+
 import cats.data.{OptionT, StateT}
 import cats.effect.SyncIO
+import cats.effect.kernel.Resource
 import cats.{Eval, ~>}
-import com.google.common.collect.{Ordering as _, *}
-import com.sageserpent.americium.TrialsImplementation.*
-import com.sageserpent.americium.TrialsScaffolding as ScalaTrialsScaffolding
+import com.google.common.collect.{ImmutableList, Ordering as _, *}
 import com.sageserpent.americium.TrialsScaffolding.ShrinkageStop
-import com.sageserpent.americium.generation.*
-import com.sageserpent.americium.generation.Decision.DecisionStages
+import com.sageserpent.americium.generation.Decision.{DecisionStages, parseDecisionIndices}
 import com.sageserpent.americium.generation.GenerationOperation.Generation
-import com.sageserpent.americium.java.{
-  CaseFailureReporting,
-  CaseSupplyCycle,
-  CasesLimitStrategy,
-  InlinedCaseFiltration,
-  TestIntegrationContext,
-  TrialsScaffolding as JavaTrialsScaffolding
-}
+import com.sageserpent.americium.generation.SupplyToSyntaxSkeletalImplementation.{maximumScaleDeflationLevel, minimumScaleDeflationLevel, recipeHashJavaPropertyName, rocksDbResource}
+import com.sageserpent.americium.java.{CaseFailureReporting, CaseSupplyCycle, CasesLimitStrategy, InlinedCaseFiltration, TestIntegrationContext, TrialsScaffolding as JavaTrialsScaffolding}
 import com.sageserpent.americium.randomEnrichment.RichRandom
+import com.sageserpent.americium.{TestIntegrationContextImplementation, Trials, TrialsScaffolding as ScalaTrialsScaffolding}
 import fs2.{Pull, Stream as Fs2Stream}
 import org.rocksdb.*
 
-import _root_.java.util.Iterator as JavaIterator
 import _root_.java.util.function.Consumer
+import _root_.java.util.{ArrayList as JavaArrayList, Iterator as JavaIterator}
+import java.nio.file.Path
 import scala.annotation.tailrec
 import scala.collection.mutable
 import scala.jdk.CollectionConverters.*
 import scala.util.Random
+
+object SupplyToSyntaxSkeletalImplementation {
+  val temporaryDirectoryJavaProperty = "java.io.tmpdir"
+
+  val runDatabaseJavaPropertyName = "trials.runDatabase"
+
+  val recipeHashJavaPropertyName = "trials.recipeHash"
+
+  val runDatabaseDefault = "trialsRunDatabase"
+
+  val minimumScaleDeflationLevel = 0
+
+  val maximumScaleDeflationLevel = 50
+
+  val rocksDbOptions = new DBOptions()
+    .optimizeForSmallDb()
+    .setCreateIfMissing(true)
+    .setCreateMissingColumnFamilies(true)
+
+  val columnFamilyOptions = new ColumnFamilyOptions()
+    .setCompressionType(CompressionType.LZ4_COMPRESSION)
+    .setBottommostCompressionType(CompressionType.ZSTD_COMPRESSION)
+
+  val defaultColumnFamilyDescriptor = new ColumnFamilyDescriptor(
+    RocksDB.DEFAULT_COLUMN_FAMILY,
+    columnFamilyOptions
+  )
+
+  val columnFamilyDescriptorForRecipeHashes = new ColumnFamilyDescriptor(
+    "RecipeHashKeyRecipeValue".getBytes(),
+    columnFamilyOptions
+  )
+
+  def rocksDbResource(
+      readOnly: Boolean = false
+  ): Resource[SyncIO, (RocksDB, ColumnFamilyHandle)] =
+    Resource.make(acquire = SyncIO {
+      Option(System.getProperty(temporaryDirectoryJavaProperty)).fold(ifEmpty =
+        throw new RuntimeException(
+          s"No definition of Java property: `$temporaryDirectoryJavaProperty`"
+        )
+      ) { directory =>
+        val runDatabase = Option(
+          System.getProperty(runDatabaseJavaPropertyName)
+        ).getOrElse(runDatabaseDefault)
+
+        val columnFamilyDescriptors =
+          ImmutableList.of(
+            defaultColumnFamilyDescriptor,
+            columnFamilyDescriptorForRecipeHashes
+          )
+
+        val columnFamilyHandles = new JavaArrayList[ColumnFamilyHandle]()
+
+        val rocksDB =
+          if (readOnly)
+            RocksDB.openReadOnly(
+              rocksDbOptions,
+              Path
+                .of(directory)
+                .resolve(runDatabase)
+                .toString,
+              columnFamilyDescriptors,
+              columnFamilyHandles
+            )
+          else
+            RocksDB.open(
+              rocksDbOptions,
+              Path
+                .of(directory)
+                .resolve(runDatabase)
+                .toString,
+              columnFamilyDescriptors,
+              columnFamilyHandles
+            )
+
+        rocksDB -> columnFamilyHandles.get(1)
+      }
+    })(release = { case (rocksDB, columnFamilyForRecipeHashes) =>
+      SyncIO {
+        columnFamilyForRecipeHashes.close()
+        rocksDB.close()
+      }
+    })
+}
 
 trait SupplyToSyntaxSkeletalImplementation[Case]
     extends JavaTrialsScaffolding.SupplyToSyntax[Case]
