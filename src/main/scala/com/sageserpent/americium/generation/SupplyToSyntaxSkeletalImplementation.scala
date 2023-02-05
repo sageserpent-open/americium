@@ -161,11 +161,10 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
     override def nonEmpty: Boolean = true
   }
 
-  // NOTE: this cache is the reason for all of the
-  // `DecisionStagesInReverseOrder` support being defined as method-local.
-  // Hoisting it into, say the companion object `TrialsImplementation`
-  // causes failures of SBT when it tries to run multiple tests in parallel
-  // using multithreading.
+  // NOTE: this cache is maintained at the instance-level rather than in the
+  // companion object. Hoisting it into, say the companion object would cause
+  // failures of SBT when it tries to run multiple tests in parallel using
+  // multithreading.
   private val nonEmptyToAndFromInternedDecisionStages
       : BiMap[NonEmptyDecisionStages, InternedDecisionStages] =
     HashBiMap.create()

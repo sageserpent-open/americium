@@ -10,11 +10,25 @@ import com.google.common.hash
 import com.sageserpent.americium.TrialsApis.{javaApi, scalaApi}
 import com.sageserpent.americium.TrialsScaffolding.ShrinkageStop
 import com.sageserpent.americium.generation.*
-import com.sageserpent.americium.generation.Decision.{DecisionStages, parseDecisionIndices}
+import com.sageserpent.americium.generation.Decision.{
+  DecisionStages,
+  parseDecisionIndices
+}
 import com.sageserpent.americium.generation.GenerationOperation.Generation
 import com.sageserpent.americium.java.TrialsScaffolding.OptionalLimits
-import com.sageserpent.americium.java.{Builder, CaseSupplyCycle, CasesLimitStrategy, TestIntegrationContext, TrialsScaffolding as JavaTrialsScaffolding, TrialsSkeletalImplementation as JavaTrialsSkeletalImplementation}
-import com.sageserpent.americium.{Trials as ScalaTrials, TrialsScaffolding as ScalaTrialsScaffolding, TrialsSkeletalImplementation as ScalaTrialsSkeletalImplementation}
+import com.sageserpent.americium.java.{
+  Builder,
+  CaseSupplyCycle,
+  CasesLimitStrategy,
+  TestIntegrationContext,
+  TrialsScaffolding as JavaTrialsScaffolding,
+  TrialsSkeletalImplementation as JavaTrialsSkeletalImplementation
+}
+import com.sageserpent.americium.{
+  Trials as ScalaTrials,
+  TrialsScaffolding as ScalaTrialsScaffolding,
+  TrialsSkeletalImplementation as ScalaTrialsSkeletalImplementation
+}
 import cyclops.control.Either as JavaEither
 import fs2.Stream as Fs2Stream
 import io.circe.generic.auto.*
@@ -55,8 +69,9 @@ case class TrialsImplementation[Case](
 
     type DecisionIndicesContext[Caze] = State[DecisionStages, Caze]
 
-    // NOTE: unlike the companion interpreter in `cases`,
-    // this one has a relatively sane implementation.
+    // NOTE: unlike the companion interpreter over in
+    // `SupplyToSyntaxSkeletalImplementation.cases`, this one has a relatively
+    // sane implementation.
     def interpreter: GenerationOperation ~> DecisionIndicesContext =
       new (GenerationOperation ~> DecisionIndicesContext) {
         override def apply[Case](

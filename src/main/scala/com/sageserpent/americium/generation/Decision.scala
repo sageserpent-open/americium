@@ -6,6 +6,7 @@ sealed trait Decision
 
 object Decision {
   type DecisionStages = List[Decision]
+
   def parseDecisionIndices(recipe: String): DecisionStages = {
     decode[DecisionStages](
       recipe
