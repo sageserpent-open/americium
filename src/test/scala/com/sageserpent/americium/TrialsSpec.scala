@@ -1,7 +1,10 @@
 package com.sageserpent.americium
 
 import com.sageserpent.americium.TrialsScaffolding.{noShrinking, noStopping}
-import com.sageserpent.americium.generation.JavaPropertyNames.recipeHashJavaProperty
+import com.sageserpent.americium.generation.JavaPropertyNames.{
+  nondeterminsticJavaProperty,
+  recipeHashJavaProperty
+}
 import com.sageserpent.americium.java.{
   Builder,
   CaseFactory,
@@ -2233,14 +2236,14 @@ class TrialsSpec
   }
 }
 
-class TrialsSpecInQuarantineDueToUseOfSystemProperty
+class TrialsSpecInQuarantineDueToUseOfRecipeHashSystemProperty
     extends AnyFlatSpec
     with Matchers
     with TableDrivenPropertyChecks
     with MockitoSessionSupport {
   import TrialsSpec.*
 
-  it should "be reproduced by its recipe hash" in forAll(
+  "a failure" should "be reproduced by its recipe hash" in forAll(
     Table(
       "trials",
       api.only(JackInABox(1)),
@@ -2323,6 +2326,47 @@ class TrialsSpecInQuarantineDueToUseOfSystemProperty
       exceptionRecreatedViaRecipeHash.recipeHash shouldBe exception.recipeHash
 
       verify(mockConsumer).apply(any())
+    }
+  }
+}
+
+class TrialsSpecInQuarantineDueToUseOfNondeterministicSystemProperty
+    extends AnyFlatSpec
+    with Matchers
+    with TableDrivenPropertyChecks
+    with MockitoSessionSupport {
+  import TrialsSpec.*
+
+  "successive runs" should "yield different results if nondeterminism is specified" in {
+    val previousPropertyValue =
+      Option(
+        System.setProperty(nondeterminsticJavaProperty, "true")
+      )
+
+    try {
+      val sharedIrrelevantSeed = 1L
+
+      val testCasesFromFirstRun = api.integers.javaTrials
+        .withLimit(limit)
+        .withSeed(sharedIrrelevantSeed)
+        .asIterator()
+        .asScala
+        .toSeq
+
+      val testCasesFromSecondRun = api.integers.javaTrials
+        .withLimit(limit)
+        .withSeed(sharedIrrelevantSeed)
+        .asIterator()
+        .asScala
+        .toSeq
+
+      testCasesFromSecondRun should not equal testCasesFromFirstRun
+    } finally {
+      previousPropertyValue.fold(ifEmpty =
+        System.clearProperty(nondeterminsticJavaProperty)
+      )(
+        System.setProperty(nondeterminsticJavaProperty, _)
+      )
     }
   }
 }
