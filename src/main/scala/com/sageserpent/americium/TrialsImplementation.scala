@@ -124,6 +124,18 @@ case class TrialsImplementation[Case](
     with ScalaTrialsScaffolding.SupplyToSyntax[Case] =
     withLimits(casesLimit = limit)
 
+  override def withStrategy(
+      casesLimitStrategyFactory: JavaFunction[
+        CaseSupplyCycle,
+        CasesLimitStrategy
+      ]
+  ): JavaTrialsScaffolding.SupplyToSyntax[Case]
+    with ScalaTrialsScaffolding.SupplyToSyntax[Case] =
+    withStrategy(
+      casesLimitStrategyFactory = casesLimitStrategyFactory,
+      OptionalLimits.defaults
+    )
+
   override def withLimits(
       casesLimit: Int,
       optionalLimits: OptionalLimits
@@ -323,7 +335,7 @@ case class TrialsImplementation[Case](
         copy(shrinkageAttemptsLimit = shrinkageAttemptsLimit)
 
       // Java-only API ...
-      override def withStoppingCondition(
+      override def withShrinkageStop(
           shrinkageStop: JavaTrialsScaffolding.ShrinkageStop[
             _ >: Case
           ]
@@ -389,7 +401,7 @@ case class TrialsImplementation[Case](
         this // Shrinkage does not take place when reproducing a test case.
 
       // Java-only API ...
-      override def withStoppingCondition(
+      override def withShrinkageStop(
           shrinkageStop: JavaTrialsScaffolding.ShrinkageStop[
             _ >: Case
           ]

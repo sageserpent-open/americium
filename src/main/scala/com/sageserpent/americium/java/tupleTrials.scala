@@ -34,13 +34,6 @@ object tupleTrials {
       } yield a -> b
     }
 
-  // TODO: something clever with Magnolia, `HList`, something else in Shapeless
-  // or just raw macros that saves the bother of churning out lots of copied
-  // boilerplate...
-  // TODO: something equally as clever where these implementations use ByteBuddy
-  // to delegate to the trials of tuple instances, and when that is done, we can
-  // hoist *most* of the orphaned methods in `Trials` up to `TrialsScaffolding`
-  // - well, all but the `and` combinator. I'm not going near that last one.
   class Tuple2Trials[Case1, Case2](
       firstTrials: JavaTrials[Case1],
       secondTrials: JavaTrials[Case2]
@@ -78,14 +71,30 @@ object tupleTrials {
           self.supplyToSyntax.withSeed(seed)
       }
 
-      override def withStoppingCondition(
+      override def withComplexityLimit(
+          complexityLimit: Int
+      ): SupplyToSyntaxTuple2 = new SupplyToSyntaxTuple2 {
+        override protected val supplyToSyntax
+            : TrialsScaffolding.SupplyToSyntax[JavaTuple2[Case1, Case2]] =
+          self.supplyToSyntax.withComplexityLimit(complexityLimit)
+      }
+
+      override def withShrinkageAttemptsLimit(
+          shrinkageAttemptsLimit: Int
+      ): SupplyToSyntaxTuple2 = new SupplyToSyntaxTuple2 {
+        override protected val supplyToSyntax
+            : TrialsScaffolding.SupplyToSyntax[JavaTuple2[Case1, Case2]] =
+          self.supplyToSyntax.withShrinkageAttemptsLimit(shrinkageAttemptsLimit)
+      }
+
+      override def withShrinkageStop(
           shrinkageStop: TrialsScaffolding.ShrinkageStop[
             _ >: JavaTuple2[Case1, Case2]
           ]
       ): SupplyToSyntaxTuple2 = new SupplyToSyntaxTuple2 {
         override protected val supplyToSyntax
             : TrialsScaffolding.SupplyToSyntax[JavaTuple2[Case1, Case2]] =
-          self.supplyToSyntax.withStoppingCondition(shrinkageStop)
+          self.supplyToSyntax.withShrinkageStop(shrinkageStop)
       }
 
       override def supplyTo(
@@ -110,6 +119,17 @@ object tupleTrials {
       val supplyToSyntax
           : JavaTrialsScaffolding.SupplyToSyntax[JavaTuple2[Case1, Case2]] =
         trialsOfPairs.withLimit(limit)
+    }
+
+    override def withStrategy(
+        casesLimitStrategyFactory: JavaFunction[
+          CaseSupplyCycle,
+          CasesLimitStrategy
+        ]
+    ): SupplyToSyntaxTuple2 = new SupplyToSyntaxTuple2 {
+      val supplyToSyntax
+          : JavaTrialsScaffolding.SupplyToSyntax[JavaTuple2[Case1, Case2]] =
+        trialsOfPairs.withStrategy(casesLimitStrategyFactory)
     }
 
     override def withLimits(
@@ -215,14 +235,31 @@ object tupleTrials {
         ] = self.supplyToSyntax.withSeed(seed)
       }
 
-      override def withStoppingCondition(
+      override def withComplexityLimit(
+          complexityLimit: Int
+      ): SupplyToSyntaxTuple3 = new SupplyToSyntaxTuple3 {
+        override protected val supplyToSyntax: TrialsScaffolding.SupplyToSyntax[
+          JavaTuple3[Case1, Case2, Case3]
+        ] = self.supplyToSyntax.withComplexityLimit(complexityLimit)
+      }
+
+      override def withShrinkageAttemptsLimit(
+          shrinkageAttemptsLimit: Int
+      ): SupplyToSyntaxTuple3 = new SupplyToSyntaxTuple3 {
+        override protected val supplyToSyntax: TrialsScaffolding.SupplyToSyntax[
+          JavaTuple3[Case1, Case2, Case3]
+        ] =
+          self.supplyToSyntax.withShrinkageAttemptsLimit(shrinkageAttemptsLimit)
+      }
+
+      override def withShrinkageStop(
           shrinkageStop: TrialsScaffolding.ShrinkageStop[
             _ >: JavaTuple3[Case1, Case2, Case3]
           ]
       ): SupplyToSyntaxTuple3 = new SupplyToSyntaxTuple3 {
         override protected val supplyToSyntax: TrialsScaffolding.SupplyToSyntax[
           JavaTuple3[Case1, Case2, Case3]
-        ] = self.supplyToSyntax.withStoppingCondition(shrinkageStop)
+        ] = self.supplyToSyntax.withShrinkageStop(shrinkageStop)
       }
 
       override def supplyTo(
@@ -248,6 +285,18 @@ object tupleTrials {
         JavaTuple3[Case1, Case2, Case3]
       ] =
         trialsOfTriples.withLimit(limit)
+    }
+
+    override def withStrategy(
+        casesLimitStrategyFactory: JavaFunction[
+          CaseSupplyCycle,
+          CasesLimitStrategy
+        ]
+    ): SupplyToSyntaxTuple3 = new SupplyToSyntaxTuple3 {
+      val supplyToSyntax: JavaTrialsScaffolding.SupplyToSyntax[
+        JavaTuple3[Case1, Case2, Case3]
+      ] =
+        trialsOfTriples.withStrategy(casesLimitStrategyFactory)
     }
 
     override def withLimits(
@@ -369,14 +418,31 @@ object tupleTrials {
         ] = self.supplyToSyntax.withSeed(seed)
       }
 
-      override def withStoppingCondition(
+      override def withComplexityLimit(
+          complexityLimit: Int
+      ): SupplyToSyntaxTuple4 = new SupplyToSyntaxTuple4 {
+        override protected val supplyToSyntax: TrialsScaffolding.SupplyToSyntax[
+          JavaTuple4[Case1, Case2, Case3, Case4]
+        ] = self.supplyToSyntax.withComplexityLimit(complexityLimit)
+      }
+
+      override def withShrinkageAttemptsLimit(
+          shrinkageAttemptsLimit: Int
+      ): SupplyToSyntaxTuple4 = new SupplyToSyntaxTuple4 {
+        override protected val supplyToSyntax: TrialsScaffolding.SupplyToSyntax[
+          JavaTuple4[Case1, Case2, Case3, Case4]
+        ] =
+          self.supplyToSyntax.withShrinkageAttemptsLimit(shrinkageAttemptsLimit)
+      }
+
+      override def withShrinkageStop(
           shrinkageStop: TrialsScaffolding.ShrinkageStop[
             _ >: JavaTuple4[Case1, Case2, Case3, Case4]
           ]
       ): SupplyToSyntaxTuple4 = new SupplyToSyntaxTuple4 {
         override protected val supplyToSyntax: TrialsScaffolding.SupplyToSyntax[
           JavaTuple4[Case1, Case2, Case3, Case4]
-        ] = self.supplyToSyntax.withStoppingCondition(shrinkageStop)
+        ] = self.supplyToSyntax.withShrinkageStop(shrinkageStop)
       }
 
       override def supplyTo(
@@ -403,6 +469,18 @@ object tupleTrials {
         JavaTuple4[Case1, Case2, Case3, Case4]
       ] =
         trialsOfQuadruples.withLimit(limit)
+    }
+
+    override def withStrategy(
+        casesLimitStrategyFactory: JavaFunction[
+          CaseSupplyCycle,
+          CasesLimitStrategy
+        ]
+    ): SupplyToSyntaxTuple4 = new SupplyToSyntaxTuple4 {
+      val supplyToSyntax: JavaTrialsScaffolding.SupplyToSyntax[
+        JavaTuple4[Case1, Case2, Case3, Case4]
+      ] =
+        trialsOfQuadruples.withStrategy(casesLimitStrategyFactory)
     }
 
     override def withLimits(

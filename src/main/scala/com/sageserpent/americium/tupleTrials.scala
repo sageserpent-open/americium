@@ -5,8 +5,6 @@ import com.sageserpent.americium.TrialsScaffolding.ShrinkageStop
 import com.sageserpent.americium.java.{CaseSupplyCycle, CasesLimitStrategy}
 
 object tupleTrials {
-  // TODO: the same stuff that is on the todo list for the equivalent to this in
-  // the Java sub-package.
   class Tuple2Trials[+Case1, +Case2](
       firstTrials: Trials[Case1],
       secondTrials: Trials[Case2]

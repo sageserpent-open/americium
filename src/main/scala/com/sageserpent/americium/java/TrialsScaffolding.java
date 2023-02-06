@@ -44,6 +44,24 @@ public interface TrialsScaffolding<Case,
     SupplySyntaxType withLimit(int limit);
 
     /**
+     * Fluent syntax for configuring a limit strategy for the number of cases
+     * supplied to a consumer.
+     *
+     * @param casesLimitStrategyFactory A factory method that should produce
+     *                                  a *fresh* instance of a
+     *                                  {@link CasesLimitStrategy} on each call.
+     * @return An instance of {@link SupplyToSyntax} with the strategy
+     * configured.
+     * @apiNote The factory {@code casesLimitStrategyFactory} takes an
+     * argument of {@link CaseSupplyCycle}; this can be used to dynamically
+     * configure the strategy depending on which cycle the strategy is
+     * intended for, or simply disregarded if a one-size-fits-all approach is
+     * desired.
+     */
+    SupplySyntaxType withStrategy(
+            Function<CaseSupplyCycle, CasesLimitStrategy> casesLimitStrategyFactory);
+
+    /**
      * Fluent syntax for configuring a limit to the number of cases supplied
      * to a consumer.
      *
@@ -53,7 +71,12 @@ public interface TrialsScaffolding<Case,
      * @param optionalLimits Optional limits used to configure other aspects
      *                       of supplying and shrinkage.
      * @return An instance of {@link SupplyToSyntax} with the limit configured.
+     * @deprecated Use {@link TrialsScaffolding#withLimit} and follow with
+     * calls to {@link SupplyToSyntax#withComplexityLimit(int)},
+     * {@link SupplyToSyntax#withShrinkageAttemptsLimit(int)} and
+     * {@link SupplyToSyntax#withShrinkageStop(ShrinkageStop)}.
      */
+    @Deprecated
     SupplySyntaxType withLimits(int casesLimit,
                                 OptionalLimits optionalLimits);
 
@@ -74,7 +97,13 @@ public interface TrialsScaffolding<Case,
      * configure the strategy depending on which cycle the strategy is
      * intended for, or simply disregarded if a one-size-fits-all approach is
      * desired.
+     * @deprecated Use the simplest overload of
+     * {@link TrialsScaffolding#withStrategy} and follow with calls to
+     * {@link SupplyToSyntax#withComplexityLimit(int)},
+     * {@link SupplyToSyntax#withShrinkageAttemptsLimit(int)} and
+     * {@link SupplyToSyntax#withShrinkageStop(ShrinkageStop)}.
      */
+    @Deprecated
     SupplySyntaxType withStrategy(
             Function<CaseSupplyCycle, CasesLimitStrategy> casesLimitStrategyFactory,
             OptionalLimits optionalLimits);
@@ -92,9 +121,10 @@ public interface TrialsScaffolding<Case,
      *                       in addition to what is configured by the {@code
      *                       optionalLimits}. See also {@link ShrinkageStop}.
      * @return An instance of {@link SupplyToSyntax} with the limit configured.
-     * @deprecated Use the other overload of this method in conjunction with
-     * a following call of
-     * {@link TrialsScaffolding.SupplyToSyntax#withStoppingCondition(ShrinkageStop)} instead.
+     * @deprecated Use {@link TrialsScaffolding#withLimit} and follow with
+     * calls to {@link SupplyToSyntax#withComplexityLimit(int)},
+     * {@link SupplyToSyntax#withShrinkageAttemptsLimit(int)} and
+     * {@link SupplyToSyntax#withShrinkageStop(ShrinkageStop)}.
      */
     @Deprecated
     SupplySyntaxType withLimits(int casesLimit,
@@ -123,9 +153,11 @@ public interface TrialsScaffolding<Case,
      * configure the strategy depending on which cycle the strategy is
      * intended for, or simply disregarded if a one-size-fits-all approach is
      * desired.
-     * @deprecated Use the other overload of this method in conjunction with
-     * a following call of
-     * {@link TrialsScaffolding.SupplyToSyntax#withStoppingCondition(ShrinkageStop)} instead.
+     * @deprecated Use the simplest overload of
+     * {@link TrialsScaffolding#withStrategy} and follow with calls to
+     * {@link SupplyToSyntax#withComplexityLimit(int)},
+     * {@link SupplyToSyntax#withShrinkageAttemptsLimit(int)} and
+     * {@link SupplyToSyntax#withShrinkageStop(ShrinkageStop)}.
      */
     @Deprecated
     SupplySyntaxType withStrategy(
@@ -142,6 +174,10 @@ public interface TrialsScaffolding<Case,
      *               was used to obtain it.
      * @return An instance of {@link SupplyToSyntax} that supplies the
      * reproduced trial case.
+     * @apiNote Although the yielded instance of {@link SupplyToSyntax}
+     * allows further configuration calls to be made, these are all
+     * disregarded, as the recipe completely determines how the test case is
+     * built up, and no shrinkage takes places on failure.
      */
     SupplySyntaxType withRecipe(String recipe);
 
@@ -170,7 +206,30 @@ public interface TrialsScaffolding<Case,
     interface SupplyToSyntax<Case> {
         SupplyToSyntax<Case> withSeed(long seed);
 
-        SupplyToSyntax<Case> withStoppingCondition(
+        /**
+         * The maximum permitted complexity when generating a case.
+         *
+         * @apiNote Complexity is something associated with the production of
+         * a {@link Case} when a {@link Trials} is supplied to some test
+         * consumer. It ranges from one up to (and including) the {@code
+         * complexityLimit} and captures some sense of the case being more
+         * elaborately constructed as it increases - as an example, the use
+         * of flatmapping to combine inputs from multiple trials instances
+         * drives the complexity up for each flatmap stage. In practice, this
+         * results in larger collection instances having greater complexity.
+         * Deeply recursive trials also result in high complexity.
+         */
+        SupplyToSyntax<Case> withComplexityLimit(int complexityLimit);
+
+        /**
+         * The maximum number of shrinkage attempts when shrinking a case.
+         * Setting this to zero disables shrinkage and will thus yield the
+         * original failing case.
+         */
+        SupplyToSyntax<Case> withShrinkageAttemptsLimit(
+                int shrinkageAttemptsLimit);
+
+        SupplyToSyntax<Case> withShrinkageStop(
                 ShrinkageStop<? super Case> shrinkageStop);
 
         /**
@@ -233,6 +292,14 @@ public interface TrialsScaffolding<Case,
         }
     }
 
+    /**
+     * @deprecated Avoid using this - use {@link TrialsScaffolding#withLimit}
+     * or {@link TrialsScaffolding#withStrategy} and follow with calls to
+     * {@link SupplyToSyntax#withComplexityLimit(int)},
+     * {@link SupplyToSyntax#withShrinkageAttemptsLimit(int)} and
+     * {@link SupplyToSyntax#withShrinkageStop(ShrinkageStop)}.
+     */
+    @Deprecated
     @lombok.Builder(toBuilder = true)
     @lombok.EqualsAndHashCode
     class OptionalLimits {
