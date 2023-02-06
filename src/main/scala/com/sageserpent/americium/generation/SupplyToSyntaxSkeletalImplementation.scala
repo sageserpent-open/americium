@@ -12,6 +12,7 @@ import com.sageserpent.americium.generation.Decision.{
 }
 import com.sageserpent.americium.generation.GenerationOperation.Generation
 import com.sageserpent.americium.generation.JavaPropertyNames.{
+  nondeterminsticJavaProperty,
   recipeHashJavaProperty,
   runDatabaseJavaProperty,
   temporaryDirectoryJavaProperty
@@ -729,7 +730,12 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
       )
 
     Option(System.getProperty(recipeHashJavaProperty)).fold {
-      val randomBehaviour = new Random(seed)
+      val nonDeterministic = Option(
+        System.getProperty(nondeterminsticJavaProperty)
+      ).fold(ifEmpty = false)(_.toBoolean)
+
+      val randomBehaviour =
+        if (nonDeterministic) new Random else new Random(seed)
 
       def shrink(
           caseData: CaseData,
