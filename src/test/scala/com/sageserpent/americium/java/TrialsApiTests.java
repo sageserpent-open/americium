@@ -687,11 +687,8 @@ public class TrialsApiTests {
             final TrialsFactoring.TrialException trialException =
                     assertThrows(TrialsFactoring.TrialException.class, () -> api
                             .integers()
-                            .withLimits(100,
-                                        Trials.OptionalLimits
-                                                .builder()
-                                                .shrinkageAttempts(0)
-                                                .build())
+                            .withLimit(100)
+                            .withShrinkageAttemptsLimit(0)
                             .supplyTo(caze -> {
                                 if (1 == caze % 2) {
                                     throw new RuntimeException();
@@ -711,13 +708,11 @@ public class TrialsApiTests {
 
         final int highestMagnitude = 100;
 
-        api
-                .integers(-highestMagnitude, 2 * highestMagnitude)
-                .filter(value -> highestMagnitude >= Math.abs(value))
-                .and(api.integers())
-                .withStrategy(casesLimitStrategyFactory,
-                              TrialsScaffolding.OptionalLimits.defaults)
-                .supplyTo(consumer);
+        api.integers(-highestMagnitude, 2 * highestMagnitude)
+           .filter(value -> highestMagnitude >= Math.abs(value))
+           .and(api.integers())
+           .withStrategy(casesLimitStrategyFactory)
+           .supplyTo(consumer);
 
         int countDown = highestMagnitude;
 

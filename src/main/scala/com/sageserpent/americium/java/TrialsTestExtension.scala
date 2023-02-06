@@ -82,13 +82,9 @@ object TrialsTestExtension {
           ScalaTrials.api.sequences(trials)
 
         vectors.javaTrials
-          .withLimits(
-            annotation.casesLimit,
-            TrialsScaffolding.OptionalLimits.factory(
-              annotation.complexity,
-              annotation.shrinkageAttempts
-            )
-          )
+          .withLimit(annotation.casesLimit)
+          .withComplexityLimit(annotation.complexity)
+          .withShrinkageAttemptsLimit(annotation.shrinkageAttempts)
       })
       .getOrElse {
         AnnotationSupport

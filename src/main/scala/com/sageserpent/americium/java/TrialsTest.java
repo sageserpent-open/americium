@@ -56,12 +56,12 @@ public @interface TrialsTest {
     int casesLimit();
 
     /**
-     * @see Trials.OptionalLimits#complexity
+     * @see TrialsScaffolding.SupplyToSyntax#withComplexityLimit(int)
      */
     int complexity() default TrialsDefaults.defaultComplexityLimit;
 
     /**
-     * @see Trials.OptionalLimits#shrinkageAttempts
+     * @see TrialsScaffolding.SupplyToSyntax#withShrinkageAttemptsLimit(int)
      */
     int shrinkageAttempts() default TrialsDefaults.defaultShrinkageAttemptsLimit;
 }

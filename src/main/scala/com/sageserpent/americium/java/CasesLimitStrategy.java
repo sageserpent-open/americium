@@ -13,8 +13,7 @@ import static scala.jdk.javaapi.DurationConverters.toJava;
 /**
  * Strategy used to limit the emission of cases by the implementation of
  * {@link Trials}. These are supplied by client code when calling
- * {@link Trials#withStrategy(Function, Trials.OptionalLimits)} and
- * {@link Trials#withStrategy(Function, Trials.OptionalLimits, Trials.ShrinkageStop)}.
+ * {@link Trials#withStrategy(Function)}.
  *
  * @apiNote Instances are expected to be stateful, so they should not be
  * reused when calling the aforementioned overloads.
