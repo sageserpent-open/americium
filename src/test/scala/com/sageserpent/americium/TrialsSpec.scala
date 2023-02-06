@@ -1106,7 +1106,7 @@ class TrialsSpec
         mockPredicate
       }
 
-      sut.withLimits(1, shrinkageStop = explodingStoppage).supplyTo { _ => }
+      sut.withLimit(1).withShrinkageStop(explodingStoppage).supplyTo { _ => }
     }
   }
 
@@ -1768,7 +1768,8 @@ class TrialsSpec
 
     val shrunkCase = intercept[sut.TrialException](
       sut
-        .withLimits(limit, shrinkageStop = TrialsScaffolding.noStopping)
+        .withLimit(limit)
+        .withShrinkageStop(TrialsScaffolding.noStopping)
         .supplyTo(failureCounterWithNoStoppingCondition.consume)
     ).getCause match {
       case exception: ExceptionWithCasePayload[Long] => exception.caze
@@ -1799,7 +1800,8 @@ class TrialsSpec
 
     val shrunkCaseWithStoppage = intercept[sut.TrialException](
       sut
-        .withLimits(limit, shrinkageStop = shrinkageStop)
+        .withLimit(limit)
+        .withShrinkageStop(shrinkageStop)
         .supplyTo(failureCounterWithStoppingCondition.consume _)
     ).getCause match {
       case exception: ExceptionWithCasePayload[Long] => exception.caze
@@ -1813,7 +1815,8 @@ class TrialsSpec
 
     val shrunkCaseWithoutAnyShrinkage = intercept[sut.TrialException](
       sut
-        .withLimits(limit, shrinkageStop = noShrinking)
+        .withLimit(limit)
+        .withShrinkageStop(noShrinking)
         .supplyTo(failureCounterWithoutAnyShrinkage.consume _)
     ).getCause match {
       case exception: ExceptionWithCasePayload[Long] => exception.caze
@@ -2086,7 +2089,8 @@ class TrialsSpec
     val provokingCase =
       intercept[suts.TrialException](
         suts
-          .withLimits(casesLimit = casesLimit, shrinkageStop = noShrinking)
+          .withLimit(casesLimit)
+          .withShrinkageStop(noShrinking)
           .supplyTo { case (x, y, z) =>
             predicate(threshold = 10)(x, y, z) shouldEqual predicate(threshold =
               9
@@ -2099,7 +2103,8 @@ class TrialsSpec
     val minimisedProvokingCase =
       intercept[suts.TrialException](
         suts
-          .withLimits(casesLimit = casesLimit, shrinkageStop = noStopping)
+          .withLimit(casesLimit)
+          .withShrinkageStop(noStopping)
           .supplyTo { case (x, y, z) =>
             predicate(threshold = 10)(x, y, z) shouldEqual predicate(threshold =
               9
