@@ -2,6 +2,8 @@ package com.sageserpent.americium.java;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
+import com.google.common.collect.Streams;
 import com.google.common.hash.Hashing;
 import cyclops.control.Try;
 import org.junit.jupiter.api.Test;
@@ -20,6 +22,8 @@ import java.time.Instant;
 import java.util.*;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import static org.hamcrest.CoreMatchers.allOf;
@@ -275,8 +279,7 @@ public class TrialsApiTests {
                                                .toArray(Integer[]::new)));
             }
 
-            lists = api.collections(builder.build(), () -> new Builder<Integer,
-                    ImmutableList<Integer>>() {
+            lists = api.collections(builder.build(), () -> new Builder<>() {
                 final ImmutableList.Builder<Integer> underlyingBuilder =
                         ImmutableList.builder();
 
@@ -331,8 +334,7 @@ public class TrialsApiTests {
                 api
                         .integers()
                         .collectionsOfSize(numberOfElements,
-                                           () -> new Builder<Integer,
-                                                   List<Integer>>() {
+                                           () -> new Builder<>() {
                                                final List<Integer> list =
                                                        new LinkedList<>();
 
@@ -722,5 +724,63 @@ public class TrialsApiTests {
         } while (0 < countDown--);
 
         verify(consumer, atLeast(1)).accept(eq(0), anyInt());
+    }
+
+    @Test
+    void increasingTheComplexityLimitPermitsMoreElaborateTestCases() {
+        final List<Set<String>> setList = IntStream
+                .of(2,
+                    10,
+                    100,
+                    1000,
+                    10000,
+                    100000)
+                // NOTE: have to start with a minimum
+                // complexity of 2 to get any cases at all from
+                // `chainedBooleansAndIntegersInATree`.
+                .mapToObj(complexityLimit -> Streams
+                        .stream(chainedBooleansAndIntegersInATree()
+                                        .withLimit(50)
+                                        .withComplexityLimit(complexityLimit)
+                                        .asIterator())
+                        .collect(Collectors.toSet()))
+                .collect(Collectors.toList());
+
+        Streams.forEachPair(setList.stream(),
+                            setList.stream().skip(1),
+                            (lessComplexCases, moreComplexCases) -> {
+                                assertThat(Sets.intersection(lessComplexCases,
+                                                             moreComplexCases),
+                                           not(empty()));
+
+                                // Use the length of the string test case as
+                                // a measurement of its complexity - the more
+                                // complex the tree represented by the
+                                // string, the longer it will be.
+
+                                final Integer maximumLengthOfLessComplexCases =
+                                        lessComplexCases
+                                                .stream()
+                                                .map(String::length)
+                                                .max(Integer::compareTo).get();
+
+                                final Integer maximumLengthOfMoreComplexCases =
+                                        moreComplexCases
+                                                .stream()
+                                                .map(String::length)
+                                                .max(Integer::compareTo).get();
+
+                                System.out.format(
+                                        "Maximum length of less complex " +
+                                        "cases: %d, maximum length of more " +
+                                        "complex cases: %d.\n",
+                                        maximumLengthOfLessComplexCases,
+                                        maximumLengthOfMoreComplexCases);
+
+
+                                assertThat(maximumLengthOfMoreComplexCases,
+                                           greaterThan(
+                                                   maximumLengthOfLessComplexCases));
+                            });
     }
 }
