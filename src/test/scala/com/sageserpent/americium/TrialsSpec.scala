@@ -3,7 +3,8 @@ package com.sageserpent.americium
 import com.sageserpent.americium.TrialsScaffolding.{noShrinking, noStopping}
 import com.sageserpent.americium.generation.JavaPropertyNames.{
   nondeterminsticJavaProperty,
-  recipeHashJavaProperty
+  recipeHashJavaProperty,
+  recipeJavaProperty
 }
 import com.sageserpent.americium.java.{
   Builder,
@@ -2317,6 +2318,100 @@ class TrialsSpecInQuarantineDueToUseOfRecipeHashSystemProperty
             System.clearProperty(recipeHashJavaProperty)
           )(
             System.setProperty(recipeHashJavaProperty, _)
+          )
+        }
+      }
+
+      exceptionRecreatedViaRecipeHash.provokingCase shouldBe exception.provokingCase
+      exceptionRecreatedViaRecipeHash.recipe shouldBe exception.recipe
+      exceptionRecreatedViaRecipeHash.recipeHash shouldBe exception.recipeHash
+
+      verify(mockConsumer).apply(any())
+    }
+  }
+}
+
+class TrialsSpecInQuarantineDueToUseOfRecipeSystemProperty
+    extends AnyFlatSpec
+    with Matchers
+    with TableDrivenPropertyChecks
+    with MockitoSessionSupport {
+  import TrialsSpec.*
+
+  "a failure" should "be reproduced by its recipe" in forAll(
+    Table(
+      "trials",
+      api.only(JackInABox(1)),
+      api.choose(1, false, JackInABox(99)),
+      api.alternate(
+        api.only(true),
+        api.choose(0 until 10 map (_.toString) map JackInABox.apply),
+        api.choose(-10 until 0)
+      ),
+      api.alternate(
+        api.only(true),
+        api.choose(-10 until 0),
+        api.alternate(api.choose(-99 to -50), api.only(JackInABox(-2)))
+      ),
+      api.alternate(
+        api.only(true),
+        api.alternate(
+          api.choose(-99 to -50),
+          api.choose("Red herring", false, JackInABox(-2))
+        ),
+        api.choose(-10 until 0)
+      ),
+      api.streamLegacy({
+        case value if 0 == value % 3 => JackInABox(value)
+        case value => value
+      }),
+      api.alternate(
+        api.only(true),
+        api.streamLegacy({
+          case value if 0 == value % 3 => JackInABox(value)
+          case value => value
+        }),
+        api.choose(-10 until 0)
+      ),
+      implicitly[Factory[Option[Int]]].trials.map {
+        case None        => JackInABox(())
+        case Some(value) => value
+      }
+    )
+  ) { sut =>
+    inMockitoSession {
+      val surprisedConsumer: Any => Unit = {
+        case JackInABox(caze) => throw ExceptionWithCasePayload(caze)
+        case _                =>
+      }
+
+      val exception = intercept[sut.TrialException](
+        sut.withLimit(limit).supplyTo(surprisedConsumer)
+      )
+
+      val mockConsumer: Any => Unit = mock(classOf[Any => Unit])
+
+      doAnswer(invocation =>
+        throw ExceptionWithCasePayload(
+          invocation.getArgument[JackInABox[_]](0).caze
+        )
+      ).when(mockConsumer).apply(any[JackInABox[_]]())
+
+      val exceptionRecreatedViaRecipeHash = {
+        val previousPropertyValue =
+          Option(
+            System.setProperty(recipeJavaProperty, exception.recipe)
+          )
+
+        try {
+          intercept[sut.TrialException](
+            sut.withLimit(limit).supplyTo(mockConsumer)
+          )
+        } finally {
+          previousPropertyValue.fold(ifEmpty =
+            System.clearProperty(recipeJavaProperty)
+          )(
+            System.setProperty(recipeJavaProperty, _)
           )
         }
       }
