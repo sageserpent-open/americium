@@ -1,5 +1,6 @@
 package com.sageserpent.americium.java;
 
+import com.sageserpent.americium.generation.JavaPropertyNames;
 import cyclops.data.tuple.Tuple2;
 import cyclops.data.tuple.Tuple3;
 import cyclops.data.tuple.Tuple4;
@@ -178,7 +179,15 @@ public interface TrialsScaffolding<Case,
      * allows further configuration calls to be made, these are all
      * disregarded, as the recipe completely determines how the test case is
      * built up, and no shrinkage takes places on failure.
+     * @deprecated Use the JVM system property
+     * {@link JavaPropertyNames#recipeHashJavaProperty()} - `trials
+     * .recipeHash` instead to force existing tests written using
+     * {@link TrialsScaffolding#withLimit(int)} or
+     * {@link TrialsScaffolding#withStrategy(Function)} to pick up the recipe
+     * . This has the advantage of being a temporary measure for debugging
+     * that doesn't require test code changes.
      */
+    @Deprecated
     SupplySyntaxType withRecipe(String recipe);
 
     /**

@@ -126,5 +126,8 @@ trait TrialsScaffolding[+Case] extends TrialsFactoring[Case] {
       shrinkageStop: ShrinkageStop[Case] = noStopping
   ): SupplySyntaxType
 
+  @deprecated(
+    "Use the JVM system property JavaPropertyNames.recipeHashJavaProperty() - `trials.recipeHash` instead to force existing tests written using `withLimit` or `withStrategy` to pick up the recipe. This has the advantage of being a temporary measure for debugging that doesn't require test code changes."
+  )
   def withRecipe(recipe: String): SupplySyntaxType
 }
