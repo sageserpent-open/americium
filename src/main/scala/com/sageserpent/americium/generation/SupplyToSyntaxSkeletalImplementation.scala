@@ -11,12 +11,7 @@ import com.sageserpent.americium.generation.Decision.{
   parseDecisionIndices
 }
 import com.sageserpent.americium.generation.GenerationOperation.Generation
-import com.sageserpent.americium.generation.JavaPropertyNames.{
-  nondeterminsticJavaProperty,
-  recipeHashJavaProperty,
-  runDatabaseJavaProperty,
-  temporaryDirectoryJavaProperty
-}
+import com.sageserpent.americium.generation.JavaPropertyNames.*
 import com.sageserpent.americium.generation.SupplyToSyntaxSkeletalImplementation.{
   maximumScaleDeflationLevel,
   minimumScaleDeflationLevel,
@@ -729,7 +724,8 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
           (carryOnButSwitchToShrinkageApproachOnCaseFailure)
       )
 
-    Option(System.getProperty(recipeHashJavaProperty)).fold {
+    def streamedCases(): StreamedCases = {
+
       val nonDeterministic = Option(
         System.getProperty(nondeterminsticJavaProperty)
       ).fold(ifEmpty = false)(_.toBoolean)
@@ -886,54 +882,70 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
       carryOnButSwitchToShrinkageApproachOnCaseFailure(
         businessAsUsualCases
       ).stream
-    }(recipeHash =>
-      Fs2Stream
-        .resource(rocksDbResource(readOnly = true))
-        .flatMap { case (rocksDb, columnFamilyForRecipeHashes) =>
-          val singleTestIntegrationContext = Fs2Stream
-            .eval(SyncIO {
-              val recipe = rocksDb
-                .get(
-                  columnFamilyForRecipeHashes,
-                  recipeHash.map(_.toByte).toArray
-                )
-                .map(_.toChar)
-                .mkString
 
-              {
-                val decisionStages = parseDecisionIndices(recipe)
-                val caze           = reproduce(decisionStages)
+    }
+    def testIntegrationContextReproducing(
+        recipe: String
+    ): TestIntegrationContext[Case] = {
+      val decisionStages = parseDecisionIndices(recipe)
+      val caze           = reproduce(decisionStages)
 
-                TestIntegrationContextImplementation[Case](
-                  caze = caze,
-                  caseFailureReporting = { (throwable: Throwable) =>
-                    shrinkageCasesFromDownstream = Some(
-                      raiseTrialException(None)(
-                        throwable,
-                        caze,
-                        decisionStages
-                      )
-                    )
-                  },
-                  inlinedCaseFiltration = {
-                    (
-                        runnable: Runnable,
-                        additionalExceptionsToHandleAsFiltration: Array[
-                          Class[_ <: Throwable]
-                        ]
-                    ) =>
-                      runnable.run()
-                      true
-                  },
-                  isPartOfShrinkage = false
-                )
-              }
-            })
-          carryOnButSwitchToShrinkageApproachOnCaseFailure(
-            singleTestIntegrationContext
-          ).stream
-        }
-    )
+      TestIntegrationContextImplementation[Case](
+        caze = caze,
+        caseFailureReporting = { (throwable: Throwable) =>
+          shrinkageCasesFromDownstream = Some(
+            raiseTrialException(None)(
+              throwable,
+              caze,
+              decisionStages
+            )
+          )
+        },
+        inlinedCaseFiltration = {
+          (
+              runnable: Runnable,
+              additionalExceptionsToHandleAsFiltration: Array[
+                Class[_ <: Throwable]
+              ]
+          ) =>
+            runnable.run()
+            true
+        },
+        isPartOfShrinkage = false
+      )
+    }
+
+    Option(System.getProperty(recipeHashJavaProperty))
+      .map(recipeHash =>
+        Fs2Stream
+          .resource(rocksDbResource(readOnly = true))
+          .flatMap { case (rocksDb, columnFamilyForRecipeHashes) =>
+            val singleTestIntegrationContext = Fs2Stream
+              .eval(SyncIO {
+                val recipe = rocksDb
+                  .get(
+                    columnFamilyForRecipeHashes,
+                    recipeHash.map(_.toByte).toArray
+                  )
+                  .map(_.toChar)
+                  .mkString
+
+                testIntegrationContextReproducing(recipe)
+              })
+            carryOnButSwitchToShrinkageApproachOnCaseFailure(
+              singleTestIntegrationContext
+            ).stream
+          }
+      )
+      .orElse(
+        Option(System.getProperty(recipeJavaProperty))
+          .map(recipe =>
+            carryOnButSwitchToShrinkageApproachOnCaseFailure(
+              Fs2Stream.emit(testIntegrationContextReproducing(recipe))
+            ).stream
+          )
+      )
+      .getOrElse(streamedCases())
   }
 
   // Scala-only API ...
