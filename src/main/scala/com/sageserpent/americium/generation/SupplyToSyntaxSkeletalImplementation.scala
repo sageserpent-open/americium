@@ -724,8 +724,7 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
           (carryOnButSwitchToShrinkageApproachOnCaseFailure)
       )
 
-    def streamedCases(): StreamedCases = {
-
+    def streamedCasesWithShrinkageOnFailure(): StreamedCases = {
       val nonDeterministic = Option(
         System.getProperty(nondeterminsticJavaProperty)
       ).fold(ifEmpty = false)(_.toBoolean)
@@ -884,6 +883,7 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
       ).stream
 
     }
+
     def testIntegrationContextReproducing(
         recipe: String
     ): TestIntegrationContext[Case] = {
@@ -945,7 +945,7 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
             ).stream
           )
       )
-      .getOrElse(streamedCases())
+      .getOrElse(streamedCasesWithShrinkageOnFailure())
   }
 
   // Scala-only API ...
