@@ -33,6 +33,7 @@ import cyclops.control.Either as JavaEither
 import fs2.Stream as Fs2Stream
 import io.circe.generic.auto.*
 import io.circe.syntax.*
+import org.apache.commons.text.StringEscapeUtils
 import org.rocksdb.*
 
 import _root_.java.util.function.{Consumer, Predicate, Function as JavaFunction}
@@ -287,11 +288,8 @@ case class TrialsImplementation[Case](
           caze: Case,
           decisionStages: DecisionStages
       ): StreamedCases = {
-        val json = decisionStages.asJson.spaces4
-        val jsonHashInHexadecimal = hash.Hashing
-          .murmur3_128()
-          .hashUnencodedChars(json)
-          .toString
+        val exception: TrialException =
+          trialException(throwable, caze, decisionStages)
 
         // TODO: suppose this throws an exception? Probably best to
         // just log it and carry on, as the user wants to see a test
@@ -299,18 +297,12 @@ case class TrialsImplementation[Case](
         rocksDb.foreach { case (rocksDb, columnFamilyForRecipeHashes) =>
           rocksDb.put(
             columnFamilyForRecipeHashes,
-            jsonHashInHexadecimal.map(_.toByte).toArray,
-            json.map(_.toByte).toArray
+            exception.recipeHash.map(_.toByte).toArray,
+            exception.recipe.map(_.toByte).toArray
           )
         }
 
-        Fs2Stream.raiseError[SyncIO](new TrialException(throwable) {
-          override def provokingCase: Case = caze
-
-          override def recipe: String = json
-
-          override def recipeHash: String = jsonHashInHexadecimal
-        })
+        Fs2Stream.raiseError[SyncIO](exception)
       }
 
       override def withSeed(
@@ -367,6 +359,31 @@ case class TrialsImplementation[Case](
     )
   }
 
+  private def trialException(
+      throwable: Throwable,
+      caze: Case,
+      decisionStages: DecisionStages
+  ) = {
+    val json           = decisionStages.asJson.spaces4
+    val compressedJson = decisionStages.asJson.noSpaces
+
+    val jsonHashInHexadecimal = hash.Hashing
+      .murmur3_128()
+      .hashUnencodedChars(json)
+      .toString
+
+    val trialException = new TrialException(throwable) {
+      override def provokingCase: Case = caze
+
+      override def recipe: String = json
+
+      override def escapedRecipe: String =
+        StringEscapeUtils.escapeJava(compressedJson)
+
+      override def recipeHash: String = jsonHashInHexadecimal
+    }
+    trialException
+  }
   def this(
       generationOperation: GenerationOperation[Case]
   ) = {
@@ -458,18 +475,7 @@ case class TrialsImplementation[Case](
           consumer(reproducedCase)
         } catch {
           case exception: Throwable =>
-            val json = decisionStages.asJson.spaces4
-
-            throw new TrialException(exception) {
-              override def provokingCase: Case = reproducedCase
-
-              override def recipe: String = json
-
-              // NOTE: as we are reproducing using a recipe, we can assume that
-              // the recipe hash is already stored from back when the recipe was
-              // generated.
-              override def recipeHash: String = json.hashCode().toHexString
-            }
+            throw trialException(exception, reproducedCase, decisionStages)
         }
       }
     }

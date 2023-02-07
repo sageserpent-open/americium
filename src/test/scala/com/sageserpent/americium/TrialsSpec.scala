@@ -2398,9 +2398,15 @@ class TrialsSpecInQuarantineDueToUseOfRecipeSystemProperty
       ).when(mockConsumer).apply(any[JackInABox[_]]())
 
       val exceptionRecreatedViaRecipeHash = {
+        // NOTE: simulate what a shell would do with the escaped recipe.
+        val whatWouldBePassedInFromAShell =
+          exception.escapedRecipe.translateEscapes()
         val previousPropertyValue =
           Option(
-            System.setProperty(recipeJavaProperty, exception.recipe)
+            System.setProperty(
+              recipeJavaProperty,
+              whatWouldBePassedInFromAShell
+            )
           )
 
         try {
