@@ -23,6 +23,9 @@ trait TrialsApiImplementation extends CommonApi with TrialsApiWart {
       delayed: Supplier[JavaTrials[Case]]
   ): JavaTrials[Case] = scalaApi.delay(delayed.get().scalaTrials)
 
+  override def impossible[Case](): TrialsImplementation[Case] =
+    scalaApi.impossible[Case]
+
   override def choose[Case](
       choices: JavaIterable[Case]
   ): TrialsImplementation[Case] =

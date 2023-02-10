@@ -38,6 +38,21 @@ public interface TrialsApi {
     <Case> Trials<Case> only(Case onlyCase);
 
     /**
+     * Denote a situation where no cases are possible. This is obviously an
+     * obscure requirement - it is intended for sophisticated composition of
+     * several {@link Trials} instances via nested flat-mapping where a
+     * combination of the parameters from the prior levels of flat-mapping
+     * cannot yield a test-case, possibly because of a precondition violation
+     * or simply because the combination is undesirable for testing. <p>In
+     * this situation one can detect such bad combinations and substitute an
+     * impossible {@link Trials} instance.
+     *
+     * @param <Case>
+     * @return A {@link Trials} instance that never yields any cases.
+     */
+    <Case> Trials<Case> impossible();
+
+    /**
      * Produce a trials instance that chooses between several cases.
      *
      * @param firstChoice  Mandatory first choice, so there is at least one

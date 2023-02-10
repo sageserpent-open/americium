@@ -1114,6 +1114,52 @@ class TrialsSpec
     }
   }
 
+  they should "not yield any cases if flat-mapped with an impossible trials" in
+    forAll(
+      Table(
+        "trials",
+        api.only(1)              -> 1L,
+        api.choose(1, false, 99) -> 2L,
+        api.alternate(
+          api.choose(0 until 10 map (_.toString)),
+          api.choose(-10 until 0)
+        )                          -> 3L,
+        api.streamLegacy(_ * 1.46) -> 4L,
+        api.alternate(
+          api.streamLegacy(_ * 1.46),
+          api.choose(0 until 10 map (_.toString)),
+          api.choose(-10 until 0)
+        )                                       -> 5L,
+        implicitly[Factory[Option[Int]]].trials -> 6L
+      )
+    ) { case (sut, seed) =>
+      inMockitoSession {
+        {
+          val mockConsumer: Any => Unit = mock(classOf[Any => Unit])
+
+          sut
+            .flatMap(_ => api.impossible)
+            .withLimit(limit)
+            .withSeed(seed)
+            .supplyTo(mockConsumer)
+
+          verify(mockConsumer, never()).apply(any)
+        }
+
+        {
+          val mockConsumer: Consumer[Nothing] = mock(classOf[Consumer[Nothing]])
+
+          sut.javaTrials
+            .flatMap[Nothing](_ => javaApi.impossible)
+            .withLimit(limit)
+            .withSeed(seed)
+            .supplyTo(mockConsumer)
+
+          verify(mockConsumer, never()).accept(any)
+        }
+      }
+    }
+
   they should "produce no more than the limiting number of cases" in
     forAll(
       Table(

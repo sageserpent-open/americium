@@ -24,6 +24,9 @@ class TrialsApiImplementation extends CommonApi with ScalaTrialsApi {
   ): TrialsImplementation[Case] =
     TrialsImplementation(Free.defer(delayed.generation))
 
+  override def impossible[Case]: TrialsImplementation[Case] =
+    only(null.asInstanceOf[Case]) // TODO: this is completely bogus.
+
   override def chooseWithWeights[Case](
       firstChoice: (Int, Case),
       secondChoice: (Int, Case),

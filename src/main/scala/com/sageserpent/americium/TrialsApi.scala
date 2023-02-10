@@ -11,6 +11,8 @@ trait TrialsApi {
 
   def only[Case](onlyCase: Case): Trials[Case]
 
+  def impossible[Case]: Trials[Case]
+
   def choose[Case](
       firstChoice: Case,
       secondChoice: Case,
