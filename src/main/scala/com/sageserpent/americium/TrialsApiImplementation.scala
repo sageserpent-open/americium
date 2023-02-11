@@ -4,6 +4,7 @@ import cats.free.Free
 import cats.implicits.*
 import com.sageserpent.americium.generation.{
   Choice,
+  FiltrationResult,
   NoteComplexity,
   ResetComplexity
 }
@@ -24,8 +25,12 @@ class TrialsApiImplementation extends CommonApi with ScalaTrialsApi {
   ): TrialsImplementation[Case] =
     TrialsImplementation(Free.defer(delayed.generation))
 
-  override def impossible[Case]: TrialsImplementation[Case] =
-    only(null.asInstanceOf[Case]) // TODO: this is completely bogus.
+  override def impossible[Case]: TrialsImplementation[Case] = {
+    // Rather than defining a new case object and additional logic in the
+    // interpreters for `Generation`, just use `FiltrationResult` to model a
+    // case that is filtered out from the very start.
+    new TrialsImplementation(FiltrationResult(None: Option[Case]))
+  }
 
   override def chooseWithWeights[Case](
       firstChoice: (Int, Case),

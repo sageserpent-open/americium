@@ -1150,7 +1150,7 @@ class TrialsSpec
           val mockConsumer: Consumer[AnyRef] = mock(classOf[Consumer[AnyRef]])
 
           sut.javaTrials
-            .asInstanceOf[JavaTrials[AnyRef]]
+            .asInstanceOf[JavaTrials[AnyRef]] // NASTY HACK: this ugly cast isn't needed to make this code compile, but prevent a runtime error when running under Scala 3.1.2.
             .flatMap[AnyRef](_ => javaApi.impossible)
             .withLimit(limit)
             .withSeed(seed)
