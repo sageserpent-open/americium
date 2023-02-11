@@ -1147,10 +1147,11 @@ class TrialsSpec
         }
 
         {
-          val mockConsumer: Consumer[Nothing] = mock(classOf[Consumer[Nothing]])
+          val mockConsumer: Consumer[AnyRef] = mock(classOf[Consumer[AnyRef]])
 
           sut.javaTrials
-            .flatMap[Nothing](_ => javaApi.impossible)
+            .asInstanceOf[JavaTrials[AnyRef]]
+            .flatMap[AnyRef](_ => javaApi.impossible)
             .withLimit(limit)
             .withSeed(seed)
             .supplyTo(mockConsumer)
