@@ -21,6 +21,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.*;
 import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -782,5 +783,31 @@ public class TrialsApiTests {
                                            greaterThan(
                                                    maximumLengthOfLessComplexCases));
                             });
+    }
+
+    @Test
+    void impossibleCasesCannotBeSupplied() {
+        {
+            final Consumer consumer = mock(Consumer.class);
+
+            api
+                    .<Integer>impossible()
+                    .withLimit(100)
+                    .supplyTo(consumer);
+
+            verify(consumer, never()).accept(anyInt());
+        }
+
+        {
+            final Consumer consumer = mock(Consumer.class);
+
+            api
+                    .integers()
+                    .flatMap(unused -> api.impossible())
+                    .withLimit(100)
+                    .supplyTo(consumer);
+
+            verify(consumer, never()).accept(anyInt());
+        }
     }
 }
