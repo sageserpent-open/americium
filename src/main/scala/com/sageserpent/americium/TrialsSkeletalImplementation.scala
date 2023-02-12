@@ -72,9 +72,9 @@ trait TrialsSkeletalImplementation[Case] extends ScalaTrials[Case] {
   ).lists
     .map(SortedMap.from[Case, Value](_)(ordering.asInstanceOf[Ordering[Case]]))
 
-  override def lotsOfSize[Container](size: Int)(implicit
-      factory: collection.Factory[Case, Container]
-  ): TrialsSkeletalImplementation[Container]
+  override def lotsOfSize[Collection](size: Int)(implicit
+      factory: collection.Factory[Case, Collection]
+  ): TrialsSkeletalImplementation[Collection]
 
   override def listsOfSize(
       size: Int

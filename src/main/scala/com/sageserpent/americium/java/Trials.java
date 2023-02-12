@@ -71,13 +71,12 @@ public interface Trials<Case> extends
 
     /**
      * Fluent syntax to allow trials to be combined prior to calling
-     * {@link TrialsScaffolding#withLimits(int, OptionalLimits)} etc. This
-     * grants the user the choice of either supplying the combined trials in
-     * the usual way, in which case the {@link java.util.function.Consumer}
-     * will take a {@link cyclops.data.tuple.Tuple2} parameterised by types
-     * {@link Case} and {@link Case2}, or a
-     * {@link java.util.function.BiConsumer} can be used taking separate
-     * arguments of types {@link Case} and {@link Case2}.
+     * {@link TrialsScaffolding#withLimit(int)} etc. This grants the user the
+     * choice of either supplying the combined trials in the usual way, in
+     * which case the {@link java.util.function.Consumer} will take a
+     * {@link cyclops.data.tuple.Tuple2} parameterised by types {@code Case}
+     * and {@code Case2}, or a {@link java.util.function.BiConsumer} can be
+     * used taking separate arguments of types {@link Case} and {@link Case2}.
      * <p>
      * This can be repeated up to a limit by calling {@code and} on the
      * results to add more trials - this enables supply to consumers of
@@ -102,8 +101,8 @@ public interface Trials<Case> extends
      *
      * @param alternativeTrials
      * @param <Case2>
-     * @return {@link Either} that is populated with either a {@link Case} or
-     * a {@link Case2}.
+     * @return {@link Either} that is populated with either a {@code Case} or
+     * a {@code Case2}.
      */
     <Case2> Trials<Either<Case, Case2>> or(Trials<Case2> alternativeTrials);
 
@@ -115,14 +114,14 @@ public interface Trials<Case> extends
     Trials<Optional<Case>> optionals();
 
     /**
-     * Transform this to a trials of collection, where {@link Collection} is
+     * Transform this to a trials of collection, where {@code Collection} is
      * some kind of collection that can be built from elements of type
-     * {@link Case} by a {@link Builder}.
+     * {@code Case} by a {@link Builder}.
      *
      * @param builderFactory A {@link Supplier} that should construct a
      *                       *fresh* instance of a {@link Builder}.
      * @param <Collection>   Any kind of collection that can take an
-     *                       arbitrary number of elements of type {@link Case}.
+     *                       arbitrary number of elements of type {@code Case}.
      * @return A {@link Trials} instance that yields collections.
      */
     <Collection> Trials<Collection> collections(
@@ -145,19 +144,19 @@ public interface Trials<Case> extends
             final Trials<Value> values);
 
     /**
-     * Transform this to a trials of collection, where {@link Collection} is
+     * Transform this to a trials of collection, where {@code Collection} is
      * some kind of collection that can be built from elements of type
-     * {@link Case} by a {@link Builder}. The collection instances yielded
+     * {@code Case} by a {@link Builder}. The collection instances yielded
      * by the result are all built from the specified number of elements.
      *
-     * @param size           The number of elements of type {@link Case} to
+     * @param size           The number of elements of type {@code Case} to
      *                       build the collection instance from. Be aware
-     *                       that sets, maps and bounded size collection
+     *                       that sets, maps and bounded size collections
      *                       don't have to accept that many elements.
      * @param builderFactory A {@link Supplier} that should construct a
      *                       *fresh* instance of a {@link Builder}.
      * @param <Collection>   Any kind of collection that can take an
-     *                       arbitrary number of elements of type {@link Case}.
+     *                       arbitrary number of elements of type {@code Case}.
      * @return A {@link Trials} instance that yields collections.
      */
     <Collection> Trials<Collection> collectionsOfSize(
