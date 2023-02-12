@@ -26,10 +26,10 @@ public interface TrialsApi {
     <Case> Trials<Case> delay(Supplier<Trials<Case>> delayed);
 
     /**
-     * Make a {@link Trials} instance that only ever yields one instance of
-     * {@code Case}. Typically used with alternation to mix in some important
-     * special case with say, a bunch of streamed cases, and also used as a
-     * base case for recursively-defined trials.
+     * Make a {@link Trials} instance that only ever yields a single instance
+     * of {@code Case}. Typically used with alternation to mix in some
+     * important special case with say, a bunch of streamed cases, and also
+     * used as a base case for recursively-defined trials.
      *
      * @param onlyCase
      * @param <Case>
@@ -53,7 +53,7 @@ public interface TrialsApi {
     <Case> Trials<Case> impossible();
 
     /**
-     * Produce a trials instance that chooses between several cases.
+     * Produce a {@link Trials} instance that chooses between several cases.
      *
      * @param firstChoice  Mandatory first choice, so there is at least one
      *                     {@link Case}.
@@ -82,7 +82,8 @@ public interface TrialsApi {
     <Case> Trials<Case> chooseWithWeights(Map.Entry<Integer, Case>[] choices);
 
     /**
-     * Produce a trials instance that alternates between the cases of the
+     * Produce a {@link Trials} instance that alternates between the cases of
+     * the
      * given alternatives.
      * <p>
      *
@@ -118,14 +119,14 @@ public interface TrialsApi {
      * Combine a list of trials instances into a single trials instance that
      * yields lists, where those lists all have the size given by the number
      * of trials, and the element in each position in the list is provided by
-     * the trials instance in the corresponding position in {@code
+     * the trials instance at the corresponding position within {@code
      * listOfTrials}.
      *
      * @param listOfTrials Several trials that act as sources for the
      *                     elements of lists yielded by the resulting
-     *                     {@Trials} instance.
+     *                     {@link Trials} instance.
      * @param <Case>       The type of the list elements yielded by the
-     *                     resulting {@Trials} instance.
+     *                     resulting {@link Trials} instance.
      * @return A {@link Trials} instance that yields lists of the same size.
      */
     <Case> Trials<ImmutableList<Case>> immutableLists(
@@ -140,16 +141,16 @@ public interface TrialsApi {
      *
      * @param iterableOfTrials Several trials that act as sources for the
      *                         elements of collections yielded by the
-     *                         resulting {@Trials} instance. The assumption
+     *                         resulting {link @Trials} instance. The assumption
      *                         is made that this can be traversed multiple
      *                         times and yield the same elements.
      * @param builderFactory   A {@link Supplier} that should construct a
      *                         *fresh* instance of a {@link Builder}.
      * @param <Case>           The type of the collection elements yielded by
-     *                         the resulting {@Trials} instance.
+     *                         the resulting {@link Trials} instance.
      * @param <Collection>     Any kind of collection that can take an
      *                         arbitrary number of elements of type
-     *                         {@link Case}.
+     *                         {@code Case}.
      * @return A {@link Trials} instance that yields collections.
      */
     <Case, Collection> Trials<Collection> collections(
@@ -164,10 +165,10 @@ public interface TrialsApi {
      * what this means, you probably don't need this.
      * <p>
      * The notion of a complexity limit is described in
-     * {@link TrialsScaffolding.Options#complexity}
+     * {@link TrialsScaffolding.SupplyToSyntax#withComplexityLimit(int)}
      *
      * @return The complexity associated with the trials context, taking into
-     * account any flatmapping this call is embedded in.
+     * account any flat-mapping this call is embedded in.
      */
     Trials<Integer> complexities();
 
@@ -186,18 +187,18 @@ public interface TrialsApi {
      *                    }, the type {@link CaseFactory} is used here - this
      *                    allows the factory to declare its domain of valid
      *                    inputs, as well as the input value in that domain
-     *                    that denotes a `maximally shrunk` case.<p>The
+     *                    that denotes a 'maximally shrunk' case.<p>The
      *                    factory is expected to be an injection, so it can
      *                    be fed with any potential long value from that
      *                    domain. It is not expected to be a surjection, so
      *                    distinct long values may result in equivalent cases.
      *                    <p>
-     *                    It is expected that long values closer to the
-     *                    case factory's maximally shrunk input yield
-     *                    smaller' cases, in whatever sense is appropriate to
-     *                    either the actual type of the cases or their
-     *                    specific use as implemented by the factory.
-     * @return The trials instance
+     *                    It is expected that long values closer to the case
+     *                    factory's maximally shrunk input yield 'smaller'
+     *                    cases, in whatever sense is appropriate to either
+     *                    the actual type of the cases or their specific use
+     *                    as implemented by the factory.
+     * @return The trials instance.
      */
     <Case> Trials<Case> stream(CaseFactory<Case> caseFactory);
 
@@ -222,7 +223,7 @@ public interface TrialsApi {
      *                'smaller' cases, in whatever sense is appropriate to
      *                either the actual type of the cases or their specific
      *                use as encoded by the factory.
-     * @return The trials instance
+     * @return The trials instance.
      */
     <Case> Trials<Case> streamLegacy(Function<Long, Case> factory);
 
