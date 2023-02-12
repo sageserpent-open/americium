@@ -219,7 +219,7 @@ public interface TrialsScaffolding<Case,
          * The maximum permitted complexity when generating a case.
          *
          * @apiNote Complexity is something associated with the production of
-         * a {@link Case} when a {@link Trials} is supplied to some test
+         * a {@code Case} when a {@link Trials} is supplied to some test
          * consumer. It ranges from one up to (and including) the {@code
          * complexityLimit} and captures some sense of the case being more
          * elaborately constructed as it increases - as an example, the use
@@ -238,6 +238,9 @@ public interface TrialsScaffolding<Case,
         SupplyToSyntax<Case> withShrinkageAttemptsLimit(
                 int shrinkageAttemptsLimit);
 
+        /**
+         * @see ShrinkageStop
+         */
         SupplyToSyntax<Case> withShrinkageStop(
                 ShrinkageStop<? super Case> shrinkageStop);
 
@@ -250,15 +253,10 @@ public interface TrialsScaffolding<Case,
          * case and the final simplified one. The exception from the
          * simplified case (or the original exceptional case if it could not
          * be simplified) is wrapped in an instance of {@link TrialException}
-         * which also contains the {@link Case} that provoked the exception.
+         * which also contains the {@code Case} that provoked the exception.
          *
-         * @param consumer An operation that consumes a {@link Case}, and may
+         * @param consumer An operation that consumes a {@code Case}, and may
          *                 throw an exception.
-         * @note The limit applies to the count of the number of supplied
-         * cases, regardless of whether some of these cases are
-         * duplicated or not. There is no guarantee that all of
-         * the non-duplicated cases have to be supplied, even if
-         * they could potentially all fit within the limit.
          */
         void supplyTo(Consumer<Case> consumer);
 

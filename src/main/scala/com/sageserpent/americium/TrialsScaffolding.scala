@@ -11,41 +11,68 @@ import com.sageserpent.americium.java.{
   TrialsFactoring
 }
 
-import _root_.java.time.Instant
-import scala.concurrent.duration.{Duration, FiniteDuration}
-import scala.jdk.DurationConverters.ScalaDurationOps
-
 object TrialsScaffolding {
+
+  /** @return
+    *   A predicate that examines both state captured by the instance of
+    *   [[ShrinkageStop]] and the case passed to it. When the predicate holds,
+    *   the shrinkage is terminated.
+    * @note
+    *   Building the predicate is expected to set up or capture any state
+    *   required by it, such as a freshly started timer or count set to zero.
+    */
   type ShrinkageStop[-Case] = () => Case => Boolean
 
   val noStopping: ShrinkageStop[Any] = () => _ => false
 
   val noShrinking: ShrinkageStop[Any] = () => _ => true
 
-  def timer(timeLimit: Duration): ShrinkageStop[Any] = () => {
-    val whenStarted = Instant.now()
-
-    _ =>
-      timeLimit match {
-        case finiteDuration: FiniteDuration =>
-          !Instant.now().isBefore(whenStarted.plus(finiteDuration.toJava))
-        case _ => false
-      }
-  }
-
   trait SupplyToSyntax[+Case] {
     def withSeed(seed: Long): SupplyToSyntax[Case]
 
+    /** The maximum permitted complexity when generating a case.
+      *
+      * @note
+      *   Complexity is something associated with the production of an instance
+      *   of {@code Case} when a [[Trials]] is supplied to some test consumer.
+      *   It ranges from one up to (and including) the {@code complexityLimit}
+      *   and captures some sense of the case being more elaborately constructed
+      *   as it increases - as an example, the use of flat-mapping to combine
+      *   inputs from multiple trials instances drives the complexity up for
+      *   each flatmap stage. In practice, this results in larger collection
+      *   instances having greater complexity. Deeply recursive trials also
+      *   result in high complexity.
+      */
     def withComplexityLimit(complexityLimit: Int): SupplyToSyntax[Case]
 
+    /** The maximum number of shrinkage attempts when shrinking a case. Setting
+      * this to zero disables shrinkage and will thus yield the original failing
+      * case.
+      */
     def withShrinkageAttemptsLimit(
         shrinkageAttemptsLimit: Int
     ): SupplyToSyntax[Case]
 
+    /** @see
+      *   [[ShrinkageStop]]
+      */
     def withShrinkageStop(
         shrinkageStop: ShrinkageStop[Case]
     ): SupplyToSyntax[Case]
 
+    /** Consume trial cases until either there are no more or an exception is
+      * thrown by {@code consumer}. If an exception is thrown, attempts will be
+      * made to shrink the trial case that caused the exception to a simpler
+      * case that throws an exception - the specific kind of exception isn't
+      * necessarily the same between the first exceptional case and the final
+      * simplified one. The exception from the simplified case (or the original
+      * exceptional case if it could not be simplified) is wrapped in an
+      * instance of [[TrialException]] which also contains the {@code Case} that
+      * provoked the exception.
+      *
+      * @param consumer
+      *   An operation that consumes a {@code Case}, and may throw an exception.
+      */
     def supplyTo(consumer: Case => Unit): Unit
   }
 
@@ -95,15 +122,44 @@ object TrialsScaffolding {
 trait TrialsScaffolding[+Case] extends TrialsFactoring[Case] {
   type SupplySyntaxType <: TrialsScaffolding.SupplyToSyntax[Case]
 
+  /** Use this to lose any specialised supply syntax and go back to the regular
+    * [[Trials]] API. The motivation for this is when the `and` combinator is
+    * used to glue together several trials instances, but we want to treat the
+    * result as a plain trials of tuples, rather than calling
+    * [[Trials.withLimits]] etc there and then.
+    *
+    * @return
+    *   The equivalent [[Trials]] instance.
+    */
   def trials: Trials[Case]
 
+  /** Fluent syntax for configuring a limit to the number of cases supplied to a
+    * consumer.
+    *
+    * @param limit
+    *   The maximum number of cases that can be supplied - note that this is no
+    *   guarantee that so many cases will be supplied, it is simply a limit.
+    * @return
+    *   An instance of [[SupplyToSyntax]] with the limit configured.
+    */
   def withLimit(limit: Int): SupplySyntaxType
 
-  @deprecated(
-    "Use `withLimit` followed by calls to `withComplexityLimit`, `withShrinkageAttemptsLimit` and `withShrinkageStop`."
-  )
-  def withLimits(
-      casesLimit: Int,
+  /** Fluent syntax for configuring a limit strategy for the number of cases
+    * supplied to a consumer.
+    *
+    * @param casesLimitStrategyFactory
+    *   A factory method that should produce a *fresh* instance of a
+    *   [[CasesLimitStrategy]] on each call.
+    * @return
+    *   An instance of [[SupplyToSyntax]] with the strategy configured.
+    * @note
+    *   The factory {@code casesLimitStrategyFactory} takes an argument of
+    *   [[CaseSupplyCycle]]; this can be used to dynamically configure the
+    *   strategy depending on which cycle the strategy is intended for, or
+    *   simply disregarded if a one-size-fits-all approach is desired.
+    */
+  def withStrategy(
+      casesLimitStrategyFactory: CaseSupplyCycle => CasesLimitStrategy,
       @deprecated("Use a following call to `withComplexityLimit` instead.")
       complexityLimit: Int = defaultComplexityLimit,
       @deprecated(
@@ -114,8 +170,11 @@ trait TrialsScaffolding[+Case] extends TrialsFactoring[Case] {
       shrinkageStop: ShrinkageStop[Case] = noStopping
   ): SupplySyntaxType
 
-  def withStrategy(
-      casesLimitStrategyFactory: CaseSupplyCycle => CasesLimitStrategy,
+  @deprecated(
+    "Use `withLimit` followed by calls to `withComplexityLimit`, `withShrinkageAttemptsLimit` and `withShrinkageStop`."
+  )
+  def withLimits(
+      casesLimit: Int,
       @deprecated("Use a following call to `withComplexityLimit` instead.")
       complexityLimit: Int = defaultComplexityLimit,
       @deprecated(
