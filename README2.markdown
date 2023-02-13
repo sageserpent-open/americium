@@ -2,43 +2,45 @@
 
 [![Maven Central](https://index.scala-lang.org/sageserpent-open/americium/americium/latest-by-scala-version.svg?color=2465cd&style=flat)](https://index.scala-lang.org/sageserpent-open/americium/americium)
 
+[Americium Wiki](https://github.com/sageserpent-open/americium/wiki)
+
 ## Example
 
 Some code we're not sure about...
 
 ```java
 public class PoorQualityGrouping {
-    // Where has this implementation gone wrong? Surely we've thought of
-    // everything?
-    public static <Element> List<List<Element>> groupsOfAdjacentDuplicates(
-            List<Element> elements) {
-        final Iterator<Element> iterator = elements.iterator();
+  // Where has this implementation gone wrong? Surely we've thought of
+  // everything?
+  public static <Element> List<List<Element>> groupsOfAdjacentDuplicates(
+          List<Element> elements) {
+    final Iterator<Element> iterator = elements.iterator();
 
-        final List<List<Element>> result = new LinkedList<>();
+    final List<List<Element>> result = new LinkedList<>();
 
-        final LinkedList<Element> chunk = new LinkedList<>();
+    final LinkedList<Element> chunk = new LinkedList<>();
 
-        while (iterator.hasNext()) {
-            final Element element = iterator.next();
+    while (iterator.hasNext()) {
+      final Element element = iterator.next();
 
-            // Got to clear the chunk when the element changes...
-            if (!chunk.isEmpty() && chunk.get(0) != element) {
-                // Got to add the chunk to the result before it gets cleared
-                // - and watch out for empty chunks...
-                if (!chunk.isEmpty()) result.add(chunk);
-                chunk.clear();
-            }
-
-            // Always add the latest element to the chunk...
-            chunk.add(element);
-        }
-
-        // Don't forget to add the last chunk to the result - as long as it's
-        // not empty...
+      // Got to clear the chunk when the element changes...
+      if (!chunk.isEmpty() && chunk.get(0) != element) {
+        // Got to add the chunk to the result before it gets cleared
+        // - and watch out for empty chunks...
         if (!chunk.isEmpty()) result.add(chunk);
+        chunk.clear();
+      }
 
-        return result;
+      // Always add the latest element to the chunk...
+      chunk.add(element);
     }
+
+    // Don't forget to add the last chunk to the result - as long as it's
+    // not empty...
+    if (!chunk.isEmpty()) result.add(chunk);
+
+    return result;
+  }
 }
 ```
 
@@ -46,23 +48,23 @@ Let's test it - we'll use the integration with JUnit5 here...
 
 ```java
 class GroupingTest {
-    private static final TrialsScaffolding.SupplyToSyntax<ImmutableList<Integer>>
-            testConfiguration = Trials
-            .api()
-            .integers(1, 10)
-            .immutableLists()
-            .withLimit(15);
+  private static final TrialsScaffolding.SupplyToSyntax<ImmutableList<Integer>>
+          testConfiguration = Trials
+          .api()
+          .integers(1, 10)
+          .immutableLists()
+          .withLimit(15);
 
-    @ConfiguredTrialsTest("testConfiguration")
-    void groupingShouldNotLoseOrGainElements(List<Integer> integerList) {
-        final List<List<Integer>> groups =
-                PoorQualityGrouping.groupsOfAdjacentDuplicates(integerList);
+  @ConfiguredTrialsTest("testConfiguration")
+  void groupingShouldNotLoseOrGainElements(List<Integer> integerList) {
+    final List<List<Integer>> groups =
+            PoorQualityGrouping.groupsOfAdjacentDuplicates(integerList);
 
-        final int size =
-                groups.stream().map(List::size).reduce(Integer::sum).orElse(0);
+    final int size =
+            groups.stream().map(List::size).reduce(Integer::sum).orElse(0);
 
-        assertThat(size, equalTo(integerList.size()));
-    }
+    assertThat(size, equalTo(integerList.size()));
+  }
 }
 ```
 
@@ -141,9 +143,9 @@ import java.math.BigInteger;
 import java.time.*;
 
 class Cookbook {
-    /* Start with a trials api for Java. */
+  /* Start with a trials api for Java. */
 
-    private final static TrialsApi api = Trials.api();
+  private final static TrialsApi api = Trials.api();
 
     /*
      Coax some trials instances out of the api...
@@ -151,61 +153,61 @@ class Cookbook {
       ...
     */
 
-    final Trials<Integer> integers = api.integers();
+  final Trials<Integer> integers = api.integers();
 
-    final Trials<String> strings = api.strings();
+  final Trials<String> strings = api.strings();
 
-    final Trials<Instant> instants = api.instants();
+  final Trials<Instant> instants = api.instants();
 
     /*
      ... or specify your own cases to choose from ...
      ... either with equal probability ...
     */
 
-    final Trials<Color> colors = api.choose(Color.RED, Color.GREEN, Color.BLUE);
+  final Trials<Color> colors = api.choose(Color.RED, Color.GREEN, Color.BLUE);
 
-    /* ... or with weights ... */
+  /* ... or with weights ... */
 
-    final Trials<String> elementsInTheHumanBody = api.chooseWithWeights(
-            Maps.immutableEntry(65,
-                                "Oxygen"),
-            Maps.immutableEntry(18,
-                                "Carbon"),
-            Maps.immutableEntry(10,
-                                "Hydrogen"),
-            Maps.immutableEntry(3,
-                                "Nitrogen"));
+  final Trials<String> elementsInTheHumanBody = api.chooseWithWeights(
+          Maps.immutableEntry(65,
+                              "Oxygen"),
+          Maps.immutableEntry(18,
+                              "Carbon"),
+          Maps.immutableEntry(10,
+                              "Hydrogen"),
+          Maps.immutableEntry(3,
+                              "Nitrogen"));
 
-    /* ... or hard-wire in some single value. */
+  /* ... or hard-wire in some single value. */
 
-    final Trials<Object> thisIsABitEmbarrassing = api.only(null);
+  final Trials<Object> thisIsABitEmbarrassing = api.only(null);
 
-    /* Transform them by mapping. */
+  /* Transform them by mapping. */
 
-    final Trials<Integer> evenNumbers = integers.map(integral -> 2 * integral);
+  final Trials<Integer> evenNumbers = integers.map(integral -> 2 * integral);
 
-    final Trials<ZoneId> zoneIds =
-            api
-                    .choose("UTC",
-                            "Europe/London",
-                            "Asia/Singapore",
-                            "Atlantic/Madeira")
-                    .map(ZoneId::of);
+  final Trials<ZoneId> zoneIds =
+          api
+                  .choose("UTC",
+                          "Europe/London",
+                          "Asia/Singapore",
+                          "Atlantic/Madeira")
+                  .map(ZoneId::of);
 
-    /* Combine them together by flat-mapping. */
+  /* Combine them together by flat-mapping. */
 
-    final Trials<ZonedDateTime> zonedDateTimes =
-            instants.flatMap(instant -> zoneIds.map(zoneId -> ZonedDateTime.ofInstant(
-                    instant,
-                    zoneId)));
+  final Trials<ZonedDateTime> zonedDateTimes =
+          instants.flatMap(instant -> zoneIds.map(zoneId -> ZonedDateTime.ofInstant(
+                  instant,
+                  zoneId)));
 
-    /* Filter out what you don't want. */
+  /* Filter out what you don't want. */
 
-    final Trials<ZonedDateTime> notOnASunday = zonedDateTimes.filter(
-            zonedDateTime -> !zonedDateTime
-                    .toOffsetDateTime()
-                    .getDayOfWeek()
-                    .equals(DayOfWeek.SUNDAY));
+  final Trials<ZonedDateTime> notOnASunday = zonedDateTimes.filter(
+          zonedDateTime -> !zonedDateTime
+                  .toOffsetDateTime()
+                  .getDayOfWeek()
+                  .equals(DayOfWeek.SUNDAY));
 
     /*
      You can alternate between different ways of making the same shape 
@@ -213,54 +215,54 @@ class Cookbook {
      ... either with equal probability ...
     */
 
-    final Trials<Rectangle2D> rectangles =
-            api.doubles().flatMap(x -> api.doubles().flatMap(
-                    y -> api
-                            .doubles()
-                            .flatMap(w -> api
-                                    .doubles()
-                                    .map(h -> new Rectangle2D.Double(x,
-                                                                     y,
-                                                                     w,
-                                                                     h)))));
-
-    final Trials<Ellipse2D> ellipses =
-            api.doubles().flatMap(x -> api.doubles().flatMap(
-                    y -> api
-                            .doubles()
-                            .flatMap(w -> api
-                                    .doubles()
-                                    .map(h -> new Ellipse2D.Double(x,
+  final Trials<Rectangle2D> rectangles =
+          api.doubles().flatMap(x -> api.doubles().flatMap(
+                  y -> api
+                          .doubles()
+                          .flatMap(w -> api
+                                  .doubles()
+                                  .map(h -> new Rectangle2D.Double(x,
                                                                    y,
                                                                    w,
                                                                    h)))));
 
-    final Trials<Shape> shapes = api.alternate(rectangles, ellipses);
+  final Trials<Ellipse2D> ellipses =
+          api.doubles().flatMap(x -> api.doubles().flatMap(
+                  y -> api
+                          .doubles()
+                          .flatMap(w -> api
+                                  .doubles()
+                                  .map(h -> new Ellipse2D.Double(x,
+                                                                 y,
+                                                                 w,
+                                                                 h)))));
 
-    /* ... or with weights. */
+  final Trials<Shape> shapes = api.alternate(rectangles, ellipses);
 
-    final Trials<BigInteger> likelyToBePrime = api.alternateWithWeights(
-            Maps.immutableEntry(10,
-                                api
-                                        .choose(1, 3, 5, 7, 11, 13, 17, 19)
-                                        .map(BigInteger::valueOf)),
-            // Mostly from this pool of small primes - nice and quick.
-            Maps.immutableEntry(1,
-                                api
-                                        .longs()
-                                        .map(BigInteger::valueOf)
-                                        .map(BigInteger::nextProbablePrime))
-            // Occasionally we want a big prime and will pay the cost of 
-            // computing it.
-    );
+  /* ... or with weights. */
+
+  final Trials<BigInteger> likelyToBePrime = api.alternateWithWeights(
+          Maps.immutableEntry(10,
+                              api
+                                      .choose(1, 3, 5, 7, 11, 13, 17, 19)
+                                      .map(BigInteger::valueOf)),
+          // Mostly from this pool of small primes - nice and quick.
+          Maps.immutableEntry(1,
+                              api
+                                      .longs()
+                                      .map(BigInteger::valueOf)
+                                      .map(BigInteger::nextProbablePrime))
+          // Occasionally we want a big prime and will pay the cost of 
+          // computing it.
+  );
 
     /* Use helper methods to make a trials from some collection out of a simpler
      trials for the collection's elements. */
 
-    final Trials<ImmutableList<Shape>> listsOfShapes = shapes.immutableLists();
+  final Trials<ImmutableList<Shape>> listsOfShapes = shapes.immutableLists();
 
-    final Trials<ImmutableSortedSet<BigInteger>> sortedSetsOfPrimes =
-            likelyToBePrime.immutableSortedSets(BigInteger::compareTo);
+  final Trials<ImmutableSortedSet<BigInteger>> sortedSetsOfPrimes =
+          likelyToBePrime.immutableSortedSets(BigInteger::compareTo);
 
     /*
      Once you've built up the right kind of trials instance, put it to
@@ -269,20 +271,20 @@ class Cookbook {
      the trials machinery will try to shrink down whatever test case caused it.
     */
 
-    @Test
-    public void theExtraDayInALeapYearIsJustNotToleratedIfItsNotOnASunday() {
-        notOnASunday.withLimit(50).supplyTo(when -> {
-            final LocalDate localDate = when.toLocalDate();
+  @Test
+  public void theExtraDayInALeapYearIsJustNotToleratedIfItsNotOnASunday() {
+    notOnASunday.withLimit(50).supplyTo(when -> {
+      final LocalDate localDate = when.toLocalDate();
 
-            try {
-                assert !localDate.getMonth().equals(Month.FEBRUARY) ||
-                       localDate.getDayOfMonth() != 29;
-            } catch (AssertionError exception) {
-                System.out.println(when);   // Watch the shrinkage in action!
-                throw exception;
-            }
-        });
-    }
+      try {
+        assert !localDate.getMonth().equals(Month.FEBRUARY) ||
+               localDate.getDayOfMonth() != 29;
+      } catch (AssertionError exception) {
+        System.out.println(when);   // Watch the shrinkage in action!
+        throw exception;
+      }
+    });
+  }
 }
 ```
 
@@ -333,8 +335,8 @@ class Cookbook extends AnyFlatSpec {
   val evenNumbers: Trials[Int] = integers.map(integral => 2 * integral)
 
   val zoneIds: Trials[ZoneId] = api
-    .choose("UTC", "Europe/London", "Asia/Singapore", "Atlantic/Madeira")
-    .map(ZoneId.of)
+          .choose("UTC", "Europe/London", "Asia/Singapore", "Atlantic/Madeira")
+          .map(ZoneId.of)
 
   /* Combine them together by flat-mapping. */
 
@@ -374,15 +376,15 @@ class Cookbook extends AnyFlatSpec {
 
   val likelyToBePrime: Trials[BigInt] = api.alternateWithWeights(
     10 -> api
-      .choose(1, 3, 5, 7, 11, 13, 17, 19)
-      .map(
-        BigInt.apply
-      ), // Mostly from this pool of small primes - nice and quick.
+            .choose(1, 3, 5, 7, 11, 13, 17, 19)
+            .map(
+              BigInt.apply
+            ), // Mostly from this pool of small primes - nice and quick.
     1 -> api.longs
-      .map(BigInteger.valueOf)
-      .map(
-        _.nextProbablePrime: BigInt
-      ) // Occasionally we want a big prime and will pay the cost of computing it.
+            .map(BigInteger.valueOf)
+            .map(
+              _.nextProbablePrime: BigInt
+            ) // Occasionally we want a big prime and will pay the cost of computing it.
   )
 
   /* Use helper methods to make a trials from some collection out of a simpler
@@ -401,24 +403,27 @@ class Cookbook extends AnyFlatSpec {
 
   "the extra day in a leap year" should "not be tolerated if its not on a Sunday" in {
     notOnASunday
-      .withLimit(50)
-      .supplyTo { when =>
-        val localDate = when.toLocalDate
-        try
-          assert(
-            !(localDate.getMonth == Month.FEBRUARY) || localDate.getDayOfMonth != 29
-          )
-        catch {
-          case exception =>
-            println(when) // Watch the shrinkage in action!
+            .withLimit(50)
+            .supplyTo { when =>
+              val localDate = when.toLocalDate
+              try
+                assert(
+                  !(localDate.getMonth == Month.FEBRUARY) || localDate.getDayOfMonth != 29
+                )
+              catch {
+                case exception =>
+                  println(when) // Watch the shrinkage in action!
 
-            throw exception
-        }
-      }
+                  throw exception
+              }
+            }
   }
 }
 
 ```
 
+## Tell me more... ##
+
+[Here you go ... the Americium Wiki](https://github.com/sageserpent-open/americium/wiki)
 
 
