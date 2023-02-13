@@ -2,6 +2,8 @@ package com.sageserpent.americium.java;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
+import com.google.common.collect.Streams;
 import com.google.common.hash.Hashing;
 import cyclops.control.Try;
 import org.junit.jupiter.api.Test;
@@ -19,7 +21,10 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.*;
 import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import static org.hamcrest.CoreMatchers.allOf;
@@ -275,8 +280,7 @@ public class TrialsApiTests {
                                                .toArray(Integer[]::new)));
             }
 
-            lists = api.collections(builder.build(), () -> new Builder<Integer,
-                    ImmutableList<Integer>>() {
+            lists = api.collections(builder.build(), () -> new Builder<>() {
                 final ImmutableList.Builder<Integer> underlyingBuilder =
                         ImmutableList.builder();
 
@@ -331,8 +335,7 @@ public class TrialsApiTests {
                 api
                         .integers()
                         .collectionsOfSize(numberOfElements,
-                                           () -> new Builder<Integer,
-                                                   List<Integer>>() {
+                                           () -> new Builder<>() {
                                                final List<Integer> list =
                                                        new LinkedList<>();
 
@@ -547,7 +550,7 @@ public class TrialsApiTests {
 
                      "-123.456789, -123.456789, None",
                      "-123.456789, -123.456789, -123.456789",
-                     
+
                      "0.0, 4.9e-324, None",
                      "0.0, 4.9e-324, 0.0",
                      "0.0, 4.9e-324, 4.9e-324",
@@ -687,11 +690,8 @@ public class TrialsApiTests {
             final TrialsFactoring.TrialException trialException =
                     assertThrows(TrialsFactoring.TrialException.class, () -> api
                             .integers()
-                            .withLimits(100,
-                                        Trials.OptionalLimits
-                                                .builder()
-                                                .shrinkageAttempts(0)
-                                                .build())
+                            .withLimit(100)
+                            .withShrinkageAttemptsLimit(0)
                             .supplyTo(caze -> {
                                 if (1 == caze % 2) {
                                     throw new RuntimeException();
@@ -711,13 +711,11 @@ public class TrialsApiTests {
 
         final int highestMagnitude = 100;
 
-        api
-                .integers(-highestMagnitude, 2 * highestMagnitude)
-                .filter(value -> highestMagnitude >= Math.abs(value))
-                .and(api.integers())
-                .withStrategy(casesLimitStrategyFactory,
-                              TrialsScaffolding.OptionalLimits.defaults)
-                .supplyTo(consumer);
+        api.integers(-highestMagnitude, 2 * highestMagnitude)
+           .filter(value -> highestMagnitude >= Math.abs(value))
+           .and(api.integers())
+           .withStrategy(casesLimitStrategyFactory)
+           .supplyTo(consumer);
 
         int countDown = highestMagnitude;
 
@@ -727,5 +725,89 @@ public class TrialsApiTests {
         } while (0 < countDown--);
 
         verify(consumer, atLeast(1)).accept(eq(0), anyInt());
+    }
+
+    @Test
+    void increasingTheComplexityLimitPermitsMoreElaborateTestCases() {
+        final List<Set<String>> setList = IntStream
+                .of(2,
+                    10,
+                    100,
+                    1000,
+                    10000,
+                    100000)
+                // NOTE: have to start with a minimum
+                // complexity of 2 to get any cases at all from
+                // `chainedBooleansAndIntegersInATree`.
+                .mapToObj(complexityLimit -> Streams
+                        .stream(chainedBooleansAndIntegersInATree()
+                                        .withLimit(50)
+                                        .withComplexityLimit(complexityLimit)
+                                        .asIterator())
+                        .collect(Collectors.toSet()))
+                .collect(Collectors.toList());
+
+        Streams.forEachPair(setList.stream(),
+                            setList.stream().skip(1),
+                            (lessComplexCases, moreComplexCases) -> {
+                                assertThat(Sets.intersection(lessComplexCases,
+                                                             moreComplexCases),
+                                           not(empty()));
+
+                                // Use the length of the string test case as
+                                // a measurement of its complexity - the more
+                                // complex the tree represented by the
+                                // string, the longer it will be.
+
+                                final Integer maximumLengthOfLessComplexCases =
+                                        lessComplexCases
+                                                .stream()
+                                                .map(String::length)
+                                                .max(Integer::compareTo).get();
+
+                                final Integer maximumLengthOfMoreComplexCases =
+                                        moreComplexCases
+                                                .stream()
+                                                .map(String::length)
+                                                .max(Integer::compareTo).get();
+
+                                System.out.format(
+                                        "Maximum length of less complex " +
+                                        "cases: %d, maximum length of more " +
+                                        "complex cases: %d.\n",
+                                        maximumLengthOfLessComplexCases,
+                                        maximumLengthOfMoreComplexCases);
+
+
+                                assertThat(maximumLengthOfMoreComplexCases,
+                                           greaterThan(
+                                                   maximumLengthOfLessComplexCases));
+                            });
+    }
+
+    @Test
+    void impossibleCasesCannotBeSupplied() {
+        {
+            final Consumer consumer = mock(Consumer.class);
+
+            api
+                    .<Integer>impossible()
+                    .withLimit(100)
+                    .supplyTo(consumer);
+
+            verify(consumer, never()).accept(anyInt());
+        }
+
+        {
+            final Consumer consumer = mock(Consumer.class);
+
+            api
+                    .integers()
+                    .flatMap(unused -> api.impossible())
+                    .withLimit(100)
+                    .supplyTo(consumer);
+
+            verify(consumer, never()).accept(anyInt());
+        }
     }
 }

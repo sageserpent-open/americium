@@ -20,15 +20,13 @@ public class DemonstrateJUnitIntegration {
     private static final Trials<Long> longs = api.longs();
     private static final TrialsScaffolding.SupplyToSyntax<Long>
             countedLongs =
-            longs.withStrategy(unused -> CasesLimitStrategy.counted(23, 0),
-                               TrialsScaffolding.OptionalLimits.defaults);
+            longs.withStrategy(unused -> CasesLimitStrategy.counted(23, 0));
     private static final TrialsScaffolding.SupplyToSyntax<Long>
             countedEvens =
             longs
                     .filter(value -> 0L == value % 2)
                     .withStrategy(unused -> CasesLimitStrategy.counted(1000,
-                                                                       0.92),
-                                  TrialsScaffolding.OptionalLimits.defaults);
+                                                                       0.92));
     private static final Trials<String> strings =
             api.choose("Fred", "Harold", "Ethel");
     private static final Trials<String> first =
@@ -46,20 +44,17 @@ public class DemonstrateJUnitIntegration {
     private static final Tuple2Trials.SupplyToSyntaxTuple2<String, String>
             configuredStringPairs = first
             .and(second)
-            .withStrategy(TrialsApiTests::oneSecond,
-                          TrialsScaffolding.OptionalLimits.defaults);
+            .withStrategy(TrialsApiTests::oneSecond);
     private static final Trials<String> potentialNulls =
             api.alternate(api.strings(), api.only(null));
 
     private static final Tuple2Trials<String, Integer> pairs =
             potentialNulls.and(api.integers());
     private static final Tuple2Trials.SupplyToSyntaxTuple2<String, Integer>
-            configuredPairs = pairs.withStrategy(TrialsApiTests::oneSecond,
-                                                 TrialsScaffolding.OptionalLimits.defaults);
+            configuredPairs = pairs.withStrategy(TrialsApiTests::oneSecond);
     private static final TrialsScaffolding.SupplyToSyntax<String>
             configuredPotentialNulls =
-            potentialNulls.withStrategy(TrialsApiTests::oneSecond,
-                                        TrialsScaffolding.OptionalLimits.defaults);
+            potentialNulls.withStrategy(TrialsApiTests::oneSecond);
     private static final Tuple3Trials<Integer, Boolean, ImmutableSet<Double>>
             triples = api
             .choose(-326734, 8484)
@@ -72,12 +67,10 @@ public class DemonstrateJUnitIntegration {
     private static final TrialsScaffolding.SupplyToSyntax<Tuple3<Integer,
             Boolean, ImmutableSet<Double>>>
             configuredNullableTriples =
-            nullableTriples.withStrategy(TrialsApiTests::oneSecond,
-                                         TrialsScaffolding.OptionalLimits.defaults);
+            nullableTriples.withStrategy(TrialsApiTests::oneSecond);
     private static final Tuple3Trials.SupplyToSyntaxTuple3<Integer, Boolean,
             ImmutableSet<Double>>
-            configuredTriples = triples.withStrategy(TrialsApiTests::oneSecond,
-                                                     TrialsScaffolding.OptionalLimits.defaults);
+            configuredTriples = triples.withStrategy(TrialsApiTests::oneSecond);
 
     @BeforeEach
     void beforeEach() {

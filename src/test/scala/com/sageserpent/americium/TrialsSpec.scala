@@ -1,7 +1,11 @@
 package com.sageserpent.americium
 
-import com.sageserpent.americium.TrialsImplementation.recipeHashJavaPropertyName
 import com.sageserpent.americium.TrialsScaffolding.{noShrinking, noStopping}
+import com.sageserpent.americium.generation.JavaPropertyNames.{
+  nondeterminsticJavaProperty,
+  recipeHashJavaProperty,
+  recipeJavaProperty
+}
 import com.sageserpent.americium.java.{
   Builder,
   CaseFactory,
@@ -23,6 +27,7 @@ import _root_.java.util.function.{Consumer, Predicate, Function as JavaFunction}
 import _root_.java.util.stream.IntStream
 import _root_.java.util.{Optional, UUID, LinkedList as JavaLinkedList}
 import scala.collection.mutable
+import scala.collection.mutable.ListBuffer
 import scala.jdk.CollectionConverters.*
 import scala.util.Try
 
@@ -1017,7 +1022,43 @@ class TrialsSpec
     forAll(
       Table(
         "trials",
-        api.only(1),
+        api.only(1)              -> 1L,
+        api.choose(1, false, 99) -> 2L,
+        api.alternate(
+          api.choose(0 until 10 map (_.toString)),
+          api.choose(-10 until 0)
+        )                          -> 3L,
+        api.streamLegacy(_ * 1.46) -> 4L,
+        api.alternate(
+          api.streamLegacy(_ * 1.46),
+          api.choose(0 until 10 map (_.toString)),
+          api.choose(-10 until 0)
+        )                                       -> 5L,
+        implicitly[Factory[Option[Int]]].trials -> 6L
+      )
+    ) { case (sut, seed) =>
+      inMockitoSession {
+        val mockConsumer: Any => Unit = mock(classOf[Any => Unit])
+
+        // Whatever cases are supplied set the expectations...
+        sut
+          .withLimit(limit)
+          .withSeed(seed)
+          .supplyTo(expectedCase =>
+            doReturn(()).when(mockConsumer).apply(expectedCase)
+          )
+
+        // ... now let's see if we see the same cases.
+        sut.withLimit(limit).withSeed(seed).supplyTo(mockConsumer)
+
+        verifyNoMoreInteractions(mockConsumer)
+      }
+    }
+
+  they should "may yield varying cases if the seed is varied" in
+    forAll(
+      Table(
+        "trials",
         api.choose(1, false, 99),
         api.alternate(
           api.choose(0 until 10 map (_.toString)),
@@ -1032,21 +1073,27 @@ class TrialsSpec
         implicitly[Factory[Option[Int]]].trials
       )
     ) { sut =>
-      inMockitoSession {
-        val mockConsumer: Any => Unit = mock(classOf[Any => Unit])
+      val casesUsingFirstSeed: ListBuffer[Any] = ListBuffer.empty
 
-        // Whatever cases are supplied set the expectations...
-        sut
-          .withLimit(limit)
-          .supplyTo(expectedCase =>
-            doReturn(()).when(mockConsumer).apply(expectedCase)
-          )
+      val firstSeed = 1L
 
-        // ... now let's see if we see the same cases.
-        sut.withLimit(limit).supplyTo(mockConsumer)
+      sut
+        .withLimit(limit)
+        .withSeed(firstSeed)
+        .supplyTo(casesUsingFirstSeed.addOne)
 
-        verifyNoMoreInteractions(mockConsumer)
-      }
+      val casesUsingSecondSeed: ListBuffer[Any] = ListBuffer.empty
+
+      val anotherSeed = 1 + firstSeed
+
+      sut
+        .withLimit(limit)
+        .withSeed(anotherSeed)
+        .supplyTo(casesUsingSecondSeed.addOne)
+
+      casesUsingSecondSeed should not contain theSameElementsInOrderAs(
+        casesUsingFirstSeed
+      )
     }
 
   they should "not invoke stoppage if no failure is found" in {
@@ -1063,9 +1110,56 @@ class TrialsSpec
         mockPredicate
       }
 
-      sut.withLimits(1, shrinkageStop = explodingStoppage).supplyTo { _ => }
+      sut.withLimit(1).withShrinkageStop(explodingStoppage).supplyTo { _ => }
     }
   }
+
+  they should "not yield any cases if flat-mapped with an impossible trials" in
+    forAll(
+      Table(
+        "trials",
+        api.only(1)              -> 1L,
+        api.choose(1, false, 99) -> 2L,
+        api.alternate(
+          api.choose(0 until 10 map (_.toString)),
+          api.choose(-10 until 0)
+        )                          -> 3L,
+        api.streamLegacy(_ * 1.46) -> 4L,
+        api.alternate(
+          api.streamLegacy(_ * 1.46),
+          api.choose(0 until 10 map (_.toString)),
+          api.choose(-10 until 0)
+        )                                       -> 5L,
+        implicitly[Factory[Option[Int]]].trials -> 6L
+      )
+    ) { case (sut, seed) =>
+      inMockitoSession {
+        {
+          val mockConsumer: Any => Unit = mock(classOf[Any => Unit])
+
+          sut
+            .flatMap(_ => api.impossible)
+            .withLimit(limit)
+            .withSeed(seed)
+            .supplyTo(mockConsumer)
+
+          verify(mockConsumer, never()).apply(any)
+        }
+
+        {
+          val mockConsumer: Consumer[AnyRef] = mock(classOf[Consumer[AnyRef]])
+
+          sut.javaTrials
+            .asInstanceOf[JavaTrials[AnyRef]] // NASTY HACK: this ugly cast isn't needed to make this code compile, but prevent a runtime error when running under Scala 3.1.2.
+            .flatMap[AnyRef](_ => javaApi.impossible)
+            .withLimit(limit)
+            .withSeed(seed)
+            .supplyTo(mockConsumer)
+
+          verify(mockConsumer, never()).accept(any)
+        }
+      }
+    }
 
   they should "produce no more than the limiting number of cases" in
     forAll(
@@ -1198,9 +1292,9 @@ class TrialsSpec
         try {
           cases
             .withStrategy(
-              casesLimitStrategyFactory = casesLimitStrategyFactory,
-              shrinkageAttemptsLimit = shrinkageAttemptsLimit
+              casesLimitStrategyFactory = casesLimitStrategyFactory
             )
+            .withShrinkageAttemptsLimit(shrinkageAttemptsLimit)
             .supplyTo { caze =>
               emissionBalance -= 1
               rejectionBalance -= 1
@@ -1725,7 +1819,8 @@ class TrialsSpec
 
     val shrunkCase = intercept[sut.TrialException](
       sut
-        .withLimits(limit, shrinkageStop = TrialsScaffolding.noStopping)
+        .withLimit(limit)
+        .withShrinkageStop(TrialsScaffolding.noStopping)
         .supplyTo(failureCounterWithNoStoppingCondition.consume)
     ).getCause match {
       case exception: ExceptionWithCasePayload[Long] => exception.caze
@@ -1756,7 +1851,8 @@ class TrialsSpec
 
     val shrunkCaseWithStoppage = intercept[sut.TrialException](
       sut
-        .withLimits(limit, shrinkageStop = shrinkageStop)
+        .withLimit(limit)
+        .withShrinkageStop(shrinkageStop)
         .supplyTo(failureCounterWithStoppingCondition.consume _)
     ).getCause match {
       case exception: ExceptionWithCasePayload[Long] => exception.caze
@@ -1770,7 +1866,8 @@ class TrialsSpec
 
     val shrunkCaseWithoutAnyShrinkage = intercept[sut.TrialException](
       sut
-        .withLimits(limit, shrinkageStop = noShrinking)
+        .withLimit(limit)
+        .withShrinkageStop(noShrinking)
         .supplyTo(failureCounterWithoutAnyShrinkage.consume _)
     ).getCause match {
       case exception: ExceptionWithCasePayload[Long] => exception.caze
@@ -2043,7 +2140,8 @@ class TrialsSpec
     val provokingCase =
       intercept[suts.TrialException](
         suts
-          .withLimits(casesLimit = casesLimit, shrinkageStop = noShrinking)
+          .withLimit(casesLimit)
+          .withShrinkageStop(noShrinking)
           .supplyTo { case (x, y, z) =>
             predicate(threshold = 10)(x, y, z) shouldEqual predicate(threshold =
               9
@@ -2056,7 +2154,8 @@ class TrialsSpec
     val minimisedProvokingCase =
       intercept[suts.TrialException](
         suts
-          .withLimits(casesLimit = casesLimit, shrinkageStop = noStopping)
+          .withLimit(casesLimit)
+          .withShrinkageStop(noStopping)
           .supplyTo { case (x, y, z) =>
             predicate(threshold = 10)(x, y, z) shouldEqual predicate(threshold =
               9
@@ -2185,14 +2284,14 @@ class TrialsSpec
   }
 }
 
-class TrialsSpecInQuarantineDueToUseOfSystemProperty
+class TrialsSpecInQuarantineDueToUseOfRecipeHashSystemProperty
     extends AnyFlatSpec
     with Matchers
     with TableDrivenPropertyChecks
     with MockitoSessionSupport {
   import TrialsSpec.*
 
-  it should "be reproduced by its recipe hash" in forAll(
+  "a failure" should "be reproduced by its recipe hash" in forAll(
     Table(
       "trials",
       api.only(JackInABox(1)),
@@ -2254,7 +2353,7 @@ class TrialsSpecInQuarantineDueToUseOfSystemProperty
       val exceptionRecreatedViaRecipeHash = {
         val previousPropertyValue =
           Option(
-            System.setProperty(recipeHashJavaPropertyName, exception.recipeHash)
+            System.setProperty(recipeHashJavaProperty, exception.recipeHash)
           )
 
         try {
@@ -2263,9 +2362,9 @@ class TrialsSpecInQuarantineDueToUseOfSystemProperty
           )
         } finally {
           previousPropertyValue.fold(ifEmpty =
-            System.clearProperty(recipeHashJavaPropertyName)
+            System.clearProperty(recipeHashJavaProperty)
           )(
-            System.setProperty(recipeHashJavaPropertyName, _)
+            System.setProperty(recipeHashJavaProperty, _)
           )
         }
       }
@@ -2275,6 +2374,147 @@ class TrialsSpecInQuarantineDueToUseOfSystemProperty
       exceptionRecreatedViaRecipeHash.recipeHash shouldBe exception.recipeHash
 
       verify(mockConsumer).apply(any())
+    }
+  }
+}
+
+class TrialsSpecInQuarantineDueToUseOfRecipeSystemProperty
+    extends AnyFlatSpec
+    with Matchers
+    with TableDrivenPropertyChecks
+    with MockitoSessionSupport {
+  import TrialsSpec.*
+
+  "a failure" should "be reproduced by its recipe" in forAll(
+    Table(
+      "trials",
+      api.only(JackInABox(1)),
+      api.choose(1, false, JackInABox(99)),
+      api.alternate(
+        api.only(true),
+        api.choose(0 until 10 map (_.toString) map JackInABox.apply),
+        api.choose(-10 until 0)
+      ),
+      api.alternate(
+        api.only(true),
+        api.choose(-10 until 0),
+        api.alternate(api.choose(-99 to -50), api.only(JackInABox(-2)))
+      ),
+      api.alternate(
+        api.only(true),
+        api.alternate(
+          api.choose(-99 to -50),
+          api.choose("Red herring", false, JackInABox(-2))
+        ),
+        api.choose(-10 until 0)
+      ),
+      api.streamLegacy({
+        case value if 0 == value % 3 => JackInABox(value)
+        case value => value
+      }),
+      api.alternate(
+        api.only(true),
+        api.streamLegacy({
+          case value if 0 == value % 3 => JackInABox(value)
+          case value => value
+        }),
+        api.choose(-10 until 0)
+      ),
+      implicitly[Factory[Option[Int]]].trials.map {
+        case None        => JackInABox(())
+        case Some(value) => value
+      }
+    )
+  ) { sut =>
+    inMockitoSession {
+      val surprisedConsumer: Any => Unit = {
+        case JackInABox(caze) => throw ExceptionWithCasePayload(caze)
+        case _                =>
+      }
+
+      val exception = intercept[sut.TrialException](
+        sut.withLimit(limit).supplyTo(surprisedConsumer)
+      )
+
+      val mockConsumer: Any => Unit = mock(classOf[Any => Unit])
+
+      doAnswer(invocation =>
+        throw ExceptionWithCasePayload(
+          invocation.getArgument[JackInABox[_]](0).caze
+        )
+      ).when(mockConsumer).apply(any[JackInABox[_]]())
+
+      val exceptionRecreatedViaRecipeHash = {
+        // NOTE: simulate what a shell would do with the escaped recipe.
+        val whatWouldBePassedInFromAShell =
+          exception.escapedRecipe.translateEscapes()
+        val previousPropertyValue =
+          Option(
+            System.setProperty(
+              recipeJavaProperty,
+              whatWouldBePassedInFromAShell
+            )
+          )
+
+        try {
+          intercept[sut.TrialException](
+            sut.withLimit(limit).supplyTo(mockConsumer)
+          )
+        } finally {
+          previousPropertyValue.fold(ifEmpty =
+            System.clearProperty(recipeJavaProperty)
+          )(
+            System.setProperty(recipeJavaProperty, _)
+          )
+        }
+      }
+
+      exceptionRecreatedViaRecipeHash.provokingCase shouldBe exception.provokingCase
+      exceptionRecreatedViaRecipeHash.recipe shouldBe exception.recipe
+      exceptionRecreatedViaRecipeHash.recipeHash shouldBe exception.recipeHash
+
+      verify(mockConsumer).apply(any())
+    }
+  }
+}
+
+class TrialsSpecInQuarantineDueToUseOfNondeterministicSystemProperty
+    extends AnyFlatSpec
+    with Matchers
+    with TableDrivenPropertyChecks
+    with MockitoSessionSupport {
+  import TrialsSpec.*
+
+  "successive runs" should "yield different results if nondeterminism is specified" in {
+    val previousPropertyValue =
+      Option(
+        System.setProperty(nondeterminsticJavaProperty, "true")
+      )
+
+    try {
+      val sharedIrrelevantSeed = 1L
+
+      val testCasesFromFirstRun = api.integers.javaTrials
+        .withLimit(limit)
+        .withSeed(sharedIrrelevantSeed)
+        .asIterator()
+        .asScala
+        .toSeq
+
+      val testCasesFromSecondRun = api.integers.javaTrials
+        .withLimit(limit)
+        .withSeed(sharedIrrelevantSeed)
+        .asIterator()
+        .asScala
+        .toSeq
+
+      testCasesFromSecondRun should not equal testCasesFromFirstRun
+    } finally {
+      previousPropertyValue.fold(ifEmpty =
+        System.clearProperty(nondeterminsticJavaProperty)
+      )(
+        System.setProperty(nondeterminsticJavaProperty, _)
+      )
     }
   }
 }
