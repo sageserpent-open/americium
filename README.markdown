@@ -4,6 +4,8 @@
 
 [Americium Wiki](https://github.com/sageserpent-open/americium/wiki)
 
+[Old Project Page](https://github.com/sageserpent-open/americium/blob/master/README-OLD.markdown)
+
 ## Example
 
 Some code we're not sure about...
