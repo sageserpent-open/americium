@@ -316,7 +316,7 @@ public interface TrialsScaffolding<Case,
          * The maximum permitted complexity when generating a case.
          *
          * @apiNote Complexity is something associated with the production of
-         * a {@link Case} when a {@link Trials} is supplied to some test
+         * a {@code Case} when a {@link Trials} is supplied to some test
          * consumer. It ranges from one up to (and including) the {@code
          * complexityLimit} and captures some sense of the case being more
          * elaborately constructed as it increases - as an example, the use
