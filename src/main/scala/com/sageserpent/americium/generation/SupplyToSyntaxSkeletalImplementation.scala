@@ -232,6 +232,7 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
       scaleDeflationLevel: Option[Int],
       shrinkageIsImproving: ShrinkageIsImproving,
       decisionStagesToGuideShrinkage: Option[DecisionStages],
+      shrinkageAttemptIndex: Int,
       cycleIndex: Int
   ): (
       Fs2Stream[SyncIO, CaseData],
@@ -534,10 +535,9 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
 
     {
       val caseSupplyCycle = new CaseSupplyCycle {
-        override def numberOfPreviousCycles(): Int =
-          cycleIndex
+        override def numberOfPreviousCycles(): Int = cycleIndex
 
-        override def numberOfPreviousFailures(): Int = cycleIndex
+        override def numberOfPreviousFailures(): Int = shrinkageAttemptIndex
       }
 
       val casesLimitStrategy = casesLimitStrategyFactory(caseSupplyCycle)
@@ -738,6 +738,7 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
           caseData: CaseData,
           throwable: Throwable,
           shrinkageAttemptIndex: Int,
+          cycleIndex: Int,
           scaleDeflationLevel: Int,
           numberOfShrinksInPanicModeIncludingThisOne: Int,
           externalStoppingCondition: Case => Boolean,
@@ -768,7 +769,8 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
             decisionStagesToGuideShrinkage = Option.when(
               0 < numberOfShrinksInPanicModeIncludingThisOne
             )(caseData.decisionStagesInReverseOrder.reverse),
-            cycleIndex = 1 + shrinkageAttemptIndex
+            shrinkageAttemptIndex = shrinkageAttemptIndex,
+            cycleIndex = cycleIndex
           ) match {
             case (cases, inlinedCaseFiltration) =>
               cases.flatMap { case potentialShrunkCaseData =>
@@ -801,6 +803,7 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
                               caseData = potentialShrunkCaseData,
                               throwable = throwableFromPotentialShrunkCase,
                               shrinkageAttemptIndex = 1 + shrinkageAttemptIndex,
+                              cycleIndex = 1 + cycleIndex,
                               scaleDeflationLevel =
                                 scaleDeflationLevelForRecursion,
                               numberOfShrinksInPanicModeIncludingThisOne = 0,
@@ -816,6 +819,7 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
                                   throwable = throwableFromPotentialShrunkCase,
                                   shrinkageAttemptIndex =
                                     1 + shrinkageAttemptIndex,
+                                  cycleIndex = 2 + cycleIndex,
                                   scaleDeflationLevel = scaleDeflationLevel,
                                   numberOfShrinksInPanicModeIncludingThisOne =
                                     1 + numberOfShrinksInPanicModeIncludingThisOne,
@@ -850,6 +854,7 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
         scaleDeflationLevel = None,
         shrinkageIsImproving = _ => true,
         decisionStagesToGuideShrinkage = None,
+        shrinkageAttemptIndex = 0,
         cycleIndex = 0
       ) match {
         case (cases, inlinedCaseFiltration) =>
@@ -863,6 +868,7 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
                       caseData = caseData,
                       throwable = throwable,
                       shrinkageAttemptIndex = 0,
+                      cycleIndex = 1,
                       scaleDeflationLevel = 0,
                       numberOfShrinksInPanicModeIncludingThisOne = 0,
                       externalStoppingCondition = shrinkageStop(),
