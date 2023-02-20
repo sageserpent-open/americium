@@ -1,85 +1,120 @@
-# Americium - **_Test cases galore! Automatic case shrinkage! Bring your own test style. For Scala and Java..._**
+# Americium - **_Property based testing for Java and Scala! Automatic test case shrinkage! Bring your own test style._**
 
 [![Maven Central](https://index.scala-lang.org/sageserpent-open/americium/americium/latest-by-scala-version.svg?color=2465cd&style=flat)](https://index.scala-lang.org/sageserpent-open/americium/americium)
 
+[Americium Wiki](https://github.com/sageserpent-open/americium/wiki)
+
+[Old Project Page](https://github.com/sageserpent-open/americium/blob/master/README-OLD.markdown)
+
+## Example
+
+Some code we're not sure about...
+
 ```java
-import com.google.common.collect.ImmutableList;
-import com.sageserpent.americium.java.Trials;
-import com.sageserpent.americium.java.TrialsApi;
-import com.sageserpent.americium.java.TrialsFactoring;
-import org.junit.jupiter.api.Test;
+public class PoorQualityGrouping {
+  // Where has this implementation gone wrong? Surely we've thought of
+  // everything?
+  public static <Element> List<List<Element>> groupsOfAdjacentDuplicates(
+          List<Element> elements) {
+    final Iterator<Element> iterator = elements.iterator();
 
-import java.util.Collection;
+    final List<List<Element>> result = new LinkedList<>();
 
-public class SystemUnderTest {
-    public static void printSum(Collection<Integer> input) {
-        final int sum =
-                input.stream().reduce((lhs, rhs) -> lhs + rhs).get(); // Oops.
+    final LinkedList<Element> chunk = new LinkedList<>();
 
-        System.out.println(sum);
+    while (iterator.hasNext()) {
+      final Element element = iterator.next();
+
+      // Got to clear the chunk when the element changes...
+      if (!chunk.isEmpty() && chunk.get(0) != element) {
+        // Got to add the chunk to the result before it gets cleared
+        // - and watch out for empty chunks...
+        if (!chunk.isEmpty()) result.add(chunk);
+        chunk.clear();
+      }
+
+      // Always add the latest element to the chunk...
+      chunk.add(element);
     }
-}
 
-class ReallySimpleTestSuite {
-    final TrialsApi api = Trials.api();
+    // Don't forget to add the last chunk to the result - as long as it's
+    // not empty...
+    if (!chunk.isEmpty()) result.add(chunk);
 
-    final Trials<ImmutableList<Integer>> trials =
-            api.integers().immutableLists();
-
-    @Test
-    void doesItEmitSmoke() {
-        try {
-            trials.withLimit(100).supplyTo(SystemUnderTest::printSum);
-        } catch (
-                TrialsFactoring.TrialException exception) {
-            System.out.println(exception.getCause()); // java.util.NoSuchElementException: No value present
-            System.out.println(exception.provokingCase()); // []
-            System.out.println(exception.recipe()); // [{"ChoiceOf" : {"index" : 0}}]
-        }
-
-        try {
-            trials.withRecipe("[{\"ChoiceOf\" : {\"index\" : 0}}]")
-                  .supplyTo(SystemUnderTest::printSum);
-        } catch (
-                TrialsFactoring.TrialException exception) {
-            System.out.println(exception.getCause()); // java.util.NoSuchElementException: No value present
-            System.out.println(exception.provokingCase()); // []
-            System.out.println(exception.recipe()); // [{"ChoiceOf" : {"index" : 0}}]
-        }
-    }
+    return result;
+  }
 }
 ```
 
-## What? ##
+Let's test it - we'll use the integration with JUnit5 here...
 
-Welcome to Americium, the home of the `Trials` testing utility for Scala and Java.
+```java
+class GroupingTest {
+  private static final TrialsScaffolding.SupplyToSyntax<ImmutableList<Integer>>
+          testConfiguration = Trials
+          .api()
+          .integers(1, 10)
+          .immutableLists()
+          .withLimit(15);
 
-`Trials` ...
+  @ConfiguredTrialsTest("testConfiguration")
+  void groupingShouldNotLoseOrGainElements(List<Integer> integerList) {
+    final List<List<Integer>> groups =
+            PoorQualityGrouping.groupsOfAdjacentDuplicates(integerList);
 
-1. Generates test case data for parameterised tests.
-2. Offers automatic and efficient shrinkage to a minimal or nearly-minimal test case. __Yes, invariants are preserved on
-   test case data.__ No, you don't need to write custom shrinkage code.
-3. Offers __direct reproduction of a failing, minimised test case__.
-4. Gets out of the way of testing style - doesn't care about whether the tests are pure functional or imperative,
-   doesn't offer a DSL or try to structure your test suite.
-5. Supports Scala and Java as first class citizens.
-   <br><br>
-7. Has an __optional__ integration with JUnit5 in the spirit of the `@ParameterizedTest` annotation.
-   <br><br>
-9. Covers finite combinations of atomic cases without duplication when building composite cases.
-10. Supports covariance of test case generation in Scala, so cases for a subclass can be substituted for cases for a
-    supertrait/superclass.
-11. Supports covariance of test case generation in Java, so cases for a subclass can be substituted for cases for a
-    superinterface/superclass.
-12. Allows automatic derivation of test case generation for sum/product types (aka case class hierarchies) in the spirit
-    of Scalacheck Shapeless.
+    final int size =
+            groups.stream().map(List::size).reduce(Integer::sum).orElse(0);
+
+    assertThat(size, equalTo(integerList.size()));
+  }
+}
+```
+
+What happens?
+
+- Americium runs the same test repeatedly against different test case inputs, and finds a failing test case. Oh dear...
+
+![](./screenshots/FailingExample.png)
+
+- The first failing test case leads to an automatic shrinkage process that yields a maximally shrunk test case. See how
+  the failing test case's values lie between 1 and 10, just as specified in the test. Shrinking respects the constraints
+  we configured into our test data...
+
+![](./screenshots/Shrinkage.png)
+
+- Americium also tells us what the maximally shrunk test case was and how to reproduce it immediately when we re-run the
+  test...
+
+```
+Case:
+[1, 1, 2]
+Reproduce via Java property:
+trials.recipeHash=3b2a3709bf92b8551b2e9ae0b8b6d526
+Reproduce via Java property:
+trials.recipe="[{\"ChoiceOf\":{\"index\":1}},{\"FactoryInputOf\":{\"input\":2}},{\"ChoiceOf\":{\"index\":1}},{\"FactoryInputOf\":{\"input\":1}},{\"ChoiceOf\":{\"index\":1}},{\"FactoryInputOf\":{\"input\":1}},{\"ChoiceOf\":{\"index\":0}}]"
+```
+
+![](./screenshots/Reproduction.png)
+
+Now go and fix it! (_HINT:_ `final LinkedList<Element> chunk = new LinkedList<>();` Why final? What was the intent? Do
+the Java collections work that way? Maybe the test expectations should have been more stringent?)
+
+## Goals
+
+- Agnostic - as long as your test takes a test case, throws an exception when it fails and completes normally otherwise,
+  it can be used with Americium.
+- Lightweight - there is no provided assertion language or property DSL; Americium is about building test cases,
+  supplying them to a test and shrinking down failing test cases. Your tests, your style of writing them.
+- Suitable for Java and Scala - there are two APIs, each optimised for the choice of language.
+- Shrinkage is automatic and respects test case invariants. You don't write shrinkage code and your shrunk test cases
+  conform to how you want them built.
 
 In addition, there are some enhancements to the Scala `Random` class that might also pique your interest, but go see for
 yourself in the code, it's simple enough...
 
 ## Cookbook ##
 
-- Start with a trials api for either Java or Scala.
+- Start with a trials api specialized for Java or Scala.
 - Coax some trials instances out of the api - either use the factory methods that give you canned trials instances, or
   specify your own cases to choose from (either with equal probability or with weights), or hard-wire in some single
   value.
@@ -110,9 +145,9 @@ import java.math.BigInteger;
 import java.time.*;
 
 class Cookbook {
-    /* Start with a trials api for Java. */
+  /* Start with a trials api for Java. */
 
-    private final static TrialsApi api = Trials.api();
+  private final static TrialsApi api = Trials.api();
 
     /*
      Coax some trials instances out of the api...
@@ -120,61 +155,61 @@ class Cookbook {
       ...
     */
 
-    final Trials<Integer> integers = api.integers();
+  final Trials<Integer> integers = api.integers();
 
-    final Trials<String> strings = api.strings();
+  final Trials<String> strings = api.strings();
 
-    final Trials<Instant> instants = api.instants();
+  final Trials<Instant> instants = api.instants();
 
     /*
      ... or specify your own cases to choose from ...
      ... either with equal probability ...
     */
 
-    final Trials<Color> colors = api.choose(Color.RED, Color.GREEN, Color.BLUE);
+  final Trials<Color> colors = api.choose(Color.RED, Color.GREEN, Color.BLUE);
 
-    /* ... or with weights ... */
+  /* ... or with weights ... */
 
-    final Trials<String> elementsInTheHumanBody = api.chooseWithWeights(
-            Maps.immutableEntry(65,
-                                "Oxygen"),
-            Maps.immutableEntry(18,
-                                "Carbon"),
-            Maps.immutableEntry(10,
-                                "Hydrogen"),
-            Maps.immutableEntry(3,
-                                "Nitrogen"));
+  final Trials<String> elementsInTheHumanBody = api.chooseWithWeights(
+          Maps.immutableEntry(65,
+                              "Oxygen"),
+          Maps.immutableEntry(18,
+                              "Carbon"),
+          Maps.immutableEntry(10,
+                              "Hydrogen"),
+          Maps.immutableEntry(3,
+                              "Nitrogen"));
 
-    /* ... or hard-wire in some single value. */
+  /* ... or hard-wire in some single value. */
 
-    final Trials<Object> thisIsABitEmbarrassing = api.only(null);
+  final Trials<Object> thisIsABitEmbarrassing = api.only(null);
 
-    /* Transform them by mapping. */
+  /* Transform them by mapping. */
 
-    final Trials<Integer> evenNumbers = integers.map(integral -> 2 * integral);
+  final Trials<Integer> evenNumbers = integers.map(integral -> 2 * integral);
 
-    final Trials<ZoneId> zoneIds =
-            api
-                    .choose("UTC",
-                            "Europe/London",
-                            "Asia/Singapore",
-                            "Atlantic/Madeira")
-                    .map(ZoneId::of);
+  final Trials<ZoneId> zoneIds =
+          api
+                  .choose("UTC",
+                          "Europe/London",
+                          "Asia/Singapore",
+                          "Atlantic/Madeira")
+                  .map(ZoneId::of);
 
-    /* Combine them together by flat-mapping. */
+  /* Combine them together by flat-mapping. */
 
-    final Trials<ZonedDateTime> zonedDateTimes =
-            instants.flatMap(instant -> zoneIds.map(zoneId -> ZonedDateTime.ofInstant(
-                    instant,
-                    zoneId)));
+  final Trials<ZonedDateTime> zonedDateTimes =
+          instants.flatMap(instant -> zoneIds.map(zoneId -> ZonedDateTime.ofInstant(
+                  instant,
+                  zoneId)));
 
-    /* Filter out what you don't want. */
+  /* Filter out what you don't want. */
 
-    final Trials<ZonedDateTime> notOnASunday = zonedDateTimes.filter(
-            zonedDateTime -> !zonedDateTime
-                    .toOffsetDateTime()
-                    .getDayOfWeek()
-                    .equals(DayOfWeek.SUNDAY));
+  final Trials<ZonedDateTime> notOnASunday = zonedDateTimes.filter(
+          zonedDateTime -> !zonedDateTime
+                  .toOffsetDateTime()
+                  .getDayOfWeek()
+                  .equals(DayOfWeek.SUNDAY));
 
     /*
      You can alternate between different ways of making the same shape 
@@ -182,54 +217,54 @@ class Cookbook {
      ... either with equal probability ...
     */
 
-    final Trials<Rectangle2D> rectangles =
-            api.doubles().flatMap(x -> api.doubles().flatMap(
-                    y -> api
-                            .doubles()
-                            .flatMap(w -> api
-                                    .doubles()
-                                    .map(h -> new Rectangle2D.Double(x,
-                                                                     y,
-                                                                     w,
-                                                                     h)))));
-
-    final Trials<Ellipse2D> ellipses =
-            api.doubles().flatMap(x -> api.doubles().flatMap(
-                    y -> api
-                            .doubles()
-                            .flatMap(w -> api
-                                    .doubles()
-                                    .map(h -> new Ellipse2D.Double(x,
+  final Trials<Rectangle2D> rectangles =
+          api.doubles().flatMap(x -> api.doubles().flatMap(
+                  y -> api
+                          .doubles()
+                          .flatMap(w -> api
+                                  .doubles()
+                                  .map(h -> new Rectangle2D.Double(x,
                                                                    y,
                                                                    w,
                                                                    h)))));
 
-    final Trials<Shape> shapes = api.alternate(rectangles, ellipses);
+  final Trials<Ellipse2D> ellipses =
+          api.doubles().flatMap(x -> api.doubles().flatMap(
+                  y -> api
+                          .doubles()
+                          .flatMap(w -> api
+                                  .doubles()
+                                  .map(h -> new Ellipse2D.Double(x,
+                                                                 y,
+                                                                 w,
+                                                                 h)))));
 
-    /* ... or with weights. */
+  final Trials<Shape> shapes = api.alternate(rectangles, ellipses);
 
-    final Trials<BigInteger> likelyToBePrime = api.alternateWithWeights(
-            Maps.immutableEntry(10,
-                                api
-                                        .choose(1, 3, 5, 7, 11, 13, 17, 19)
-                                        .map(BigInteger::valueOf)),
-            // Mostly from this pool of small primes - nice and quick.
-            Maps.immutableEntry(1,
-                                api
-                                        .longs()
-                                        .map(BigInteger::valueOf)
-                                        .map(BigInteger::nextProbablePrime))
-            // Occasionally we want a big prime and will pay the cost of 
-            // computing it.
-    );
+  /* ... or with weights. */
+
+  final Trials<BigInteger> likelyToBePrime = api.alternateWithWeights(
+          Maps.immutableEntry(10,
+                              api
+                                      .choose(1, 3, 5, 7, 11, 13, 17, 19)
+                                      .map(BigInteger::valueOf)),
+          // Mostly from this pool of small primes - nice and quick.
+          Maps.immutableEntry(1,
+                              api
+                                      .longs()
+                                      .map(BigInteger::valueOf)
+                                      .map(BigInteger::nextProbablePrime))
+          // Occasionally we want a big prime and will pay the cost of 
+          // computing it.
+  );
 
     /* Use helper methods to make a trials from some collection out of a simpler
      trials for the collection's elements. */
 
-    final Trials<ImmutableList<Shape>> listsOfShapes = shapes.immutableLists();
+  final Trials<ImmutableList<Shape>> listsOfShapes = shapes.immutableLists();
 
-    final Trials<ImmutableSortedSet<BigInteger>> sortedSetsOfPrimes =
-            likelyToBePrime.immutableSortedSets(BigInteger::compareTo);
+  final Trials<ImmutableSortedSet<BigInteger>> sortedSetsOfPrimes =
+          likelyToBePrime.immutableSortedSets(BigInteger::compareTo);
 
     /*
      Once you've built up the right kind of trials instance, put it to
@@ -238,20 +273,20 @@ class Cookbook {
      the trials machinery will try to shrink down whatever test case caused it.
     */
 
-    @Test
-    public void theExtraDayInALeapYearIsJustNotToleratedIfItsNotOnASunday() {
-        notOnASunday.withLimit(50).supplyTo(when -> {
-            final LocalDate localDate = when.toLocalDate();
+  @Test
+  public void theExtraDayInALeapYearIsJustNotToleratedIfItsNotOnASunday() {
+    notOnASunday.withLimit(50).supplyTo(when -> {
+      final LocalDate localDate = when.toLocalDate();
 
-            try {
-                assert !localDate.getMonth().equals(Month.FEBRUARY) ||
-                       localDate.getDayOfMonth() != 29;
-            } catch (AssertionError exception) {
-                System.out.println(when);   // Watch the shrinkage in action!
-                throw exception;
-            }
-        });
-    }
+      try {
+        assert !localDate.getMonth().equals(Month.FEBRUARY) ||
+               localDate.getDayOfMonth() != 29;
+      } catch (AssertionError exception) {
+        System.out.println(when);   // Watch the shrinkage in action!
+        throw exception;
+      }
+    });
+  }
 }
 ```
 
@@ -302,8 +337,8 @@ class Cookbook extends AnyFlatSpec {
   val evenNumbers: Trials[Int] = integers.map(integral => 2 * integral)
 
   val zoneIds: Trials[ZoneId] = api
-    .choose("UTC", "Europe/London", "Asia/Singapore", "Atlantic/Madeira")
-    .map(ZoneId.of)
+          .choose("UTC", "Europe/London", "Asia/Singapore", "Atlantic/Madeira")
+          .map(ZoneId.of)
 
   /* Combine them together by flat-mapping. */
 
@@ -343,15 +378,15 @@ class Cookbook extends AnyFlatSpec {
 
   val likelyToBePrime: Trials[BigInt] = api.alternateWithWeights(
     10 -> api
-      .choose(1, 3, 5, 7, 11, 13, 17, 19)
-      .map(
-        BigInt.apply
-      ), // Mostly from this pool of small primes - nice and quick.
+            .choose(1, 3, 5, 7, 11, 13, 17, 19)
+            .map(
+              BigInt.apply
+            ), // Mostly from this pool of small primes - nice and quick.
     1 -> api.longs
-      .map(BigInteger.valueOf)
-      .map(
-        _.nextProbablePrime: BigInt
-      ) // Occasionally we want a big prime and will pay the cost of computing it.
+            .map(BigInteger.valueOf)
+            .map(
+              _.nextProbablePrime: BigInt
+            ) // Occasionally we want a big prime and will pay the cost of computing it.
   )
 
   /* Use helper methods to make a trials from some collection out of a simpler
@@ -370,594 +405,27 @@ class Cookbook extends AnyFlatSpec {
 
   "the extra day in a leap year" should "not be tolerated if its not on a Sunday" in {
     notOnASunday
-      .withLimit(50)
-      .supplyTo { when =>
-        val localDate = when.toLocalDate
-        try
-          assert(
-            !(localDate.getMonth == Month.FEBRUARY) || localDate.getDayOfMonth != 29
-          )
-        catch {
-          case exception =>
-            println(when) // Watch the shrinkage in action!
+            .withLimit(50)
+            .supplyTo { when =>
+              val localDate = when.toLocalDate
+              try
+                assert(
+                  !(localDate.getMonth == Month.FEBRUARY) || localDate.getDayOfMonth != 29
+                )
+              catch {
+                case exception =>
+                  println(when) // Watch the shrinkage in action!
 
-            throw exception
-        }
-      }
+                  throw exception
+              }
+            }
   }
 }
 
 ```
 
-## Why? ##
+## Tell me more... ##
 
-You like writing parameterised tests - so you have a block of test code expressed as a test method or function of lambda
-form, and something that pumps test cases into that code block as one or more arguments.
+[Here you go ... the Americium Wiki](https://github.com/sageserpent-open/americium/wiki)
 
-At this point, the likes of QuickCheck, FsCheck and Scalacheck come to mind, amongst others. If you are working in
-Scala, then you'll probably be thinking of Scalacheck, maybe ZioTest, perhaps Hedgehog...? If in Java, then Jqwik,
-JUnit-QuickCheck, QuickTheories or possibly VavrTest?
 
-All great things - the author has had the benefit of using Scalacheck for several years on various Scala works, finding
-all kinds of obscure, knotty bugs that would otherwise lay hidden until the fateful day in production. Likewise VavrTest
-has helped for the Java works. Fun has been had with ZioTest and Hedgehog too...
-
-However, one nagging problem with both Scalacheck and VavrTest is in the matter of test case shrinkage - it's all very
-well when a parameterised test fails for some case, but reproducing and debugging the failure can be a real pain.
-
-For one thing, not all frameworks allow direct reproduction of the offending test case - so if each individual test
-execution for a piece of data takes appreciable time, then running the entire parameterised test up to the point of
-failure can take minutes for more sophisticated tests. What's more, the test case that provokes the test failure may be
-extraordinarily complex; these frameworks all use the notion of building up test cases based on combining randomly
-varying data into bigger and bigger chunks, which often means that whatever provokes a failure is buried in a complex
-test case with additional random data that is of no relevance to the failure.
-
-For example, if we are testing a stable sorting algorithm in Scala, we may find due to the use of weak equality in the
-sort algorithm that it is not stable, so equivalent entries in the list are rearranged in order with respect to each
-other:
-
-```scala
-import scala.math.Ordering
-
-// Insertion sort, but with a bug...
-def notSoStableSort[Element](
-                              elements: List[Element]
-                            )(implicit ordering: Ordering[Element]): List[Element] =
-  elements match {
-    case Nil => Nil
-    case head :: tail =>
-      // Spot the deliberate mistake......vvvv
-      notSoStableSort(tail).span(ordering.lteq(_, head)) match {
-        case (first, second) => first ++ (head :: second)
-      }
-  }
-
-notSoStableSort(Nil: List[(Int, Int)])(
-  Ordering.by(_._1)
-) // List() - Hey - worked first time...
-notSoStableSort(List(1 -> 2))(
-  Ordering.by(_._1)
-) // List((1,2)) - Yeah, check those edge cases!
-notSoStableSort(List(1 -> 2, -1 -> 9))(
-  Ordering.by(_._1)
-) // List((-1,9), (1,2)) - Fancy a beer, anyone?
-notSoStableSort(List(1 -> 2, -1 -> 9, 1 -> 3))(
-  Ordering.by(_._1)
-) // List((-1,9), (1,3), (1,2)) ? Uh? I wanted List((-1,9), (1,2), (1,3))!!!!
-notSoStableSort(List(1 -> 2, 1 -> 3))(
-  Ordering.by(_._1)
-) // List((1,3), (1,2)) ? Huh! I wanted List((1,2), (1,3)) - going to be working overtime...
-
-```
-
-Now this isn't so painful because it's a toy problem and we know exactly where to start debugging, and therefore how to
-minimise the test case (the last one is a minimal case, all we need to do is submit two entries that are not equal
-by `==` but are in terms of the supplied ordering).
-
-Think this is always going to be the case? Take a look at this one (currently unsolved, still using
-Scalacheck): https://github.com/sageserpent-open/plutonium/issues/57 - in particular, look at the test failure logs on
-the ticket. All that gibberish in the logs is *one single test case*. Want to try debugging through that? How would you
-minimise it?
-
-This is made all the worse by the rarity of this bug - in fact, Scalacheck used to use random seed values back when this
-bug was first encountered, so the the test only failed once in a blue moon. To make this failure reproducible each time
-means that the test has to run a *long, long* time. Even more fun if you're in a debugging session watching your
-breakpoints being hit for several hundred successful cases before you get to the one that finally fails, whichever it
-is...
-
-What we want here is something that __automatically shrinks a failing test case down to a minimal test case__ (or at
-least reasonably close to one), and provides some way of __reproducing this minimal test case directly__ without having
-to slog through a whole bunch of successful cases we aren't interested in.
-
-After toiling through quite a few of these monster test failures in the Plutonium, Curium and several commercial
-projects, the author decided to address this issue.
-
-To be fair, there are some frameworks out there that also offer automatic test case shrinkage - your mileage may vary.
-Scalacheck does this, but with caveats: https://github.com/typelevel/scalacheck/pull/440. ZioTest does this too, give it
-a whirl and see how you fare. So does Hedgehog for that matter...
-
-This brings us to the next pain point for the author, which is the extent to which the framework has opinions about how
-your code is to be structured. Scalacheck comes not only with generation of test cases, but its own property-checking
-DSL and style of assembling a test suite, which you may or may not buy into. There is an integration into Scalatest so
-that you can supply test cases to a Scalatest test - perhaps you might like that better? MUnit will let you use
-Scalacheck, but you are back to its own DSL ... or perhaps you'd prefer UTest - not sure what you'd do there...
-
-... or maybe you write in Java and use JUnit? What then? VavrTest doesn't at time of writing offer any shrinkage
-support.
-
-What the author wanted was something that acts like Scalacheck, but also:
-
-1. Offers automatic shrinkage to a minimal or nearly-minimal test case.
-2. Offers direct reproduction of a failing, minimised test case.
-3. Gets out of the way of testing style - doesn't care about whether the tests are pure functional or imperative,
-   doesn't offer a DSL or try to structure your test suite.
-4. Supports Scala and Java as first class citizens.
-
-In time this broadened to the fuller set of features listed at the start of this readme.
-
-## Example ##
-
-Let's take our sorting implementation above, write some proper parameterised tests and drive them via a `Trials`
-instance ...
-
-```scala
-
-import com.sageserpent.americium.Trials.api // Start with the Scala api for `Trials`...
-
-// We're going to sort a list of associations (key-value pairs) by the key...
-val ordering = Ordering.by[(Int, Int), Int](_._1)
-
-// Build up a trials instance for key value pairs by flat-mapping from simpler
-// trials instances for the keys and values...
-val keyValuePairs: Trials[(Int, Int)] = for {
-  key <- api.choose(
-    0 to 100
-  ) // We want to encourage duplicated keys - so a key is always some integer from 0 up to but not including 100.
-  value <-
-    api.integers // A value on the other hand is any integer from right across the permissible range.
-} yield key -> value
-
-// Here's the trials instance we use to drive the tests for sorting...
-val associationLists: Trials[List[(Int, Int)]] =
-  keyValuePairs.lists // This makes a trials of lists out of the simpler trials of key-value pairs.
-
-"stableSorting" should "sort according to the ordering" in
-  associationLists
-    .filter(
-      _.nonEmpty
-    ) // Filter out the empty case as we can't assert sensibly on it.
-    .withLimit(200) // Only check up to 200 cases inclusive.
-    .supplyTo { nonEmptyAssocationList: List[(Int, Int)] =>
-      // This is a parameterised test, using `nonEmptyAssociationList` as the
-      // test case parameter...
-      val sortedResult = notSoStableSort(nonEmptyAssocationList)(ordering)
-
-      // Using Scalatest assertions here...
-      assert(
-        sortedResult.zip(sortedResult.tail).forall((ordering.lteq _).tupled)
-      )
-    }
-
-it should "conserve the original elements" in
-  associationLists.withLimit(200).supplyTo {
-    associationList: List[(Int, Int)] =>
-      val sortedResult = notSoStableSort(associationList)(ordering)
-
-      sortedResult should contain theSameElementsAs associationList
-  }
-
-// Until the bug is fixed, we expect this test to fail...
-it should "also preserve the original order of the subsequences of elements that are equivalent according to the order" in
-  associationLists.withLimit(200).supplyTo {
-    associationList: List[(Int, Int)] =>
-      Trials.whenever(
-        associationList.nonEmpty
-      ) // Filter out the empty case as while we can assert on it, the assertion would be trivial.
-      {
-        val sortedResult = notSoStableSort(associationList)(ordering)
-
-        assert(sortedResult.groupBy(_._1) == associationList.groupBy(_._1))
-      }
-  }
-```
-
-Run the tests - the last one will fail with a nicely minimised case:
-
-```org.scalatest.exceptions.TestFailedException: HashMap(46 -> List((46,0), (46,2))) did not equal HashMap(46 -> List((46,2), (46,0)))
-Expected :HashMap(46 -> List((46,2), (46,0)))
-Actual   :org.scalatest.exceptions.TestFailedException: HashMap(46 -> List((46,0), (46,2)))
-
-Trial exception with underlying cause:
-org.scalatest.exceptions.TestFailedException: HashMap(46 -> List((46,0), (46,2))) did not equal HashMap(46 -> List((46,2), (46,0)))
-Case:
-List((46,2), (46,0))
-Reproduce with recipe:
-[
-.... block of JSON ....
-]
-```
-
-We also see a JSON recipe for reproduction too further down in the output. We can use this recipe to make a temporary
-bug-reproduction test that focuses solely on the test case causing the problem:
-
-   ```scala
-// Until the bug is fixed, we expect this test to fail...
-it should "also preserve the original order of the subsequences of elements that are equivalent according to the order - this time with the failure reproduced directly" ignore
-  associationLists
-    .withRecipe(
-      """[
-        |    {
-        |        "ChoiceOf" : {
-        |            "index" : 1
-        |        }
-        |    },
-        |    {
-        |        "ChoiceOf" : {
-        |            "index" : 46
-        |        }
-        |    },
-        |    {
-        |        "FactoryInputOf" : {
-        |            "input" : 0
-        |        }
-        |    },
-        |    {
-        |        "ChoiceOf" : {
-        |            "index" : 1
-        |        }
-        |    },
-        |    {
-        |        "ChoiceOf" : {
-        |            "index" : 46
-        |        }
-        |    },
-        |    {
-        |        "FactoryInputOf" : {
-        |            "input" : 2
-        |        }
-        |    },
-        |    {
-        |        "ChoiceOf" : {
-        |            "index" : 0
-        |        }
-        |    }
-        |]""".stripMargin)
-    .supplyTo { associationList: List[(Int, Int)] =>
-      val sortedResult = notSoStableSort(associationList)(ordering)
-
-      assert(sortedResult.groupBy(_._1) == associationList.groupBy(_._1))
-    } 
-   ```
-
-## Rhetorical Questions ##
-
-### How did this come about? ###
-
-As mentioned in the introduction above, working on this issue in the Plutonium
-project (https://github.com/sageserpent-open/plutonium/issues/57) exposed an infrequent bug via Scalacheck whose failing
-test cases were frightfully complex and not shrinkable by default. Until that bug can be reproduced via a minimised test
-case, it won't be fixed.
-
-The problem is that the test cases have invariants that are constraints on how the test data is built up - simply
-flinging arbitrary values of the right types together can build invalid test cases that cause such tests to fail with
-false negatives independently of the system under test. What is needed is something that shrinks a failing test case
-while sticking with the logic that enforces the invariant on the test cases being shrunk.
-
-Working with Scalacheck on
-this: [ImmutableObjectStorageSpec](https://github.com/sageserpent-open/curium/blob/8455ee0a387c6ab5373283a21f88ab6044d59ee1/src/test/scala/com/sageserpent/plutonium/curium/ImmutableObjectStorageSpec.scala#L227)
-in the Curium project motivated the author to try out some alternatives to Scalacheck; Zio and Hedgehog were explored,
-and they both allow integrated shrinking for free that respects the test case invariants. However they don't quite suit
-the author's wishlist for parameterised testing in general, so along came Americium.
-
-### The history starts with _"Start a project for the F# to Scala port of the Test Case Generation library."_. Huh? ###
-
-Ah - a long time ago there was an F# project that used some utility code that was hived off into a helper assembly - see
-here: https://github.com/sageserpent-open/NTestCaseBuilder/tree/master/development/solution/SageSerpent.Infrastructure
-
-Some of that code was ported to Scala as a learning exercise and ended up being used by the Plutonium and Curium
-projects as a shared dumping ground for utilities, including things for testing - see
-here: https://github.com/sageserpent-open/americium/blob/master/src/main/scala/com/sageserpent/americium/RandomEnrichment.scala
-
-Being lazy, the author carried on with the ignoble tradition of dumping experimental but useful code into the project,
-then decided to bury its murky past and re-invent it as a respectable member of society supporting parameterised
-testing. Now you know its terrible secret...
-
-### Americium? Plutonium? Curium? ###
-
-The author has a great appreciation of the actinide elements. There is a Neptunium project too, but he changed the name
-of its repository to make its use-case more obvious.
-
-### The introduction mentions Scalacheck Shapeless, do explain... ###
-
-This the automatic generation of trials for structured types, and is brought to us via the Magnolia library - see it in
-action here:
-[TrialsSpec.scala](https://github.com/sageserpent-open/americium/blob/7219c8982380458397e54be207b6769b991d0ef4/src/test/scala/com/sageserpent/americium/TrialsSpec.scala#L1506)
-and here:
-[TrialsSpec.scala](https://github.com/sageserpent-open/americium/blob/7219c8982380458397e54be207b6769b991d0ef4/src/test/scala-2.13/com/sageserpent/americium/TrialsSpecSpecificToScala2_13.scala#L13)
-
-Ask for a trials of your case class hierarchy types, and it shall be written for you!
-
-### When I use the `.choose` to build a trials instance from an API object, it won't shrink - why? ###
-
-Yes, and that is currently by design. When you use the `.choose` method to build a trials instance, you are saying
-that *you* want to provide the choices and that they are all equally as good - think of the members of an enumeration,
-for instance, or perhaps some user input choices in a UI. The trials machinery doesn't know anything about the domain
-these choices come from and won't try to order them according to some ranking of simplicity - they are taken to be
-equally valid.
-
-What *does* get shrunk is the complexity of the test cases - so if we have collections, or some kind of recursive
-definition, then smaller collections are taken to be simpler, as are cases built with less recursion. Collections shrink
-towards empty collections.
-
-Furthermore, the streaming factory methods - `.doubles`, `.integers`, `.stream` etc also support shrinking - they have
-an internal parameter that controls the range of the generated values, so as shrinkage proceeds, the values get '
-smaller' in some sense. For numeric values, that usually means tending towards zero from both positive and negative
-values.
-
-The `.strings` factory method shrinks in the same manner as for collections - the strings get shorter, tending to the
-empty string, although the characters range over the full UTF-16 set.
-
-This choice isn't written in stone - rather than using `.choose`, use the streaming factory methods that allow custom
-ranges, either via overloads of `.integers`, `.longs` and `.characters` or directly in `.stream` using a `CaseFactory`.
-These also permit some other value to be the one that shrinkage tends to. See here for an
-example: [TrialsApiTests](https://github.com/sageserpent-open/americium/blob/6fdd3db7f07e398018de80ce8130a5582648a346/src/test/scala/com/sageserpent/americium/java/TrialsApiTests.java#L309)
-.
-
-That example also shows how strings can be built from the output of `.characters` in Java - use this example
-here: [TrialsSpec](https://github.com/sageserpent-open/americium/blob/6fdd3db7f07e398018de80ce8130a5582648a346/src/test/scala/com/sageserpent/americium/TrialsSpec.scala#L218)
-if you are writing in Scala. Note that when you do this, you have the ability to shrink your strings based on both
-length and the character values.
-
-### Are the cases yielded by `.doubles`, `.integers`, `.stream` randomly distributed? ###
-
-Yes, and they should span pretty much the whole range of allowed values. As shrinkage kicks in, this range contracts to
-the 'minimal value' - zero for numeric values, but that can be customised when using `.stream`. See the `CaseFactory`
-interface if you want to customise the range of allowed values and where the minimal value lies in that range, it
-doesn't have to sit in the middle.
-
-As mentioned in the previous section, there are also some convenience overloads of `.integers`, `.longs`
-and `.characters` for this purpose too.
-
-Hedgehog supports custom distributions and ranges, and Scalacheck has some heuristics for biasing its otherwise random
-distributions. You can implement this by supplying your own `CaseFactory` instance that skews the input values, and you
-can also move the input value for the maximally shrunk case to some favoured value, as shrinkage will home in on it.
-
-### If I write a recursive definition of a trials instance, do I need to protect against infinite recursion with a size parameter? ###
-
-No, but you do need to stop trivial infinite recursion. Thankfully that is simple, see here:
-[TrialsSpec.scala](https://github.com/sageserpent-open/americium/blob/e69b9fb60cd90796d96ba1126a90f6c1ab2a7a1d/src/test/scala/com/sageserpent/americium/TrialsSpec.scala#L59)
-Either wrap the recursive calls in a following bind in a flatmap, this will cause them to be evaluated lazily, or if you
-need to lead with a recursive call, wrap it in a call to `.delay`. Both techniques are shown in that example.
-
-Actually, I oversimplified - sure, you won't need to stop lazily-evaluated infinite recursion, but it is possible to
-mess up a highly recursive trials instance so that it simply doesn't generate any data, due to what is called the '
-complexity limit' kicking in. A potential case has an associated complexity, and if in the process of building up an
-individual case the complexity exceeds the limit, then this will discard that case from being formulated - this is how
-infinite recursion is prevented as a nice side benefit. However, one can write recursively formulated trials instances
-that are 'bushy' - there are several parallel paths of recursion at each step, and this tends to result in complete and
-utter failure to generate anything more than very simple cases. To see how this is worked around, take a look
-here: [TrialsSpec.scala](https://github.com/sageserpent-open/americium/blob/5ea1b3088adaaa0270a944ee1694950975b2b911/src/test/scala/com/sageserpent/americium/TrialsSpec.scala#L94)
-.
-
-### I can see a reference to Scalacheck in the project dependencies. So is this just a sham? ###
-
-Um ... you mean this one
-here:  [TrialsLaws](https://github.com/sageserpent-open/americium/blob/afe7fca4215bfa00879b553aa7805bb5f8cf2d64/src/test/scala/com/sageserpent/americium/TrialsLaws.scala#L32)
-?
-
-Well, the Cats laws testing framework is used to prove that `Trials` is a decent, law-abiding monadic type, and that
-framework plugs into Scalacheck, so yes, there is a *test* dependency.
-
-The author is truly embarrassed by this, but in his defence, notes that if Cats laws testing could be plugged
-into `Trials`, we would have recursively tested code. Not impossible to do, but requires a careful bootstrap approach to
-avoid testing a broken SUT with itself.
-
-An integration of `Trials` with Cats, or more generally with Scalacheck properties would be great though. Plenty of folk
-like Scalacheck's properties, so while it's not to the author's taste, why exclude them?
-
-### I want my test to work with multiple test parameters. ###
-
-Right, you mean perhaps that you want to preconfigure an SUT as one test parameter and then have a test plan implemented
-as a command sequence passed on via a second test parameter, or something like that? Maybe you have some stubs that
-interact with the SUT that you want to preconfigure and pass in via their own test parameters?
-
-Fear not - build up as many trials instances as you like for the bits and pieces you want to pass into the test, then
-join them together with the `.and` method. You get back an object that you can call `.withLimit(...).supplyTo`
-or `.withRecipe(...).supplyTo` as usual, only this time the test passed to `supplyTo` takes multiple parameters, or
-alternatively tuples of parameters - your choice.
-
-It's easy:
-[Java example](https://github.com/sageserpent-open/americium/blob/afe7fca4215bfa00879b553aa7805bb5f8cf2d64/src/test/scala/com/sageserpent/americium/java/TrialsApiTests.java#L240)
-,
-[Scala example](https://github.com/sageserpent-open/americium/blob/afe7fca4215bfa00879b553aa7805bb5f8cf2d64/src/test/scala/com/sageserpent/americium/RichSeqSpec.scala#L50)
-.
-
-### Where are the controls? ###
-
-Not down the sofa nestling betwixt the cushions - instead, they are to found between `Trials` and `.supplyTo` and are
-called `.withLimit` (two overloads) and `.withLimits` (also two overloads).
-
-The drill is to build your `Trials` instance to produce the right type of cases with any invariants you want, then to
-call one of `.withLimit(s)` on it, thus configuring how the trials will supply cases to a following call of `.supplyTo`.
-
-So the pattern is:
-
-`<trials>.withLimit(s)(<configuration>).supplyTo(<test consumer>)`
-
-For the simplest approach,
-use [`.withLimit`](https://github.com/sageserpent-open/americium/blob/9b78c966f38773af3214adab524374af89cdd14b/src/main/scala/com/sageserpent/americium/java/TrialsScaffolding.java#L28)
-and pass in the maximum number of cases you would like to have supplied to your test consumer.
-
-In Scala, full bells and whistles is provided
-by [`.withLimits`](https://github.com/sageserpent-open/americium/blob/9b78c966f38773af3214adab524374af89cdd14b/src/main/scala/com/sageserpent/americium/TrialsScaffolding.scala#L91)
-.
-
-This allows a maximum number of cases, the maximum complexity, the maximum number of shrinkage attempts and a 'shrinkage
-stop' to be configured. Other than the mandatory maximum number of cases, all other items are optional.
-
-In Java, the equivalent is provided by a combination
-of [`.withLimits`](https://github.com/sageserpent-open/americium/blob/9b78c966f38773af3214adab524374af89cdd14b/src/main/scala/com/sageserpent/americium/java/TrialsScaffolding.java#L141)
-and [`OptionalLimits`](https://github.com/sageserpent-open/americium/blob/9b78c966f38773af3214adab524374af89cdd14b/src/main/scala/com/sageserpent/americium/java/TrialsScaffolding.java#L83)
-.
-
-Setting the maximum number of shrinkage attempts to zero disables shrinkage altogether - so the original failing case is
-yielded.
-
-The shrinkage stop is a way for the user to control shrinkage externally via a callback style interface. Essentially
-a [`ShrinkageStop`](https://github.com/sageserpent-open/americium/blob/9b78c966f38773af3214adab524374af89cdd14b/src/main/scala/com/sageserpent/americium/java/TrialsScaffolding.java#L65)
-is a factory for a stateful predicate that you supply that could, say:
-
-1. Monitor the number of invocations - thus counting the number of successful shrinkages.
-2. Check heap usage.
-3. Check against a timeout since the start of shrinkage.
-4. Check the quality of the best shrunk case so far.
-
-When it returns true, the shrinkage process is terminated early with the best shrunk case seen so far, regardless of
-whether the maximum number of shrinkage attempts has been reached or not. In fact, there is a difference between
-configuring the maximum number of shrinkage attempts and counting the shrinkages - the former includes a panic mode
-where the shrinkage mechanism has not yet managed to shrink further on a previous failing case, but is still retrying,
-whereas the shrinkage stop predicate is only invoked with freshly shrunk cases where progress has been made.
-
-### How do I directly run a minimised test failure without modifying or duplicating my failing test? ###
-
-Ah yes, `.withRecipe` is all well and good - it takes you straight to the minimised test failure, but it means you
-either have to temporarily modify your existing test, or duplicate it, or add some ugly conditional path to choose
-either `.withLimits` or `.withRecipe`. This isn't a problem if you like to preserve the minimised test failures as tests
-in their own right, say for bug reproduction work, but is annoying most of the time.
-
-Fortunately, there is a way to force your existing test that uses `.withLimit` / `.withLimits` to focus on just the
-minimised test failure - use a _recipe hash_.
-
-Whenever the `Trials` machinery finds a minimised test failure, it stores a mapping between a hash of the recipe JSON -
-the recipe hash - and the recipe JSON itself in a database located in the Java temporary directory location.
-
-This database usually has a default name, but if you want to override this, set the Java property `trials.runDatabase`
-accordingly.
-
-Anyway, the `TrialsException` thrown when `Trials` decides it has found the minimised test failure contains both the
-full recipe JSON *and* the recipe hash - so make a note of the recipe hash.
-
-You can then re-execute the same test without modification, setting the Java property `trials.recipeHash` to be the
-recipe hash you just noted. This will tell the `Trials` machinery to go straight to the minimised test failure without
-generating any other cases.
-
-Once you've debugged and fixed the failure, remove the property setting and the test will go back to the usual mode of
-operation. Easy! This also works with the JUnit5 integration too.
-
-### Suppose a test wants to reject a test case based on the test's own logic?  ###
-
-Presumably you've examined the `Trials.filter` method and found it wanting - maybe there is something about the validity
-of the test case that can only be determined by the act of testing itself?
-
-An example would be where the system under test parses some test case text according to a mysterious format that only it
-truly understands - so there is an element of chance in the test itself as to whether the test case is valid or not -
-the only way to weed out irrelevant test cases is to try the parse and detect any failure prior to proceeding with the
-rest of the test. Of course, one could argue that maybe the parsing stage itself should be moved into the construction
-of the `Trials` instance, but there might be construction dependencies of the system under test that mean it can only be
-built within the context of a running test.
-
-Another example might be a situation where the test case is a composite 'test-plan' made of commands that are
-interpreted in the test to set up and drive some system under test that has mutable state - you can't do this on the fly
-in a `Trials` instance as that is deliberately stateless, as are the test cases it yields. Instead, the test plan
-captures the intent to run the commands later on within the test, so the test plan itself remains stateless. This works
-nicely, but can lead to a situation where the commands can push the system under test into performing an illegal
-operation based on whatever state it is currently in at some point in the executing test plan. Rather than
-second-guessing what the test plan might do and filtering based on that insight, a simpler approach is again to just try
-it out and intercept the cases where it causes the system under test to reject a command.
-
-Still another example might be that the test may adapt its behaviour depending on resource constraints, say the amount
-of memory available - so the decision as to whether or not a test case is in scope may only be made by the test.
-
-This can be done conveniently using `Trials.whenever`, which acts as a block construct that guards some inner test code
-with a precondition. If the precondition isn't met, the inner test code isn't executed and the `Trials` machinery is
-informed that the offending test case should be considered as being filtered out.
-
-Unlike explicit filtration via `Trials.filter`, this 'inlined filtration' is applied after the fact, and strictly
-speaking doesn't even have to examine the test case to reject it - because the test case is supplied to the test code
-that calls `Trials.whenever`, the case is implied when the guard precondition doesn't hold, whatever the reason.
-
-The `Trials` machinery keep tabs on inlined filtration, and will make the same guarantees as to coverage of test cases
-that it would make if an explicit filtration is used.
-
-Here is
-a [Java example](https://github.com/sageserpent-open/americium/blob/8f0582c3654d0c4000e4311c9cc89be7372f8864/src/test/scala/com/sageserpent/americium/java/TrialsApiTests.java#L202)
-and here is
-a [Scala example](https://github.com/sageserpent-open/americium/blob/03128c4ae691114294eba6583f42ff5e587fb047/src/test/scala/com/sageserpent/americium/SortingExample.scala#L67)
-.
-
-### How does the JUnit5 integration work? ###
-
-The core API of `Trials` doesn't try to force a testing style over and above supplying test cases to a lambda that is
-your test code. However, if you've used the standard `@ParameterizedTest` annotation supplied by JUnit5, then you might
-want to stick with that style of setting out your tests.
-
-If so, you're in luck as there is a similar annotation: `@TrialsTest`. This replaces the combination
-of `@ParameterizedTest` and whichever of `@ValueSource` / `@MethodSource` / etc that you would have used - the idea is
-to place the `@TrialsTest` annotation on your parameterised test method instead.
-
-The connection between the test method parameters and `Trials` is made by the `trials` attribute in the annotation -
-this lists the names of fields of type `Trials` that you define in your JUnit5 test suite; these may be static or
-non-static according to taste. Currently, each trials field is mapped one to one with a parameter of the annotated test
-method.
-
-(Remember, if you use non-static fields for your `Trials`, then you will have to annotate the test class
-with `@TestInstance(TestInstance.Lifecycle.PER_CLASS)`, analogously to how `@MethodSource` picks up non-static factory
-methods)
-
-Additional attributes in the annotation configure the test case generation analogously to calls to `.withLimits`. Take a
-look
-here: [JUnit5 integration](https://github.com/sageserpent-open/americium/blob/159e7203b957dff7517aaa5aa09f00b38be54bdb/src/test/scala/com/sageserpent/americium/java/DemonstrateJUnitIntegration.java#L59)
-, it's pretty straightforward to set up.
-
-As with `@ParameterizedTest`, test templates are used, thus the use of setup and teardown methods via `@BeforeEach`
-and `@AfterEach` are supported for each test template.
-
-The test templates are guided by shrinkage, so as soon as an individual test template fails, subsequent test templates
-will start to shrink down to a minimised test template; the overall JUnit5 test run will report the minimised test case
-along with details as to how to reproduce it directly.
-
-If your IDE supports clicking on a test template run to re-execute it, then this is also supported, in so far as the
-test template is *deterministically* generated - this is down to how JUnit5 handles test templates. What this means is
-that all test templates in a completely successful overall run can be directly re-executed this way individually, and
-all test templates that lead up to and including the first failure can also be directly executed this way too.
-
-Test templates created by shrinkage aren't deterministically generated, as the shrinkage needs the context of previous
-test templates in the overall run, so these are labelled as such to avoid confusion.
-
-If you want to directly execute a minimised failing case, use its recipe hash - this works with the JUnit5 integration
-just as well as for the default lean-and-mean style of testing.
-
-### Why is there a file 'IntelliJCodeStyle.xml' in the project? ###
-
-The author has a real problem with pull requests that consist of a wholesale reformatting of sources that also harbour
-some change in functionality within the reformatting noise. If you want to work on this and contribute back, please use
-the automatic reformatting tools in IntelliJ (or similar) to stick to the existing style. Bear in mind that the chosen
-formatting style isn't the author's favourite, but the simplicity of using automatic formatting on commit by far
-outweighs the meagre joys of having the code look *just so*. Just wait until you do a merge...
-
-The author uses IntelliJ's built-in Java formatter and the integration with Scalafmt.
-
-If you know of a better way of sharing reformatting settings / tooling, raise an issue.
-
-### Where is the Scaladoc? ###
-
-Sorry, while the API has been in development the author has concentrated on keeping the Javadoc up to date. Hopefully
-the Java and Scala APIs are similar enough to translate what is in the Javadoc that isn't captured in the Scala method
-names and signatures. Someday, but until then pull requests are welcome...
-
-### The competition? ###
-
-In Scala, there is at least:
-
-1. Scalacheck
-2. ZioTest
-3. Hedgehog
-4. Scalaprops
-5. Nyaya
-
-In Java, there is at least:
-
-1. Jqwik
-2. QuickTheories
-3. JUnit-QuickCheck
-4. VavrTest
