@@ -1238,53 +1238,63 @@ class TrialsSpec
         var emissionBalance: Int  = 0
         var rejectionBalance: Int = 0
 
-        val casesLimitStrategyFactory = { (caseSupplyCycle: CaseSupplyCycle) =>
-          require(
-            shrinkageAttemptsLimit >= caseSupplyCycle
-              .numberOfPreviousCycles()
-          )
+        val casesLimitStrategyFactory = {
+          var numbersOfCallsMade: Int = 0
 
-          new CasesLimitStrategy {
-            var rejectionCount  = 0
-            var emissionCount   = 0
-            var starvationCount = 0
+          { (caseSupplyCycle: CaseSupplyCycle) =>
+            require(
+              shrinkageAttemptsLimit >= caseSupplyCycle
+                .numberOfPreviousFailures()
+            )
 
-            var limitReached = false
+            require(
+              numbersOfCallsMade == caseSupplyCycle.numberOfPreviousCycles()
+            )
 
-            override def moreToDo(): Boolean = {
-              require(!limitReached)
+            numbersOfCallsMade += 1
 
-              val result =
-                emissionCount < maximumEmission && starvationCount < maximumStarvation
+            new CasesLimitStrategy {
+              var rejectionCount  = 0
+              var emissionCount   = 0
+              var starvationCount = 0
 
-              if (!result) {
-                limitReached = true
-                println(
-                  s"Limit reached - Maximum emission: $maximumEmission, actual emission: $emissionCount, maximum starvation: $maximumStarvation, actual starvation: $starvationCount"
-                )
+              var limitReached = false
+
+              override def moreToDo(): Boolean = {
+                require(!limitReached)
+
+                val result =
+                  emissionCount < maximumEmission && starvationCount < maximumStarvation
+
+                if (!result) {
+                  limitReached = true
+                  println(
+                    s"Limit reached - Maximum emission: $maximumEmission, actual emission: $emissionCount, maximum starvation: $maximumStarvation, actual starvation: $starvationCount"
+                  )
+                }
+
+                result
               }
 
-              result
-            }
+              override def noteRejectionOfCase(): Unit = {
+                require(!limitReached)
 
-            override def noteRejectionOfCase(): Unit = {
-              require(!limitReached)
+                rejectionCount += 1
+                rejectionBalance += 1
+              }
 
-              rejectionCount += 1
-              rejectionBalance += 1
-            }
+              override def noteEmissionOfCase(): Unit = {
+                require(!limitReached)
 
-            override def noteEmissionOfCase(): Unit = {
-              require(!limitReached)
+                emissionCount += 1
+                emissionBalance += 1
+              }
 
-              emissionCount += 1
-              emissionBalance += 1
-            }
+              override def noteStarvation(): Unit = {
+                require(!limitReached)
 
-            override def noteStarvation(): Unit = {
-              require(!limitReached)
-
-              starvationCount += 1
+                starvationCount += 1
+              }
             }
           }
         }

@@ -18,4 +18,12 @@ public interface CaseSupplyCycle {
      * if {@link #isInitial()} is true.
      */
     int numberOfPreviousCycles();
+
+    /**
+     * @return The number of failed trials seen in previous cycles.
+     * @apiNote This can be lag behind
+     * {@link CaseSupplyCycle#numberOfPreviousCycles()} if a cycle has not
+     * encountered a failure, but the shrinkage wants to press on anyway.
+     */
+    int numberOfPreviousFailures();
 }
