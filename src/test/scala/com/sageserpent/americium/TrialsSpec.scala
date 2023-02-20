@@ -1244,7 +1244,7 @@ class TrialsSpec
           { (caseSupplyCycle: CaseSupplyCycle) =>
             require(
               shrinkageAttemptsLimit >= caseSupplyCycle
-                .numberOfPreviousCycles()
+                .numberOfPreviousFailures()
             )
 
             require(

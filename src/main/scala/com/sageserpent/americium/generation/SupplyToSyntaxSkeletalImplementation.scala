@@ -536,6 +536,8 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
       val caseSupplyCycle = new CaseSupplyCycle {
         override def numberOfPreviousCycles(): Int =
           cycleIndex
+
+        override def numberOfPreviousFailures(): Int = cycleIndex
       }
 
       val casesLimitStrategy = casesLimitStrategyFactory(caseSupplyCycle)
