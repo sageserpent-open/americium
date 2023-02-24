@@ -1309,11 +1309,13 @@ class TrialsSpec
               emissionBalance -= 1
               rejectionBalance -= 1
 
-              Trials.whenever(0 == caze.hashCode() % 13) {
-                rejectionBalance += 1 // NASTY HACK: undo the speculative compensation of the rejection balance, as no such rejection has actually taken place.
+              val guardPrecondition = 0 == caze.hashCode() % 13
 
-                if (0 == caze.sum % 12) throw new RuntimeException
-              }
+              if (!guardPrecondition) Trials.reject()
+
+              rejectionBalance += 1 // NASTY HACK: undo the speculative compensation of the rejection balance, as no such rejection has actually taken place.
+
+              if (0 == caze.sum % 12) throw new RuntimeException
             }
         } catch {
           case failure: cases.TrialException =>
@@ -1955,13 +1957,13 @@ class TrialsSpec
   }
 
   "inlined filtration" should "execute the controlled block if and only if the precondition holds" in {
-    Trials.whenever(satisfiedPrecondition = false) {
+    Trials.whenever(guardPrecondition = false) {
       fail(
         "If the precondition doesn't hold, the block should not be executed."
       )
     }
 
-    Trials.whenever(satisfiedPrecondition = true) {}
+    Trials.whenever(guardPrecondition = true) {}
   }
 
   private val oddHash = 1 == (_: Any).hashCode % 2

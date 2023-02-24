@@ -41,11 +41,25 @@ object Trials {
     * @param block
     *   The core testing code, lazily evaluated.
     */
-  def whenever(satisfiedPrecondition: Boolean)(
+  def whenever(guardPrecondition: Boolean)(
       block: => Unit
   ): Unit =
-    if (satisfiedPrecondition) block
-    else throwInlineFilterRejection.value.apply()
+    if (guardPrecondition) block
+    else reject()
+
+  /** Reject the test case that has been supplied to the currently executing
+    * trial; this aborts the trial, but more test cases can still be supplied.
+    * Like the use of filtration, this approach will interact correctly with the
+    * shrinkage mechanism, which is why it is provided.
+    *
+    * @note
+    *   This method will abort a trial's execution by throwing a private
+    *   exception handled by the framework implementation. If it is called
+    *   outside a trial, then it returns control as a no-operation.
+    */
+  def reject(): Unit = {
+    throwInlineFilterRejection.value.apply()
+  }
 
   implicit class CharacterTrialsSyntax(val characterTrials: Trials[Char]) {
     def strings: Trials[String] = characterTrials.several

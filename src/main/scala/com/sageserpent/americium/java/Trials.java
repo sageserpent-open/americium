@@ -39,10 +39,25 @@ public interface Trials<Case> extends
      * @param block             The core testing code as a lambda.
      */
     static void whenever(Boolean guardPrecondition, Runnable block) {
-        com.sageserpent.americium.Trials.whenever(guardPrecondition, () -> {
+        if (guardPrecondition) {
             block.run();
-            return null;
-        });
+        } else {
+            reject();
+        }
+    }
+
+    /**
+     * Reject the test case that has been supplied to the currently executing
+     * trial; this aborts the trial, but more test cases can still be
+     * supplied. Like the use of filtration, this approach will interact
+     * correctly with the shrinkage mechanism, which is why it is provided.
+     *
+     * @apiNote This method will abort a trial's execution by throwing a
+     * private exception handled by the framework implementation. If it is
+     * called outside a trial, then it returns control as a no-operation.
+     */
+    static void reject() {
+        com.sageserpent.americium.Trials.reject();
     }
 
     /**
