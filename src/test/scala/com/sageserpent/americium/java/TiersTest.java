@@ -61,11 +61,8 @@ public class TiersTest {
             });
 
     @TrialsTest(trials = "testCases", casesLimit = 10)
-    void tiersShouldRetainTheLargestElements(Tuple2<ImmutableList<Integer>,
-            ImmutableList<Integer>> testCase) {
-        final ImmutableList<Integer> queryValues = testCase._1();
-        final ImmutableList<Integer> feedSequence = testCase._2();
-
+    void tiersShouldRetainTheLargestElements(ImmutableList<Integer> queryValues,
+                                             ImmutableList<Integer> feedSequence) {
         System.out.format("Query values: %s, feed sequence: %s\n",
                           queryValues,
                           feedSequence);
