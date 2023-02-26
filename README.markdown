@@ -130,7 +130,7 @@ yourself in the code, it's simple enough...
 
 ### Java ###
 
-[or Scala example...](./#Scala)
+[or Scala example...](#scala)
 
 ```java
 
@@ -294,7 +294,7 @@ class Cookbook {
 
 ### Scala ###
 
-[or Java example...](./#Java)
+[or Java example...](#java)
 
 ```scala
 import com.sageserpent.americium.Trials.api
