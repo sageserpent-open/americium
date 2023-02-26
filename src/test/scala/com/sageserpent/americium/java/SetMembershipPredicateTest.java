@@ -1,12 +1,18 @@
 package com.sageserpent.americium.java;
 
 import com.google.common.collect.ImmutableList;
+import org.junit.jupiter.api.Disabled;
 
 import java.util.function.Predicate;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 
+/**
+ * This is expected to fail, it is used as an example of feeding multiple
+ * parameters to a test.
+ */
+@Disabled
 public class SetMembershipPredicateTest {
     private final static Trials<ImmutableList<Long>> lists =
             Trials.api().longs().immutableLists();
