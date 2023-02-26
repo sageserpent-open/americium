@@ -426,6 +426,6 @@ class Cookbook extends AnyFlatSpec {
 
 ## Tell me more... ##
 
-[Here you go ... the Americium Wiki](https://github.com/sageserpent-open/americium/wiki)
+[Start reading through the Americium Wiki](https://github.com/sageserpent-open/americium/wiki/Introducing-Americium-to-your-tests)
 
 
