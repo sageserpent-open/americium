@@ -1,6 +1,9 @@
-package com.sageserpent.americium.java;
+package com.sageserpent.americium.java.examples;
 
 import com.google.common.collect.ImmutableList;
+import com.sageserpent.americium.java.ConfiguredTrialsTest;
+import com.sageserpent.americium.java.Trials;
+import com.sageserpent.americium.java.TrialsScaffolding;
 import org.junit.jupiter.api.Disabled;
 
 import java.util.List;

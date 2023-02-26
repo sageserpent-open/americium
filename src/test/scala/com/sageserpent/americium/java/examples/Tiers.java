@@ -1,4 +1,4 @@
-package com.sageserpent.americium.java;
+package com.sageserpent.americium.java.examples;
 
 import java.util.ArrayList;
 import java.util.Collections;

@@ -1,5 +1,6 @@
-package com.sageserpent.americium
+package com.sageserpent.americium.examples
 
+import com.sageserpent.americium.Trials
 import com.sageserpent.americium.Trials.api
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers

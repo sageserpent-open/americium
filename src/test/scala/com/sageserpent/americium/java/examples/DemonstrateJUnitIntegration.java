@@ -1,6 +1,7 @@
-package com.sageserpent.americium.java;
+package com.sageserpent.americium.java.examples;
 
 import com.google.common.collect.ImmutableSet;
+import com.sageserpent.americium.java.*;
 import com.sageserpent.americium.java.TrialsScaffolding.Tuple2Trials;
 import com.sageserpent.americium.java.TrialsScaffolding.Tuple3Trials;
 import cyclops.data.tuple.Tuple2;
