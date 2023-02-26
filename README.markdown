@@ -130,6 +130,8 @@ yourself in the code, it's simple enough...
 
 ### Java ###
 
+[or Scala example...](./#Scala)
+
 ```java
 
 
@@ -291,6 +293,8 @@ class Cookbook {
 ```
 
 ### Scala ###
+
+[or Java example...](./#Java)
 
 ```scala
 import com.sageserpent.americium.Trials.api
