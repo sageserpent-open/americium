@@ -17,9 +17,15 @@ import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 
 public class TiersTest {
     private final static Trials<ImmutableList<Integer>> queryValueLists = api()
-            .integers(-1000, 1000)
-            .immutableLists()
-            .filter(list -> !list.isEmpty());
+            .integers(1, 10)
+            .flatMap(numberOfChoices -> api()
+                    .integers(-1000, 1000)
+                    .immutableListsOfSize(
+                            numberOfChoices)
+                    .flatMap(choices -> api()
+                            .choose(choices)
+                            .immutableListsOfSize(
+                                    numberOfChoices)));
 
 
     private final static Trials<Tuple2<ImmutableList<Integer>,
@@ -62,7 +68,7 @@ public class TiersTest {
                                                                      feedSequence));
             });
 
-    @TrialsTest(trials = "testCases", casesLimit = 10)
+    @TrialsTest(trials = "testCases", casesLimit = 30)
     void tiersShouldRetainTheLargestElements(ImmutableList<Integer> queryValues,
                                              ImmutableList<Integer> feedSequence) {
         System.out.format("Query values: %s, feed sequence: %s\n",
