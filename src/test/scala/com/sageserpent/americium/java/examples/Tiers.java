@@ -32,10 +32,8 @@ class Tiers<Element extends Comparable<Element>> {
 
     void add(Element element) {
         final int index = Collections.binarySearch(storage, element);
-
-        // (0 > index) Not detected - why?
-        if (0 >= index) {
-            if (0 == index) System.out.format("Ouch: %s\n", element);
+        
+        if (0 > index) {
             storage.add(-(index + 1), element);
         } else {
             storage.add(index, element);
