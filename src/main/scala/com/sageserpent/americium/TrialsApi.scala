@@ -1,7 +1,7 @@
 package com.sageserpent.americium
 
 import cats.Traverse
-import com.sageserpent.americium.java.CaseFactory
+import com.sageserpent.americium.CaseFactory
 
 import _root_.java.time.Instant
 import scala.collection.Factory

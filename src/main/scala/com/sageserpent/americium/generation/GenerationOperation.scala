@@ -1,6 +1,6 @@
 package com.sageserpent.americium.generation
 import cats.free.Free
-import com.sageserpent.americium.java.CaseFactory
+import com.sageserpent.americium.CaseFactory
 
 import scala.collection.immutable.SortedMap
 

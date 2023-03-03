@@ -1,7 +1,13 @@
 package com.sageserpent.americium.java
 import com.google.common.collect.ImmutableList
+import com.sageserpent.americium.generation.Factory
 import com.sageserpent.americium.java.Trials as JavaTrials
-import com.sageserpent.americium.{CommonApi, Trials, TrialsImplementation}
+import com.sageserpent.americium.{
+  CommonApi,
+  Trials,
+  TrialsImplementation,
+  CaseFactory as ScalaCaseFactory
+}
 
 import _root_.java.lang.{
   Boolean as JavaBoolean,
@@ -149,6 +155,22 @@ trait TrialsApiImplementation extends CommonApi with TrialsApiWart {
 
   override def complexities(): TrialsImplementation[JavaInteger] =
     scalaApi.complexities.map(Int.box)
+
+  def stream[Case](
+      caseFactory: CaseFactory[Case]
+  ): TrialsImplementation[Case] = new TrialsImplementation(
+    Factory(new ScalaCaseFactory[Case] {
+      override def apply(input: Long): Case = {
+        require(lowerBoundInput <= input)
+        require(upperBoundInput >= input)
+        caseFactory(input)
+      }
+      override def lowerBoundInput: Long = caseFactory.lowerBoundInput()
+      override def upperBoundInput: Long = caseFactory.upperBoundInput()
+      override def maximallyShrunkInput: Long =
+        caseFactory.maximallyShrunkInput
+    })
+  )
 
   override def streamLegacy[Case](
       factory: JavaFunction[JavaLong, Case]

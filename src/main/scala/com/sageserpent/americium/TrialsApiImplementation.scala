@@ -2,13 +2,7 @@ package com.sageserpent.americium
 import cats.Traverse
 import cats.free.Free
 import cats.implicits.*
-import com.sageserpent.americium.generation.{
-  Choice,
-  FiltrationResult,
-  NoteComplexity,
-  ResetComplexity
-}
-import com.sageserpent.americium.java.CaseFactory
+import com.sageserpent.americium.generation.*
 import com.sageserpent.americium.{
   Trials as ScalaTrials,
   TrialsApi as ScalaTrialsApi
@@ -105,10 +99,10 @@ class TrialsApiImplementation extends CommonApi with ScalaTrialsApi {
 
   override def bytes: TrialsImplementation[Byte] =
     stream(new CaseFactory[Byte] {
-      override def apply(input: Long): Byte     = input.toByte
-      override def lowerBoundInput(): Long      = Byte.MinValue
-      override def upperBoundInput(): Long      = Byte.MaxValue
-      override def maximallyShrunkInput(): Long = 0L
+      override def apply(input: Long): Byte   = input.toByte
+      override def lowerBoundInput: Long      = Byte.MinValue
+      override def upperBoundInput: Long      = Byte.MaxValue
+      override def maximallyShrunkInput: Long = 0L
     })
 
   override def integers: TrialsImplementation[Int] =
@@ -132,10 +126,10 @@ class TrialsApiImplementation extends CommonApi with ScalaTrialsApi {
       shrinkageTarget: Int
   ): TrialsImplementation[Int] =
     stream(new CaseFactory[Int] {
-      override def apply(input: Long): Int      = input.toInt
-      override def lowerBoundInput(): Long      = lowerBound
-      override def upperBoundInput(): Long      = upperBound
-      override def maximallyShrunkInput(): Long = shrinkageTarget
+      override def apply(input: Long): Int    = input.toInt
+      override def lowerBoundInput: Long      = lowerBound
+      override def upperBoundInput: Long      = upperBound
+      override def maximallyShrunkInput: Long = shrinkageTarget
     })
 
   override def nonNegativeIntegers: TrialsImplementation[Int] =
@@ -162,10 +156,10 @@ class TrialsApiImplementation extends CommonApi with ScalaTrialsApi {
       shrinkageTarget: Long
   ): TrialsImplementation[Long] =
     stream(new CaseFactory[Long] {
-      override def apply(input: Long): Long     = input
-      override def lowerBoundInput(): Long      = lowerBound
-      override def upperBoundInput(): Long      = upperBound
-      override def maximallyShrunkInput(): Long = shrinkageTarget
+      override def apply(input: Long): Long   = input
+      override def lowerBoundInput: Long      = lowerBound
+      override def upperBoundInput: Long      = upperBound
+      override def maximallyShrunkInput: Long = shrinkageTarget
     })
 
   override def doubles: TrialsImplementation[Double] =
@@ -224,9 +218,9 @@ class TrialsApiImplementation extends CommonApi with ScalaTrialsApi {
       stream(
         new CaseFactory[Double] {
           lazy val convertedLowerBoundInput: BigDecimal =
-            BigDecimal(lowerBoundInput())
+            BigDecimal(lowerBoundInput)
           lazy val convertedUpperBoundInput: BigDecimal =
-            BigDecimal(upperBoundInput())
+            BigDecimal(upperBoundInput)
 
           // NOTE: the input side representation of `shrinkageTarget` is
           // anchored to an exact long integer, so that the forward conversion
@@ -264,9 +258,9 @@ class TrialsApiImplementation extends CommonApi with ScalaTrialsApi {
               case 0 => shrinkageTarget
             }
           }
-          override def lowerBoundInput(): Long = Long.MinValue
-          override def upperBoundInput(): Long = Long.MaxValue
-          override def maximallyShrunkInput(): Long =
+          override def lowerBoundInput: Long = Long.MinValue
+          override def upperBoundInput: Long = Long.MaxValue
+          override def maximallyShrunkInput: Long =
             convertedMaximallyShrunkInput.toLong
         }
       )
@@ -290,16 +284,32 @@ class TrialsApiImplementation extends CommonApi with ScalaTrialsApi {
       upperBound: Char,
       shrinkageTarget: Char
   ): TrialsImplementation[Char] = stream(new CaseFactory[Char] {
-    override def apply(input: Long): Char     = input.toChar
-    override def lowerBoundInput(): Long      = lowerBound.toLong
-    override def upperBoundInput(): Long      = upperBound.toLong
-    override def maximallyShrunkInput(): Long = shrinkageTarget.toLong
+    override def apply(input: Long): Char   = input.toChar
+    override def lowerBoundInput: Long      = lowerBound.toLong
+    override def upperBoundInput: Long      = upperBound.toLong
+    override def maximallyShrunkInput: Long = shrinkageTarget.toLong
   })
 
   override def instants: TrialsImplementation[Instant] =
     longs.map(Instant.ofEpochMilli)
 
   override def longs: TrialsImplementation[Long] = streamLegacy(identity)
+
+  def stream[Case](
+      caseFactory: CaseFactory[Case]
+  ): TrialsImplementation[Case] = new TrialsImplementation(
+    Factory(new CaseFactory[Case] {
+      override def apply(input: Long): Case = {
+        require(lowerBoundInput <= input)
+        require(upperBoundInput >= input)
+        caseFactory(input)
+      }
+      override def lowerBoundInput: Long = caseFactory.lowerBoundInput
+      override def upperBoundInput: Long = caseFactory.upperBoundInput
+      override def maximallyShrunkInput: Long =
+        caseFactory.maximallyShrunkInput
+    })
+  )
 
   override def streamLegacy[Case](
       factory: Long => Case

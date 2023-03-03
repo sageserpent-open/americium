@@ -18,7 +18,6 @@ import com.sageserpent.americium.generation.SupplyToSyntaxSkeletalImplementation
   rocksDbResource
 }
 import com.sageserpent.americium.java.{
-  CaseFactory,
   CaseFailureReporting,
   CaseSupplyCycle,
   CasesLimitStrategy,
@@ -28,6 +27,7 @@ import com.sageserpent.americium.java.{
 }
 import com.sageserpent.americium.randomEnrichment.RichRandom
 import com.sageserpent.americium.{
+  CaseFactory,
   TestIntegrationContextImplementation,
   Trials,
   TrialsScaffolding as ScalaTrialsScaffolding
@@ -405,17 +405,14 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
                         case _: ChoiceOf       => false
                       })
                       .size
-                  )) && factory
-                  .lowerBoundInput() <= guideInput && factory
-                  .upperBoundInput() >= guideInput =>
+                  )) && factory.lowerBoundInput <= guideInput && factory.upperBoundInput >= guideInput =>
               // Guided shrinkage - can choose a factory input somewhere between
               // the one in the guidance decision stages and the shrinkage
               // target's value.
               val input = Math
                 .round(
-                  factory.maximallyShrunkInput() + randomBehaviour
-                    .nextDouble() * (guideInput - factory
-                    .maximallyShrunkInput())
+                  factory.maximallyShrunkInput + randomBehaviour
+                    .nextDouble() * (guideInput - factory.maximallyShrunkInput)
                 )
 
               for {
@@ -423,7 +420,7 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
                   state.update(
                     Some(remainingGuidance),
                     FactoryInputOf(input),
-                    (BigInt(input) - factory.maximallyShrunkInput())
+                    (BigInt(input) - factory.maximallyShrunkInput)
                       .pow(2)
                   )
                 )
@@ -436,11 +433,11 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
                 _ <- liftUnitIfTheComplexityIsNotTooLarge(state)
                 input = {
                   val upperBoundInput: BigDecimal =
-                    factory.upperBoundInput()
+                    factory.upperBoundInput
                   val lowerBoundInput: BigDecimal =
-                    factory.lowerBoundInput()
+                    factory.lowerBoundInput
                   val maximallyShrunkInput: BigDecimal =
-                    factory.maximallyShrunkInput()
+                    factory.maximallyShrunkInput
 
                   val maximumScale: BigDecimal =
                     upperBoundInput - lowerBoundInput
@@ -491,7 +488,7 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
                     state.decisionStagesToGuideShrinkage
                       .map(_.tail),
                     FactoryInputOf(input),
-                    (BigInt(input) - factory.maximallyShrunkInput())
+                    (BigInt(input) - factory.maximallyShrunkInput)
                       .pow(2)
                   )
                 )
