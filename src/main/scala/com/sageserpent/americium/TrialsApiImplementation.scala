@@ -99,10 +99,10 @@ class TrialsApiImplementation extends CommonApi with ScalaTrialsApi {
 
   override def bytes: TrialsImplementation[Byte] =
     stream(new CaseFactory[Byte] {
-      override def apply(input: Long): Byte   = input.toByte
-      override def lowerBoundInput: Long      = Byte.MinValue
-      override def upperBoundInput: Long      = Byte.MaxValue
-      override def maximallyShrunkInput: Long = 0L
+      override def apply(input: BigInt): Byte   = input.toByte
+      override def lowerBoundInput: BigInt      = Byte.MinValue
+      override def upperBoundInput: BigInt      = Byte.MaxValue
+      override def maximallyShrunkInput: BigInt = 0
     })
 
   override def integers: TrialsImplementation[Int] =
@@ -126,10 +126,10 @@ class TrialsApiImplementation extends CommonApi with ScalaTrialsApi {
       shrinkageTarget: Int
   ): TrialsImplementation[Int] =
     stream(new CaseFactory[Int] {
-      override def apply(input: Long): Int    = input.toInt
-      override def lowerBoundInput: Long      = lowerBound
-      override def upperBoundInput: Long      = upperBound
-      override def maximallyShrunkInput: Long = shrinkageTarget
+      override def apply(input: BigInt): Int    = input.toInt
+      override def lowerBoundInput: BigInt      = lowerBound
+      override def upperBoundInput: BigInt      = upperBound
+      override def maximallyShrunkInput: BigInt = shrinkageTarget
     })
 
   override def nonNegativeIntegers: TrialsImplementation[Int] =
@@ -156,10 +156,10 @@ class TrialsApiImplementation extends CommonApi with ScalaTrialsApi {
       shrinkageTarget: Long
   ): TrialsImplementation[Long] =
     stream(new CaseFactory[Long] {
-      override def apply(input: Long): Long   = input
-      override def lowerBoundInput: Long      = lowerBound
-      override def upperBoundInput: Long      = upperBound
-      override def maximallyShrunkInput: Long = shrinkageTarget
+      override def apply(input: BigInt): Long   = input.toLong
+      override def lowerBoundInput: BigInt      = lowerBound
+      override def upperBoundInput: BigInt      = upperBound
+      override def maximallyShrunkInput: BigInt = shrinkageTarget
     })
 
   override def doubles: TrialsImplementation[Double] =
@@ -233,7 +233,7 @@ class TrialsApiImplementation extends CommonApi with ScalaTrialsApi {
               )
               .rounded
 
-          override def apply(input: Long): Double = {
+          override def apply(input: BigInt): Double = {
             val convertedInput: BigDecimal = BigDecimal(input)
 
             // NOTE: because `convertedMaximallyShrunkInput` is anchored to a
@@ -258,9 +258,9 @@ class TrialsApiImplementation extends CommonApi with ScalaTrialsApi {
               case 0 => shrinkageTarget
             }
           }
-          override def lowerBoundInput: Long = Long.MinValue
-          override def upperBoundInput: Long = Long.MaxValue
-          override def maximallyShrunkInput: Long =
+          override def lowerBoundInput: BigInt = Long.MinValue
+          override def upperBoundInput: BigInt = Long.MaxValue
+          override def maximallyShrunkInput: BigInt =
             convertedMaximallyShrunkInput.toLong
         }
       )
@@ -284,10 +284,10 @@ class TrialsApiImplementation extends CommonApi with ScalaTrialsApi {
       upperBound: Char,
       shrinkageTarget: Char
   ): TrialsImplementation[Char] = stream(new CaseFactory[Char] {
-    override def apply(input: Long): Char   = input.toChar
-    override def lowerBoundInput: Long      = lowerBound.toLong
-    override def upperBoundInput: Long      = upperBound.toLong
-    override def maximallyShrunkInput: Long = shrinkageTarget.toLong
+    override def apply(input: BigInt): Char   = input.toChar
+    override def lowerBoundInput: BigInt      = BigInt(lowerBound)
+    override def upperBoundInput: BigInt      = BigInt(upperBound)
+    override def maximallyShrunkInput: BigInt = BigInt(shrinkageTarget)
   })
 
   override def instants: TrialsImplementation[Instant] =
@@ -299,14 +299,14 @@ class TrialsApiImplementation extends CommonApi with ScalaTrialsApi {
       caseFactory: CaseFactory[Case]
   ): TrialsImplementation[Case] = new TrialsImplementation(
     Factory(new CaseFactory[Case] {
-      override def apply(input: Long): Case = {
+      override def apply(input: BigInt): Case = {
         require(lowerBoundInput <= input)
         require(upperBoundInput >= input)
         caseFactory(input)
       }
-      override def lowerBoundInput: Long = caseFactory.lowerBoundInput
-      override def upperBoundInput: Long = caseFactory.upperBoundInput
-      override def maximallyShrunkInput: Long =
+      override def lowerBoundInput: BigInt = caseFactory.lowerBoundInput
+      override def upperBoundInput: BigInt = caseFactory.upperBoundInput
+      override def maximallyShrunkInput: BigInt =
         caseFactory.maximallyShrunkInput
     })
   )
@@ -315,10 +315,10 @@ class TrialsApiImplementation extends CommonApi with ScalaTrialsApi {
       factory: Long => Case
   ): TrialsImplementation[Case] = stream(
     new CaseFactory[Case] {
-      override def apply(input: Long): Case   = factory(input)
-      override val lowerBoundInput: Long      = Long.MinValue
-      override val upperBoundInput: Long      = Long.MaxValue
-      override val maximallyShrunkInput: Long = 0L
+      override def apply(input: BigInt): Case   = factory(input.longValue)
+      override val lowerBoundInput: BigInt      = Long.MinValue
+      override val upperBoundInput: BigInt      = Long.MaxValue
+      override val maximallyShrunkInput: BigInt = 0
     }
   )
 

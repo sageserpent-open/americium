@@ -16,4 +16,4 @@ object Decision {
 
 case class ChoiceOf(index: Int) extends Decision
 
-case class FactoryInputOf(input: Long) extends Decision
+case class FactoryInputOf(input: BigInt) extends Decision

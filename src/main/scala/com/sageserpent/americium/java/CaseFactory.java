@@ -1,18 +1,19 @@
 package com.sageserpent.americium.java;
 
-import com.google.common.base.Verify;
+import java.math.BigInteger;
 
 public abstract class CaseFactory<Case> {
-    {
-        Verify.verify(lowerBoundInput() <= maximallyShrunkInput());
-        Verify.verify(maximallyShrunkInput() <= upperBoundInput());
-    }
+    // TODO: find a new home for the invariant...
+/*    {
+        Verify.verify(0 >= lowerBoundInput().compareTo(maximallyShrunkInput()));
+        Verify.verify(0 >= maximallyShrunkInput().compareTo(upperBoundInput()));
+    }*/
 
-    public abstract Case apply(long input);
+    public abstract Case apply(BigInteger input);
 
-    public abstract long lowerBoundInput();
+    public abstract BigInteger lowerBoundInput();
 
-    public abstract long upperBoundInput();
+    public abstract BigInteger upperBoundInput();
 
-    public abstract long maximallyShrunkInput();
+    public abstract BigInteger maximallyShrunkInput();
 }

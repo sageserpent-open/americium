@@ -1,14 +1,15 @@
 package com.sageserpent.americium
 
 trait CaseFactory[+Case] {
-  require(lowerBoundInput <= maximallyShrunkInput)
-  require(maximallyShrunkInput <= upperBoundInput)
+  // TODO: find a new home for the invariant...
+  /* require(lowerBoundInput <= maximallyShrunkInput)
+   * require(maximallyShrunkInput <= upperBoundInput) */
 
-  def apply(input: Long): Case
+  def apply(input: BigInt): Case
 
-  def lowerBoundInput: Long
+  def lowerBoundInput: BigInt
 
-  def upperBoundInput: Long
+  def upperBoundInput: BigInt
 
-  def maximallyShrunkInput: Long
+  def maximallyShrunkInput: BigInt
 }

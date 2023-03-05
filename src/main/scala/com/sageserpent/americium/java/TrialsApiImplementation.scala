@@ -18,6 +18,7 @@ import _root_.java.lang.{
   Iterable as JavaIterable,
   Long as JavaLong
 }
+import _root_.java.math.BigInteger
 import _root_.java.util.function.{Supplier, Function as JavaFunction}
 import _root_.java.util.{List as JavaList, Map as JavaMap}
 import java.time.Instant
@@ -160,14 +161,14 @@ trait TrialsApiImplementation extends CommonApi with TrialsApiWart {
       caseFactory: CaseFactory[Case]
   ): TrialsImplementation[Case] = new TrialsImplementation(
     Factory(new ScalaCaseFactory[Case] {
-      override def apply(input: Long): Case = {
-        require(lowerBoundInput <= input)
-        require(upperBoundInput >= input)
-        caseFactory(input)
+      override def apply(input: BigInt): Case = {
+        require(0 >= lowerBoundInput.compareTo(input))
+        require(0 <= upperBoundInput.compareTo(input))
+        caseFactory(input.bigInteger)
       }
-      override def lowerBoundInput: Long = caseFactory.lowerBoundInput()
-      override def upperBoundInput: Long = caseFactory.upperBoundInput()
-      override def maximallyShrunkInput: Long =
+      override def lowerBoundInput: BigInt = caseFactory.lowerBoundInput()
+      override def upperBoundInput: BigInt = caseFactory.upperBoundInput()
+      override def maximallyShrunkInput: BigInt =
         caseFactory.maximallyShrunkInput
     })
   )
@@ -176,10 +177,13 @@ trait TrialsApiImplementation extends CommonApi with TrialsApiWart {
       factory: JavaFunction[JavaLong, Case]
   ): TrialsImplementation[Case] = stream(
     new CaseFactory[Case] {
-      override def apply(input: Long): Case   = factory(input)
-      override val lowerBoundInput: Long      = Long.MinValue
-      override val upperBoundInput: Long      = Long.MaxValue
-      override val maximallyShrunkInput: Long = 0L
+      override def apply(input: BigInteger): Case =
+        factory(input.longValue())
+      override val lowerBoundInput: BigInteger =
+        BigInteger.valueOf(Long.MinValue)
+      override val upperBoundInput: BigInteger =
+        BigInteger.valueOf(Long.MaxValue)
+      override val maximallyShrunkInput: BigInteger = BigInteger.ZERO
     }
   )
 

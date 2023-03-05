@@ -409,18 +409,22 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
               // Guided shrinkage - can choose a factory input somewhere between
               // the one in the guidance decision stages and the shrinkage
               // target's value.
-              val input = Math
-                .round(
-                  factory.maximallyShrunkInput + randomBehaviour
-                    .nextDouble() * (guideInput - factory.maximallyShrunkInput)
-                )
+              val input: BigInt =
+                (BigDecimal(factory.maximallyShrunkInput) + randomBehaviour
+                  .nextDouble() * BigDecimal(
+                  guideInput - factory.maximallyShrunkInput
+                )).setScale(
+                  0,
+                  BigDecimal.RoundingMode.HALF_EVEN
+                ).rounded
+                  .toBigInt
 
               for {
                 _ <- StateT.set[DeferredOption, State](
                   state.update(
                     Some(remainingGuidance),
                     FactoryInputOf(input),
-                    (BigInt(input) - factory.maximallyShrunkInput)
+                    (input - factory.maximallyShrunkInput)
                       .pow(2)
                   )
                 )
@@ -431,13 +435,13 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
               // level of shrinkage increases.
               for {
                 _ <- liftUnitIfTheComplexityIsNotTooLarge(state)
-                input = {
+                input: BigInt = {
                   val upperBoundInput: BigDecimal =
-                    factory.upperBoundInput
+                    BigDecimal(factory.upperBoundInput)
                   val lowerBoundInput: BigDecimal =
-                    factory.lowerBoundInput
+                    BigDecimal(factory.lowerBoundInput)
                   val maximallyShrunkInput: BigDecimal =
-                    factory.maximallyShrunkInput
+                    BigDecimal(factory.maximallyShrunkInput)
 
                   val maximumScale: BigDecimal =
                     upperBoundInput - lowerBoundInput
@@ -480,15 +484,15 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
                         BigDecimal.RoundingMode.HALF_EVEN
                       )
                       .rounded
-                      .toLong
-                  } else { maximallyShrunkInput.toLong }
+                      .toBigInt
+                  } else { factory.maximallyShrunkInput }
                 }
                 _ <- StateT.set[DeferredOption, State](
                   state.update(
                     state.decisionStagesToGuideShrinkage
                       .map(_.tail),
                     FactoryInputOf(input),
-                    (BigInt(input) - factory.maximallyShrunkInput)
+                    (input - factory.maximallyShrunkInput)
                       .pow(2)
                   )
                 )
