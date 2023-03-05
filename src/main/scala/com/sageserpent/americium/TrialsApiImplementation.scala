@@ -8,10 +8,8 @@ import com.sageserpent.americium.{
   TrialsApi as ScalaTrialsApi
 }
 
-import _root_.java.lang.Double as JavaDouble
 import _root_.java.time.Instant
 import scala.collection.immutable.SortedMap
-import scala.util.Random
 
 class TrialsApiImplementation extends CommonApi with ScalaTrialsApi {
   override def delay[Case](
@@ -163,19 +161,7 @@ class TrialsApiImplementation extends CommonApi with ScalaTrialsApi {
     })
 
   override def doubles: TrialsImplementation[Double] =
-    streamLegacy { input =>
-      val betweenZeroAndOne = new Random(input).nextDouble()
-      Math.scalb(
-        betweenZeroAndOne,
-        (input.toDouble * JavaDouble.MAX_EXPONENT / Long.MaxValue).toInt
-      )
-    }
-      .flatMap(zeroOrPositive =>
-        booleans
-          .map((negative: Boolean) =>
-            if (negative) -zeroOrPositive else zeroOrPositive
-          ): ScalaTrials[Double]
-      )
+    doubles(Double.MinValue, Double.MaxValue, 0.0)
 
   override def booleans: TrialsImplementation[Boolean] =
     choose(true, false)
@@ -217,6 +203,8 @@ class TrialsApiImplementation extends CommonApi with ScalaTrialsApi {
     if (0 != imageInterval)
       stream(
         new CaseFactory[Double] {
+          val numberOfSubdivisionsOfDoubleUnity = 1000
+
           lazy val convertedLowerBoundInput: BigDecimal =
             BigDecimal(lowerBoundInput)
           lazy val convertedUpperBoundInput: BigDecimal =
@@ -258,8 +246,20 @@ class TrialsApiImplementation extends CommonApi with ScalaTrialsApi {
               case 0 => shrinkageTarget
             }
           }
-          override def lowerBoundInput: BigInt = Long.MinValue
-          override def upperBoundInput: BigInt = Long.MaxValue
+          override def lowerBoundInput: BigInt = convertedLowerBound
+            .setScale(
+              0,
+              BigDecimal.RoundingMode.FLOOR
+            )
+            .rounded
+            .toBigInt * numberOfSubdivisionsOfDoubleUnity
+          override def upperBoundInput: BigInt = convertedUpperBound
+            .setScale(
+              0,
+              BigDecimal.RoundingMode.CEILING
+            )
+            .rounded
+            .toBigInt * numberOfSubdivisionsOfDoubleUnity
           override def maximallyShrunkInput: BigInt =
             convertedMaximallyShrunkInput.toLong
         }

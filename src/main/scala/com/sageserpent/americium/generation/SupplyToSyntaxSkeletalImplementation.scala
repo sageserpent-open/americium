@@ -384,6 +384,19 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
       else StateT.liftF(OptionT.none)
     }
 
+    def deflatedScale(maximumScale: BigDecimal, level: Int): BigDecimal = if (
+      maximumScale <= Double.MaxValue
+    )
+      maximumScale / Math.pow(
+        maximumScale.toDouble,
+        level.toDouble / maximumScaleDeflationLevel
+      )
+    else
+      deflatedScale(Double.MaxValue, level) * deflatedScale(
+        maximumScale / Double.MaxValue,
+        level
+      )
+
     def interpretFactory[Case](
         factory: CaseFactory[Case]
     ): StateUpdating[Case] = {
@@ -461,10 +474,7 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
                       scaleDeflationLevel
                         .filter(minimumScaleDeflationLevel < _)
                         .fold(maximumScale)(level =>
-                          maximumScale / Math.pow(
-                            maximumScale.toDouble,
-                            level.toDouble / maximumScaleDeflationLevel
-                          )
+                          deflatedScale(maximumScale, level)
                         )
                     val blend: BigDecimal = scale / maximumScale
 
