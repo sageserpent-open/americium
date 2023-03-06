@@ -203,7 +203,7 @@ class TrialsApiImplementation extends CommonApi with ScalaTrialsApi {
     if (0 != imageInterval)
       stream(
         new CaseFactory[Double] {
-          val numberOfSubdivisionsOfDoubleUnity = 1000
+          val numberOfSubdivisionsOfDoubleUnity = 100
 
           lazy val convertedLowerBoundInput: BigDecimal =
             BigDecimal(lowerBoundInput)
@@ -246,20 +246,24 @@ class TrialsApiImplementation extends CommonApi with ScalaTrialsApi {
               case 0 => shrinkageTarget
             }
           }
-          override def lowerBoundInput: BigInt = convertedLowerBound
-            .setScale(
-              0,
-              BigDecimal.RoundingMode.FLOOR
-            )
-            .rounded
-            .toBigInt * numberOfSubdivisionsOfDoubleUnity
-          override def upperBoundInput: BigInt = convertedUpperBound
-            .setScale(
-              0,
-              BigDecimal.RoundingMode.CEILING
-            )
-            .rounded
-            .toBigInt * numberOfSubdivisionsOfDoubleUnity
+          override def lowerBoundInput: BigInt =
+            BigInt(Long.MinValue) min (convertedLowerBound
+              .setScale(
+                0,
+                BigDecimal.RoundingMode.FLOOR
+              )
+              .rounded
+              .toBigInt * numberOfSubdivisionsOfDoubleUnity)
+
+          override def upperBoundInput: BigInt =
+            BigInt(Long.MaxValue) max (convertedUpperBound
+              .setScale(
+                0,
+                BigDecimal.RoundingMode.CEILING
+              )
+              .rounded
+              .toBigInt * numberOfSubdivisionsOfDoubleUnity)
+
           override def maximallyShrunkInput: BigInt =
             convertedMaximallyShrunkInput.toLong
         }

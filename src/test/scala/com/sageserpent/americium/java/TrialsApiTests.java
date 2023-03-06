@@ -604,7 +604,21 @@ public class TrialsApiTests {
                      "-0.123456789, 0.123456789, 0.123",
                      "-0.123456789, 0.123456789, -0.1234567",
                      "-0.123456789, 0.123456789, -0.123456789",
-                     "-0.123456789, 0.123456789, -0.123"})
+                     "-0.123456789, 0.123456789, -0.123",
+
+                     "-1e10, 1e10, None",
+                     "-1e10, 1e10, 0.0",
+                     "-1e10, 1e10, -1e10",
+                     "-1e10, 1e10, 1e10",
+                     "-1e10, 1e10, -2e5",
+                     "-1e10, 1e10, 2e5",
+
+                     "-1e-10, 1e-10, None",
+                     "-1e-10, 1e-10, 0.0",
+                     "-1e-10, 1e-10, -1e-10",
+                     "-1e-10, 1e-10, 1e-10",
+                     "-1e-10, 1e-10, -2e-15",
+                     "-1e-10, 1e-10, 2e-15"})
     void testDoubleCases(double lowerBound, double upperBound,
                          Double shrinkageTarget) {
         final Trials<Double> doubles = Optional
@@ -632,7 +646,7 @@ public class TrialsApiTests {
 
         Optional.ofNullable(shrinkageTarget).ifPresentOrElse(target -> {
             assertThat((double) trialException.provokingCase(),
-                       closeTo(target, 1e-5));
+                       closeTo(target, 1e-15));
         }, () -> {
             if (0.0 < lowerBound) {
                 assertThat(trialException.provokingCase(), equalTo(lowerBound));
