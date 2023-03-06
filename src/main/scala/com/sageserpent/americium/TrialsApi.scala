@@ -1,7 +1,6 @@
 package com.sageserpent.americium
 
 import cats.Traverse
-import com.sageserpent.americium.CaseFactory
 
 import _root_.java.time.Instant
 import scala.collection.Factory
@@ -232,6 +231,14 @@ trait TrialsApi {
 
   def nonNegativeLongs: Trials[Long]
 
+  def bigInts(lowerBound: BigInt, upperBound: BigInt): Trials[BigInt]
+
+  def bigInts(
+      lowerBound: BigInt,
+      upperBound: BigInt,
+      shrinkageTarget: BigInt
+  ): Trials[BigInt]
+
   def doubles: Trials[Double]
 
   def doubles(lowerBound: Double, upperBound: Double): Trials[Double]
@@ -241,6 +248,17 @@ trait TrialsApi {
       upperBound: Double,
       shrinkageTarget: Double
   ): Trials[Double]
+
+  def bigDecimals(
+      lowerBound: BigDecimal,
+      upperBound: BigDecimal
+  ): Trials[BigDecimal]
+
+  def bigDecimals(
+      lowerBound: BigDecimal,
+      upperBound: BigDecimal,
+      shrinkageTarget: BigDecimal
+  ): Trials[BigDecimal]
 
   def booleans: Trials[Boolean]
 

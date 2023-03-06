@@ -2,6 +2,8 @@ package com.sageserpent.americium.java;
 
 import com.google.common.collect.ImmutableList;
 
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -246,12 +248,24 @@ public interface TrialsApi {
 
     Trials<Long> nonNegativeLongs();
 
+    Trials<BigInteger> bigIntegers(BigInteger lowerBound,
+                                   BigInteger upperBound);
+
+    Trials<BigInteger> bigIntegers(BigInteger lowerBound, BigInteger upperBound,
+                                   BigInteger shrinkageTarget);
+
     Trials<Double> doubles();
 
     Trials<Double> doubles(double lowerBound, double upperBound);
 
     Trials<Double> doubles(double lowerBound, double upperBound,
                            double shrinkageTarget);
+
+    Trials<BigDecimal> bigDecimals(BigDecimal lowerBound,
+                                   BigDecimal upperBound);
+
+    Trials<BigDecimal> bigDecimals(BigDecimal lowerBound, BigDecimal upperBound,
+                                   BigDecimal shrinkageTarget);
 
     Trials<Boolean> booleans();
 

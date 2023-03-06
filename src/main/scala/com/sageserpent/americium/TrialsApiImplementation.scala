@@ -160,6 +160,17 @@ class TrialsApiImplementation extends CommonApi with ScalaTrialsApi {
       override def maximallyShrunkInput: BigInt = shrinkageTarget
     })
 
+  override def bigInts(
+      lowerBound: BigInt,
+      upperBound: BigInt
+  ): TrialsImplementation[BigInt] = ???
+
+  override def bigInts(
+      lowerBound: BigInt,
+      upperBound: BigInt,
+      shrinkageTarget: BigInt
+  ): TrialsImplementation[BigInt] = ???
+
   override def doubles: TrialsImplementation[Double] =
     doubles(Double.MinValue, Double.MaxValue, 0.0)
 
@@ -270,6 +281,17 @@ class TrialsApiImplementation extends CommonApi with ScalaTrialsApi {
       )
     else only(shrinkageTarget)
   }
+
+  override def bigDecimals(
+      lowerBound: BigDecimal,
+      upperBound: BigDecimal
+  ): TrialsImplementation[BigDecimal] = ???
+
+  override def bigDecimals(
+      lowerBound: BigDecimal,
+      upperBound: BigDecimal,
+      shrinkageTarget: BigDecimal
+  ): TrialsImplementation[BigDecimal] = ???
 
   override def characters(
       lowerBound: Char,

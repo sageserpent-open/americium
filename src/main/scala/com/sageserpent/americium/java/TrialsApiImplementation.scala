@@ -18,7 +18,7 @@ import _root_.java.lang.{
   Iterable as JavaIterable,
   Long as JavaLong
 }
-import _root_.java.math.BigInteger
+import _root_.java.math.{BigInteger, BigDecimal as JavaBigDecimal}
 import _root_.java.util.function.{Supplier, Function as JavaFunction}
 import _root_.java.util.{List as JavaList, Map as JavaMap}
 import java.time.Instant
@@ -228,6 +228,30 @@ trait TrialsApiImplementation extends CommonApi with TrialsApiWart {
   override def nonNegativeLongs(): TrialsImplementation[JavaLong] =
     scalaApi.nonNegativeLongs.map(Long.box)
 
+  override def bigIntegers(
+      lowerBound: BigInteger,
+      upperBound: BigInteger
+  ): TrialsImplementation[BigInteger] =
+    scalaApi
+      .bigInts(
+        BigInt.javaBigInteger2bigInt(lowerBound),
+        BigInt.javaBigInteger2bigInt(upperBound)
+      )
+      .map(_.bigInteger)
+
+  override def bigIntegers(
+      lowerBound: BigInteger,
+      upperBound: BigInteger,
+      shrinkageTarget: BigInteger
+  ): TrialsImplementation[BigInteger] =
+    scalaApi
+      .bigInts(
+        BigInt.javaBigInteger2bigInt(lowerBound),
+        BigInt.javaBigInteger2bigInt(upperBound),
+        BigInt.javaBigInteger2bigInt(shrinkageTarget)
+      )
+      .map(_.bigInteger)
+
   override def doubles(): TrialsImplementation[JavaDouble] =
     scalaApi.doubles.map(Double.box)
 
@@ -243,6 +267,30 @@ trait TrialsApiImplementation extends CommonApi with TrialsApiWart {
       shrinkageTarget: Double
   ): TrialsImplementation[JavaDouble] =
     scalaApi.doubles(lowerBound, upperBound, shrinkageTarget).map(Double.box)
+
+  override def bigDecimals(
+      lowerBound: JavaBigDecimal,
+      upperBound: JavaBigDecimal
+  ): TrialsImplementation[JavaBigDecimal] =
+    scalaApi
+      .bigDecimals(
+        BigDecimal.javaBigDecimal2bigDecimal(lowerBound),
+        BigDecimal.javaBigDecimal2bigDecimal(upperBound)
+      )
+      .map(_.underlying())
+
+  override def bigDecimals(
+      lowerBound: JavaBigDecimal,
+      upperBound: JavaBigDecimal,
+      shrinkageTarget: JavaBigDecimal
+  ): TrialsImplementation[JavaBigDecimal] =
+    scalaApi
+      .bigDecimals(
+        BigDecimal.javaBigDecimal2bigDecimal(lowerBound),
+        BigDecimal.javaBigDecimal2bigDecimal(upperBound),
+        BigDecimal.javaBigDecimal2bigDecimal(shrinkageTarget)
+      )
+      .map(_.underlying())
 
   override def booleans(): TrialsImplementation[JavaBoolean] =
     scalaApi.booleans.map(Boolean.box)
