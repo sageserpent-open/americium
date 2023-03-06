@@ -36,7 +36,6 @@ import fs2.{Pull, Stream as Fs2Stream}
 import org.rocksdb.{Cache as _, *}
 import scalacache.*
 import scalacache.caffeine.CaffeineCache
-import scalacache.memoization.memoize
 
 import _root_.java.util.function.Consumer
 import _root_.java.util.{ArrayList as JavaArrayList, Iterator as JavaIterator}
@@ -393,7 +392,7 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
       import SupplyToSyntaxSkeletalImplementation.cache
       import scalacache.modes.sync.*
 
-      memoize[Id, BigDecimal](None) {
+      caching[Id, BigDecimal](maximumScale -> level)(None) {
         if (maximumScale <= Double.MaxValue)
           maximumScale / Math.pow(
             maximumScale.toDouble,
