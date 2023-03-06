@@ -27,9 +27,12 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
+import static com.sageserpent.americium.java.Trials.api;
 import static org.hamcrest.CoreMatchers.allOf;
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.*;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -641,6 +644,27 @@ public class TrialsApiTests {
         });
 
 
+    }
+
+    @Test
+    void noParametersDoublesOverloadShrinkageTest() {
+        try {
+            api()
+                    .doubles()
+                    .withLimit(15)
+                    .supplyTo(input -> {
+                        try {
+                            final double root = Math.sqrt(input);
+                            assertThat(Double.isNaN(root), is(false));
+                        } catch (Throwable throwable) {
+                            System.out.println(input);
+                            throw throwable;
+                        }
+                    });
+        } catch (TrialsScaffolding.TrialException exception) {
+            System.out.println(exception);
+            assertThat((double) exception.provokingCase(), closeTo(0, 0.1));
+        }
     }
 
     @Test
