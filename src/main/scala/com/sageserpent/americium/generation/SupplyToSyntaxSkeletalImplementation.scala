@@ -33,7 +33,10 @@ import com.sageserpent.americium.{
   TrialsScaffolding as ScalaTrialsScaffolding
 }
 import fs2.{Pull, Stream as Fs2Stream}
-import org.rocksdb.*
+import org.rocksdb.{Cache as _, *}
+import scalacache.*
+import scalacache.caffeine.CaffeineCache
+import scalacache.memoization.memoize
 
 import _root_.java.util.function.Consumer
 import _root_.java.util.{ArrayList as JavaArrayList, Iterator as JavaIterator}
@@ -122,6 +125,8 @@ object SupplyToSyntaxSkeletalImplementation {
         rocksDB.close()
       }
     })
+
+  implicit val cache: Cache[BigDecimal] = CaffeineCache[BigDecimal]
 }
 
 trait SupplyToSyntaxSkeletalImplementation[Case]
@@ -385,18 +390,21 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
     }
 
     def deflatedScale(maximumScale: BigDecimal, level: Int): BigDecimal = {
-      lazy val deflationOfMaximumDouble = deflatedScale(Double.MaxValue, level)
+      import SupplyToSyntaxSkeletalImplementation.cache
+      import scalacache.modes.sync.*
 
-      if (maximumScale <= Double.MaxValue)
-        maximumScale / Math.pow(
-          maximumScale.toDouble,
-          level.toDouble / maximumScaleDeflationLevel
-        )
-      else {
-        deflationOfMaximumDouble * deflatedScale(
-          maximumScale / Double.MaxValue,
-          level
-        )
+      memoize[Id, BigDecimal](None) {
+        if (maximumScale <= Double.MaxValue)
+          maximumScale / Math.pow(
+            maximumScale.toDouble,
+            level.toDouble / maximumScaleDeflationLevel
+          )
+        else {
+          deflatedScale(Double.MaxValue, level) * deflatedScale(
+            maximumScale / Double.MaxValue,
+            level
+          )
+        }
       }
     }
 
