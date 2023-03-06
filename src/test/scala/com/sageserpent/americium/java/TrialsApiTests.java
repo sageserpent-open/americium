@@ -27,9 +27,12 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
+import static com.sageserpent.americium.java.Trials.api;
 import static org.hamcrest.CoreMatchers.allOf;
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.*;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -601,7 +604,21 @@ public class TrialsApiTests {
                      "-0.123456789, 0.123456789, 0.123",
                      "-0.123456789, 0.123456789, -0.1234567",
                      "-0.123456789, 0.123456789, -0.123456789",
-                     "-0.123456789, 0.123456789, -0.123"})
+                     "-0.123456789, 0.123456789, -0.123",
+
+                     "-1e10, 1e10, None",
+                     "-1e10, 1e10, 0.0",
+                     "-1e10, 1e10, -1e10",
+                     "-1e10, 1e10, 1e10",
+                     "-1e10, 1e10, -2e5",
+                     "-1e10, 1e10, 2e5",
+
+                     "-1e-10, 1e-10, None",
+                     "-1e-10, 1e-10, 0.0",
+                     "-1e-10, 1e-10, -1e-10",
+                     "-1e-10, 1e-10, 1e-10",
+                     "-1e-10, 1e-10, -2e-15",
+                     "-1e-10, 1e-10, 2e-15"})
     void testDoubleCases(double lowerBound, double upperBound,
                          Double shrinkageTarget) {
         final Trials<Double> doubles = Optional
@@ -629,7 +646,7 @@ public class TrialsApiTests {
 
         Optional.ofNullable(shrinkageTarget).ifPresentOrElse(target -> {
             assertThat((double) trialException.provokingCase(),
-                       closeTo(target, 1e-5));
+                       closeTo(target, 1e-15));
         }, () -> {
             if (0.0 < lowerBound) {
                 assertThat(trialException.provokingCase(), equalTo(lowerBound));
@@ -641,6 +658,27 @@ public class TrialsApiTests {
         });
 
 
+    }
+
+    @Test
+    void noParametersDoublesOverloadShrinkageTest() {
+        try {
+            api()
+                    .doubles()
+                    .withLimit(15)
+                    .supplyTo(input -> {
+                        try {
+                            final double root = Math.sqrt(input);
+                            assertThat(Double.isNaN(root), is(false));
+                        } catch (Throwable throwable) {
+                            System.out.println(input);
+                            throw throwable;
+                        }
+                    });
+        } catch (TrialsScaffolding.TrialException exception) {
+            System.out.println(exception);
+            assertThat((double) exception.provokingCase(), closeTo(0, 0.1));
+        }
     }
 
     @Test
