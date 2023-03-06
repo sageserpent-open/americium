@@ -384,18 +384,21 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
       else StateT.liftF(OptionT.none)
     }
 
-    def deflatedScale(maximumScale: BigDecimal, level: Int): BigDecimal = if (
-      maximumScale <= Double.MaxValue
-    )
-      maximumScale / Math.pow(
-        maximumScale.toDouble,
-        level.toDouble / maximumScaleDeflationLevel
-      )
-    else
-      deflatedScale(Double.MaxValue, level) * deflatedScale(
-        maximumScale / Double.MaxValue,
-        level
-      )
+    def deflatedScale(maximumScale: BigDecimal, level: Int): BigDecimal = {
+      lazy val deflationOfMaximumDouble = deflatedScale(Double.MaxValue, level)
+
+      if (maximumScale <= Double.MaxValue)
+        maximumScale / Math.pow(
+          maximumScale.toDouble,
+          level.toDouble / maximumScaleDeflationLevel
+        )
+      else {
+        deflationOfMaximumDouble * deflatedScale(
+          maximumScale / Double.MaxValue,
+          level
+        )
+      }
+    }
 
     def interpretFactory[Case](
         factory: CaseFactory[Case]
