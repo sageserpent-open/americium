@@ -163,13 +163,25 @@ class TrialsApiImplementation extends CommonApi with ScalaTrialsApi {
   override def bigInts(
       lowerBound: BigInt,
       upperBound: BigInt
-  ): TrialsImplementation[BigInt] = ???
+  ): TrialsImplementation[BigInt] = bigInts(
+    lowerBound,
+    upperBound,
+    if (0 > upperBound)
+      upperBound
+    else if (0 < lowerBound) lowerBound
+    else 0
+  )
 
   override def bigInts(
       lowerBound: BigInt,
       upperBound: BigInt,
       shrinkageTarget: BigInt
-  ): TrialsImplementation[BigInt] = ???
+  ): TrialsImplementation[BigInt] = stream(new CaseFactory[BigInt] {
+    override def apply(input: BigInt): BigInt = input
+    override def lowerBoundInput: BigInt      = lowerBound
+    override def upperBoundInput: BigInt      = upperBound
+    override def maximallyShrunkInput: BigInt = shrinkageTarget
+  })
 
   override def doubles: TrialsImplementation[Double] =
     doubles(Double.MinValue, Double.MaxValue, 0.0)
@@ -201,19 +213,34 @@ class TrialsApiImplementation extends CommonApi with ScalaTrialsApi {
       lowerBound: Double,
       upperBound: Double,
       shrinkageTarget: Double
-  ): TrialsImplementation[Double] = {
+  ): TrialsImplementation[Double] =
+    bigDecimals(lowerBound, upperBound, shrinkageTarget).map(_.toDouble)
+
+  override def bigDecimals(
+      lowerBound: BigDecimal,
+      upperBound: BigDecimal
+  ): TrialsImplementation[BigDecimal] = bigDecimals(
+    lowerBound,
+    upperBound,
+    if (0.0 > upperBound)
+      upperBound
+    else if (0.0 < lowerBound) lowerBound
+    else 0.0
+  )
+
+  override def bigDecimals(
+      lowerBound: BigDecimal,
+      upperBound: BigDecimal,
+      shrinkageTarget: BigDecimal
+  ): TrialsImplementation[BigDecimal] = {
     require(lowerBound <= shrinkageTarget)
     require(shrinkageTarget <= upperBound)
 
-    val convertedLowerBound      = BigDecimal(lowerBound)
-    val convertedUpperBound      = BigDecimal(upperBound)
-    val convertedShrinkageTarget = BigDecimal(shrinkageTarget)
-
-    val imageInterval: BigDecimal = convertedUpperBound - convertedLowerBound
+    val imageInterval: BigDecimal = upperBound - lowerBound
 
     if (0 != imageInterval)
       stream(
-        new CaseFactory[Double] {
+        new CaseFactory[BigDecimal] {
           val numberOfSubdivisionsOfDoubleUnity = 100
 
           lazy val convertedLowerBoundInput: BigDecimal =
@@ -222,17 +249,17 @@ class TrialsApiImplementation extends CommonApi with ScalaTrialsApi {
             BigDecimal(upperBoundInput)
 
           // NOTE: the input side representation of `shrinkageTarget` is
-          // anchored to an exact long integer, so that the forward conversion
+          // anchored to an exact big integer, so that the forward conversion
           // to the image doesn't lose precision.
           lazy val convertedMaximallyShrunkInput: BigDecimal =
-            (((convertedShrinkageTarget - convertedLowerBound) * convertedUpperBoundInput + (convertedUpperBound - convertedShrinkageTarget) * convertedLowerBoundInput) / imageInterval)
+            (((shrinkageTarget - lowerBound) * convertedUpperBoundInput + (upperBound - shrinkageTarget) * convertedLowerBoundInput) / imageInterval)
               .setScale(
                 0,
                 BigDecimal.RoundingMode.HALF_EVEN
               )
               .rounded
 
-          override def apply(input: BigInt): Double = {
+          override def apply(input: BigInt): BigDecimal = {
             val convertedInput: BigDecimal = BigDecimal(input)
 
             // NOTE: because `convertedMaximallyShrunkInput` is anchored to a
@@ -246,19 +273,19 @@ class TrialsApiImplementation extends CommonApi with ScalaTrialsApi {
                 // Have to clamp against the lower bound due to precision
                 // error...
                 lowerBound max
-                  (((convertedInput - convertedLowerBoundInput) * convertedShrinkageTarget + (convertedMaximallyShrunkInput - convertedInput) * convertedLowerBound) /
-                    (convertedMaximallyShrunkInput - convertedLowerBoundInput)).toDouble
+                  (((convertedInput - convertedLowerBoundInput) * shrinkageTarget + (convertedMaximallyShrunkInput - convertedInput) * lowerBound) /
+                    (convertedMaximallyShrunkInput - convertedLowerBoundInput))
               case signed if 0 < signed =>
                 // Have to clamp against the upper bound due to precision
                 // error...
                 upperBound min
-                  (((convertedInput - convertedMaximallyShrunkInput) * convertedUpperBound + (convertedUpperBoundInput - convertedInput) * convertedShrinkageTarget) /
-                    (convertedUpperBoundInput - convertedMaximallyShrunkInput)).toDouble
+                  (((convertedInput - convertedMaximallyShrunkInput) * upperBound + (convertedUpperBoundInput - convertedInput) * shrinkageTarget) /
+                    (convertedUpperBoundInput - convertedMaximallyShrunkInput))
               case 0 => shrinkageTarget
             }
           }
           override def lowerBoundInput: BigInt =
-            BigInt(Long.MinValue) min (convertedLowerBound
+            BigInt(Long.MinValue) min (lowerBound
               .setScale(
                 0,
                 BigDecimal.RoundingMode.FLOOR
@@ -267,7 +294,7 @@ class TrialsApiImplementation extends CommonApi with ScalaTrialsApi {
               .toBigInt * numberOfSubdivisionsOfDoubleUnity)
 
           override def upperBoundInput: BigInt =
-            BigInt(Long.MaxValue) max (convertedUpperBound
+            BigInt(Long.MaxValue) max (upperBound
               .setScale(
                 0,
                 BigDecimal.RoundingMode.CEILING
@@ -276,22 +303,11 @@ class TrialsApiImplementation extends CommonApi with ScalaTrialsApi {
               .toBigInt * numberOfSubdivisionsOfDoubleUnity)
 
           override def maximallyShrunkInput: BigInt =
-            convertedMaximallyShrunkInput.toLong
+            convertedMaximallyShrunkInput.toBigInt
         }
       )
     else only(shrinkageTarget)
   }
-
-  override def bigDecimals(
-      lowerBound: BigDecimal,
-      upperBound: BigDecimal
-  ): TrialsImplementation[BigDecimal] = ???
-
-  override def bigDecimals(
-      lowerBound: BigDecimal,
-      upperBound: BigDecimal,
-      shrinkageTarget: BigDecimal
-  ): TrialsImplementation[BigDecimal] = ???
 
   override def characters(
       lowerBound: Char,
