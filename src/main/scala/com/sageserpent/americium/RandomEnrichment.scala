@@ -333,10 +333,9 @@ trait RandomEnrichment {
         }
       }
 
-      var previouslyChosenItemsAsBinaryTree: BinaryTreeNode = EmptySubtree
-
       def chooseAndRecordUniqueItems(
-          exclusiveLimitOnVacantSlotIndex: Int
+          exclusiveLimitOnVacantSlotIndex: Int,
+          previouslyChosenItemsAsBinaryTree: BinaryTreeNode
       ): LazyList[Int] = {
         if (0 == exclusiveLimitOnVacantSlotIndex) {
           LazyList.empty
@@ -348,15 +347,14 @@ trait RandomEnrichment {
               )
             )
 
-          previouslyChosenItemsAsBinaryTree = chosenItemsAsBinaryTree
-
           chosenItem #:: chooseAndRecordUniqueItems(
-            exclusiveLimitOnVacantSlotIndex - 1
+            exclusiveLimitOnVacantSlotIndex - 1,
+            chosenItemsAsBinaryTree
           )
         }
       }
 
-      chooseAndRecordUniqueItems(exclusiveLimit)
+      chooseAndRecordUniqueItems(exclusiveLimit, EmptySubtree)
     }
 
     def buildRandomSequenceOfDistinctCandidatesChosenFrom[X](
