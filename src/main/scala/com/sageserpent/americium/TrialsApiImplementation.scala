@@ -249,8 +249,8 @@ class TrialsApiImplementation extends CommonApi with ScalaTrialsApi {
             BigDecimal(upperBoundInput)
 
           // NOTE: the input side representation of `shrinkageTarget` is
-          // anchored to an exact big integer, so that the forward conversion
-          // to the image doesn't lose precision.
+          // anchored to an exact big integer, so that the forward conversion to
+          // the image doesn't lose precision.
           lazy val convertedMaximallyShrunkInput: BigDecimal =
             (((shrinkageTarget - lowerBound) * convertedUpperBoundInput + (upperBound - shrinkageTarget) * convertedLowerBoundInput) / imageInterval)
               .setScale(
@@ -263,9 +263,9 @@ class TrialsApiImplementation extends CommonApi with ScalaTrialsApi {
             val convertedInput: BigDecimal = BigDecimal(input)
 
             // NOTE: because `convertedMaximallyShrunkInput` is anchored to a
-            // exact long, we split the linear interpolation used to map from
-            // input values to image values into two halves to ensure precise
-            // mapping of `lowerBoundInput()` -> `lowerBound`,
+            // exact big integer, we split the linear interpolation used to map
+            // from input values to image values into two halves to ensure
+            // precise mapping of `lowerBoundInput()` -> `lowerBound`,
             // `maximallyShrunkInput()` -> `shrinkageTarget` and
             // `upperBoundInput()` -> `upperBound`.
             input.compareTo(maximallyShrunkInput) match {

@@ -277,7 +277,7 @@ trait TrialsApiImplementation extends CommonApi with TrialsApiWart {
         BigDecimal.javaBigDecimal2bigDecimal(lowerBound),
         BigDecimal.javaBigDecimal2bigDecimal(upperBound)
       )
-      .map(_.underlying())
+      .map(_.bigDecimal)
 
   override def bigDecimals(
       lowerBound: JavaBigDecimal,
@@ -290,7 +290,7 @@ trait TrialsApiImplementation extends CommonApi with TrialsApiWart {
         BigDecimal.javaBigDecimal2bigDecimal(upperBound),
         BigDecimal.javaBigDecimal2bigDecimal(shrinkageTarget)
       )
-      .map(_.underlying())
+      .map(_.bigDecimal)
 
   override def booleans(): TrialsImplementation[JavaBoolean] =
     scalaApi.booleans.map(Boolean.box)
