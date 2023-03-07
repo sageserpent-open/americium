@@ -1,7 +1,6 @@
 package com.sageserpent.americium
 
 import scala.annotation.tailrec
-import scala.collection.JavaConverters._
 import scala.language.postfixOps
 import scala.util.Random
 
@@ -13,13 +12,13 @@ trait RandomEnrichment {
         exclusiveLimit: X
     ): X = {
       val typeClass = implicitly[Numeric[X]]
-      import typeClass._
+      import typeClass.*
       fromInt(random.nextInt(exclusiveLimit.toInt))
     }
 
     def chooseAnyNumberFromOneTo[X: Numeric](inclusiveLimit: X): X = {
       val typeClass = implicitly[Numeric[X]]
-      import typeClass._
+      import typeClass.*
       one + chooseAnyNumberFromZeroToOneLessThan(inclusiveLimit)
     }
 
@@ -361,16 +360,13 @@ trait RandomEnrichment {
     }
 
     def buildRandomSequenceOfDistinctCandidatesChosenFrom[X](
-        candidates: Traversable[X]
+        candidates: Iterable[X]
     ): Seq[X] = {
       val candidatesWithRandomAccess = candidates.toIndexedSeq
 
       val numberOfCandidates = candidatesWithRandomAccess.length
 
-      val swappedCandidates =
-        if (500000 >= numberOfCandidates)
-          scala.collection.mutable.Map[Int, X]()
-        else new _root_.java.util.TreeMap[Int, X] asScala
+      val swappedCandidates = scala.collection.mutable.Map[Int, X]()
 
       def chooseAndRecordUniqueCandidates(
           numberOfCandidatesAlreadyChosen: Int
@@ -406,7 +402,7 @@ trait RandomEnrichment {
     }
 
     def chooseSeveralOf[X](
-        candidates: Traversable[X],
+        candidates: Iterable[X],
         numberToChoose: Int
     ): Seq[X] = {
       require(numberToChoose <= candidates.size)
@@ -416,7 +412,7 @@ trait RandomEnrichment {
       )
     }
 
-    def chooseOneOf[X](candidates: Traversable[X]): X = {
+    def chooseOneOf[X](candidates: Iterable[X]): X = {
       // How does this algorithm work? It is a generalisation of the old trick
       // of choosing an item from a sequence working down the sequence,
       // either picking the head or recursing on to the tail of the sequence.
@@ -437,15 +433,14 @@ trait RandomEnrichment {
       // order.
       @scala.annotation.tailrec
       def chooseExemplarsFromCandidateBlocks(
-          candidates: Traversable[X],
+          candidates: Iterable[X],
           blockSize: Int,
           cumulativeNumberOfCandidatesPreviouslySeen: Int,
           exemplarTuples: List[(() => X, Int, Int)]
       ): List[(() => X, Int, Int)] = {
         val (candidateBlock, remainingCandidates) = candidates splitAt blockSize
 
-        if (candidateBlock isEmpty)
-          exemplarTuples
+        if (candidateBlock isEmpty) exemplarTuples
         else {
           val candidateBlockSize = candidateBlock size
           val exemplar = () =>
@@ -495,8 +490,7 @@ trait RandomEnrichment {
         def pickAnItem(
             streams: List[LazyList[X]]
         ): Option[(X, List[LazyList[X]])] = {
-          if (streams.isEmpty)
-            None
+          if (streams.isEmpty) None
           else {
             val candidateStreamToPickFrom :: remainingStreams =
               random.shuffle(streams)
