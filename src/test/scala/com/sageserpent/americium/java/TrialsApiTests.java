@@ -387,7 +387,7 @@ public class TrialsApiTests {
                                          .and(api.booleans().immutableSets())
                                          .and(api.characters()
                                                  .collectionsOfSize(4,
-                                                                    () -> Builder.stringBuilder()));
+                                                                    Builder::stringBuilder));
 
         final Try<Void, TrialsFactoring.TrialException> shouldHarbourAnError =
                 Try.runWithCatch(() ->
