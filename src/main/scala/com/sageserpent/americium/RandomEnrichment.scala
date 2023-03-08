@@ -32,7 +32,7 @@ trait RandomEnrichment {
         if (0 == exclusiveLimitOnVacantSlotIndex) {
           LazyList.empty
         } else {
-          val (chosenItemsAsBinaryTree, chosenItem) =
+          val (chosenItem, chosenItemsAsBinaryTree) =
             previouslyChosenItemsAsBinaryTree.fillVacantSlotAtIndex(
               chooseAnyNumberFromZeroToOneLessThan(
                 exclusiveLimitOnVacantSlotIndex

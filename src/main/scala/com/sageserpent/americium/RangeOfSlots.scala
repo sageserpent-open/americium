@@ -19,12 +19,12 @@ trait RangeOfSlots {
     *   We don't specify or expect to know the exact slot position, rather we
     *   work in terms of how many vacant slots there are.
     * @return
-    *   `this` with the given vacant slot filled and the position of the filled
-    *   slot.
+    *   The position of the filled slot and `this` with the given vacant slot
+    *   filled.
     */
   def fillVacantSlotAtIndex(
       indexOfVacantSlotAsCountedByVacanciesOnly: Int
-  ): (RangeOfSlots, Int)
+  ): (Int, RangeOfSlots)
 
   def numberOfVacantSlots: Int
 
@@ -82,7 +82,7 @@ object RangeOfSlots {
           indexOfVacantSlotAsOrderedByMissingItem: Int,
           inclusiveLowerBound: Int,
           exclusiveUpperBound: Int
-      ): (BinaryTreeNode, Int)
+      ): (Int, BinaryTreeNode)
     }
 
     case class InteriorNode(
@@ -140,7 +140,7 @@ object RangeOfSlots {
           indexOfVacantSlotAsOrderedByMissingItem: Int,
           inclusiveLowerBound: Int,
           exclusiveUpperBound: Int
-      ) = {
+      ): (Int, BinaryTreeNode) = {
         require(indexOfVacantSlotAsOrderedByMissingItem >= 0)
         require(
           indexOfVacantSlotAsOrderedByMissingItem < numberOfSlots
@@ -162,15 +162,15 @@ object RangeOfSlots {
             lowerBoundForItemRange
           )
 
-        def recurseOnLesserSubtree() = {
-          val (lesserSubtreeResult, modifiedItemResult) =
+        def recurseOnLesserSubtree(): (Int, InteriorNode) = {
+          val (modifiedItemResult, lesserSubtreeResult) =
             lesserSubtree.fillVacantSlotAtIndex(
               indexOfVacantSlotAsOrderedByMissingItem,
               inclusiveLowerBound,
               lowerBoundForItemRange
             )
 
-          (lesserSubtreeResult match {
+          modifiedItemResult -> (lesserSubtreeResult match {
             case InteriorNode(
                   lowerBoundForItemRangeFromLesserSubtree,
                   upperBoundForItemRangeFromLesserSubtree,
@@ -210,18 +210,18 @@ object RangeOfSlots {
                 lesserSubtreeResult,
                 greaterSubtree
               )
-          }) -> modifiedItemResult
+          })
         }
 
-        def recurseOnGreaterSubtree() = {
-          val (greaterSubtreeResult, modifiedItemResult) =
+        def recurseOnGreaterSubtree(): (Int, InteriorNode) = {
+          val (modifiedItemResult, greaterSubtreeResult) =
             greaterSubtree.fillVacantSlotAtIndex(
               indexOfVacantSlotAsOrderedByMissingItem - effectiveIndexAssociatedWithThisInteriorNode,
               1 + upperBoundForItemRange,
               exclusiveUpperBound
             )
 
-          (greaterSubtreeResult match {
+          modifiedItemResult -> (greaterSubtreeResult match {
             case InteriorNode(
                   lowerBoundForItemRangeFromGreaterSubtree,
                   upperBoundForItemRangeFromGreaterSubtree,
@@ -261,7 +261,7 @@ object RangeOfSlots {
                 lesserSubtree,
                 greaterSubtreeResult
               )
-          }) -> modifiedItemResult
+          })
         }
 
         def lesserSubtreeCanBeConsidered(inclusiveLowerBound: Int): Boolean =
@@ -331,7 +331,7 @@ object RangeOfSlots {
 
         assume(generatedItem < exclusiveUpperBound)
 
-        new InteriorNode(generatedItem) -> generatedItem
+        generatedItem -> new InteriorNode(generatedItem)
       }
     }
 
@@ -339,14 +339,14 @@ object RangeOfSlots {
         extends RangeOfSlots {
       override def fillVacantSlotAtIndex(
           indexOfVacantSlotAsCountedByVacanciesOnly: Int
-      ): (RangeOfSlots, Int) = {
-        val (node, filledSlot) = binaryTreeNode.fillVacantSlotAtIndex(
+      ): (Int, RangeOfSlots) = {
+        val (filledSlot, node) = binaryTreeNode.fillVacantSlotAtIndex(
           indexOfVacantSlotAsCountedByVacanciesOnly,
           0,
           numberOfSlots
         )
 
-        Implementation(node) -> filledSlot
+        filledSlot -> Implementation(node)
       }
 
       override def numberOfVacantSlots: Int =
