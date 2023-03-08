@@ -12,7 +12,7 @@ package com.sageserpent.americium
 trait RangeOfSlots {
 
   /** Fill in a vacant slot with a value that denotes the slot's position.
-    * @param indexOfVacantSlotAsCountedByMissingItems
+    * @param indexOfVacantSlotAsCountedByVacanciesOnly
     *   Picks out a *vacant* slot, the value must range from 0 to one less than
     *   the number of vacant slots.
     * @note
@@ -23,7 +23,7 @@ trait RangeOfSlots {
     *   slot.
     */
   def fillVacantSlotAtIndex(
-      indexOfVacantSlotAsCountedByMissingItems: Int
+      indexOfVacantSlotAsCountedByVacanciesOnly: Int
   ): (RangeOfSlots, Int)
 
   def numberOfVacantSlots: Int
@@ -37,29 +37,13 @@ object RangeOfSlots {
 
     // NOTE: have to make this an abstract class and *not* a trait to avoid a
     // code-generation bug seen in Scala 2.13 when this code is executed.
-    sealed abstract class BinaryTreeNode extends RangeOfSlots {
-      override def fillVacantSlotAtIndex(
-          indexOfVacantSlotAsCountedByMissingItems: Int
-      ): (BinaryTreeNode, Int) = {
-        require(
-          0 until numberOfVacantSlots contains indexOfVacantSlotAsCountedByMissingItems
-        )
-
-        fillVacantSlotAtIndex(
-          indexOfVacantSlotAsCountedByMissingItems,
-          0,
-          numberOfSlots
-        )
-      }
+    sealed abstract class BinaryTreeNode {
 
       def inclusiveLowerBoundForAllItemsInSubtree: Option[Int]
 
       def exclusiveUpperBoundForAllItemsInSubtree: Option[Int]
 
       def numberOfInteriorNodesInSubtree: Int
-
-      override def numberOfVacantSlots: Int =
-        numberOfSlots - numberOfFilledSlots
 
       def numberOfFilledSlots: Int
 
@@ -351,6 +335,26 @@ object RangeOfSlots {
       }
     }
 
-    EmptySubtree
+    case class Implementation(binaryTreeNode: BinaryTreeNode)
+        extends RangeOfSlots {
+      override def fillVacantSlotAtIndex(
+          indexOfVacantSlotAsCountedByVacanciesOnly: Int
+      ): (RangeOfSlots, Int) = {
+        val (node, filledSlot) = binaryTreeNode.fillVacantSlotAtIndex(
+          indexOfVacantSlotAsCountedByVacanciesOnly,
+          0,
+          numberOfSlots
+        )
+
+        Implementation(node) -> filledSlot
+      }
+
+      override def numberOfVacantSlots: Int =
+        numberOfSlots - numberOfFilledSlots
+
+      override def numberOfFilledSlots: Int = binaryTreeNode.numberOfFilledSlots
+    }
+
+    Implementation(EmptySubtree)
   }
 }
