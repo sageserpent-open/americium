@@ -5,6 +5,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Streams;
 import com.google.common.hash.Hashing;
+import com.sageserpent.americium.BargainBasement;
 import cyclops.control.Try;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -387,7 +388,7 @@ public class TrialsApiTests {
                                          .and(api.booleans().immutableSets())
                                          .and(api.characters()
                                                  .collectionsOfSize(4,
-                                                                    () -> Builder.stringBuilder()));
+                                                                    Builder::stringBuilder));
 
         final Try<Void, TrialsFactoring.TrialException> shouldHarbourAnError =
                 Try.runWithCatch(() ->
@@ -847,5 +848,22 @@ public class TrialsApiTests {
 
             verify(consumer, never()).accept(anyInt());
         }
+    }
+
+    @ParameterizedTest
+    @ValueSource(ints = {0, 1, 2, 3, 5, 7})
+    void permutationCasesShouldCoverAllPossibilities(int numberOfIndices) {
+        final int numberOfPermutations =
+                BargainBasement.factorial(numberOfIndices);
+
+        final Set<List<Integer>> permutations = new HashSet<>();
+
+        api
+                .indexPermutations(numberOfIndices)
+                .withStrategy(unused -> CasesLimitStrategy.timed(Duration.ofSeconds(
+                        1 + (int) Math.ceil(Math.pow(numberOfIndices, 2)))))
+                .supplyTo(permutations::add);
+
+        assertThat(permutations.size(), is(numberOfPermutations));
     }
 }
