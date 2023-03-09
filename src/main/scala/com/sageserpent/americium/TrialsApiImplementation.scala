@@ -388,4 +388,38 @@ class TrialsApiImplementation extends CommonApi with ScalaTrialsApi {
 
   override def characters: TrialsImplementation[Char] =
     choose(Char.MinValue to Char.MaxValue)
+
+  override def indexPermutations(
+      numberOfIndices: Int
+  ): TrialsImplementation[Vector[Int]] = {
+    require(0 <= numberOfIndices)
+    def permutationIndices(
+        exclusiveLimitOnVacantSlotIndex: Int,
+        previouslyChosenItemsAsBinaryTree: RangeOfSlots,
+        partialResult: TrialsImplementation[Vector[Int]]
+    ): TrialsImplementation[Vector[Int]] = if (
+      0 == exclusiveLimitOnVacantSlotIndex
+    )
+      partialResult
+    else
+      integers(0, exclusiveLimitOnVacantSlotIndex - 1).flatMap(
+        vacantSlotIndex => {
+          val (filledSlot, chosenItemsAsBinaryTree) =
+            previouslyChosenItemsAsBinaryTree
+              .fillVacantSlotAtIndex(vacantSlotIndex)
+
+          permutationIndices(
+            exclusiveLimitOnVacantSlotIndex - 1,
+            chosenItemsAsBinaryTree,
+            partialResult.map(_ :+ filledSlot)
+          )
+        }
+      )
+
+    permutationIndices(
+      numberOfIndices,
+      RangeOfSlots.allSlotsAreVacant(numberOfIndices),
+      only(Vector.empty)
+    )
+  }
 }

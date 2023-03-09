@@ -284,4 +284,17 @@ public interface TrialsApi {
                              Instant shrinkageTarget);
 
     Trials<String> strings();
+
+    /**
+     * Produce a trials instance whose cases can be used to permute indexed
+     * collections, or as permutations of integers in their own right.
+     *
+     * @param numberOfIndices The size of the set of indices <code>[0;
+     *                        numberOfIndices)</code> that permutations are
+     *                        generated from: also the size of the
+     *                        permutations themselves.
+     * @return A `Trials` whose cases are permutations of the integer range
+     * <code>[0; numberOfIndices)</code>.
+     */
+    Trials<List<Integer>> indexPermutations(int numberOfIndices);
 }
