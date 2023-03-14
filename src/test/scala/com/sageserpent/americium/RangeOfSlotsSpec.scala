@@ -6,7 +6,7 @@ import org.scalatest.matchers.should.Matchers
 import scala.collection.mutable
 import scala.util.Random
 
-class RangeOfSlotsTest extends AnyFlatSpec with Matchers {
+class RangeOfSlotsSpec extends AnyFlatSpec with Matchers {
   "filling out all vacant slots" should "produce a contiguous range of slot positions" in {
     val randomBehaviour = new Random(9834L)
 
