@@ -161,9 +161,12 @@ trait TrialsApiImplementation extends CommonApi with TrialsApiWart {
       caseFactory: CaseFactory[Case]
   ): TrialsImplementation[Case] = new TrialsImplementation(
     Factory(new ScalaCaseFactory[Case] {
+      require(lowerBoundInput <= maximallyShrunkInput)
+      require(maximallyShrunkInput <= upperBoundInput)
+
       override def apply(input: BigInt): Case = {
-        require(0 >= lowerBoundInput.compareTo(input))
-        require(0 <= upperBoundInput.compareTo(input))
+        require(lowerBoundInput <= input)
+        require(upperBoundInput >= input)
         caseFactory(input.bigInteger)
       }
       override def lowerBoundInput: BigInt = caseFactory.lowerBoundInput()

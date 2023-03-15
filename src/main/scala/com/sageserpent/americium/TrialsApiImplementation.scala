@@ -341,6 +341,9 @@ class TrialsApiImplementation extends CommonApi with ScalaTrialsApi {
       caseFactory: CaseFactory[Case]
   ): TrialsImplementation[Case] = new TrialsImplementation(
     Factory(new CaseFactory[Case] {
+      require(lowerBoundInput <= maximallyShrunkInput)
+      require(maximallyShrunkInput <= upperBoundInput)
+
       override def apply(input: BigInt): Case = {
         require(lowerBoundInput <= input)
         require(upperBoundInput >= input)
