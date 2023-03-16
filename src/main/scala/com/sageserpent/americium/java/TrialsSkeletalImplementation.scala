@@ -60,6 +60,13 @@ trait TrialsSkeletalImplementation[Case] extends JavaTrials[Case] {
     alternativeTrials.map(JavaEither.right[Case, Case2])
   )
 
+  override def optionals(): TrialsImplementation[
+    Optional[Case]
+  ] = javaApi.alternate(
+    javaApi.only(Optional.empty()),
+    this.map(Optional.of[Case])
+  )
+
   protected def lotsOfSize[Collection](
       size: Int,
       builderFactory: => Builder[Case, Collection]

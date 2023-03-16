@@ -7,7 +7,7 @@ import cats.implicits.*
 import cats.~>
 import com.google.common.collect.Ordering as _
 import com.google.common.hash
-import com.sageserpent.americium.TrialsApis.{javaApi, scalaApi}
+import com.sageserpent.americium.TrialsApis.scalaApi
 import com.sageserpent.americium.TrialsScaffolding.ShrinkageStop
 import com.sageserpent.americium.generation.*
 import com.sageserpent.americium.generation.Decision.{
@@ -35,8 +35,8 @@ import io.circe.syntax.*
 import org.apache.commons.text.StringEscapeUtils
 import org.rocksdb.*
 
+import _root_.java.util.Iterator as JavaIterator
 import _root_.java.util.function.{Consumer, Predicate, Function as JavaFunction}
-import _root_.java.util.{Iterator as JavaIterator, Optional as JavaOptional}
 import scala.jdk.CollectionConverters.*
 
 object TrialsImplementation {
@@ -553,15 +553,5 @@ case class TrialsImplementation[Case](
 
       override def build(): Collection = underlyingBuilder.result()
     }
-  )
-
-  override def options: TrialsImplementation[Option[Case]] =
-    scalaApi.alternate(scalaApi.only(None), this.map(Some.apply[Case]))
-
-  override def optionals(): TrialsImplementation[
-    JavaOptional[Case]
-  ] = javaApi.alternate(
-    javaApi.only(JavaOptional.empty()),
-    this.map(JavaOptional.of[Case])
   )
 }

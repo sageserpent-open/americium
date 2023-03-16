@@ -56,6 +56,9 @@ trait TrialsSkeletalImplementation[Case] extends ScalaTrials[Case] {
     alternativeTrials.map(Either.right)
   )
 
+  override def options: TrialsImplementation[Option[Case]] =
+    scalaApi.alternate(scalaApi.only(None), this.map(Some.apply[Case]))
+
   override def several[Container](implicit
       factory: collection.Factory[Case, Container]
   ): TrialsSkeletalImplementation[Container]
