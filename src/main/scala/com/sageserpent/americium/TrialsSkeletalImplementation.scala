@@ -1,4 +1,6 @@
 package com.sageserpent.americium
+import cats.implicits.*
+import com.sageserpent.americium.TrialsApis.scalaApi
 import com.sageserpent.americium.generation.FiltrationResult
 import com.sageserpent.americium.generation.GenerationOperation.Generation
 import com.sageserpent.americium.tupleTrials.Tuple2Trials as ScalaTuple2Trials
@@ -46,6 +48,13 @@ trait TrialsSkeletalImplementation[Case] extends ScalaTrials[Case] {
       secondTrials: ScalaTrials[Case2]
   ): ScalaTrialsScaffolding.Tuple2Trials[Case, Case2] =
     new ScalaTuple2Trials(this, secondTrials)
+
+  override def or[Case2](
+      alternativeTrials: ScalaTrials[Case2]
+  ): TrialsImplementation[Either[Case, Case2]] = scalaApi.alternate(
+    this.map(Either.left[Case, Case2]),
+    alternativeTrials.map(Either.right)
+  )
 
   override def several[Container](implicit
       factory: collection.Factory[Case, Container]

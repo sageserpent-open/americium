@@ -29,7 +29,6 @@ import com.sageserpent.americium.{
   TrialsScaffolding as ScalaTrialsScaffolding,
   TrialsSkeletalImplementation as ScalaTrialsSkeletalImplementation
 }
-import cyclops.control.Either as JavaEither
 import fs2.Stream as Fs2Stream
 import io.circe.generic.auto.*
 import io.circe.syntax.*
@@ -554,22 +553,6 @@ case class TrialsImplementation[Case](
 
       override def build(): Collection = underlyingBuilder.result()
     }
-  )
-
-  override def or[Case2](
-      alternativeTrials: ScalaTrials[Case2]
-  ): TrialsImplementation[Either[Case, Case2]] = scalaApi.alternate(
-    this.map(Either.left[Case, Case2]),
-    alternativeTrials.map(Either.right)
-  )
-
-  override def or[Case2](
-      alternativeTrials: java.Trials[Case2]
-  ): TrialsImplementation[
-    JavaEither[Case, Case2]
-  ] = javaApi.alternate(
-    this.map(JavaEither.left[Case, Case2]),
-    alternativeTrials.map(JavaEither.right[Case, Case2])
   )
 
   override def options: TrialsImplementation[Option[Case]] =

@@ -1,12 +1,14 @@
 package com.sageserpent.americium.java
 
 import com.google.common.collect.{Ordering as _, *}
-import com.sageserpent.americium.TrialsImplementation
+import com.sageserpent.americium.TrialsApis.javaApi
 import com.sageserpent.americium.java.tupleTrials.Tuple2Trials as JavaTuple2Trials
 import com.sageserpent.americium.java.{
   Trials as JavaTrials,
   TrialsScaffolding as JavaTrialsScaffolding
 }
+import com.sageserpent.americium.{TrialsImplementation, java}
+import cyclops.control.Either as JavaEither
 
 import _root_.java.util.function.{Predicate, Supplier, Function as JavaFunction}
 import _root_.java.util.{
@@ -48,6 +50,15 @@ trait TrialsSkeletalImplementation[Case] extends JavaTrials[Case] {
       secondTrials: JavaTrials[Case2]
   ): JavaTrialsScaffolding.Tuple2Trials[Case, Case2] =
     new JavaTuple2Trials(this, secondTrials)
+
+  override def or[Case2](
+      alternativeTrials: java.Trials[Case2]
+  ): TrialsImplementation[
+    JavaEither[Case, Case2]
+  ] = javaApi.alternate(
+    this.map(JavaEither.left[Case, Case2]),
+    alternativeTrials.map(JavaEither.right[Case, Case2])
+  )
 
   protected def lotsOfSize[Collection](
       size: Int,
