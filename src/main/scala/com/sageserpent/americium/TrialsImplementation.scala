@@ -479,7 +479,6 @@ case class TrialsImplementation[Case](
       }
     }
 
-  // Scala-only API ...
   protected override def several[Collection](
       builderFactory: => Builder[Case, Collection]
   ): TrialsImplementation[Collection] = {
