@@ -1,9 +1,9 @@
 package com.sageserpent.americium.generation
 
-import cats.data.{OptionT, StateT}
+import cats.data.StateT
 import cats.effect.SyncIO
 import cats.effect.kernel.Resource
-import cats.{Eval, ~>}
+import cats.~>
 import com.google.common.collect.{ImmutableList, Ordering as _, *}
 import com.sageserpent.americium.TrialsScaffolding.ShrinkageStop
 import com.sageserpent.americium.generation.Decision.{
@@ -250,16 +250,6 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
       )
     )
 
-    // This is used instead of a straight `Option[Case]` to avoid stack
-    // overflow when interpreting `this.generation`. We need to do this
-    // because a) we have to support recursively flat-mapped trials and b)
-    // even non-recursive trials can bring in a lot of nested flat-maps. Of
-    // course, in the recursive case we merely convert the possibility of
-    // infinite recursion into infinite looping through the `Eval`
-    // trampolining mechanism, so we still have to guard against that and
-    // terminate at some point.
-    type DeferredOption[Case] = OptionT[Eval, Case]
-
     case class State(
         decisionStagesToGuideShrinkage: Option[DecisionStages],
         decisionStagesInReverseOrder: DecisionStagesInReverseOrder,
@@ -289,7 +279,7 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
     }
 
     type StateUpdating[Case] =
-      StateT[DeferredOption, State, Case]
+      StateT[Option, State, Case]
 
     // NASTY HACK: what follows is a hacked alternative to using the reader
     // monad whereby the injected context is *mutable*, but at least it's
@@ -313,8 +303,8 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
       if (state.complexity < complexityLimit)
         StateT.pure(())
       else
-        StateT.liftF[DeferredOption, State, Unit](
-          OptionT.none
+        StateT.liftF[Option, State, Unit](
+          None
         )
     }
 
@@ -328,7 +318,7 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
         choicesByCumulativeFrequency.keys.lastOption.getOrElse(0)
       if (0 < numberOfChoices)
         StateT
-          .get[DeferredOption, State]
+          .get[Option, State]
           .flatMap(state =>
             state.decisionStagesToGuideShrinkage match {
               case Some(ChoiceOf(guideIndex) :: remainingGuidance)
@@ -337,7 +327,7 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
                 // the guidance decision stages.
                 for {
                   _ <- StateT
-                    .set[DeferredOption, State](
+                    .set[Option, State](
                       state.update(
                         Some(remainingGuidance),
                         ChoiceOf(guideIndex)
@@ -371,7 +361,7 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
                     }
 
                   _ <- StateT
-                    .set[DeferredOption, State](
+                    .set[Option, State](
                       state.update(None, ChoiceOf(index))
                     )
                 } yield {
@@ -385,7 +375,7 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
                 }
             }
           )
-      else StateT.liftF(OptionT.none)
+      else StateT.liftF(None)
     }
 
     def deflatedScale(maximumScale: BigDecimal, level: Int): BigDecimal = {
@@ -411,7 +401,7 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
         factory: CaseFactory[Case]
     ): StateUpdating[Case] = {
       StateT
-        .get[DeferredOption, State]
+        .get[Option, State]
         .flatMap(state =>
           state.decisionStagesToGuideShrinkage match {
             case Some(
@@ -443,7 +433,7 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
                   .toBigInt
 
               for {
-                _ <- StateT.set[DeferredOption, State](
+                _ <- StateT.set[Option, State](
                   state.update(
                     Some(remainingGuidance),
                     FactoryInputOf(input),
@@ -507,7 +497,7 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
                       .toBigInt
                   } else { factory.maximallyShrunkInput }
                 }
-                _ <- StateT.set[DeferredOption, State](
+                _ <- StateT.set[Option, State](
                   state.update(
                     state.decisionStagesToGuideShrinkage
                       .map(_.tail),
@@ -533,18 +523,18 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
               interpretFactory(factory)
 
             case FiltrationResult(result) =>
-              StateT.liftF(OptionT.fromOption(result))
+              StateT.liftF(result)
 
             case NoteComplexity =>
               for {
-                state <- StateT.get[DeferredOption, State]
+                state <- StateT.get[Option, State]
               } yield state.complexity
 
             case ResetComplexity(complexity)
                 // NOTE: only when *not* shrinking.
                 if scaleDeflationLevel.isEmpty =>
               for {
-                _ <- StateT.modify[DeferredOption, State](
+                _ <- StateT.modify[Option, State](
                   _.copy(complexity = complexity)
                 )
               } yield ()
@@ -601,9 +591,7 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
               .eval(SyncIO {
                 generation
                   .foldMap(interpreter())
-                  .run(State.initial)
-                  .value
-                  .value match {
+                  .run(State.initial) match {
                   case Some(
                         (
                           State(_, decisionStages, _, factoryInputsCost),
