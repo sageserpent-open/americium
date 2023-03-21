@@ -299,6 +299,7 @@ class Cookbook {
 [or Java example...](#java)
 
 ```scala
+import com.sageserpent.americium.Trials
 import com.sageserpent.americium.Trials.api
 
 import org.scalatest.flatspec.AnyFlatSpec
