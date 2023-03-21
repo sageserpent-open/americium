@@ -138,6 +138,8 @@ yourself in the code, it's simple enough...
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Maps;
+import com.sageserpent.americium.java.Trials;
+import com.sageserpent.americium.java.TrialsApi;
 import org.junit.jupiter.api.Test;
 
 import java.awt.*;
@@ -297,6 +299,7 @@ class Cookbook {
 [or Java example...](#java)
 
 ```scala
+import com.sageserpent.americium.Trials
 import com.sageserpent.americium.Trials.api
 
 import org.scalatest.flatspec.AnyFlatSpec
