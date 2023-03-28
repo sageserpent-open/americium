@@ -425,4 +425,14 @@ class TrialsApiImplementation extends CommonApi with ScalaTrialsApi {
       only(Vector.empty)
     )
   }
+
+  override def indexPermutations(
+      numberOfIndices: Int,
+      permutationSize: Int
+  ): TrialsImplementation[Vector[Int]] = ???
+
+  override def indexCombinations(
+      numberOfIndices: Int,
+      combinationSize: Int
+  ): TrialsImplementation[Vector[Int]] = ???
 }

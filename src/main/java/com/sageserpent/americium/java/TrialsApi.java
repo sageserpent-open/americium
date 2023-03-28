@@ -22,7 +22,8 @@ public interface TrialsApi {
      *                a recursive step - so you don't want it to execute
      *                there and then to avoid infinite recursion.
      * @param <Case>
-     * @return A safe form of the {@code delayed} trials instance that won't
+     * @return A safe form of the {@code delayed} {@link Trials} instance
+     * that won't
      * immediately execute, but will yield the same {@code Case} instances.
      */
     <Case> Trials<Case> delay(Supplier<Trials<Case>> delayed);
@@ -62,7 +63,7 @@ public interface TrialsApi {
      * @param secondChoice Mandatory second choice, so there is always some
      *                     element of choice.
      * @param otherChoices Optional further choices.
-     * @return The {@link Trials} instance.
+     * @return A {@link Trials} instance.
      * @apiNote The peculiar signature is to avoid ambiguity with the
      * overloads for an iterable / array of cases.
      */
@@ -94,7 +95,7 @@ public interface TrialsApi {
      * @param secondAlternative Mandatory second alternative, so there is
      *                          always some element of alternation.
      * @param otherAlternatives Optional further alternatives.
-     * @return The {@link Trials} instance.
+     * @return A {@link Trials} instance.
      * @apiNote The peculiar signature is to avoid ambiguity with the
      * overloads for an iterable / array of cases.
      */
@@ -169,8 +170,9 @@ public interface TrialsApi {
      * The notion of a complexity limit is described in
      * {@link TrialsScaffolding.SupplyToSyntax#withComplexityLimit(int)}
      *
-     * @return The complexity associated with the trials context, taking into
-     * account any flat-mapping this call is embedded in.
+     * @return A {@link Trials} instance yielding the complexity associated
+     * with the definition's context, taking into account any flat-mapping
+     * this call is embedded in.
      */
     Trials<Integer> complexities();
 
@@ -200,7 +202,7 @@ public interface TrialsApi {
      *                    cases, in whatever sense is appropriate to either
      *                    the actual type of the cases or their specific use
      *                    as implemented by the factory.
-     * @return The trials instance.
+     * @return A {@link Trials} instance.
      */
     <Case> Trials<Case> stream(CaseFactory<Case> caseFactory);
 
@@ -225,7 +227,7 @@ public interface TrialsApi {
      *                'smaller' cases, in whatever sense is appropriate to
      *                either the actual type of the cases or their specific
      *                use as encoded by the factory.
-     * @return The trials instance.
+     * @return A {@link Trials} instance.
      */
     <Case> Trials<Case> streamLegacy(Function<Long, Case> factory);
 
@@ -286,15 +288,50 @@ public interface TrialsApi {
     Trials<String> strings();
 
     /**
-     * Produce a trials instance whose cases can be used to permute indexed
-     * collections, or as permutations of integers in their own right.
+     * Produce a trials instance whose cases can be used to permute elements
+     * of indexed collections, or as permutations of integers in their own
+     * right.
      *
      * @param numberOfIndices The size of the set of indices <code>[0;
      *                        numberOfIndices)</code> that permutations are
      *                        generated from: also the size of the
      *                        permutations themselves.
-     * @return A `Trials` whose cases are permutations of the integer range
+     * @return A {@link Trials} instance whose cases are permutations of the
+     * integer range
      * <code>[0; numberOfIndices)</code>.
      */
     Trials<List<Integer>> indexPermutations(int numberOfIndices);
+
+    /**
+     * Produce a trials instance whose cases can be used to permute elements
+     * of indexed collections, or as permutations of integers in their own
+     * right.
+     *
+     * @param numberOfIndices The size of the set of indices <code>[0;
+     *                        numberOfIndices)</code> that permutations are
+     *                        generated from.
+     * @param permutationSize The size of the generated permutations; must be
+     *                        in the range <code>[0; numberOfIndices)</code>
+     * @return A {@link Trials} instance whose cases are permutations of the
+     * integer range
+     * <code>[0; numberOfIndices)</code>.
+     */
+    Trials<List<Integer>> indexPermutations(int numberOfIndices,
+                                            int permutationSize);
+
+    /**
+     * Produce a trials instance whose cases can be used to select
+     * combinations of elements of indexed collections, or as permutations of
+     * integers in their own right.
+     *
+     * @param numberOfIndices The size of the set of indices <code>[0;
+     *                        numberOfIndices)</code> that combinations are
+     *                        generated from.
+     * @param combinationSize The size of the generated combinations; must be
+     *                        in the range <code>[0; numberOfIndices)</code>
+     * @return A {@link Trials} instance whose cases are combinations of the
+     * integer range <code>[0; numberOfIndices)</code>.
+     */
+    Trials<List<Integer>> indexCombinations(int numberOfIndices,
+                                            int combinationSize);
 }

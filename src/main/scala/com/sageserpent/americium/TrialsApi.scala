@@ -13,8 +13,8 @@ trait TrialsApi {
     * recursion takes place. You won't need this very often, if at all.
     *
     * @param delayed
-    *   Some definition of a trials instance that is typically a recursive step,
-    *   so you don't want it to execute there and then to avoid infinite
+    *   Some definition of a [[Trials]] instance that is typically a recursive
+    *   step, so you don't want it to execute there and then to avoid infinite
     *   recursion.
     * @tparam Case
     * @return
@@ -60,7 +60,7 @@ trait TrialsApi {
     * @param otherChoices
     *   Optional further choices.
     * @return
-    *   The [[Trials]] instance.
+    *   A [[Trials]] instance.
     * @note
     *   The peculiar signature is to avoid ambiguity with the overloads for an
     *   iterable / array of cases.
@@ -92,7 +92,7 @@ trait TrialsApi {
     * @param otherAlternatives
     *   Optional further alternatives.
     * @return
-    *   The [[Trials]] instance.
+    *   A [[Trials]] instance.
     * @note
     *   The peculiar signature is to avoid ambiguity with the overloads for an
     *   iterable / array of cases.
@@ -149,8 +149,9 @@ trait TrialsApi {
     * [[TrialsScaffolding.SupplyToSyntax.withComplexityLimit]]
     *
     * @return
-    *   The complexity associated with the trials context, taking into account
-    *   any flat-mapping this call is embedded in.
+    *   A [[Trials]] instance yielding the complexity associated with the
+    *   definition's context, taking into account any flat-mapping this call is
+    *   embedded in.
     */
   def complexities: Trials[Int]
 
@@ -178,7 +179,7 @@ trait TrialsApi {
     * either the actual type of the cases or their specific use as implemented
     * by the factory.
     * @return
-    *   The trials instance
+    *   A [[Trials]] instance.
     */
   def stream[Case](factory: CaseFactory[Case]): Trials[Case]
 
@@ -201,7 +202,7 @@ trait TrialsApi {
     * whatever sense is appropriate to either the actual type of the cases or
     * their specific use as encoded by the factory.
     * @return
-    *   The trials instance
+    *   A [[Trials]] instance.
     */
   def streamLegacy[Case](factory: Long => Case): Trials[Case]
 
@@ -284,16 +285,55 @@ trait TrialsApi {
 
   def strings: Trials[String]
 
-  /** Produce a trials instance whose cases can be used to permute indexed
-    * collections, or as permutations of integers in their own right.
+  /** Produce a trials instance whose cases can be used to permute elements of
+    * indexed collections, or as permutations of integers in their own right.
     *
     * @param numberOfIndices
     *   The size of the set of indices ''[0; numberOfIndices)'' that
     *   permutations are generated from: also the size of the permutations
     *   themselves.
     * @return
-    *   A `Trials` whose cases are permutations of the integer range ''[0;
-    *   numberOfIndices)''.
+    *   A [[Trials]] instance whose cases are permutations of the integer range
+    *   ''[0; numberOfIndices)''.
     */
   def indexPermutations(numberOfIndices: Int): Trials[Vector[Int]]
+
+  /** Produce a trials instance whose cases can be used to permute elements of
+    * indexed collections, or as permutations of integers in their own right.
+    *
+    * @param numberOfIndices
+    *   The size of the set of indices ''[0; numberOfIndices)'' that
+    *   permutations are generated from.
+    * @param permutationSize
+    *   The size of the generated permutations; must be in the range ''[0;
+    *   numberOfIndices)''.
+    * @return
+    *   A [[Trials]] instance whose cases are permutations of the integer range
+    *   ''[0; numberOfIndices)''.
+    */
+  def indexPermutations(
+      numberOfIndices: Int,
+      permutationSize: Int
+  ): Trials[Vector[Int]]
+
+  /** Produce a trials instance whose cases can be used to select combinations
+    * of elements of indexed collections, or as combinations of integers in
+    * their own right.
+    *
+    * @param numberOfIndices
+    *   The size of the set of indices ''[0; numberOfIndices)'' that
+    *   combinations are generated from.
+    * @param combinationSize
+    *   The size of the generated combinations; must be in the range ''[0;
+    *   numberOfIndices)''.
+    * @return
+    *   A [[Trials]] instance whose cases are combinations of the integer range
+    *   ''[0; numberOfIndices)''.
+    * @note
+    *   The indices in the combinations are sorted in ascending order.
+    */
+  def indexCombinations(
+      numberOfIndices: Int,
+      combinationSize: Int
+  ): Trials[Vector[Int]]
 }

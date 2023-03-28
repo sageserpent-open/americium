@@ -341,4 +341,24 @@ trait TrialsApiImplementation extends CommonApi with TrialsApiWart {
     .indexPermutations(numberOfIndices)
     .map(_.map(Int.box).asJava)
     .javaTrials
+
+  override def indexPermutations(
+      numberOfIndices: Int,
+      permutationSize: Int
+  ): TrialsImplementation[JavaList[
+    JavaInteger
+  ]] = scalaApi
+    .indexPermutations(numberOfIndices, permutationSize)
+    .map(_.map(Int.box).asJava)
+    .javaTrials
+
+  override def indexCombinations(
+      numberOfIndices: Int,
+      combinationSize: Int
+  ): TrialsImplementation[JavaList[
+    JavaInteger
+  ]] = scalaApi
+    .indexCombinations(numberOfIndices, combinationSize)
+    .map(_.map(Int.box).asJava)
+    .javaTrials
 }
