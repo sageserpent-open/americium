@@ -471,11 +471,7 @@ class TrialsApiImplementation extends CommonApi with ScalaTrialsApi {
             )
         )
       } else
-        indexCombinations(
-          1 + cumulativeCombinationSize,
-          1 + candidateIndex,
-          partialResult.map(_ :+ candidateIndex)
-        )
+        partialResult.map(_ ++ (candidateIndex until numberOfIndices))
     }
 
     indexCombinations(0, 0, only(Vector.empty))

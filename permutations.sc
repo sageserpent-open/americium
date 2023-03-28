@@ -27,6 +27,17 @@ def permutationIndices3(size: Int): Trials[Vector[Int]] = {
 
 for {
   numberOfIndices <- 0 to 4
+  combinationSize <- 0 to numberOfIndices
+} {
+  api
+    .indexCombinations(numberOfIndices, combinationSize)
+    .withLimit(30)
+    .supplyTo(println)
+  println("+++++++++++++")
+}
+
+for {
+  numberOfIndices <- 0 to 4
   permutationSize <- 0 to numberOfIndices
 } {
   api
