@@ -853,17 +853,21 @@ public class TrialsApiTests {
     @ParameterizedTest
     @ValueSource(ints = {0, 1, 2, 3, 5, 7})
     void permutationCasesShouldCoverAllPossibilities(int numberOfIndices) {
-        final int numberOfPermutations =
-                BargainBasement.factorial(numberOfIndices);
+        for (int permutationSize = 0; numberOfIndices >= permutationSize;
+             ++permutationSize) {
+            final int numberOfPermutations =
+                    BargainBasement.numberOfPermutations(numberOfIndices,
+                                                         permutationSize);
 
-        final Set<List<Integer>> permutations = new HashSet<>();
+            final Set<List<Integer>> permutations = new HashSet<>();
 
-        api
-                .indexPermutations(numberOfIndices)
-                .withStrategy(unused -> CasesLimitStrategy.timed(Duration.ofSeconds(
-                        1 + (int) Math.ceil(Math.pow(numberOfIndices, 2)))))
-                .supplyTo(permutations::add);
+            api
+                    .indexPermutations(numberOfIndices, permutationSize)
+                    .withStrategy(unused -> CasesLimitStrategy.timed(Duration.ofSeconds(
+                            1 + (int) Math.ceil(Math.pow(numberOfIndices, 2)))))
+                    .supplyTo(permutations::add);
 
-        assertThat(permutations.size(), is(numberOfPermutations));
+            assertThat(permutations.size(), is(numberOfPermutations));
+        }
     }
 }
