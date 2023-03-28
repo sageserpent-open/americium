@@ -409,7 +409,7 @@ class TrialsApiImplementation extends CommonApi with ScalaTrialsApi {
         previouslyChosenItemsAsBinaryTree: RangeOfSlots,
         partialResult: TrialsImplementation[Vector[Int]]
     ): TrialsImplementation[Vector[Int]] = if (
-      cumulativePermutationSize == permutationSize
+      permutationSize == cumulativePermutationSize
     ) partialResult
     else {
       val exclusiveLimitOnVacantSlotIndex =
@@ -440,5 +440,44 @@ class TrialsApiImplementation extends CommonApi with ScalaTrialsApi {
   override def indexCombinations(
       numberOfIndices: Int,
       combinationSize: Int
-  ): TrialsImplementation[Vector[Int]] = ???
+  ): TrialsImplementation[Vector[Int]] = {
+    require(0 <= numberOfIndices)
+    require(0 to numberOfIndices contains combinationSize)
+
+    def indexCombinations(
+        cumulativeCombinationSize: Int,
+        candidateIndex: Int,
+        partialResult: TrialsImplementation[Vector[Int]]
+    ): TrialsImplementation[Vector[Int]] = if (
+      combinationSize == cumulativeCombinationSize
+    ) partialResult
+    else {
+      val leewayToDiscardCandidateIndex =
+        candidateIndex + combinationSize - cumulativeCombinationSize < numberOfIndices
+
+      if (leewayToDiscardCandidateIndex) {
+        booleans.flatMap(pick =>
+          if (pick)
+            indexCombinations(
+              1 + cumulativeCombinationSize,
+              1 + candidateIndex,
+              partialResult.map(_ :+ candidateIndex)
+            )
+          else
+            indexCombinations(
+              cumulativeCombinationSize,
+              1 + candidateIndex,
+              partialResult
+            )
+        )
+      } else
+        indexCombinations(
+          1 + cumulativeCombinationSize,
+          1 + candidateIndex,
+          partialResult.map(_ :+ candidateIndex)
+        )
+    }
+
+    indexCombinations(0, 0, only(Vector.empty))
+  }
 }
