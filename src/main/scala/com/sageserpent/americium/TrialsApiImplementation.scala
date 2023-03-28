@@ -394,42 +394,48 @@ class TrialsApiImplementation extends CommonApi with ScalaTrialsApi {
 
   override def indexPermutations(
       numberOfIndices: Int
+  ): TrialsImplementation[Vector[Int]] =
+    indexPermutations(numberOfIndices, numberOfIndices)
+
+  override def indexPermutations(
+      numberOfIndices: Int,
+      permutationSize: Int
   ): TrialsImplementation[Vector[Int]] = {
     require(0 <= numberOfIndices)
-    def permutationIndices(
-        exclusiveLimitOnVacantSlotIndex: Int,
+    require(0 to numberOfIndices contains permutationSize)
+
+    def indexPermutations(
+        cumulativePermutationSize: Int,
         previouslyChosenItemsAsBinaryTree: RangeOfSlots,
         partialResult: TrialsImplementation[Vector[Int]]
     ): TrialsImplementation[Vector[Int]] = if (
-      0 == exclusiveLimitOnVacantSlotIndex
-    )
-      partialResult
-    else
+      cumulativePermutationSize == permutationSize
+    ) partialResult
+    else {
+      val exclusiveLimitOnVacantSlotIndex =
+        numberOfIndices - cumulativePermutationSize
+
       integers(0, exclusiveLimitOnVacantSlotIndex - 1).flatMap(
         vacantSlotIndex => {
           val (filledSlot, chosenItemsAsBinaryTree) =
             previouslyChosenItemsAsBinaryTree
               .fillVacantSlotAtIndex(vacantSlotIndex)
 
-          permutationIndices(
-            exclusiveLimitOnVacantSlotIndex - 1,
+          indexPermutations(
+            1 + cumulativePermutationSize,
             chosenItemsAsBinaryTree,
             partialResult.map(_ :+ filledSlot)
           )
         }
       )
+    }
 
-    permutationIndices(
-      numberOfIndices,
+    indexPermutations(
+      0,
       RangeOfSlots.allSlotsAreVacant(numberOfIndices),
       only(Vector.empty)
     )
   }
-
-  override def indexPermutations(
-      numberOfIndices: Int,
-      permutationSize: Int
-  ): TrialsImplementation[Vector[Int]] = ???
 
   override def indexCombinations(
       numberOfIndices: Int,
