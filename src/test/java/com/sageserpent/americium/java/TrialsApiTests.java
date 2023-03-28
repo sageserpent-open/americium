@@ -886,7 +886,7 @@ public class TrialsApiTests {
             api
                     .indexCombinations(numberOfIndices, combinationSize)
                     .withStrategy(unused -> CasesLimitStrategy.timed(Duration.ofSeconds(
-                            1 + (int) Math.ceil(Math.pow(numberOfIndices, 2)))))
+                            1 + numberOfIndices)))
                     .supplyTo(combination -> {
                         assertThat(combination, strictOrdered());
                         combination.forEach(index -> {
