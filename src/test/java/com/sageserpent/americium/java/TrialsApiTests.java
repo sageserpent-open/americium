@@ -28,6 +28,7 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
+import static com.github.seregamorph.hamcrest.OrderMatchers.strictOrdered;
 import static com.sageserpent.americium.java.Trials.api;
 import static org.hamcrest.CoreMatchers.allOf;
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -868,6 +869,35 @@ public class TrialsApiTests {
                     .supplyTo(permutations::add);
 
             assertThat(permutations.size(), is(numberOfPermutations));
+        }
+    }
+
+    @ParameterizedTest
+    @ValueSource(ints = {0, 1, 2, 3, 5, 7})
+    void combinationCasesShouldCoverAllPossibilities(int numberOfIndices) {
+        for (int combinationSize = 0; numberOfIndices >= combinationSize;
+             ++combinationSize) {
+            final int numberOfCombinations =
+                    BargainBasement.numberOfCombinations(numberOfIndices,
+                                                         combinationSize);
+
+            final Set<List<Integer>> combinations = new HashSet<>();
+
+            api
+                    .indexCombinations(numberOfIndices, combinationSize)
+                    .withStrategy(unused -> CasesLimitStrategy.timed(Duration.ofSeconds(
+                            1 + (int) Math.ceil(Math.pow(numberOfIndices, 2)))))
+                    .supplyTo(combination -> {
+                        assertThat(combination, strictOrdered());
+                        combination.forEach(index -> {
+                            assertThat(index,
+                                       allOf(greaterThanOrEqualTo(0),
+                                             lessThan(numberOfIndices)));
+                        });
+                        combinations.add(combination);
+                    });
+
+            assertThat(combinations.size(), is(numberOfCombinations));
         }
     }
 }

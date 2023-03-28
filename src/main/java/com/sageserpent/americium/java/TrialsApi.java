@@ -331,6 +331,7 @@ public interface TrialsApi {
      *                        in the range <code>[0; numberOfIndices)</code>
      * @return A {@link Trials} instance whose cases are combinations of the
      * integer range <code>[0; numberOfIndices)</code>.
+     * @apiNote The indices in the combinations are sorted in ascending order.
      */
     Trials<List<Integer>> indexCombinations(int numberOfIndices,
                                             int combinationSize);
