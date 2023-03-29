@@ -852,7 +852,7 @@ public class TrialsApiTests {
     }
 
     @ParameterizedTest
-    @ValueSource(ints = {0, 1, 2, 3, 5, 7})
+    @ValueSource(ints = {0, 1, 2, 3, 4, 5, 7})
     void permutationCasesShouldCoverAllPossibilities(int numberOfIndices) {
         for (int permutationSize = 0; numberOfIndices >= permutationSize;
              ++permutationSize) {
@@ -864,14 +864,9 @@ public class TrialsApiTests {
 
             api
                     .indexPermutations(numberOfIndices, permutationSize)
-                    .withStrategy(unused -> {
-                        final int voodooMaximumStarvationRatio =
-                                numberOfIndices * numberOfIndices;
-
-                        return CasesLimitStrategy.counted(
-                                numberOfPermutations,
-                                voodooMaximumStarvationRatio);
-                    })
+                    .withStrategy(unused -> CasesLimitStrategy.counted(
+                            numberOfPermutations,
+                            numberOfPermutations))
                     .supplyTo(permutations::add);
 
             assertThat(permutations.size(), is(numberOfPermutations));
@@ -879,7 +874,7 @@ public class TrialsApiTests {
     }
 
     @ParameterizedTest
-    @ValueSource(ints = {0, 1, 2, 3, 5, 7, 8, 9, 10})
+    @ValueSource(ints = {0, 1, 2, 3, 4, 5, 7, 8, 9, 10})
     void combinationCasesShouldCoverAllPossibilities(int numberOfIndices) {
         for (int combinationSize = 0; numberOfIndices >= combinationSize;
              ++combinationSize) {
