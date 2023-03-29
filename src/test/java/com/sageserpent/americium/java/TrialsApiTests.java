@@ -862,15 +862,16 @@ public class TrialsApiTests {
 
             final Set<List<Integer>> permutations = new HashSet<>();
 
-            // Java - got to love it.
-            final int finalPermutationSize = permutationSize;
-
             api
                     .indexPermutations(numberOfIndices, permutationSize)
-                    .withStrategy(unused -> CasesLimitStrategy.timed(Duration.ofSeconds(
-                            1 +
-                            (int) Math.ceil(Math.pow(finalPermutationSize,
-                                                     1.2)))))
+                    .withStrategy(unused -> {
+                        final int voodooMaximumStarvationRatio =
+                                numberOfIndices * numberOfIndices;
+
+                        return CasesLimitStrategy.counted(
+                                numberOfPermutations,
+                                voodooMaximumStarvationRatio);
+                    })
                     .supplyTo(permutations::add);
 
             assertThat(permutations.size(), is(numberOfPermutations));
@@ -878,7 +879,7 @@ public class TrialsApiTests {
     }
 
     @ParameterizedTest
-    @ValueSource(ints = {0, 1, 2, 3, 5, 7})
+    @ValueSource(ints = {0, 1, 2, 3, 5, 7, 8, 9, 10})
     void combinationCasesShouldCoverAllPossibilities(int numberOfIndices) {
         for (int combinationSize = 0; numberOfIndices >= combinationSize;
              ++combinationSize) {
@@ -888,13 +889,16 @@ public class TrialsApiTests {
 
             final Set<List<Integer>> combinations = new HashSet<>();
 
-            // Java - got to love it.
-            final int finalCombinationSize = combinationSize;
-
             api
                     .indexCombinations(numberOfIndices, combinationSize)
-                    .withStrategy(unused -> CasesLimitStrategy.timed(Duration.ofSeconds(
-                            1 + finalCombinationSize)))
+                    .withStrategy(unused -> {
+                        final int voodooMaximumStarvationRatio =
+                                numberOfIndices * numberOfIndices;
+
+                        return CasesLimitStrategy.counted(
+                                numberOfCombinations,
+                                voodooMaximumStarvationRatio);
+                    })
                     .supplyTo(combination -> {
                         assertThat(combination, strictOrdered());
                         combination.forEach(index -> {
