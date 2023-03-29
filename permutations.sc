@@ -25,15 +25,27 @@ def permutationIndices3(size: Int): Trials[Vector[Int]] = {
   permutationIndices(size, RangeOfSlots.allSlotsAreVacant(size))
 }
 
-api.indexPermutations(0).withLimit(15).supplyTo(println)
+for {
+  numberOfIndices <- 0 to 4
+  combinationSize <- 0 to numberOfIndices
+} {
+  api
+    .indexCombinations(numberOfIndices, combinationSize)
+    .withLimit(30)
+    .supplyTo(println)
+  println("+++++++++++++")
+}
 
-api.indexPermutations(1).withLimit(15).supplyTo(println)
-
-api.indexPermutations(2).withLimit(15).supplyTo(println)
-
-api.indexPermutations(3).withLimit(15).supplyTo(println)
-
-api.indexPermutations(4).withLimit(50).supplyTo(println)
+for {
+  numberOfIndices <- 0 to 4
+  permutationSize <- 0 to numberOfIndices
+} {
+  api
+    .indexPermutations(numberOfIndices, permutationSize)
+    .withLimit(30)
+    .supplyTo(println)
+  println("------------")
+}
 
 def permutationIndices2(numberOfElements: Int): Trials[Seq[Int]] = {
   def permutationIndices(
