@@ -335,4 +335,19 @@ public interface TrialsApi {
      */
     Trials<List<Integer>> indexCombinations(int numberOfIndices,
                                             int combinationSize);
+
+    /**
+     * Produce a trials instance whose cases are lists containing elements
+     * picked alternately from {@code iterables}. The order of elements
+     * contributed by any given iterable is preserved in the yielded lists,
+     * but there can be arbitrary alternation across the iterables.
+     *
+     * @param iterable  Sources of elements.
+     * @param <Element> The type of the list elements yielded by the
+     *                  resulting {@link Trials} instance.
+     * @return A {@link Trials} instance whose cases are lists of {@code
+     * Element}.
+     */
+    <Element> Trials<List<Element>> pickAlternatelyFrom(
+            Iterable<Element>... iterable);
 }

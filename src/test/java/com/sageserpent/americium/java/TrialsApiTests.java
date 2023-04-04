@@ -14,6 +14,7 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.mockito.ArgumentMatchers;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -906,5 +907,35 @@ public class TrialsApiTests {
 
             assertThat(combinations.size(), is(numberOfCombinations));
         }
+    }
+
+    @Test
+    void alternatePickingShouldForwardCorrectly() {
+        final Consumer<List<Integer>> consumer = mock(Consumer.class);
+
+        final Set<List<Integer>> cases = new HashSet<>();
+
+        doAnswer(invocation -> {
+            final List<Integer> argument = invocation.getArgument(0);
+            System.out.println(argument);
+            cases.add(argument);
+            return null;
+        }).when(consumer).accept(ArgumentMatchers.any(List.class));
+
+        final int numberOfPermutationsOfTheSingletonListElements = 6;
+
+        api
+                .pickAlternatelyFrom(ImmutableList.of(1),
+                                     ImmutableList.of(2),
+                                     ImmutableList.of(3))
+                .withLimit(3 * numberOfPermutationsOfTheSingletonListElements)
+                .supplyTo(consumer);
+
+        verify(consumer,
+               atLeast(numberOfPermutationsOfTheSingletonListElements)).accept(
+                ArgumentMatchers.any(List.class));
+
+        assertThat(cases.size(),
+                   equalTo(numberOfPermutationsOfTheSingletonListElements));
     }
 }

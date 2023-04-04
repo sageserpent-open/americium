@@ -337,7 +337,7 @@ trait TrialsApi {
       combinationSize: Int
   ): Trials[Vector[Int]]
 
-  /** Produce trial instance whose cases are lists containing elements picked
+  /** Produce a trials instance whose cases are lists containing elements picked
     * alternately from {@code iterables}. The order of elements contributed by
     * any given iterable is preserved in the yielded lists, but there can be
     * arbitrary alternation across the iterables.
