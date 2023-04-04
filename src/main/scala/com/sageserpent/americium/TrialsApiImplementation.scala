@@ -3,10 +3,7 @@ import cats.Traverse
 import cats.free.Free
 import cats.implicits.*
 import com.sageserpent.americium.generation.*
-import com.sageserpent.americium.{
-  Trials as ScalaTrials,
-  TrialsApi as ScalaTrialsApi
-}
+import com.sageserpent.americium.{Trials as ScalaTrials, TrialsApi as ScalaTrialsApi}
 
 import _root_.java.time.Instant
 import scala.collection.immutable.SortedMap
@@ -475,5 +472,34 @@ class TrialsApiImplementation extends CommonApi with ScalaTrialsApi {
     }
 
     indexCombinations(0, 0, only(Vector.empty))
+  }
+
+  override def pickAlternatelyFrom[X](
+      iterables: Iterable[X]*
+  ): Trials[List[X]] = complexities.flatMap { complexity =>
+    def pickAnItem(
+        lazyLists: Seq[LazyList[X]]
+    ): Trials[List[X]] = {
+      if (lazyLists.isEmpty) only(List.empty)
+      else
+        indexPermutations(lazyLists.size).flatMap { permutationIndices =>
+          val candidateLazyListToPickFrom :: remainders = List.tabulate(
+            lazyLists.size
+          )(index => lazyLists(permutationIndices(index)))
+
+          resetComplexity(complexity).flatMap(_ =>
+            candidateLazyListToPickFrom match {
+              case LazyList() =>
+                pickAnItem(remainders)
+              case pickedItem #:: tailFromPickedStream =>
+                pickAnItem(tailFromPickedStream :: remainders).map(
+                  pickedItem :: _
+                )
+            }
+          )
+        }
+    }
+
+    pickAnItem(iterables map (LazyList.from(_)))
   }
 }

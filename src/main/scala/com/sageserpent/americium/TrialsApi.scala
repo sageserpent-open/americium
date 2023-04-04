@@ -127,17 +127,17 @@ trait TrialsApi {
     * @param sequenceOfTrials
     *   Several trials that act as sources for the elements of lists yielded by
     *   the resulting [[Trials]] instance.
-    * @tparam Case
+    * @tparam Element
     *   The type of the list elements yielded by the resulting [[Trials]]
     *   instance.
     * @return
     *   A [[Trials]] instance that yields lists of the same size.
     */
-  def sequences[Case, Sequence[_]: Traverse](
-      sequenceOfTrials: Sequence[Trials[Case]]
+  def sequences[Element, Sequence[_]: Traverse](
+      sequenceOfTrials: Sequence[Trials[Element]]
   )(implicit
-      factory: Factory[Case, Sequence[Case]]
-  ): Trials[Sequence[Case]]
+      factory: Factory[Element, Sequence[Element]]
+  ): Trials[Sequence[Element]]
 
   /** This is for advanced usage, where there is a need to control how trials
     * instances are formulated to avoid hitting the complexity limit, or
@@ -336,4 +336,20 @@ trait TrialsApi {
       numberOfIndices: Int,
       combinationSize: Int
   ): Trials[Vector[Int]]
+
+  /** Produce trial instance whose cases are lists containing elements picked
+    * alternately from {@code iterables}. The order of elements contributed by
+    * any given iterable is preserved in the yielded lists, but there can be
+    * arbitrary alternation across the iterables.
+    * @param iterables
+    *   Sources of elements.
+    * @tparam Element
+    *   The type of the list elements yielded by the resulting [[Trials]]
+    *   instance.
+    * @return
+    *   A [[Trials]] instance whose cases are lists of {@code Element}.
+    */
+  def pickAlternatelyFrom[Element](
+      iterables: Iterable[Element]*
+  ): Trials[List[Element]]
 }
