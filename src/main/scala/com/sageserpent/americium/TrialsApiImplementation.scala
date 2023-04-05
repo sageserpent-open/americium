@@ -479,12 +479,12 @@ class TrialsApiImplementation extends CommonApi with ScalaTrialsApi {
       iterables: Iterable[X]*
   ): Trials[Vector[X]] = complexities.flatMap { complexity =>
     def pickAnItem(
-        candidateLists: List[LazyList[X]]
+        candidateLists: Vector[LazyList[X]]
     ): Trials[Vector[X]] = {
       if (candidateLists.isEmpty) only(Vector.empty)
       else
         integers(0, candidateLists.size - 1).flatMap { chosenCandidateIndex =>
-          val (prefix, listToPickFrom :: suffix) =
+          val (prefix, Vector(listToPickFrom, suffix*)) =
             candidateLists.splitAt(chosenCandidateIndex)
 
           val remainders = prefix ++ suffix
@@ -496,8 +496,8 @@ class TrialsApiImplementation extends CommonApi with ScalaTrialsApi {
               case pickedItem #:: tailFromPickedStream =>
                 pickAnItem(
                   if (shrinkToRoundRobin)
-                    remainders ++ List(tailFromPickedStream)
-                  else tailFromPickedStream :: remainders
+                    remainders :+ tailFromPickedStream
+                  else tailFromPickedStream +: remainders
                 ).map(
                   pickedItem +: _
                 )
@@ -506,6 +506,6 @@ class TrialsApiImplementation extends CommonApi with ScalaTrialsApi {
         }
     }
 
-    pickAnItem(iterables.map(LazyList.from(_)).toList)
+    pickAnItem(iterables.map(LazyList.from(_)).toVector)
   }
 }
