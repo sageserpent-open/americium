@@ -350,6 +350,7 @@ trait TrialsApiImplementation extends CommonApi with TrialsApiWart {
     .javaTrials
 
   override def pickAlternatelyFrom[Element](
+      shrinkToRoundRobin: Boolean,
       iterable: JavaIterable[Element]*
   ): JavaTrials[JavaList[
     Element
@@ -359,7 +360,7 @@ trait TrialsApiImplementation extends CommonApi with TrialsApiWart {
     val scalaIterables: Seq[Iterable[Element]] = iterable.map(_.asScala)
 
     scalaApi
-      .pickAlternatelyFrom(scalaIterables: _*)
+      .pickAlternatelyFrom(shrinkToRoundRobin, scalaIterables: _*)
       .map(_.asJava)
       .javaTrials
       .asInstanceOf[JavaTrials[JavaList[Element]]]

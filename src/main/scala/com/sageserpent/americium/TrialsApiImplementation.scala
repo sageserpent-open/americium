@@ -475,6 +475,7 @@ class TrialsApiImplementation extends CommonApi with ScalaTrialsApi {
   }
 
   override def pickAlternatelyFrom[X](
+      shrinkToRoundRobin: Boolean,
       iterables: Iterable[X]*
   ): Trials[Vector[X]] = complexities.flatMap { complexity =>
     def pickAnItem(

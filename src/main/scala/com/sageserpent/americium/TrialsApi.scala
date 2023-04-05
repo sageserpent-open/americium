@@ -341,6 +341,11 @@ trait TrialsApi {
     * picked alternately from {@code iterables}. The order of elements
     * contributed by any given iterable is preserved in the yielded vectors, but
     * there can be arbitrary alternation across the iterables.
+    * @param shrinkToRoundRobin
+    *   If true, then shrinkage will try to proceed to a systematic alternation
+    *   across the iterables, draining them in round-robin fashion. Otherwise,
+    *   shrinkage will try to proceed towards concatenating the iterables,
+    *   draining each one completely in sequence.
     * @param iterables
     *   Sources of elements.
     * @tparam Element
@@ -350,6 +355,7 @@ trait TrialsApi {
     *   A [[Trials]] instance whose cases are vectors of {@code Element}.
     */
   def pickAlternatelyFrom[Element](
+      shrinkToRoundRobin: Boolean,
       iterables: Iterable[Element]*
   ): Trials[Vector[Element]]
 }

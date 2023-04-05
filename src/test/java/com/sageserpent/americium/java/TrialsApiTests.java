@@ -925,7 +925,8 @@ public class TrialsApiTests {
         final int numberOfPermutationsOfTheSingletonListElements = 6;
 
         api
-                .pickAlternatelyFrom(ImmutableList.of(1),
+                .pickAlternatelyFrom(true,
+                                     ImmutableList.of(1),
                                      ImmutableList.of(2),
                                      ImmutableList.of(3))
                 .withLimit(3 * numberOfPermutationsOfTheSingletonListElements)

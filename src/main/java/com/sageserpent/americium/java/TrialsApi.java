@@ -349,5 +349,6 @@ public interface TrialsApi {
      * Element}.
      */
     <Element> Trials<List<Element>> pickAlternatelyFrom(
+            boolean shrinkToRoundRobin,
             Iterable<Element>... iterable);
 }

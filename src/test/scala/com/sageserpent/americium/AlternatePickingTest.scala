@@ -16,12 +16,12 @@ object AlternatePickingTest {
     if (1 >= value) 1 else value * factorial(value - 1)
   }
 
-  def provideSequencesTo(test: Seq[Seq[(Int, Int)]] => Unit) = {
+  def provideSequencesTo(test: (Boolean, Seq[Seq[(Int, Int)]]) => Unit) = {
     val randomBehaviour = new Random(83489L)
 
     for {
       numberOfSequences <- Seq(0, 1, 1, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 4, 4,
-        4, 4, 5, 5, 6, 6, 7, 7, 8)
+        4, 4, 5, 5, 6, 6, 6, 7, 7, 7, 8)
     } {
       val maximumSequenceLength = 8 - numberOfSequences
 
@@ -31,7 +31,9 @@ object AlternatePickingTest {
         )
       )
 
-      test(sequences)
+      val shrinkToRoundRobin = 0 == sequences.hashCode() % 2
+
+      test(shrinkToRoundRobin, sequences)
     }
   }
 }
@@ -47,31 +49,37 @@ class AlternatePickingTest
   behavior of "pickAlternatelyFrom"
 
   it should "preserve the elements in the sequences" in {
-    provideSequencesTo { sequences =>
+    provideSequencesTo { (shrinkToRoundRobin, sequences) =>
       val expectedElements = sequences.flatten
 
-      api.pickAlternatelyFrom(sequences: _*).withLimit(10).supplyTo { picked =>
-        picked should contain theSameElementsAs expectedElements
-      }
+      api
+        .pickAlternatelyFrom(shrinkToRoundRobin, sequences: _*)
+        .withLimit(10)
+        .supplyTo { picked =>
+          picked should contain theSameElementsAs expectedElements
+        }
     }
   }
 
   it should "preserve the order of elements contributed from each sequence" in {
-    provideSequencesTo { sequences =>
-      api.pickAlternatelyFrom(sequences: _*).withLimit(10).supplyTo { picked =>
-        for (distinguishingMark <- 0 until sequences.size) {
-          picked.filter(
-            distinguishingMark == _._1
-          ) should contain theSameElementsInOrderAs sequences(
-            distinguishingMark
-          )
+    provideSequencesTo { (shrinkToRoundRobin, sequences) =>
+      api
+        .pickAlternatelyFrom(shrinkToRoundRobin, sequences: _*)
+        .withLimit(10)
+        .supplyTo { picked =>
+          for (distinguishingMark <- 0 until sequences.size) {
+            picked.filter(
+              distinguishingMark == _._1
+            ) should contain theSameElementsInOrderAs sequences(
+              distinguishingMark
+            )
+          }
         }
-      }
     }
   }
 
   it should "exhibit variation in how it picks from the same sequences" in {
-    provideSequencesTo { sequences =>
+    provideSequencesTo { (shrinkToRoundRobin, sequences) =>
       val sizes = sequences.map(_.size)
 
       val totalNumberOfElements = sizes.sum
@@ -95,7 +103,7 @@ class AlternatePickingTest
           mock(classOf[Seq[(Int, Int)] => Unit])
 
         api
-          .pickAlternatelyFrom(sequences: _*)
+          .pickAlternatelyFrom(shrinkToRoundRobin, sequences: _*)
           .withLimit(numberOfWaysOfDistributingTheSequencesIntoTheResult.toInt)
           .supplyTo(consumer)
 
@@ -117,9 +125,9 @@ class AlternatePickingTest
         mock(classOf[Seq[Int] => Unit])
 
       val limit = 100
-      
+
       api
-        .pickAlternatelyFrom(odds, evens)
+        .pickAlternatelyFrom(shrinkToRoundRobin = true, odds, evens)
         .withLimit(limit)
         .supplyTo(consumer)
 
