@@ -337,19 +337,19 @@ trait TrialsApi {
       combinationSize: Int
   ): Trials[Vector[Int]]
 
-  /** Produce a trials instance whose cases are lists containing elements picked
-    * alternately from {@code iterables}. The order of elements contributed by
-    * any given iterable is preserved in the yielded lists, but there can be
-    * arbitrary alternation across the iterables.
+  /** Produce a trials instance whose cases are vectors containing elements
+    * picked alternately from {@code iterables}. The order of elements
+    * contributed by any given iterable is preserved in the yielded vectors, but
+    * there can be arbitrary alternation across the iterables.
     * @param iterables
     *   Sources of elements.
     * @tparam Element
-    *   The type of the list elements yielded by the resulting [[Trials]]
+    *   The type of the vector elements yielded by the resulting [[Trials]]
     *   instance.
     * @return
-    *   A [[Trials]] instance whose cases are lists of {@code Element}.
+    *   A [[Trials]] instance whose cases are vectors of {@code Element}.
     */
   def pickAlternatelyFrom[Element](
       iterables: Iterable[Element]*
-  ): Trials[List[Element]]
+  ): Trials[Vector[Element]]
 }
