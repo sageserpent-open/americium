@@ -494,7 +494,11 @@ class TrialsApiImplementation extends CommonApi with ScalaTrialsApi {
               case LazyList() =>
                 pickAnItem(remainders)
               case pickedItem #:: tailFromPickedStream =>
-                pickAnItem(tailFromPickedStream :: remainders).map(
+                pickAnItem(
+                  if (shrinkToRoundRobin)
+                    remainders ++ List(tailFromPickedStream)
+                  else tailFromPickedStream :: remainders
+                ).map(
                   pickedItem +: _
                 )
             }
