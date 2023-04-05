@@ -1,7 +1,7 @@
 package com.sageserpent.americium
 import com.sageserpent.americium.Trials.api
 import org.mockito.ArgumentMatchers.any
-import org.mockito.Mockito.{mock, times, verify}
+import org.mockito.Mockito.{doThrow, mock, times, verify}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.{Inside, Inspectors}
@@ -135,6 +135,56 @@ class AlternatePickingTest
         consumer,
         times(limit)
       ).apply(any[Seq[Int]])
+    }
+  }
+
+  it should "shrink to a round-robin drainage or a concatenation" in {
+    val odds = 1 to 201 by 2
+
+    val evens = 0 to 160 by 2
+
+    inMockitoSession {
+      val consumer: Seq[Int] => Unit =
+        mock(classOf[Seq[Int] => Unit])
+
+      doThrow(new RuntimeException())
+        .when(consumer)
+        .apply(any(classOf[Seq[Int]]))
+
+      val limit = 100
+
+      {
+        val trials = api
+          .pickAlternatelyFrom(shrinkToRoundRobin = false, odds, evens)
+
+        val trialsException = intercept[trials.TrialException](
+          trials
+            .withLimit(limit)
+            .supplyTo(consumer)
+        )
+
+        val concatenatedElements = odds ++ evens
+
+        trialsException.provokingCase should be(concatenatedElements)
+      }
+
+      {
+        val trials = api
+          .pickAlternatelyFrom(shrinkToRoundRobin = true, odds, evens)
+
+        val trialsException = intercept[trials.TrialException](
+          trials
+            .withLimit(limit)
+            .supplyTo(consumer)
+        )
+
+        val interleavedElements =
+          odds.zip(evens).flatMap { case (odd, even) => Seq(odd, even) }
+
+        trialsException.provokingCase.take(interleavedElements.size) should be(
+          interleavedElements
+        )
+      }
     }
   }
 }
