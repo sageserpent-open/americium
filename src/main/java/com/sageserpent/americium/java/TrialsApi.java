@@ -342,9 +342,15 @@ public interface TrialsApi {
      * contributed by any given iterable is preserved in the yielded lists,
      * but there can be arbitrary alternation across the iterables.
      *
-     * @param iterable  Sources of elements.
-     * @param <Element> The type of the list elements yielded by the
-     *                  resulting {@link Trials} instance.
+     * @param shrinkToRoundRobin If true, then shrinkage will try to proceed
+     *                           to a systematic alternation across the
+     *                           iterables, draining them in round-robin
+     *                           fashion. Otherwise, shrinkage will try to
+     *                           proceed towards concatenating the iterables,
+     *                           draining each one completely in sequence.
+     * @param iterable           Sources of elements.
+     * @param <Element>          The type of the list elements yielded by the
+     *                           resulting {@link Trials} instance.
      * @return A {@link Trials} instance whose cases are lists of {@code
      * Element}.
      */
