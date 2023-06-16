@@ -176,17 +176,17 @@ trait Trials[+Case]
 
   def lists: Trials[List[Case]]
 
-  def sets: Trials[Set[_ <: Case]]
+  def sets[CovarianceFudge >: Case]: Trials[Set[CovarianceFudge]]
 
-  def sortedSets(implicit
-      ordering: Ordering[_ >: Case]
-  ): Trials[SortedSet[_ <: Case]]
+  def sortedSets[CovarianceFudge >: Case](implicit
+      ordering: Ordering[CovarianceFudge]
+  ): Trials[SortedSet[CovarianceFudge]]
 
-  def maps[Value](values: Trials[Value]): Trials[Map[_ <: Case, Value]]
+  def maps[CovarianceFudge >: Case, Value](values: Trials[Value]): Trials[Map[CovarianceFudge, Value]]
 
-  def sortedMaps[Value](values: Trials[Value])(implicit
-      ordering: Ordering[_ >: Case]
-  ): Trials[SortedMap[_ <: Case, Value]]
+  def sortedMaps[CovarianceFudge >: Case, Value](values: Trials[Value])(implicit
+      ordering: Ordering[CovarianceFudge]
+  ): Trials[SortedMap[CovarianceFudge, Value]]
 
   /** Transform this to a trials of collection, where {@code Collection} is some
     * kind of collection that can be built from elements of type {@code Case} by
