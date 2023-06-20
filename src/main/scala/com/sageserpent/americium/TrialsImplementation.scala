@@ -10,25 +10,11 @@ import com.google.common.hash
 import com.sageserpent.americium.TrialsApis.scalaApi
 import com.sageserpent.americium.TrialsScaffolding.ShrinkageStop
 import com.sageserpent.americium.generation.*
-import com.sageserpent.americium.generation.Decision.{
-  DecisionStages,
-  parseDecisionIndices
-}
+import com.sageserpent.americium.generation.Decision.{DecisionStages, parseDecisionIndices}
 import com.sageserpent.americium.generation.GenerationOperation.Generation
 import com.sageserpent.americium.java.TrialsScaffolding.OptionalLimits
-import com.sageserpent.americium.java.{
-  Builder,
-  CaseSupplyCycle,
-  CasesLimitStrategy,
-  TestIntegrationContext,
-  TrialsScaffolding as JavaTrialsScaffolding,
-  TrialsSkeletalImplementation as JavaTrialsSkeletalImplementation
-}
-import com.sageserpent.americium.{
-  Trials as ScalaTrials,
-  TrialsScaffolding as ScalaTrialsScaffolding,
-  TrialsSkeletalImplementation as ScalaTrialsSkeletalImplementation
-}
+import com.sageserpent.americium.java.{Builder, CaseSupplyCycle, CasesLimitStrategy, TestIntegrationContext, TrialsScaffolding as JavaTrialsScaffolding, TrialsSkeletalImplementation as JavaTrialsSkeletalImplementation}
+import com.sageserpent.americium.{Trials as ScalaTrials, TrialsScaffolding as ScalaTrialsScaffolding, TrialsSkeletalImplementation as ScalaTrialsSkeletalImplementation}
 import fs2.Stream as Fs2Stream
 import io.circe.generic.auto.*
 import io.circe.syntax.*
@@ -59,7 +45,12 @@ case class TrialsImplementation[Case](
 
   override def scalaTrials: TrialsImplementation[Case] = this
 
-  override def javaTrials: TrialsImplementation[Case] = this
+  override def javaTrials[CovarianceFudge >: Case]
+      : TrialsImplementation[CovarianceFudge] = {
+    // NASTY HACK: the Java API can't express covariance, but it
+    // does use `Case` in a covariant manner, so let's fudge it...
+    this.asInstanceOf[TrialsImplementation[CovarianceFudge]]
+  }
 
   // Java and Scala API ...
   override def reproduce(recipe: String): Case =

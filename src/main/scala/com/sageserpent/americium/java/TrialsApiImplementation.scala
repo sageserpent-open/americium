@@ -363,6 +363,5 @@ trait TrialsApiImplementation extends CommonApi with TrialsApiWart {
       .pickAlternatelyFrom(shrinkToRoundRobin, scalaIterables: _*)
       .map(_.asJava)
       .javaTrials
-      .asInstanceOf[JavaTrials[JavaList[Element]]]
   }
 }

@@ -1,18 +1,8 @@
 package com.sageserpent.americium
 
 import com.sageserpent.americium.TrialsScaffolding.{noShrinking, noStopping}
-import com.sageserpent.americium.generation.JavaPropertyNames.{
-  nondeterminsticJavaProperty,
-  recipeHashJavaProperty,
-  recipeJavaProperty
-}
-import com.sageserpent.americium.java.{
-  Builder,
-  CaseSupplyCycle,
-  CasesLimitStrategy,
-  Trials as JavaTrials,
-  TrialsApi as JavaTrialsApi
-}
+import com.sageserpent.americium.generation.JavaPropertyNames.{nondeterminsticJavaProperty, recipeHashJavaProperty, recipeJavaProperty}
+import com.sageserpent.americium.java.{Builder, CaseSupplyCycle, CasesLimitStrategy, Trials as JavaTrials, TrialsApi as JavaTrialsApi}
 import cyclops.control.Either as JavaEither
 import org.mockito.ArgumentMatchers.{any, argThat}
 import org.mockito.Mockito
@@ -1152,8 +1142,7 @@ class TrialsSpec
           val mockConsumer: Consumer[AnyRef] = mock(classOf[Consumer[AnyRef]])
 
           sut.javaTrials
-            .asInstanceOf[JavaTrials[AnyRef]] // NASTY HACK: this ugly cast isn't needed to make this code compile, but prevent a runtime error when running under Scala 3.1.2.
-            .flatMap[AnyRef](_ => javaApi.impossible)
+            .flatMap((_: Any) => javaApi.impossible[AnyRef])
             .withLimit(limit)
             .withSeed(seed)
             .supplyTo(mockConsumer)

@@ -101,7 +101,7 @@ trait Trials[+Case]
     *   The Java incarnation [[com.sageserpent.americium.java.Trials]] of this
     *   instance
     */
-  def javaTrials: JavaTrials[_ <: Case]
+  def javaTrials[CovarianceFudge >: Case]: JavaTrials[CovarianceFudge]
 
   def map[TransformedCase](
       transform: Case => TransformedCase
