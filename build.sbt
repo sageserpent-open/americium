@@ -6,9 +6,9 @@ lazy val jUnitVersion = "5.7.0"
 
 lazy val javaVersion = "1.9"
 
-lazy val scala2_13_Version = "2.13.8"
+lazy val scala2_13_Version = "2.13.11"
 
-lazy val scala3_Version = "3.1.2"
+lazy val scala3_Version = "3.3.0"
 
 ThisBuild / scalaVersion := scala2_13_Version
 
@@ -67,11 +67,11 @@ lazy val settings = Seq(
   ) match {
     case Some((2, _)) =>
       Seq(
-        "com.softwaremill.magnolia1_2" %% "magnolia"      % "1.1.2",
+        "com.softwaremill.magnolia1_2" %% "magnolia"      % "1.1.3",
         "org.scala-lang"                % "scala-reflect" % scalaVersion.value
       )
     case Some((3, _)) =>
-      Seq("com.softwaremill.magnolia1_3" %% "magnolia" % "1.1.1")
+      Seq("com.softwaremill.magnolia1_3" %% "magnolia" % "1.3.2")
 
     case _ => Seq.empty
   }),
