@@ -1,4 +1,6 @@
-package com.sageserpent.americium
+package com.sageserpent.americium.examples
+
+import com.sageserpent.americium.Trials
 import com.sageserpent.americium.Trials.api
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -16,7 +18,7 @@ class BuildingComplexTrials extends AnyFlatSpec with Matchers {
   private def vainAttemptToDisproveHavingMoreThanTwoAdjacentDuplicates(
       list: List[Int]
   ) = {
-    import com.sageserpent.americium.seqEnrichment._
+    import com.sageserpent.americium.seqEnrichment.*
 
     val groupsOfAdjacentDuplicates = list.groupWhile(_ == _)
 

@@ -1,7 +1,11 @@
 import sbt.Tests.{Group, SubProcess}
 
-lazy val scala2_13_Version = "2.13.8"
-lazy val scala3_Version    = "3.1.2"
+lazy val scala2_13_Version = "2.13.11"
+
+lazy val scala3_Version = "3.3.0"
+
+ThisBuild / scalaVersion := scala2_13_Version
+
 lazy val settings = Seq(
   crossScalaVersions := Seq(scala2_13_Version, scala3_Version),
   name               := "americium",
@@ -16,7 +20,7 @@ lazy val settings = Seq(
     case _ => Nil
   }),
   javacOptions ++= Seq("-source", javaVersion, "-target", javaVersion),
-  libraryDependencies += "com.sageserpent" %% "americium"  % "1.12.0",
+  libraryDependencies += "com.sageserpent" %% "americium"  % "1.14.1" % Test,
   libraryDependencies += "org.typelevel"   %% "cats-laws"  % "2.7.0"  % Test,
   libraryDependencies += "org.scalatest"   %% "scalatest"  % "3.2.9"  % Test,
   libraryDependencies += "org.scalacheck"  %% "scalacheck" % "1.15.4" % Test,
