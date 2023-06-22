@@ -117,6 +117,8 @@ trait Trials[+Case]
       filteringTransform: Case => Option[TransformedCase]
   ): Trials[TransformedCase]
 
+  def withFilter(predicate: Case => Boolean): Trials[Case] = filter(predicate)
+
   /** Fluent syntax to allow trials to be combined prior to calling
     * [[TrialsScaffolding.withLimit]] etc. This grants the user the choice of
     * either supplying the combined trials in the usual way, in which case the
