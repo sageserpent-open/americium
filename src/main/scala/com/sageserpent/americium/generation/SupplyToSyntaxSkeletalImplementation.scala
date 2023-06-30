@@ -6,32 +6,13 @@ import cats.effect.kernel.Resource
 import cats.~>
 import com.google.common.collect.{ImmutableList, Ordering as _, *}
 import com.sageserpent.americium.TrialsScaffolding.ShrinkageStop
-import com.sageserpent.americium.generation.Decision.{
-  DecisionStages,
-  parseDecisionIndices
-}
+import com.sageserpent.americium.generation.Decision.{DecisionStages, parseDecisionIndices}
 import com.sageserpent.americium.generation.GenerationOperation.Generation
 import com.sageserpent.americium.generation.JavaPropertyNames.*
-import com.sageserpent.americium.generation.SupplyToSyntaxSkeletalImplementation.{
-  maximumScaleDeflationLevel,
-  minimumScaleDeflationLevel,
-  rocksDbResource
-}
-import com.sageserpent.americium.java.{
-  CaseFailureReporting,
-  CaseSupplyCycle,
-  CasesLimitStrategy,
-  InlinedCaseFiltration,
-  TestIntegrationContext,
-  TrialsScaffolding as JavaTrialsScaffolding
-}
+import com.sageserpent.americium.generation.SupplyToSyntaxSkeletalImplementation.{maximumScaleDeflationLevel, minimumScaleDeflationLevel, rocksDbResource}
+import com.sageserpent.americium.java.{CaseFailureReporting, CaseSupplyCycle, CasesLimitStrategy, CrossApiIterator, InlinedCaseFiltration, TestIntegrationContext, TrialsScaffolding as JavaTrialsScaffolding}
 import com.sageserpent.americium.randomEnrichment.RichRandom
-import com.sageserpent.americium.{
-  CaseFactory,
-  TestIntegrationContextImplementation,
-  Trials,
-  TrialsScaffolding as ScalaTrialsScaffolding
-}
+import com.sageserpent.americium.{CaseFactory, TestIntegrationContextImplementation, Trials, TrialsScaffolding as ScalaTrialsScaffolding}
 import fs2.{Pull, Stream as Fs2Stream}
 import org.rocksdb.{Cache as _, *}
 import scalacache.*
@@ -42,8 +23,7 @@ import _root_.java.util.{ArrayList as JavaArrayList, Iterator as JavaIterator}
 import java.nio.file.Path
 import scala.annotation.tailrec
 import scala.collection.immutable.SortedMap
-import scala.collection.mutable
-import scala.jdk.CollectionConverters.*
+import scala.collection.{mutable, Iterator as ScalaIterator}
 import scala.util.Random
 
 object SupplyToSyntaxSkeletalImplementation {
@@ -642,12 +622,15 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
   override def supplyTo(consumer: Consumer[Case]): Unit =
     supplyTo(consumer.accept)
 
-  override def asIterator(): JavaIterator[Case] =
-    lazyListOfTestIntegrationContexts().map(_.caze).asJava.iterator()
+  override def asIterator(): JavaIterator[Case] with ScalaIterator[Case] =
+    CrossApiIterator.from(
+      lazyListOfTestIntegrationContexts().map(_.caze).iterator
+    )
 
   override def testIntegrationContexts()
-      : JavaIterator[TestIntegrationContext[Case]] =
-    lazyListOfTestIntegrationContexts().asJava.iterator()
+      : JavaIterator[TestIntegrationContext[Case]]
+        with ScalaIterator[TestIntegrationContext[Case]] =
+    CrossApiIterator.from(lazyListOfTestIntegrationContexts().iterator)
 
   private def lazyListOfTestIntegrationContexts()
       : LazyList[TestIntegrationContext[Case]] = {

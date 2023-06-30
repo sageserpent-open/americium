@@ -13,7 +13,7 @@ import com.sageserpent.americium.generation.*
 import com.sageserpent.americium.generation.Decision.{DecisionStages, parseDecisionIndices}
 import com.sageserpent.americium.generation.GenerationOperation.Generation
 import com.sageserpent.americium.java.TrialsScaffolding.OptionalLimits
-import com.sageserpent.americium.java.{Builder, CaseSupplyCycle, CasesLimitStrategy, TestIntegrationContext, TrialsScaffolding as JavaTrialsScaffolding, TrialsSkeletalImplementation as JavaTrialsSkeletalImplementation}
+import com.sageserpent.americium.java.{Builder, CaseSupplyCycle, CasesLimitStrategy, CrossApiIterator, TestIntegrationContext, TrialsScaffolding as JavaTrialsScaffolding, TrialsSkeletalImplementation as JavaTrialsSkeletalImplementation}
 import com.sageserpent.americium.{Trials as ScalaTrials, TrialsScaffolding as ScalaTrialsScaffolding, TrialsSkeletalImplementation as ScalaTrialsSkeletalImplementation}
 import fs2.Stream as Fs2Stream
 import io.circe.generic.auto.*
@@ -23,7 +23,7 @@ import org.rocksdb.*
 
 import _root_.java.util.Iterator as JavaIterator
 import _root_.java.util.function.{Consumer, Predicate, Function as JavaFunction}
-import scala.jdk.CollectionConverters.*
+import scala.collection.Iterator as ScalaIterator
 
 object TrialsImplementation {
 
@@ -420,14 +420,16 @@ case class TrialsImplementation[Case](
       override def supplyTo(consumer: Consumer[Case]): Unit =
         supplyTo(consumer.accept)
 
-      override def asIterator(): JavaIterator[Case] = Seq {
-        val decisionStages = parseDecisionIndices(recipe)
-        reproduce(decisionStages)
-      }.asJava.iterator()
+      override def asIterator(): JavaIterator[Case] with ScalaIterator[Case] =
+        CrossApiIterator.from(Seq {
+          val decisionStages = parseDecisionIndices(recipe)
+          reproduce(decisionStages)
+        }.iterator)
 
       override def testIntegrationContexts()
-          : JavaIterator[TestIntegrationContext[Case]] =
-        Seq({
+          : JavaIterator[TestIntegrationContext[Case]]
+            with ScalaIterator[TestIntegrationContext[Case]] =
+        CrossApiIterator.from(Seq({
           val decisionStages = parseDecisionIndices(recipe)
           val caze           = reproduce(decisionStages)
 
@@ -446,7 +448,7 @@ case class TrialsImplementation[Case](
             },
             isPartOfShrinkage = false
           )
-        }: TestIntegrationContext[Case]).asJava.iterator()
+        }: TestIntegrationContext[Case]).iterator)
 
       // Scala-only API ...
       override def withShrinkageStop(
