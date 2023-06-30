@@ -11,7 +11,7 @@ package object junit5 {
     def dynamicTests(
         parameterisedTest: Case => Unit
     ): Array[DynamicTest] =
-      junit5.dynamicTests(supplier.testIntegrationContexts, parameterisedTest)
+      junit5.dynamicTests(supplier.testIntegrationContexts(), parameterisedTest)
   }
   private[americium] def dynamicTests[Case](
       contexts: Iterator[TestIntegrationContext[Case]],

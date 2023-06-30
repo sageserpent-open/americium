@@ -68,9 +68,9 @@ object TrialsScaffolding {
       */
     def supplyTo(consumer: Case => Unit): Unit
 
-    def asIterator: Iterator[Case]
+    def asIterator(): Iterator[Case]
 
-    def testIntegrationContexts: Iterator[TestIntegrationContext[Case]]
+    def testIntegrationContexts(): Iterator[TestIntegrationContext[Case]]
   }
 
   trait SupplyToSyntaxTuple2[+Case1, +Case2]

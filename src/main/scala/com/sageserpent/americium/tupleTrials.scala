@@ -65,14 +65,14 @@ object tupleTrials {
       override def supplyTo(consumer: ((Case1, Case2)) => Unit): Unit =
         supplyToSyntax.supplyTo(consumer)
 
-      override def asIterator: Iterator[(Case1, Case2)] =
-        supplyToSyntax.asIterator
+      override def asIterator(): Iterator[(Case1, Case2)] =
+        supplyToSyntax.asIterator()
 
-      override def testIntegrationContexts: Iterator[
+      override def testIntegrationContexts(): Iterator[
         TestIntegrationContext[
           (Case1, Case2)
         ]
-      ] = supplyToSyntax.testIntegrationContexts
+      ] = supplyToSyntax.testIntegrationContexts()
 
       protected val supplyToSyntax: TrialsScaffolding.SupplyToSyntax[
         (Case1, Case2)
@@ -193,14 +193,14 @@ object tupleTrials {
       override def supplyTo(consumer: ((Case1, Case2, Case3)) => Unit): Unit =
         supplyToSyntax.supplyTo(consumer)
 
-      override def asIterator: Iterator[(Case1, Case2, Case3)] =
-        supplyToSyntax.asIterator
+      override def asIterator(): Iterator[(Case1, Case2, Case3)] =
+        supplyToSyntax.asIterator()
 
-      override def testIntegrationContexts: Iterator[
+      override def testIntegrationContexts(): Iterator[
         TestIntegrationContext[
           (Case1, Case2, Case3)
         ]
-      ] = supplyToSyntax.testIntegrationContexts
+      ] = supplyToSyntax.testIntegrationContexts()
 
       protected val supplyToSyntax: TrialsScaffolding.SupplyToSyntax[
         (Case1, Case2, Case3)
@@ -326,14 +326,14 @@ object tupleTrials {
           consumer: ((Case1, Case2, Case3, Case4)) => Unit
       ): Unit = supplyToSyntax.supplyTo(consumer)
 
-      override def asIterator: Iterator[(Case1, Case2, Case3, Case4)] =
-        supplyToSyntax.asIterator
+      override def asIterator(): Iterator[(Case1, Case2, Case3, Case4)] =
+        supplyToSyntax.asIterator()
 
-      override def testIntegrationContexts: Iterator[
+      override def testIntegrationContexts(): Iterator[
         TestIntegrationContext[
           (Case1, Case2, Case3, Case4)
         ]
-      ] = supplyToSyntax.testIntegrationContexts
+      ] = supplyToSyntax.testIntegrationContexts()
 
       protected val supplyToSyntax: TrialsScaffolding.SupplyToSyntax[
         (Case1, Case2, Case3, Case4)
