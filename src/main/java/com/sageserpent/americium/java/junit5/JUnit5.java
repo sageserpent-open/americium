@@ -1,7 +1,10 @@
 package com.sageserpent.americium.java.junit5;
 
 import com.sageserpent.americium.java.TrialsScaffolding;
+import com.sageserpent.americium.junit5.package$;
 import org.junit.jupiter.api.DynamicTest;
+import scala.jdk.javaapi.CollectionConverters;
+import scala.jdk.javaapi.FunctionConverters;
 
 import java.util.Iterator;
 import java.util.function.Consumer;
@@ -25,8 +28,9 @@ public class JUnit5 {
      * <p>
      * Example:
      * <pre>{@code
+     *     // Annotation to wire the dynamic tests into JUnit5...
      *     @TestFactory
-     *     Iterator<DynamicTest> exampleTest() {
+     *     Iterator<DynamicTest> dynamicTestsExample() {
      *         final TrialsScaffolding.SupplyToSyntax<Integer> supplier =
      *                 Trials.api().integers().withLimit(10);
      *
@@ -34,7 +38,7 @@ public class JUnit5 {
      *                 supplier,
      *                 // The parameterised test: it just prints out the test case...
      *                 testCase -> {
-     *                     System.out.format("Test case %d", testCase);
+     *                     System.out.format("Test case %d\n", testCase);
      *                 });
      *     }}</pre>
      *
@@ -50,6 +54,8 @@ public class JUnit5 {
     public static <Case> Iterator<DynamicTest> dynamicTests(
             TrialsScaffolding.SupplyToSyntax<Case> supplier,
             Consumer<Case> consumer) {
-        throw new RuntimeException("Not implemented yet.");
+        return CollectionConverters.asJava(package$.MODULE$.dynamicTests(
+                CollectionConverters.asScala(supplier.testIntegrationContexts()),
+                FunctionConverters.asScalaFromConsumer(consumer)));
     }
 }

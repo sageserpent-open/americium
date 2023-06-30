@@ -282,7 +282,7 @@ public class DemonstrateJUnitIntegration {
     }
 
     @TestFactory
-    Iterator<DynamicTest> exampleTest() {
+    Iterator<DynamicTest> dynamicTestsExample() {
         final int expectedNumberOfTestCases = 10;
 
         final TrialsScaffolding.SupplyToSyntax<Integer> supplier =
@@ -292,13 +292,13 @@ public class DemonstrateJUnitIntegration {
 
         final Iterator<DynamicTest> parameterisedDynamicTests =
                 JUnit5.dynamicTests(supplier, testCase -> {
-                    System.out.format("Test case #%d is %d",
+                    System.out.format("Test case #%d is %d\n",
                                       trialsCount.incrementAndGet(),
                                       testCase);
                 });
 
         final DynamicTest finalCheck =
-                DynamicTest.dynamicTest("Final Check", () -> {
+                DynamicTest.dynamicTest("Final Check\n", () -> {
                     assertThat(trialsCount.get(),
                                equalTo(expectedNumberOfTestCases));
                 });
