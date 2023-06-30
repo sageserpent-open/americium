@@ -2,8 +2,6 @@ import sbt.Tests.{Group, SubProcess}
 import sbtrelease.ReleaseStateTransformations._
 import xerial.sbt.Sonatype._
 
-lazy val jUnitVersion = "5.7.0"
-
 lazy val javaVersion = "1.9"
 
 lazy val scala2_13_Version = "2.13.11"
@@ -124,10 +122,9 @@ lazy val settings = Seq(
     "org.junit.platform" % "junit-platform-runner" % "1.8.2" % Test,
     "org.junit.jupiter"  % "junit-jupiter-engine"  % "5.8.2" % Test
   ),
-  libraryDependencies += "org.hamcrest" % "hamcrest" % "2.2" % Test,
-  // libraryDependencies += "org.scalatestplus" %% "junit-5-9" % "3.2.16.0-M3" %
-  // Test,
-  libraryDependencies += "org.projectlombok" % "lombok" % "1.18.22" % Provided
+  libraryDependencies += "org.hamcrest"      % "hamcrest" % "2.2"     % Test,
+  libraryDependencies += "com.lihaoyi"      %% "utest"    % "0.8.1"   % Test,
+  libraryDependencies += "org.projectlombok" % "lombok"   % "1.18.22" % Provided
 )
 
 lazy val americium = (project in file(".")).settings(settings: _*)

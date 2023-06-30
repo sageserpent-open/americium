@@ -6,6 +6,7 @@ import org.junit.jupiter.api.DynamicTest;
 import scala.jdk.javaapi.CollectionConverters;
 import scala.jdk.javaapi.FunctionConverters;
 
+import java.util.Iterator;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -29,7 +30,7 @@ public class JUnit5 {
      * <pre>{@code
      *     // Annotation to wire the dynamic tests into JUnit5...
      *     @TestFactory
-     *     DynamicTest[] dynamicTestsExample() {
+     *     Iterator<DynamicTest> dynamicTestsExample() {
      *         final TrialsScaffolding.SupplyToSyntax<Integer> supplier =
      *                 Trials.api().integers().withLimit(10);
      *
@@ -50,7 +51,7 @@ public class JUnit5 {
      * with the {@link org.junit.jupiter.api.TestFactory} annotation provided
      * by JUnit5.
      */
-    public static <Case> DynamicTest[] dynamicTests(
+    public static <Case> Iterator<DynamicTest> dynamicTests(
             TrialsScaffolding.SupplyToSyntax<Case> supplier,
             Consumer<Case> consumer) {
         return package$.MODULE$.dynamicTests(

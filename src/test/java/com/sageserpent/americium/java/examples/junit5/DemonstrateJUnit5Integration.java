@@ -1,7 +1,7 @@
 package com.sageserpent.americium.java.examples.junit5;
 
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Streams;
+import com.google.common.collect.Iterators;
 import com.sageserpent.americium.java.*;
 import com.sageserpent.americium.java.TrialsScaffolding.Tuple2Trials;
 import com.sageserpent.americium.java.TrialsScaffolding.Tuple3Trials;
@@ -13,8 +13,9 @@ import cyclops.data.tuple.Tuple2;
 import cyclops.data.tuple.Tuple3;
 import org.junit.jupiter.api.*;
 
+import java.util.Collections;
+import java.util.Iterator;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Stream;
 
 import static java.lang.Math.abs;
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -23,7 +24,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 
-public class DemonstrateJUnitIntegration {
+public class DemonstrateJUnit5Integration {
     private static final TrialsApi api = Trials.api();
     private static final Trials<Long> longs = api.longs();
     private static final TrialsScaffolding.SupplyToSyntax<Long>
@@ -281,7 +282,7 @@ public class DemonstrateJUnitIntegration {
     }
 
     @TestFactory
-    Stream<DynamicTest> dynamicTestsExample() {
+    Iterator<DynamicTest> dynamicTestsExample() {
         final int expectedNumberOfTestCases = 10;
 
         final TrialsScaffolding.SupplyToSyntax<Integer> supplier =
@@ -289,7 +290,7 @@ public class DemonstrateJUnitIntegration {
 
         AtomicInteger trialsCount = new AtomicInteger();
 
-        final DynamicTest[] parameterisedDynamicTests =
+        final Iterator<DynamicTest> parameterisedDynamicTests =
                 JUnit5.dynamicTests(supplier, testCase -> {
                     System.out.format("Test case #%d is %d\n",
                                       trialsCount.incrementAndGet(),
@@ -302,7 +303,8 @@ public class DemonstrateJUnitIntegration {
                                equalTo(expectedNumberOfTestCases));
                 });
 
-        return Streams.concat(Stream.of(parameterisedDynamicTests),
-                              Stream.of(finalCheck));
+        return Iterators.concat(parameterisedDynamicTests,
+                                Collections.singleton(
+                                        finalCheck).iterator());
     }
 }
