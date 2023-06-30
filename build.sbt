@@ -125,7 +125,8 @@ lazy val settings = Seq(
     "org.junit.jupiter"  % "junit-jupiter-engine"  % "5.8.2" % Test
   ),
   libraryDependencies += "org.hamcrest" % "hamcrest" % "2.2" % Test,
-  libraryDependencies += "org.scalatestplus" %% "junit-5-9" % "3.2.16.0-M3" % Test,
+  // libraryDependencies += "org.scalatestplus" %% "junit-5-9" % "3.2.16.0-M3" %
+  // Test,
   libraryDependencies += "org.projectlombok" % "lombok" % "1.18.22" % Provided
 )
 
