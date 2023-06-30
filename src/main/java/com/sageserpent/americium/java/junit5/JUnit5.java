@@ -54,8 +54,8 @@ public class JUnit5 {
     public static <Case> Iterator<DynamicTest> dynamicTests(
             TrialsScaffolding.SupplyToSyntax<Case> supplier,
             Consumer<Case> consumer) {
-        return CollectionConverters.asJava(package$.MODULE$.dynamicTests(
+        return package$.MODULE$.dynamicTests(
                 CollectionConverters.asScala(supplier.testIntegrationContexts()),
-                FunctionConverters.asScalaFromConsumer(consumer)));
+                FunctionConverters.asScalaFromConsumer(consumer));
     }
 }

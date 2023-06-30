@@ -298,7 +298,7 @@ public class DemonstrateJUnitIntegration {
                 });
 
         final DynamicTest finalCheck =
-                DynamicTest.dynamicTest("Final Check\n", () -> {
+                DynamicTest.dynamicTest("Final Check", () -> {
                     assertThat(trialsCount.get(),
                                equalTo(expectedNumberOfTestCases));
                 });
