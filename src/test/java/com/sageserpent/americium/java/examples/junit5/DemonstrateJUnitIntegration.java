@@ -1,7 +1,7 @@
 package com.sageserpent.americium.java.examples.junit5;
 
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterators;
+import com.google.common.collect.Streams;
 import com.sageserpent.americium.java.*;
 import com.sageserpent.americium.java.TrialsScaffolding.Tuple2Trials;
 import com.sageserpent.americium.java.TrialsScaffolding.Tuple3Trials;
@@ -13,9 +13,8 @@ import cyclops.data.tuple.Tuple2;
 import cyclops.data.tuple.Tuple3;
 import org.junit.jupiter.api.*;
 
-import java.util.Collections;
-import java.util.Iterator;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Stream;
 
 import static java.lang.Math.abs;
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -282,7 +281,7 @@ public class DemonstrateJUnitIntegration {
     }
 
     @TestFactory
-    Iterator<DynamicTest> dynamicTestsExample() {
+    Stream<DynamicTest> dynamicTestsExample() {
         final int expectedNumberOfTestCases = 10;
 
         final TrialsScaffolding.SupplyToSyntax<Integer> supplier =
@@ -290,7 +289,7 @@ public class DemonstrateJUnitIntegration {
 
         AtomicInteger trialsCount = new AtomicInteger();
 
-        final Iterator<DynamicTest> parameterisedDynamicTests =
+        final DynamicTest[] parameterisedDynamicTests =
                 JUnit5.dynamicTests(supplier, testCase -> {
                     System.out.format("Test case #%d is %d\n",
                                       trialsCount.incrementAndGet(),
@@ -303,8 +302,7 @@ public class DemonstrateJUnitIntegration {
                                equalTo(expectedNumberOfTestCases));
                 });
 
-        return Iterators.concat(parameterisedDynamicTests,
-                                Collections.singleton(
-                                        finalCheck).iterator());
+        return Streams.concat(Stream.of(parameterisedDynamicTests),
+                              Stream.of(finalCheck));
     }
 }

@@ -1,17 +1,13 @@
 package com.sageserpent.americium.examples.junit5
-import com.google.common.collect.Iterators
 import com.sageserpent.americium.Trials
 import com.sageserpent.americium.junit5.*
 import org.junit.jupiter.api.{DynamicTest, TestFactory}
 import org.scalatest.matchers.should.Matchers
 import org.scalatestplus.junit5.AssertionsForJUnit
 
-import _root_.java.util.Iterator as JavaIterator
-import scala.jdk.CollectionConverters.IteratorHasAsJava
-
 class DemonstrateJUnit5Integration extends AssertionsForJUnit with Matchers {
   @TestFactory
-  def dynamicTestsExample: JavaIterator[DynamicTest] = {
+  def dynamicTestsExample: Array[DynamicTest] = {
     val expectedNumberOfTestCases = 10
     val supplier =
       Trials.api.integers.withLimit(expectedNumberOfTestCases)
@@ -19,7 +15,9 @@ class DemonstrateJUnit5Integration extends AssertionsForJUnit with Matchers {
 
     val parameterisedDynamicTests =
       supplier.dynamicTests(testCase => {
-        println(s"Test case #${trialsCount += 1} is $testCase")
+        trialsCount += 1
+
+        println(s"Test case #$trialsCount is $testCase")
 
       })
     val finalCheck = DynamicTest.dynamicTest(
@@ -29,6 +27,6 @@ class DemonstrateJUnit5Integration extends AssertionsForJUnit with Matchers {
       }
     )
 
-    Iterators.concat(parameterisedDynamicTests, Iterator(finalCheck).asJava)
+    parameterisedDynamicTests :+ finalCheck
   }
 }
