@@ -22,6 +22,21 @@ public class JUnit5 {
      * {@link org.junit.jupiter.api.AfterEach} to perform set-up and
      * tear-down for each trial - that has to be coded explicitly in the
      * parameterised test itself.
+     * <p>
+     * Example:
+     * <pre>{@code
+     *     @TestFactory
+     *     Iterator<DynamicTest> exampleTest() {
+     *         final TrialsScaffolding.SupplyToSyntax<Integer> supplier =
+     *                 Trials.api().integers().withLimit(10);
+     *
+     *         return JUnit5.dynamicTests(
+     *                 supplier,
+     *                 // The parameterised test: it just prints out the test case...
+     *                 testCase -> {
+     *                     System.out.format("Test case %d", testCase);
+     *                 });
+     *     }}</pre>
      *
      * @param supplier Supply syntax instance created by
      *                 {@link TrialsScaffolding#withLimit(int)} or
