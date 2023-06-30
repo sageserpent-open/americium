@@ -1,18 +1,11 @@
-package com.sageserpent.americium.java
+package com.sageserpent.americium.java.junit5
 
 import com.sageserpent.americium.Trials as ScalaTrials
+import com.sageserpent.americium.java.{TestIntegrationContext, TrialsScaffolding}
 import cyclops.companion.Streams
-import cyclops.data.tuple.{
-  Tuple2 as JavaTuple2,
-  Tuple3 as JavaTuple3,
-  Tuple4 as JavaTuple4
-}
+import cyclops.data.tuple.{Tuple2 as JavaTuple2, Tuple3 as JavaTuple3, Tuple4 as JavaTuple4}
 import org.junit.jupiter.api.extension.*
-import org.junit.platform.commons.support.{
-  AnnotationSupport,
-  HierarchyTraversalMode,
-  ReflectionSupport
-}
+import org.junit.platform.commons.support.{AnnotationSupport, HierarchyTraversalMode, ReflectionSupport}
 import org.junit.platform.commons.util.ExceptionUtils
 import org.opentest4j.TestAbortedException
 

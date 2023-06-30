@@ -1,8 +1,8 @@
-package com.sageserpent.americium.java.examples;
+package com.sageserpent.americium.java.examples.junit5;
 
 import com.google.common.collect.ImmutableList;
 import com.sageserpent.americium.java.Trials;
-import com.sageserpent.americium.java.TrialsTest;
+import com.sageserpent.americium.java.junit5.TrialsTest;
 import org.junit.jupiter.api.Disabled;
 
 import java.util.function.Predicate;

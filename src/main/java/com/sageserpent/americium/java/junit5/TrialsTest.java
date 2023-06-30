@@ -1,5 +1,8 @@
-package com.sageserpent.americium.java;
+package com.sageserpent.americium.java.junit5;
 
+import com.sageserpent.americium.java.Trials;
+import com.sageserpent.americium.java.TrialsDefaults;
+import com.sageserpent.americium.java.TrialsScaffolding;
 import org.junit.jupiter.api.TestTemplate;
 import org.junit.jupiter.api.extension.ExtendWith;
 

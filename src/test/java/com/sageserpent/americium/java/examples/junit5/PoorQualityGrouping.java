@@ -1,4 +1,4 @@
-package com.sageserpent.americium.java.examples;
+package com.sageserpent.americium.java.examples.junit5;
 
 import java.util.Iterator;
 import java.util.LinkedList;

@@ -1,5 +1,7 @@
-package com.sageserpent.americium.java;
+package com.sageserpent.americium.java.junit5;
 
+import com.sageserpent.americium.java.Trials;
+import com.sageserpent.americium.java.TrialsScaffolding;
 import org.junit.jupiter.api.TestTemplate;
 import org.junit.jupiter.api.extension.ExtendWith;
 
@@ -8,9 +10,10 @@ import java.lang.annotation.*;
 /**
  * Method annotation for use by parameterised test methods run via the JUnit5
  * engine extended with {@link TrialsTestExtension}. It couples an instance
- * of {@link Trials.SupplyToSyntax} to the test method, causing the method to
+ * of {@link TrialsScaffolding.SupplyToSyntax} to the test method, causing
+ * the method to
  * be run repeatedly with test cases realized as arguments supplied by the
- * {@link Trials.SupplyToSyntax} instance.
+ * {@link TrialsScaffolding.SupplyToSyntax} instance.
  * <p>
  * Once an invocation of the test method fails, the extension will go into a
  * shrinkage mode, invoking the test method repeatedly to find a combination

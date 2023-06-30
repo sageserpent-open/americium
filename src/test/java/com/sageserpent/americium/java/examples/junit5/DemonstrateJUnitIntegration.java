@@ -1,16 +1,24 @@
-package com.sageserpent.americium.java.examples;
+package com.sageserpent.americium.java.examples.junit5;
 
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterators;
 import com.sageserpent.americium.java.*;
 import com.sageserpent.americium.java.TrialsScaffolding.Tuple2Trials;
 import com.sageserpent.americium.java.TrialsScaffolding.Tuple3Trials;
+import com.sageserpent.americium.java.junit5.ConfiguredTrialsTest;
+import com.sageserpent.americium.java.junit5.JUnit5;
+import com.sageserpent.americium.java.junit5.TrialsApiTests;
+import com.sageserpent.americium.java.junit5.TrialsTest;
 import cyclops.data.tuple.Tuple2;
 import cyclops.data.tuple.Tuple3;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.*;
+
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static java.lang.Math.abs;
+import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
@@ -271,5 +279,32 @@ public class DemonstrateJUnitIntegration {
     @ConfiguredTrialsTest("countedEvens")
     void filteredCasesUsingACountedStrategy(long value) {
         System.out.println(value);
+    }
+
+    @TestFactory
+    Iterator<DynamicTest> exampleTest() {
+        final int expectedNumberOfTestCases = 10;
+
+        final TrialsScaffolding.SupplyToSyntax<Integer> supplier =
+                Trials.api().integers().withLimit(expectedNumberOfTestCases);
+
+        AtomicInteger trialsCount = new AtomicInteger();
+
+        final Iterator<DynamicTest> parameterisedDynamicTests =
+                JUnit5.dynamicTests(supplier, testCase -> {
+                    System.out.format("Test case #%d is %d",
+                                      trialsCount.incrementAndGet(),
+                                      testCase);
+                });
+
+        final DynamicTest finalCheck =
+                DynamicTest.dynamicTest("Final Check", () -> {
+                    assertThat(trialsCount.get(),
+                               equalTo(expectedNumberOfTestCases));
+                });
+
+        return Iterators.concat(parameterisedDynamicTests,
+                                Collections.singleton(
+                                        finalCheck).iterator());
     }
 }

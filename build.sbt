@@ -111,6 +111,7 @@ lazy val settings = Seq(
   libraryDependencies += "org.rocksdb"       % "rocksdbjni"           % "7.1.1",
   libraryDependencies += "org.apache.commons" % "commons-text" % "1.10.0",
   libraryDependencies += ("com.github.cb372" %% "scalacache-caffeine" % "0.28.0") cross CrossVersion.for3Use2_13,
+  libraryDependencies += "com.lihaoyi"    %% "pprint"     % "0.8.1",
   libraryDependencies += "org.typelevel"  %% "cats-laws"  % "2.7.0"  % Test,
   libraryDependencies += "org.scalatest"  %% "scalatest"  % "3.2.9"  % Test,
   libraryDependencies += "org.scalacheck" %% "scalacheck" % "1.15.4" % Test,
