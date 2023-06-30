@@ -37,7 +37,7 @@ package object junit5 {
                 throw throwable
             }
 
-            if (!eligible) throw new TestAbortedException
+          if (!eligible) throw new TestAbortedException
         }
       )
     }.toArray
