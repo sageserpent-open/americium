@@ -11,6 +11,42 @@ package object junit5 {
   implicit class Syntax[Case](
       private val supplier: TrialsScaffolding.SupplyToSyntax[Case]
   ) extends AnyVal {
+
+    /** Provide dynamic tests for JUnit5, allowing direct coupling between a
+      * [[TrialsScaffolding.SupplyToSyntax]] and the parameterised test
+      * consuming the supplied test cases. <p> In contrast to the 'classic'
+      * approach taken by [[com.sageserpent.americium.java.junit5.TrialsTest]]
+      * and [[com.sageserpent.americium.java.junit5.ConfiguredTrialsTest]], this
+      * affords strong type-checking between the test's arguments and the
+      * supplier. <p> It does however sacrifice the potential use of
+      * [[org.junit.jupiter.api.BeforeEach]] and
+      * [[org.junit.jupiter.api.AfterEach]] to perform set-up and tear-down for
+      * each trial - that has to be coded explicitly in the parameterised test
+      * itself. <p> Example:
+      * {{{
+      *   import java.util.{Iterator => JavaIterator}
+      *   import com.sageserpent.americium.junit5.Syntax
+      * }}}
+      * {{{
+      *   @TestFactory
+      *   def dynamicTestsExample(): JavaIterator[DynamicTest] = {
+      *     val supplier: TrialsScaffolding.SupplyToSyntax[Int] =
+      *       Trials.api.integers.withLimit(10)
+      *
+      *      supplier
+      *         .dynamicTests(
+      *            // The parameterised test: it just prints out the test case...
+      *            println
+      *        )
+      *   }
+      * }}}
+      *
+      * @param parameterisedTest
+      *   Parameterised test that consumes a test case of type {@code Case}.
+      * @return
+      *   An iterator of [[DynamicTest]] instances, suitable for use with the
+      *   [[org.junit.jupiter.api.TestFactory]] annotation provided by JUnit5.
+      */
     def dynamicTests(
         parameterisedTest: Case => Unit
     ): JavaIterator[DynamicTest] =

@@ -2,7 +2,7 @@ package com.sageserpent.americium.examples.junit5
 
 import com.google.common.collect.Iterators
 import com.sageserpent.americium.Trials
-import com.sageserpent.americium.junit5.*
+import com.sageserpent.americium.junit5.Syntax
 import org.junit.jupiter.api.{Disabled, DynamicTest, TestFactory}
 import utest.*
 

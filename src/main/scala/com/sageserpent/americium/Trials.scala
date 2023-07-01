@@ -124,7 +124,7 @@ trait Trials[+Case]
     * either supplying the combined trials in the usual way, in which case the
     * [[Function]] will take a [[Tuple2]] parameterised by types {@code Case}
     * and {@code Case2}, or a [[Function2]] can be used taking separate
-    * arguments of types {@link Case} and {@link Case2}.
+    * arguments of types {@code Case} and {@code Case2}.
     *
     * This can be repeated up to a limit by calling {@code and} on the results
     * to add more trials - this enables supply to consumers of higher argument
