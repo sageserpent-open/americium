@@ -2,11 +2,17 @@ package com.sageserpent.americium.java.junit5;
 
 import com.sageserpent.americium.java.TrialsScaffolding;
 import com.sageserpent.americium.junit5.package$;
+import cyclops.data.tuple.Tuple2;
+import cyclops.data.tuple.Tuple3;
+import cyclops.data.tuple.Tuple4;
+import cyclops.function.Consumer3;
+import cyclops.function.Consumer4;
 import org.junit.jupiter.api.DynamicTest;
 import scala.jdk.javaapi.CollectionConverters;
 import scala.jdk.javaapi.FunctionConverters;
 
 import java.util.Iterator;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -57,5 +63,54 @@ public class JUnit5 {
         return package$.MODULE$.dynamicTests(
                 CollectionConverters.asScala(supplier.testIntegrationContexts()),
                 FunctionConverters.asScalaFromConsumer(consumer));
+    }
+
+    /**
+     * Overload for a parameterised test taking two arguments.
+     * Consult the Javadoc above for
+     * {@link JUnit5#dynamicTests(TrialsScaffolding.SupplyToSyntax, Consumer)}.
+     */
+    public static <Case1, Case2> Iterator<DynamicTest> dynamicTests(
+            TrialsScaffolding.SupplyToSyntax<Tuple2<Case1, Case2>> supplier,
+            BiConsumer<Case1, Case2> biConsumer) {
+        return package$.MODULE$.dynamicTests(
+                CollectionConverters.asScala(supplier.testIntegrationContexts()),
+                FunctionConverters.asScalaFromConsumer(pair -> biConsumer.accept(
+                        pair._1(),
+                        pair._2())));
+    }
+
+    /**
+     * Overload for a parameterised test taking three arguments.
+     * Consult the Javadoc above for
+     * {@link JUnit5#dynamicTests(TrialsScaffolding.SupplyToSyntax, Consumer)}.
+     */
+    public static <Case1, Case2, Case3> Iterator<DynamicTest> dynamicTests(
+            TrialsScaffolding.SupplyToSyntax<Tuple3<Case1, Case2, Case3>> supplier,
+            Consumer3<Case1, Case2, Case3> triConsumer) {
+        return package$.MODULE$.dynamicTests(
+                CollectionConverters.asScala(supplier.testIntegrationContexts()),
+                FunctionConverters.asScalaFromConsumer(triple -> triConsumer.accept(
+                        triple._1(),
+                        triple._2(),
+                        triple._3())));
+    }
+
+    /**
+     * Overload for a parameterised test taking four arguments.
+     * Consult the Javadoc above for
+     * {@link JUnit5#dynamicTests(TrialsScaffolding.SupplyToSyntax, Consumer)}.
+     */
+    public static <Case1, Case2, Case3, Case4> Iterator<DynamicTest> dynamicTests(
+            TrialsScaffolding.SupplyToSyntax<Tuple4<Case1, Case2, Case3,
+                    Case4>> supplier,
+            Consumer4<Case1, Case2, Case3, Case4> quadConsumer) {
+        return package$.MODULE$.dynamicTests(
+                CollectionConverters.asScala(supplier.testIntegrationContexts()),
+                FunctionConverters.asScalaFromConsumer(quadruple -> quadConsumer.accept(
+                        quadruple._1(),
+                        quadruple._2(),
+                        quadruple._3(),
+                        quadruple._4())));
     }
 }

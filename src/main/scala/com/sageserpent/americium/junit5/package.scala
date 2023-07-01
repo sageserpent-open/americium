@@ -25,7 +25,7 @@ package object junit5 {
       * itself. <p> Example:
       * {{{
       *   import java.util.{Iterator => JavaIterator}
-      *   import com.sageserpent.americium.junit5.Syntax
+      *   import com.sageserpent.americium.junit5._
       * }}}
       * {{{
       *   @TestFactory
@@ -52,6 +52,58 @@ package object junit5 {
     ): JavaIterator[DynamicTest] =
       junit5.dynamicTests(supplier.testIntegrationContexts(), parameterisedTest)
   }
+
+  implicit class Tuple2Syntax[Case1, Case2](
+      private val supplier: TrialsScaffolding.SupplyToSyntax[(Case1, Case2)]
+  ) extends AnyVal {
+
+    /** Overload for a parameterised test taking two arguments.
+      * @see
+      *   [[Syntax.dynamicTests]]
+      */
+    def dynamicTests(
+        parameterisedTest: (Case1, Case2) => Unit
+    ): JavaIterator[DynamicTest] = junit5.dynamicTests(
+      supplier.testIntegrationContexts(),
+      parameterisedTest.tupled
+    )
+  }
+
+  implicit class Tuple3Syntax[Case1, Case2, Case3](
+      private val supplier: TrialsScaffolding.SupplyToSyntax[
+        (Case1, Case2, Case3)
+      ]
+  ) extends AnyVal {
+
+    /** Overload for a parameterised test taking three arguments.
+      * @see
+      *   [[Syntax.dynamicTests]]
+      */
+    def dynamicTests(
+        parameterisedTest: (Case1, Case2, Case3) => Unit
+    ): JavaIterator[DynamicTest] = junit5.dynamicTests(
+      supplier.testIntegrationContexts(),
+      parameterisedTest.tupled
+    )
+  }
+
+  /** Overload for a parameterised test taking four arguments.
+    * @see
+    *   [[Syntax.dynamicTests]]
+    */
+  implicit class Tuple4Syntax[Case1, Case2, Case3, Case4](
+      private val supplier: TrialsScaffolding.SupplyToSyntax[
+        (Case1, Case2, Case3, Case4)
+      ]
+  ) extends AnyVal {
+    def dynamicTests(
+        parameterisedTest: (Case1, Case2, Case3, Case4) => Unit
+    ): JavaIterator[DynamicTest] = junit5.dynamicTests(
+      supplier.testIntegrationContexts(),
+      parameterisedTest.tupled
+    )
+  }
+
   private[americium] def dynamicTests[Case](
       contexts: Iterator[TestIntegrationContext[Case]],
       parameterisedTest: Case => Unit
