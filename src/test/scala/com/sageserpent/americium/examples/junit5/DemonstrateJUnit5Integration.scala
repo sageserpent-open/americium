@@ -28,8 +28,12 @@ class DemonstrateJUnit5Integration {
 
       })
 
-    // TODO: the final check is only run when the test is modified to not
-    // artificially fail. Should this be considered a bug or a feature?
+    // The final check is only run when the test is modified to not artificially
+    // fail. Should this be considered a bug or a feature? It is currently
+    // consider to be a feature - we expect Americium to finally throw a
+    // `TrialsException` after it completes shrinkage, and that will cause an
+    // overall failure *prior* to the final check. In effect, the final check is
+    // conditional on all the previous dynamic tests having passed.
     val finalCheck = DynamicTest.dynamicTest(
       "Final Check",
       () => {
