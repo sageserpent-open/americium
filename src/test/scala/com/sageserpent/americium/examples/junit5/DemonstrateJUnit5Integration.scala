@@ -1,7 +1,6 @@
 package com.sageserpent.americium.examples.junit5
 
 import com.google.common.collect.Iterators
-import com.sageserpent.americium.Trials
 import com.sageserpent.americium.Trials.api
 import com.sageserpent.americium.junit5.*
 import org.junit.jupiter.api.{Disabled, DynamicTest, TestFactory}

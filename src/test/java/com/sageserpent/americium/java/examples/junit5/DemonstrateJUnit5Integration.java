@@ -289,7 +289,7 @@ public class DemonstrateJUnit5Integration {
         final TrialsScaffolding.SupplyToSyntax<Integer> supplier =
                 api().integers().withLimit(expectedNumberOfTestCases);
 
-        AtomicInteger trialsCount = new AtomicInteger();
+        final AtomicInteger trialsCount = new AtomicInteger();
 
         final Iterator<DynamicTest> parameterisedDynamicTests =
                 JUnit5.dynamicTests(supplier, testCase -> {
@@ -319,7 +319,7 @@ public class DemonstrateJUnit5Integration {
                         .and(api().strings())
                         .withLimit(expectedNumberOfTestCases);
 
-        AtomicInteger trialsCount = new AtomicInteger();
+        final AtomicInteger trialsCount = new AtomicInteger();
 
         final Iterator<DynamicTest> parameterisedDynamicTests =
                 JUnit5.dynamicTests(supplier, (partOne, partTwo) -> {
