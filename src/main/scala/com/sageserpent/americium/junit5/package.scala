@@ -8,6 +8,7 @@ import _root_.java.util.Iterator as JavaIterator
 import scala.jdk.CollectionConverters.IteratorHasAsJava
 
 package object junit5 {
+  type DynamicTests = JavaIterator[DynamicTest]
   implicit class Syntax[Case](
       private val supplier: TrialsScaffolding.SupplyToSyntax[Case]
   ) extends AnyVal {
@@ -24,12 +25,11 @@ package object junit5 {
       * each trial - that has to be coded explicitly in the parameterised test
       * itself. <p> Example:
       * {{{
-      *   import java.util.{Iterator => JavaIterator}
       *   import com.sageserpent.americium.junit5._
       * }}}
       * {{{
       *   @TestFactory
-      *   def dynamicTestsExample(): JavaIterator[DynamicTest] = {
+      *   def dynamicTestsExample(): DynamicTests = {
       *     val supplier: TrialsScaffolding.SupplyToSyntax[Int] =
       *       Trials.api.integers.withLimit(10)
       *
@@ -49,7 +49,7 @@ package object junit5 {
       */
     def dynamicTests(
         parameterisedTest: Case => Unit
-    ): JavaIterator[DynamicTest] =
+    ): DynamicTests =
       junit5.dynamicTests(supplier.testIntegrationContexts(), parameterisedTest)
   }
 
@@ -63,7 +63,7 @@ package object junit5 {
       */
     def dynamicTests(
         parameterisedTest: (Case1, Case2) => Unit
-    ): JavaIterator[DynamicTest] = junit5.dynamicTests(
+    ): DynamicTests = junit5.dynamicTests(
       supplier.testIntegrationContexts(),
       parameterisedTest.tupled
     )
@@ -81,7 +81,7 @@ package object junit5 {
       */
     def dynamicTests(
         parameterisedTest: (Case1, Case2, Case3) => Unit
-    ): JavaIterator[DynamicTest] = junit5.dynamicTests(
+    ): DynamicTests = junit5.dynamicTests(
       supplier.testIntegrationContexts(),
       parameterisedTest.tupled
     )
@@ -98,7 +98,7 @@ package object junit5 {
   ) extends AnyVal {
     def dynamicTests(
         parameterisedTest: (Case1, Case2, Case3, Case4) => Unit
-    ): JavaIterator[DynamicTest] = junit5.dynamicTests(
+    ): DynamicTests = junit5.dynamicTests(
       supplier.testIntegrationContexts(),
       parameterisedTest.tupled
     )
@@ -107,7 +107,7 @@ package object junit5 {
   private[americium] def dynamicTests[Case](
       contexts: Iterator[TestIntegrationContext[Case]],
       parameterisedTest: Case => Unit
-  ): JavaIterator[DynamicTest] = {
+  ): DynamicTests = {
     contexts.zipWithIndex.map { case (context, invocationIndex) =>
       val shrinkagePrefix =
         if (context.isPartOfShrinkage) "Shrinking ... "

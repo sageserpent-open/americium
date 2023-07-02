@@ -6,13 +6,12 @@ import com.sageserpent.americium.junit5.*
 import org.junit.jupiter.api.{Disabled, DynamicTest, TestFactory}
 import utest.*
 
-import java.util.Iterator as JavaIterator
 import scala.jdk.CollectionConverters.IteratorHasAsJava
 
 class DemonstrateJUnit5Integration {
   @Disabled
   @TestFactory
-  def dynamicTestsExample: JavaIterator[DynamicTest] = {
+  def dynamicTestsExample: DynamicTests = {
     val expectedNumberOfTestCases = 15
     val supplier =
       api.integers.withLimit(expectedNumberOfTestCases)
@@ -46,7 +45,7 @@ class DemonstrateJUnit5Integration {
 
   @Disabled
   @TestFactory
-  def dynamicTestsExampleUsingAGangOfTwo(): JavaIterator[DynamicTest] = {
+  def dynamicTestsExampleUsingAGangOfTwo(): DynamicTests = {
     val expectedNumberOfTestCases = 15
     val supplier =
       (api.integers and api.strings).withLimit(expectedNumberOfTestCases)
