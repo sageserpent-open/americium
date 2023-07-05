@@ -108,9 +108,9 @@ val permutations: Trials[SortedMap[Int, Int]] =
       .map(indices => {
         val permutation = SortedMap.from(indices.zip(sourceCollection))
 
-        assert(permutation.size == size)
+        assume(permutation.size == size)
 
-        assert(SortedSet.from(permutation.values).toSeq == sourceCollection)
+        assume(SortedSet.from(permutation.values).toSeq == sourceCollection)
 
         permutation
       })

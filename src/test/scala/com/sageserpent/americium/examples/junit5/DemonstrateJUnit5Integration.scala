@@ -2,10 +2,12 @@ package com.sageserpent.americium.examples.junit5
 
 import com.eed3si9n.expecty.Expecty.assert
 import com.google.common.collect.Iterators
+import com.sageserpent.americium.Trials
 import com.sageserpent.americium.Trials.api
 import com.sageserpent.americium.junit5.*
 import org.junit.jupiter.api.{Disabled, DynamicTest, TestFactory}
 
+import scala.collection.immutable.{SortedMap, SortedSet}
 import scala.jdk.CollectionConverters.IteratorHasAsJava
 
 class DemonstrateJUnit5Integration {
@@ -75,5 +77,37 @@ class DemonstrateJUnit5Integration {
     )
 
     Iterators.concat(parameterisedDynamicTests, Iterator(finalCheck).asJava)
+  }
+
+  @Disabled
+  @TestFactory
+  def thingsShouldBeInOrder(): DynamicTests = {
+    val permutations: Trials[SortedMap[Int, Int]] =
+      api.only(15).flatMap { size =>
+        val sourceCollection = 0 until size
+
+        api
+          .indexPermutations(size)
+          .map(indices => {
+            val permutation = SortedMap.from(indices.zip(sourceCollection))
+
+            assume(permutation.size == size)
+
+            assume(SortedSet.from(permutation.values).toSeq == sourceCollection)
+
+            permutation
+          })
+      }
+
+      permutations
+        .withLimit(15)
+        .dynamicTests { permuted =>
+          Trials.whenever(permuted.nonEmpty) {
+            assert(permuted.values zip permuted.values.tail forall {
+              case (left, right) =>
+                left <= right
+            })
+          }
+        }
   }
 }
