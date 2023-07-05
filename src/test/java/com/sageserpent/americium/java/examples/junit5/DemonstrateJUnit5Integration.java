@@ -9,6 +9,7 @@ import com.sageserpent.americium.java.junit5.ConfiguredTrialsTest;
 import com.sageserpent.americium.java.junit5.JUnit5;
 import com.sageserpent.americium.java.junit5.TrialsApiTests;
 import com.sageserpent.americium.java.junit5.TrialsTest;
+import cyclops.data.tuple.Tuple;
 import cyclops.data.tuple.Tuple2;
 import cyclops.data.tuple.Tuple3;
 import org.junit.jupiter.api.*;
@@ -326,6 +327,43 @@ public class DemonstrateJUnit5Integration {
                     System.out.format("Test case #%d is %d, %s\n",
                                       trialsCount.incrementAndGet(),
                                       partOne, partTwo);
+                });
+
+        final DynamicTest finalCheck =
+                DynamicTest.dynamicTest("Final Check", () -> {
+                    assertThat(trialsCount.get(),
+                               equalTo(expectedNumberOfTestCases));
+                });
+
+        return Iterators.concat(parameterisedDynamicTests,
+                                Collections.singleton(
+                                        finalCheck).iterator());
+    }
+
+    @TestFactory
+    Iterator<DynamicTest> dynamicTestsExampleUsingATriple() {
+        final int expectedNumberOfTestCases = 10;
+
+        final TrialsScaffolding.SupplyToSyntax<Tuple3<Integer, String, Boolean>>
+                supplier =
+                api()
+                        .integers()
+                        .flatMap(anInteger -> api()
+                                .strings()
+                                .flatMap(aString -> api()
+                                        .booleans()
+                                        .map(aBoolean -> Tuple.tuple(anInteger,
+                                                                     aString,
+                                                                     aBoolean))))
+                        .withLimit(expectedNumberOfTestCases);
+
+        final AtomicInteger trialsCount = new AtomicInteger();
+
+        final Iterator<DynamicTest> parameterisedDynamicTests =
+                JUnit5.dynamicTests(supplier, (partOne, partTwo, partThree) -> {
+                    System.out.format("Test case #%d is %d, %s, %b\n",
+                                      trialsCount.incrementAndGet(),
+                                      partOne, partTwo, partThree);
                 });
 
         final DynamicTest finalCheck =
