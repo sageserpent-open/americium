@@ -1,10 +1,10 @@
 package com.sageserpent.americium.examples.junit5
 
+import com.eed3si9n.expecty.Expecty.assert
 import com.google.common.collect.Iterators
 import com.sageserpent.americium.Trials.api
 import com.sageserpent.americium.junit5.*
 import org.junit.jupiter.api.{Disabled, DynamicTest, TestFactory}
-import utest.*
 
 import scala.jdk.CollectionConverters.IteratorHasAsJava
 

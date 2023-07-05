@@ -122,9 +122,9 @@ lazy val settings = Seq(
     "org.junit.platform" % "junit-platform-runner" % "1.8.2" % Test,
     "org.junit.jupiter"  % "junit-jupiter-engine"  % "5.8.2" % Test
   ),
-  libraryDependencies += "org.hamcrest"      % "hamcrest" % "2.2"     % Test,
-  libraryDependencies += "com.lihaoyi"      %% "utest"    % "0.8.1"   % Test,
-  libraryDependencies += "org.projectlombok" % "lombok"   % "1.18.22" % Provided
+  libraryDependencies += "org.hamcrest"          % "hamcrest" % "2.2"    % Test,
+  libraryDependencies += "com.eed3si9n.expecty" %% "expecty"  % "0.16.0" % Test,
+  libraryDependencies += "org.projectlombok" % "lombok" % "1.18.22" % Provided
 )
 
 lazy val americium = (project in file(".")).settings(settings: _*)
