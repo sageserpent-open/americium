@@ -1,23 +1,33 @@
-package com.sageserpent.americium.java.examples;
+package com.sageserpent.americium.java.examples.junit5;
 
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterators;
 import com.sageserpent.americium.java.*;
 import com.sageserpent.americium.java.TrialsScaffolding.Tuple2Trials;
 import com.sageserpent.americium.java.TrialsScaffolding.Tuple3Trials;
+import com.sageserpent.americium.java.junit5.ConfiguredTrialsTest;
+import com.sageserpent.americium.java.junit5.JUnit5;
+import com.sageserpent.americium.java.junit5.TrialsApiTests;
+import com.sageserpent.americium.java.junit5.TrialsTest;
+import cyclops.data.tuple.Tuple;
 import cyclops.data.tuple.Tuple2;
 import cyclops.data.tuple.Tuple3;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.*;
 
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import static com.sageserpent.americium.java.Trials.api;
 import static java.lang.Math.abs;
+import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 
-public class DemonstrateJUnitIntegration {
-    private static final TrialsApi api = Trials.api();
+public class DemonstrateJUnit5Integration {
+    private static final TrialsApi api = api();
     private static final Trials<Long> longs = api.longs();
     private static final TrialsScaffolding.SupplyToSyntax<Long>
             countedLongs =
@@ -271,5 +281,99 @@ public class DemonstrateJUnitIntegration {
     @ConfiguredTrialsTest("countedEvens")
     void filteredCasesUsingACountedStrategy(long value) {
         System.out.println(value);
+    }
+
+    @TestFactory
+    Iterator<DynamicTest> dynamicTestsExample() {
+        final int expectedNumberOfTestCases = 10;
+
+        final TrialsScaffolding.SupplyToSyntax<Integer> supplier =
+                api().integers().withLimit(expectedNumberOfTestCases);
+
+        final AtomicInteger trialsCount = new AtomicInteger();
+
+        final Iterator<DynamicTest> parameterisedDynamicTests =
+                JUnit5.dynamicTests(supplier, testCase -> {
+                    System.out.format("Test case #%d is %d\n",
+                                      trialsCount.incrementAndGet(),
+                                      testCase);
+                });
+
+        final DynamicTest finalCheck =
+                DynamicTest.dynamicTest("Final Check", () -> {
+                    assertThat(trialsCount.get(),
+                               equalTo(expectedNumberOfTestCases));
+                });
+
+        return Iterators.concat(parameterisedDynamicTests,
+                                Collections.singleton(
+                                        finalCheck).iterator());
+    }
+
+    @TestFactory
+    Iterator<DynamicTest> dynamicTestsExampleUsingAGangOfTwo() {
+        final int expectedNumberOfTestCases = 10;
+
+        final Tuple2Trials.SupplyToSyntaxTuple2<Integer, String> supplier =
+                api()
+                        .integers()
+                        .and(api().strings())
+                        .withLimit(expectedNumberOfTestCases);
+
+        final AtomicInteger trialsCount = new AtomicInteger();
+
+        final Iterator<DynamicTest> parameterisedDynamicTests =
+                JUnit5.dynamicTests(supplier, (partOne, partTwo) -> {
+                    System.out.format("Test case #%d is %d, %s\n",
+                                      trialsCount.incrementAndGet(),
+                                      partOne, partTwo);
+                });
+
+        final DynamicTest finalCheck =
+                DynamicTest.dynamicTest("Final Check", () -> {
+                    assertThat(trialsCount.get(),
+                               equalTo(expectedNumberOfTestCases));
+                });
+
+        return Iterators.concat(parameterisedDynamicTests,
+                                Collections.singleton(
+                                        finalCheck).iterator());
+    }
+
+    @TestFactory
+    Iterator<DynamicTest> dynamicTestsExampleUsingATriple() {
+        final int expectedNumberOfTestCases = 10;
+
+        final TrialsScaffolding.SupplyToSyntax<Tuple3<Integer, String, Boolean>>
+                supplier =
+                api()
+                        .integers()
+                        .flatMap(anInteger -> api()
+                                .strings()
+                                .flatMap(aString -> api()
+                                        .booleans()
+                                        .map(aBoolean -> Tuple.tuple(anInteger,
+                                                                     aString,
+                                                                     aBoolean))))
+                        .withLimit(expectedNumberOfTestCases);
+
+        final AtomicInteger trialsCount = new AtomicInteger();
+
+        final Iterator<DynamicTest> parameterisedDynamicTests =
+                JUnit5.dynamicTests(supplier, (partOne, partTwo, partThree) -> {
+                    System.out.format("Test case #%d is %d, %s, %b\n",
+                                      trialsCount.incrementAndGet(),
+                                      partOne, partTwo, partThree);
+                });
+
+        final DynamicTest finalCheck =
+                DynamicTest.dynamicTest("Final Check", () -> {
+                    assertThat(trialsCount.get(),
+                               equalTo(expectedNumberOfTestCases));
+                });
+
+        return Iterators.concat(parameterisedDynamicTests,
+                                Collections.singleton(
+                                        finalCheck).iterator());
     }
 }

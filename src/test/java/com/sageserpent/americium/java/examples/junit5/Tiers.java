@@ -1,4 +1,4 @@
-package com.sageserpent.americium.java.examples;
+package com.sageserpent.americium.java.examples.junit5;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -32,7 +32,7 @@ class Tiers<Element extends Comparable<Element>> {
 
     void add(Element element) {
         final int index = Collections.binarySearch(storage, element);
-        
+
         if (0 > index) {
             storage.add(-(index + 1), element);
         } else {

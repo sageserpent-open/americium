@@ -1,4 +1,4 @@
-package com.sageserpent.americium.java;
+package com.sageserpent.americium.java.junit5;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -6,6 +6,7 @@ import com.google.common.collect.Sets;
 import com.google.common.collect.Streams;
 import com.google.common.hash.Hashing;
 import com.sageserpent.americium.BargainBasement;
+import com.sageserpent.americium.java.*;
 import cyclops.control.Try;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
