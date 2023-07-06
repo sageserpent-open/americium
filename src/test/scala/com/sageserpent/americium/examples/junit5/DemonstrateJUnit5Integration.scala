@@ -99,15 +99,15 @@ class DemonstrateJUnit5Integration {
           })
       }
 
-      permutations
-        .withLimit(15)
-        .dynamicTests { permuted =>
-          Trials.whenever(permuted.nonEmpty) {
-            assert(permuted.values zip permuted.values.tail forall {
-              case (left, right) =>
-                left <= right
-            })
-          }
+    permutations
+      .withLimit(15)
+      .dynamicTests { permuted =>
+        Trials.whenever(permuted.nonEmpty) {
+          assert(permuted.values zip permuted.values.tail forall {
+            case (left, right) =>
+              left <= right
+          })
         }
+      }
   }
 }

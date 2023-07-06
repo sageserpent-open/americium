@@ -55,7 +55,7 @@ lazy val settings = Seq(
     case Some((2, _)) =>
       Seq("-Xsource:3")
     case Some((3, _)) =>
-      Seq.empty
+      Seq("-explain")
 
     case _ => Nil
   }),
