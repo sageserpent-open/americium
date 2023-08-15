@@ -5,6 +5,7 @@ import com.sageserpent.americium.TrialsImplementation.GenerationSupport
 import com.sageserpent.americium.TrialsScaffolding.Tuple2Trials
 import com.sageserpent.americium.java.Trials as JavaTrials
 
+import scala.annotation.unchecked.uncheckedVariance
 import scala.collection.Factory
 import scala.collection.immutable.{SortedMap, SortedSet}
 import scala.language.implicitConversions
@@ -101,7 +102,7 @@ trait Trials[+Case]
     *   The Java incarnation [[com.sageserpent.americium.java.Trials]] of this
     *   instance
     */
-  def javaTrials[CovarianceFudge >: Case]: JavaTrials[CovarianceFudge]
+  def javaTrials: JavaTrials[Case @uncheckedVariance]
 
   def map[TransformedCase](
       transform: Case => TransformedCase
@@ -178,17 +179,17 @@ trait Trials[+Case]
 
   def lists: Trials[List[Case]]
 
-  def sets[CovarianceFudge >: Case]: Trials[Set[CovarianceFudge]]
+  def sets: Trials[Set[Case @uncheckedVariance]]
 
-  def sortedSets[CovarianceFudge >: Case](implicit
-      ordering: Ordering[CovarianceFudge]
-  ): Trials[SortedSet[CovarianceFudge]]
+  def sortedSets(implicit
+      ordering: Ordering[Case @uncheckedVariance]
+  ): Trials[SortedSet[Case @uncheckedVariance]]
 
-  def maps[CovarianceFudge >: Case, Value](values: Trials[Value]): Trials[Map[CovarianceFudge, Value]]
+  def maps[Value](values: Trials[Value]): Trials[Map[Case @uncheckedVariance, Value]]
 
-  def sortedMaps[CovarianceFudge >: Case, Value](values: Trials[Value])(implicit
-      ordering: Ordering[CovarianceFudge]
-  ): Trials[SortedMap[CovarianceFudge, Value]]
+  def sortedMaps[Value](values: Trials[Value])(implicit
+      ordering: Ordering[Case @uncheckedVariance]
+  ): Trials[SortedMap[Case @uncheckedVariance, Value]]
 
   /** Transform this to a trials of collection, where {@code Collection} is some
     * kind of collection that can be built from elements of type {@code Case} by

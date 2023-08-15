@@ -62,26 +62,25 @@ trait TrialsSkeletalImplementation[Case] extends ScalaTrials[Case] {
 
   override def lists: TrialsSkeletalImplementation[List[Case]] = several
 
-  override def sets[CovarianceFudge >: Case]
-      : TrialsSkeletalImplementation[Set[CovarianceFudge]] = several
+  override def sets: TrialsSkeletalImplementation[Set[Case]] = several
 
-  override def sortedSets[CovarianceFudge >: Case](implicit
-      ordering: Ordering[CovarianceFudge]
-  ): TrialsSkeletalImplementation[SortedSet[CovarianceFudge]] =
-    lists.map(SortedSet.from[CovarianceFudge](_)(ordering))
+  override def sortedSets(implicit
+      ordering: Ordering[Case]
+  ): TrialsSkeletalImplementation[SortedSet[Case]] =
+    lists.map(SortedSet.from[Case](_)(ordering))
 
-  override def maps[CovarianceFudge >: Case, Value](
+  override def maps[Value](
       values: ScalaTrials[Value]
-  ): TrialsSkeletalImplementation[Map[CovarianceFudge, Value]] =
-    flatMap(key => values.map(key -> _)).several[Map[CovarianceFudge, Value]]
+  ): TrialsSkeletalImplementation[Map[Case, Value]] =
+    flatMap(key => values.map(key -> _)).several[Map[Case, Value]]
 
-  override def sortedMaps[CovarianceFudge >: Case, Value](
+  override def sortedMaps[Value](
       values: ScalaTrials[Value]
   )(implicit
-      ordering: Ordering[CovarianceFudge]
-  ): TrialsSkeletalImplementation[SortedMap[CovarianceFudge, Value]] =
+      ordering: Ordering[Case]
+  ): TrialsSkeletalImplementation[SortedMap[Case, Value]] =
     flatMap(key => values.map(key -> _)).lists
-      .map(SortedMap.from[CovarianceFudge, Value](_)(ordering))
+      .map(SortedMap.from[Case, Value](_)(ordering))
 
   override def lotsOfSize[Collection](size: Int)(implicit
       factory: collection.Factory[Case, Collection]

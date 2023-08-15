@@ -45,12 +45,7 @@ case class TrialsImplementation[Case](
 
   override def scalaTrials: TrialsImplementation[Case] = this
 
-  override def javaTrials[CovarianceFudge >: Case]
-      : TrialsImplementation[CovarianceFudge] = {
-    // NASTY HACK: the Java API can't express covariance, but it
-    // does use `Case` in a covariant manner, so let's fudge it...
-    this.asInstanceOf[TrialsImplementation[CovarianceFudge]]
-  }
+  override def javaTrials: TrialsImplementation[Case] = this
 
   // Java and Scala API ...
   override def reproduce(recipe: String): Case =
