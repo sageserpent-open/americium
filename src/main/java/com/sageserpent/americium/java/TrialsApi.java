@@ -177,6 +177,19 @@ public interface TrialsApi {
     Trials<Integer> complexities();
 
     /**
+     * This yields integer ids that are guaranteed to be unique *within* a
+     * complex test case. This uniqueness holds when multiple ids are
+     * combined by flat-mapping, possibly in a recursively-formulated trials
+     * instance.
+     *
+     * @return A non-negative integer.
+     * @apiNote The notion of uniqueness applies *within* the formulation of
+     * a test case, not between test cases. It is to be expected that
+     * successive test cases may re-use id values seen in earlier ones.
+     */
+    Trials<Integer> uniqueIds();
+
+    /**
      * Produce a trials instance that stream cases from a factory.
      * <p>
      * This is used where we want to generate a supposedly potentially

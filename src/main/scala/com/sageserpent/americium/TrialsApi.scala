@@ -155,6 +155,21 @@ trait TrialsApi {
     */
   def complexities: Trials[Int]
 
+  /** This yields integer ids that are guaranteed to be unique *within* a
+    * complex test case. This uniqueness holds when multiple ids are combined by
+    * flat-mapping, possibly in a recursively-formulated trials instance.
+    *
+    * @note
+    *   The notion of uniqueness applies *within* the formulation of a test
+    *   case, not between test cases. It is to be expected that successive test
+    *   cases may re-use id values seen in earlier ones.
+    *
+    * @return
+    *   A non-negative integer.
+    */
+
+  def uniqueIds: Trials[Int]
+
   /** Produce a trials instance that stream cases from a factory.
     *
     * This is used where we want to generate a supposedly potentially unbounded

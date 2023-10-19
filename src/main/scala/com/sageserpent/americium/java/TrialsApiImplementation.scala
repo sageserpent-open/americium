@@ -144,6 +144,9 @@ trait TrialsApiImplementation extends CommonApi with TrialsApiWart {
   override def complexities(): TrialsImplementation[JavaInteger] =
     scalaApi.complexities.map(Int.box)
 
+  override def uniqueIds(): TrialsImplementation[JavaInteger] =
+    scalaApi.uniqueIds.map(Int.box)
+
   def stream[Case](
       caseFactory: CaseFactory[Case]
   ): TrialsImplementation[Case] = new TrialsImplementation(

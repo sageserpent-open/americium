@@ -89,6 +89,12 @@ class TrialsApiImplementation extends CommonApi with ScalaTrialsApi {
   override def complexities: TrialsImplementation[Int] =
     new TrialsImplementation(NoteComplexity)
 
+  override def uniqueIds: TrialsImplementation[Int] = {
+    // This implementation is *not* correct, it's just a placeholder to verify
+    // the tests actually fail non-trivially.
+    complexities
+  }
+
   def resetComplexity(complexity: Int): TrialsImplementation[Unit] =
     new TrialsImplementation(ResetComplexity(complexity))
 

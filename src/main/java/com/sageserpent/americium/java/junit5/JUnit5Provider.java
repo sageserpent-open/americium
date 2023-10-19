@@ -17,7 +17,7 @@ import java.util.stream.Stream;
  * customisation afforded by {@link TrialsTest} or
  * {@link ConfiguredTrialsTest} - use these instead for a 'classic' JUnit5
  * experience, or consider using the more direct coupling offered by
- * {@link JUnit5#dynamicTests()}
+ * {@link JUnit5#dynamicTests}
  */
 @Deprecated
 public class JUnit5Provider {
