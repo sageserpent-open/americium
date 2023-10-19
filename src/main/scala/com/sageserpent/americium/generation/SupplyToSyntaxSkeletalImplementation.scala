@@ -234,19 +234,23 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
         decisionStagesToGuideShrinkage: Option[DecisionStages],
         decisionStagesInReverseOrder: DecisionStagesInReverseOrder,
         complexity: Int,
-        cost: BigInt
+        cost: BigInt,
+        nextUniqueId: Int
     ) {
       def update(
           remainingGuidance: Option[DecisionStages],
           decision: Decision,
           costIncrement: BigInt = BigInt(0)
-      ): State = State(
+      ): State = copy(
         decisionStagesToGuideShrinkage = remainingGuidance,
         decisionStagesInReverseOrder =
           decisionStagesInReverseOrder.addLatest(decision),
         complexity = 1 + complexity,
         cost = cost + costIncrement
       )
+
+      def uniqueId(): (State, Int) =
+        copy(nextUniqueId = 1 + nextUniqueId) -> nextUniqueId
     }
 
     object State {
@@ -254,7 +258,8 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
         decisionStagesToGuideShrinkage = decisionStagesToGuideShrinkage,
         decisionStagesInReverseOrder = NoDecisionStages,
         complexity = 0,
-        cost = BigInt(0)
+        cost = BigInt(0),
+        nextUniqueId = 0
       )
     }
 
@@ -521,6 +526,9 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
 
             case ResetComplexity(_) =>
               StateT.pure(())
+
+            case UniqueId =>
+              StateT[Option, State, Int](state => Some(state.uniqueId()))
           }
       }
 
@@ -574,7 +582,7 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
                   .run(State.initial) match {
                   case Some(
                         (
-                          State(_, decisionStages, _, factoryInputsCost),
+                          State(_, decisionStages, _, factoryInputsCost, _),
                           caze
                         )
                       )

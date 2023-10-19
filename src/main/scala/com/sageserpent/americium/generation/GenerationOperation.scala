@@ -28,3 +28,5 @@ case object NoteComplexity extends GenerationOperation[Int]
 
 case class ResetComplexity[Case](complexity: Int)
     extends GenerationOperation[Unit]
+
+case object UniqueId extends GenerationOperation[Int]
