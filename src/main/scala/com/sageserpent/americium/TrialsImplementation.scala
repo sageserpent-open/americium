@@ -52,8 +52,9 @@ case class TrialsImplementation[Case](
     reproduce(parseDecisionIndices(recipe))
 
   private def reproduce(decisionStages: DecisionStages): Case = {
+    case class Context(decisionStages: DecisionStages, complexity: Int)
 
-    type DecisionIndicesContext[Caze] = State[DecisionStages, Caze]
+    type DecisionIndicesContext[Caze] = State[Context, Caze]
 
     // NOTE: unlike the companion interpreter over in
     // `SupplyToSyntaxSkeletalImplementation.cases`, this one has a relatively
@@ -66,10 +67,13 @@ case class TrialsImplementation[Case](
           generationOperation match {
             case Choice(choicesByCumulativeFrequency) =>
               for {
-                decisionStages <- State.get[DecisionStages]
-                ChoiceOf(decisionIndex) :: remainingDecisionStages =
+                decisionStages <- State.get[Context]
+                Context(
+                  ChoiceOf(decisionIndex) :: remainingDecisionStages,
+                  complexity
+                ) =
                   decisionStages
-                _ <- State.set(remainingDecisionStages)
+                _ <- State.set(Context(remainingDecisionStages, 1 + complexity))
               } yield choicesByCumulativeFrequency
                 .minAfter(1 + decisionIndex)
                 .get
@@ -77,10 +81,13 @@ case class TrialsImplementation[Case](
 
             case Factory(factory) =>
               for {
-                decisionStages <- State.get[DecisionStages]
-                FactoryInputOf(input) :: remainingDecisionStages =
+                decisionStages <- State.get[Context]
+                Context(
+                  FactoryInputOf(input) :: remainingDecisionStages,
+                  complexity
+                ) =
                   decisionStages
-                _ <- State.set(remainingDecisionStages)
+                _ <- State.set(Context(remainingDecisionStages, 1 + complexity))
               } yield factory(input.toInt)
 
             // NOTE: pattern-match only on `Some`, as we are reproducing a case
@@ -90,7 +97,7 @@ case class TrialsImplementation[Case](
               result.pure[DecisionIndicesContext]
 
             case NoteComplexity =>
-              0.pure[DecisionIndicesContext]
+              State.get[Context].map(_.complexity)
 
             case ResetComplexity(_) =>
               ().pure[DecisionIndicesContext]
@@ -100,7 +107,7 @@ case class TrialsImplementation[Case](
 
     generation
       .foldMap(interpreter)
-      .runA(decisionStages)
+      .runA(Context(decisionStages, complexity = 0))
       .value
   }
 

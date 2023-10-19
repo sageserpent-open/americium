@@ -240,7 +240,7 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
           remainingGuidance: Option[DecisionStages],
           decision: Decision,
           costIncrement: BigInt = BigInt(0)
-      ): State = copy(
+      ): State = State(
         decisionStagesToGuideShrinkage = remainingGuidance,
         decisionStagesInReverseOrder =
           decisionStagesInReverseOrder.addLatest(decision),
