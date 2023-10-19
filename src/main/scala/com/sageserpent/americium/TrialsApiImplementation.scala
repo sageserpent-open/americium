@@ -90,9 +90,9 @@ class TrialsApiImplementation extends CommonApi with ScalaTrialsApi {
     new TrialsImplementation(NoteComplexity)
 
   override def uniqueIds: TrialsImplementation[Int] = {
-    // This implementation is *not* correct, it's just a placeholder to verify
-    // the tests actually fail non-trivially.
-    complexities
+    // NASTY HACK: add an additional level of gratuitous complexity after
+    // retrieving the context's complexity. That forces uniqueness.
+    complexities.flatMap(id => choose(Iterable.single(())).map(_ => id))
   }
 
   def resetComplexity(complexity: Int): TrialsImplementation[Unit] =
