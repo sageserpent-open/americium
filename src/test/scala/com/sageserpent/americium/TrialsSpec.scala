@@ -1412,6 +1412,10 @@ class TrialsSpec
       implicitly[Factory[Option[Int]]].trials.map {
         case None        => JackInABox(())
         case Some(value) => value
+      },
+      recursiveUseOfComplexityForWeighting.map {
+        case list if 0 == list.sum % 3 => JackInABox(list)
+        case list => list
       }
     )
   ) { sut =>
@@ -1425,7 +1429,7 @@ class TrialsSpec
     )
 
     val exceptionRecreatedViaRecipe = intercept[sut.TrialException](
-      sut.withLimit(limit).supplyTo(surprisedConsumer)
+      sut.withRecipe(exception.recipe).supplyTo(surprisedConsumer)
     )
 
     exceptionRecreatedViaRecipe.provokingCase shouldBe exception.provokingCase
