@@ -72,29 +72,27 @@ object TrialsSpec {
 
   val limit: Int = 350
 
-  def byteVectorTrials: Trials[Vector[Byte]] = {
+  val byteVectorTrials: Trials[Vector[Byte]] =
     // FIXME: the need to do this shows that some kind of weighted distribution
     // is a good idea.
     api.alternateWithWeights(1 -> api.only(0.toByte), 10 -> api.bytes).several
-  }
 
-  def integerVectorTrials: Trials[Vector[Int]] = {
+  val integerVectorTrials: Trials[Vector[Int]] =
     // FIXME: the need to do this shows that some kind of weighted distribution
     // is a good idea.
     api.alternateWithWeights(1 -> api.only(0), 10 -> api.integers).several
-  }
 
-  def doubleVectorTrials: Trials[Vector[Double]] =
+  val doubleVectorTrials: Trials[Vector[Double]] =
     // FIXME: the need to do this shows that some kind of weighted distribution
     // is a good idea.
     api.alternateWithWeights(1 -> api.only(0.0), 10 -> api.doubles).several
 
-  def longVectorTrials: Trials[Vector[Long]] =
+  val longVectorTrials: Trials[Vector[Long]] =
     // FIXME: the need to do this shows that some kind of weighted distribution
     // is a good idea.
     api.alternateWithWeights(1 -> api.only(0L), 10 -> api.longs).several
 
-  def listTrials: Trials[List[Int]] =
+  val listTrials: Trials[List[Int]] =
     // FIXME: the need to do this shows that some kind of weighted distribution
     // is a good idea.
     api.alternateWithWeights(3 -> api.only(0), 10 -> api.integers).several
@@ -112,7 +110,7 @@ object TrialsSpec {
       .map(Leaf.apply)
   )
 
-  def bushyTreeTrials: Trials[BushyTree] =
+  val bushyTreeTrials: Trials[BushyTree] =
     api.complexities.flatMap(complexity =>
       api
         .alternateWithWeights(
@@ -131,6 +129,18 @@ object TrialsSpec {
         )
         .map(BushyTree.apply)
     )
+
+  def recursiveUseOfComplexityForWeighting: Trials[List[Int]] = {
+    api.complexities.flatMap(complexity =>
+      api.alternateWithWeights(
+        complexity -> api.only(Nil),
+        50 -> (for {
+          id      <- api.integers(1, 10)
+          simpler <- recursiveUseOfComplexityForWeighting
+        } yield id :: simpler)
+      )
+    )
+  }
 
   val BigZero     = BigInt(0)
   val BigMinusOne = BigInt(-1)
@@ -2285,6 +2295,27 @@ class TrialsSpec
       verifyNoMoreInteractions(mockConsumer)
     }
   }
+
+  "unique ids in a test case" should "be allocated in increments of one" in {
+    val threeUniqueIds = for {
+      one   <- api.uniqueIds
+      two   <- api.uniqueIds
+      three <- api.uniqueIds
+    } yield (one, two, three)
+
+    def accumulatedUniqueIds: Trials[List[Int]] =
+      threeUniqueIds.flatMap { case (first, second, third) =>
+        api
+          .alternate(api.only(Nil), accumulatedUniqueIds)
+          .map(first :: second :: third :: _)
+      }
+
+    accumulatedUniqueIds.withLimit(limit).supplyTo { uniqueIds =>
+      uniqueIds.zip(uniqueIds.tail).foreach { case (predecessor, successor) =>
+        successor should be(1 + predecessor)
+      }
+    }
+  }
 }
 
 class TrialsSpecInQuarantineDueToUseOfRecipeHashSystemProperty
@@ -2332,6 +2363,10 @@ class TrialsSpecInQuarantineDueToUseOfRecipeHashSystemProperty
       implicitly[Factory[Option[Int]]].trials.map {
         case None        => JackInABox(())
         case Some(value) => value
+      },
+      recursiveUseOfComplexityForWeighting.map {
+        case list if 0 == list.sum % 3 => JackInABox(list)
+        case list => list
       }
     )
   ) { sut =>
@@ -2426,6 +2461,10 @@ class TrialsSpecInQuarantineDueToUseOfRecipeSystemProperty
       implicitly[Factory[Option[Int]]].trials.map {
         case None        => JackInABox(())
         case Some(value) => value
+      },
+      recursiveUseOfComplexityForWeighting.map {
+        case list if 0 == list.sum % 3 => JackInABox(list)
+        case list => list
       }
     )
   ) { sut =>

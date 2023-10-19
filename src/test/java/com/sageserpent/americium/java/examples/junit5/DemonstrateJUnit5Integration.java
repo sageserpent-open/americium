@@ -1,5 +1,6 @@
 package com.sageserpent.americium.java.examples.junit5;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterators;
 import com.sageserpent.americium.java.*;
@@ -20,7 +21,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static com.sageserpent.americium.java.Trials.api;
 import static java.lang.Math.abs;
-import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.*;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
@@ -28,6 +29,8 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 public class DemonstrateJUnit5Integration {
     private static final TrialsApi api = api();
+    private static final Trials<ImmutableList<Integer>> uniqueIdLists =
+            api.uniqueIds().immutableLists();
     private static final Trials<Long> longs = api.longs();
     private static final TrialsScaffolding.SupplyToSyntax<Long>
             countedLongs =
@@ -375,5 +378,52 @@ public class DemonstrateJUnit5Integration {
         return Iterators.concat(parameterisedDynamicTests,
                                 Collections.singleton(
                                         finalCheck).iterator());
+    }
+
+    @TestFactory
+    Iterator<DynamicTest> multipleUniqueIdsWithinATestCase() {
+        return JUnit5.dynamicTests(uniqueIdLists
+                                           .withLimit(10),
+                                   uniqueIds -> {
+                                       assertThat(uniqueIds.stream()
+                                                           .distinct()
+                                                           .toArray(),
+                                                  equalTo(uniqueIds.toArray()));
+                                   });
+    }
+
+    @TestFactory
+    Iterator<DynamicTest> gangedMultipleUniqueIdsWithinATestCase() {
+        return JUnit5.dynamicTests(uniqueIdLists.and(uniqueIdLists)
+                                                .withLimit(10),
+                                   (firstBatchOfUniqueIds,
+                                    secondBatchOfUniqueIds) -> {
+                                       firstBatchOfUniqueIds.forEach(
+                                               idFromFirstBatch -> {
+                                                   assertThat(
+                                                           secondBatchOfUniqueIds,
+                                                           not(hasItem(
+                                                                   idFromFirstBatch)));
+                                               });
+
+                                       secondBatchOfUniqueIds.forEach(
+                                               idFromSecondBatch -> {
+                                                   assertThat(
+                                                           firstBatchOfUniqueIds,
+                                                           not(hasItem(
+                                                                   idFromSecondBatch)));
+                                               });
+                                   });
+    }
+
+    @TestFactory
+    Iterator<DynamicTest> gangedSingleUniqueIdsWithinATestCase() {
+        return JUnit5.dynamicTests(api.uniqueIds().and(api.uniqueIds())
+                                      .withLimit(10),
+                                   (firstUniqueId,
+                                    secondUniqueId) -> {
+                                       assertThat(firstUniqueId,
+                                                  not(equalTo((secondUniqueId))));
+                                   });
     }
 }
