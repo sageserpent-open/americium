@@ -2295,6 +2295,27 @@ class TrialsSpec
       verifyNoMoreInteractions(mockConsumer)
     }
   }
+
+  "unique ids in a test case" should "be allocated in increments of one" in {
+    val threeUniqueIds = for {
+      one   <- api.uniqueIds
+      two   <- api.uniqueIds
+      three <- api.uniqueIds
+    } yield (one, two, three)
+
+    def accumulatedUniqueIds: Trials[List[Int]] =
+      threeUniqueIds.flatMap { case (first, second, third) =>
+        api
+          .alternate(api.only(Nil), accumulatedUniqueIds)
+          .map(first :: second :: third :: _)
+      }
+
+    accumulatedUniqueIds.withLimit(limit).supplyTo { uniqueIds =>
+      uniqueIds.zip(uniqueIds.tail).foreach { case (predecessor, successor) =>
+        successor should be(1 + predecessor)
+      }
+    }
+  }
 }
 
 class TrialsSpecInQuarantineDueToUseOfRecipeHashSystemProperty
