@@ -25,7 +25,7 @@ case class Branching(subtrees: List[Tree]) extends Tree {
 
   override def depthFrequencies: SortedMap[Int, Int] = subtrees
     .map(_.depthFrequencies)
-    .reduce[SortedMap[Int, Int]](Monoid[SortedMap[Int, Int]].combine)
+    .reduce[SortedMap[Int, Int]](Monoid.combine)
     .map { case (value, frequency) => (1 + value) -> frequency }
 }
 
