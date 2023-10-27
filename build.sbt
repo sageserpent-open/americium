@@ -2,7 +2,7 @@ import sbt.Tests.{Group, SubProcess}
 import sbtrelease.ReleaseStateTransformations._
 import xerial.sbt.Sonatype._
 
-lazy val javaVersion = "1.9"
+lazy val javaVersion = "22"
 
 lazy val scala2_13_Version = "2.13.12"
 
