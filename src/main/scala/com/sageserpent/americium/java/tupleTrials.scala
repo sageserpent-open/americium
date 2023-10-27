@@ -2,15 +2,8 @@ package com.sageserpent.americium.java
 
 import cats.implicits.*
 import cats.{Functor, Semigroupal}
-import com.sageserpent.americium.java.{
-  Trials as JavaTrials,
-  TrialsScaffolding as JavaTrialsScaffolding
-}
-import cyclops.data.tuple.{
-  Tuple2 as JavaTuple2,
-  Tuple3 as JavaTuple3,
-  Tuple4 as JavaTuple4
-}
+import com.sageserpent.americium.java.{Trials as JavaTrials, TrialsScaffolding as JavaTrialsScaffolding}
+import cyclops.data.tuple.{Tuple2 as JavaTuple2, Tuple3 as JavaTuple3, Tuple4 as JavaTuple4}
 import cyclops.function.{Consumer3, Consumer4}
 
 import _root_.java.util.Iterator as JavaIterator
@@ -132,58 +125,6 @@ object tupleTrials {
         trialsOfPairs.withStrategy(casesLimitStrategyFactory)
     }
 
-    override def withLimits(
-        casesLimit: Int,
-        optionalLimits: TrialsScaffolding.OptionalLimits
-    ): SupplyToSyntaxTuple2 = new SupplyToSyntaxTuple2 {
-      val supplyToSyntax
-          : JavaTrialsScaffolding.SupplyToSyntax[JavaTuple2[Case1, Case2]] =
-        trialsOfPairs.withLimits(casesLimit, optionalLimits)
-    }
-
-    override def withStrategy(
-        casesLimitStrategyFactory: JavaFunction[
-          CaseSupplyCycle,
-          CasesLimitStrategy
-        ],
-        optionalLimits: TrialsScaffolding.OptionalLimits
-    ): SupplyToSyntaxTuple2 = new SupplyToSyntaxTuple2 {
-      val supplyToSyntax
-          : JavaTrialsScaffolding.SupplyToSyntax[JavaTuple2[Case1, Case2]] =
-        trialsOfPairs.withStrategy(casesLimitStrategyFactory, optionalLimits)
-    }
-
-    override def withLimits(
-        casesLimit: Int,
-        optionalLimits: TrialsScaffolding.OptionalLimits,
-        shrinkageStop: TrialsScaffolding.ShrinkageStop[
-          _ >: JavaTuple2[Case1, Case2]
-        ]
-    ): SupplyToSyntaxTuple2 = new SupplyToSyntaxTuple2 {
-      val supplyToSyntax
-          : JavaTrialsScaffolding.SupplyToSyntax[JavaTuple2[Case1, Case2]] =
-        trialsOfPairs.withLimits(casesLimit, optionalLimits, shrinkageStop)
-    }
-
-    override def withStrategy(
-        casesLimitStrategyFactory: JavaFunction[
-          CaseSupplyCycle,
-          CasesLimitStrategy
-        ],
-        optionalLimits: TrialsScaffolding.OptionalLimits,
-        shrinkageStop: TrialsScaffolding.ShrinkageStop[
-          _ >: JavaTuple2[Case1, Case2]
-        ]
-    ): SupplyToSyntaxTuple2 = new SupplyToSyntaxTuple2 {
-      val supplyToSyntax
-          : JavaTrialsScaffolding.SupplyToSyntax[JavaTuple2[Case1, Case2]] =
-        trialsOfPairs.withStrategy(
-          casesLimitStrategyFactory,
-          optionalLimits,
-          shrinkageStop
-        )
-    }
-
     override def withRecipe(
         recipe: String
     ): SupplyToSyntaxTuple2 = new SupplyToSyntaxTuple2 {
@@ -297,62 +238,6 @@ object tupleTrials {
         JavaTuple3[Case1, Case2, Case3]
       ] =
         trialsOfTriples.withStrategy(casesLimitStrategyFactory)
-    }
-
-    override def withLimits(
-        casesLimit: Int,
-        optionalLimits: TrialsScaffolding.OptionalLimits
-    ): SupplyToSyntaxTuple3 = new SupplyToSyntaxTuple3 {
-      val supplyToSyntax: JavaTrialsScaffolding.SupplyToSyntax[
-        JavaTuple3[Case1, Case2, Case3]
-      ] =
-        trialsOfTriples.withLimits(casesLimit, optionalLimits)
-    }
-
-    override def withStrategy(
-        casesLimitStrategyFactory: JavaFunction[
-          CaseSupplyCycle,
-          CasesLimitStrategy
-        ],
-        optionalLimits: TrialsScaffolding.OptionalLimits
-    ): SupplyToSyntaxTuple3 = new SupplyToSyntaxTuple3 {
-      val supplyToSyntax: JavaTrialsScaffolding.SupplyToSyntax[
-        JavaTuple3[Case1, Case2, Case3]
-      ] =
-        trialsOfTriples.withStrategy(casesLimitStrategyFactory, optionalLimits)
-    }
-
-    override def withLimits(
-        casesLimit: Int,
-        optionalLimits: TrialsScaffolding.OptionalLimits,
-        shrinkageStop: TrialsScaffolding.ShrinkageStop[
-          _ >: JavaTuple3[Case1, Case2, Case3]
-        ]
-    ): SupplyToSyntaxTuple3 = new SupplyToSyntaxTuple3 {
-      val supplyToSyntax: JavaTrialsScaffolding.SupplyToSyntax[
-        JavaTuple3[Case1, Case2, Case3]
-      ] =
-        trialsOfTriples.withLimits(casesLimit, optionalLimits, shrinkageStop)
-    }
-
-    override def withStrategy(
-        casesLimitStrategyFactory: JavaFunction[
-          CaseSupplyCycle,
-          CasesLimitStrategy
-        ],
-        optionalLimits: TrialsScaffolding.OptionalLimits,
-        shrinkageStop: TrialsScaffolding.ShrinkageStop[
-          _ >: JavaTuple3[Case1, Case2, Case3]
-        ]
-    ): SupplyToSyntaxTuple3 = new SupplyToSyntaxTuple3 {
-      val supplyToSyntax: JavaTrialsScaffolding.SupplyToSyntax[
-        JavaTuple3[Case1, Case2, Case3]
-      ] =
-        trialsOfTriples.withStrategy(
-          casesLimitStrategyFactory,
-          optionalLimits,
-          shrinkageStop
-        )
     }
 
     override def withRecipe(
@@ -481,65 +366,6 @@ object tupleTrials {
         JavaTuple4[Case1, Case2, Case3, Case4]
       ] =
         trialsOfQuadruples.withStrategy(casesLimitStrategyFactory)
-    }
-
-    override def withLimits(
-        casesLimit: Int,
-        optionalLimits: TrialsScaffolding.OptionalLimits
-    ): SupplyToSyntaxTuple4 = new SupplyToSyntaxTuple4 {
-      val supplyToSyntax: JavaTrialsScaffolding.SupplyToSyntax[
-        JavaTuple4[Case1, Case2, Case3, Case4]
-      ] =
-        trialsOfQuadruples.withLimits(casesLimit, optionalLimits)
-    }
-
-    override def withStrategy(
-        casesLimitStrategyFactory: JavaFunction[
-          CaseSupplyCycle,
-          CasesLimitStrategy
-        ],
-        optionalLimits: TrialsScaffolding.OptionalLimits
-    ): SupplyToSyntaxTuple4 = new SupplyToSyntaxTuple4 {
-      val supplyToSyntax: JavaTrialsScaffolding.SupplyToSyntax[
-        JavaTuple4[Case1, Case2, Case3, Case4]
-      ] =
-        trialsOfQuadruples.withStrategy(
-          casesLimitStrategyFactory,
-          optionalLimits
-        )
-    }
-
-    override def withLimits(
-        casesLimit: Int,
-        optionalLimits: TrialsScaffolding.OptionalLimits,
-        shrinkageStop: TrialsScaffolding.ShrinkageStop[
-          _ >: JavaTuple4[Case1, Case2, Case3, Case4]
-        ]
-    ): SupplyToSyntaxTuple4 = new SupplyToSyntaxTuple4 {
-      val supplyToSyntax: JavaTrialsScaffolding.SupplyToSyntax[
-        JavaTuple4[Case1, Case2, Case3, Case4]
-      ] =
-        trialsOfQuadruples.withLimits(casesLimit, optionalLimits, shrinkageStop)
-    }
-
-    override def withStrategy(
-        casesLimitStrategyFactory: JavaFunction[
-          CaseSupplyCycle,
-          CasesLimitStrategy
-        ],
-        optionalLimits: TrialsScaffolding.OptionalLimits,
-        shrinkageStop: TrialsScaffolding.ShrinkageStop[
-          _ >: JavaTuple4[Case1, Case2, Case3, Case4]
-        ]
-    ): SupplyToSyntaxTuple4 = new SupplyToSyntaxTuple4 {
-      val supplyToSyntax: JavaTrialsScaffolding.SupplyToSyntax[
-        JavaTuple4[Case1, Case2, Case3, Case4]
-      ] =
-        trialsOfQuadruples.withStrategy(
-          casesLimitStrategyFactory,
-          optionalLimits,
-          shrinkageStop
-        )
     }
 
     override def withRecipe(

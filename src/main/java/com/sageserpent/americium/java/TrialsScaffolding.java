@@ -13,9 +13,6 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
-import static com.sageserpent.americium.java.TrialsDefaults.defaultComplexityLimit;
-import static com.sageserpent.americium.java.TrialsDefaults.defaultShrinkageAttemptsLimit;
-
 public interface TrialsScaffolding<Case,
         SupplySyntaxType extends TrialsScaffolding.SupplyToSyntax<Case>>
         extends TrialsFactoring<Case> {
@@ -61,110 +58,6 @@ public interface TrialsScaffolding<Case,
      */
     SupplySyntaxType withStrategy(
             Function<CaseSupplyCycle, CasesLimitStrategy> casesLimitStrategyFactory);
-
-    /**
-     * Fluent syntax for configuring a limit to the number of cases supplied
-     * to a consumer.
-     *
-     * @param casesLimit     The maximum number of cases that can be supplied
-     *                       - note that this is no guarantee that so many
-     *                       cases will be supplied, it is simply a limit.
-     * @param optionalLimits Optional limits used to configure other aspects
-     *                       of supplying and shrinkage.
-     * @return An instance of {@link SupplyToSyntax} with the limit configured.
-     * @deprecated Use {@link TrialsScaffolding#withLimit} and follow with
-     * calls to {@link SupplyToSyntax#withComplexityLimit(int)},
-     * {@link SupplyToSyntax#withShrinkageAttemptsLimit(int)} and
-     * {@link SupplyToSyntax#withShrinkageStop(ShrinkageStop)}.
-     */
-    @Deprecated
-    SupplySyntaxType withLimits(int casesLimit,
-                                OptionalLimits optionalLimits);
-
-    /**
-     * Fluent syntax for configuring a limit strategy for the number of cases
-     * supplied to a consumer.
-     *
-     * @param casesLimitStrategyFactory A factory method that should produce
-     *                                  a *fresh* instance of a
-     *                                  {@link CasesLimitStrategy} on each call.
-     * @param optionalLimits            Optional limits used to configure
-     *                                  other aspects of supplying and
-     *                                  shrinkage.
-     * @return An instance of {@link SupplyToSyntax} with the strategy
-     * configured.
-     * @apiNote The factory {@code casesLimitStrategyFactory} takes an
-     * argument of {@link CaseSupplyCycle}; this can be used to dynamically
-     * configure the strategy depending on which cycle the strategy is
-     * intended for, or simply disregarded if a one-size-fits-all approach is
-     * desired.
-     * @deprecated Use the simplest overload of
-     * {@link TrialsScaffolding#withStrategy} and follow with calls to
-     * {@link SupplyToSyntax#withComplexityLimit(int)},
-     * {@link SupplyToSyntax#withShrinkageAttemptsLimit(int)} and
-     * {@link SupplyToSyntax#withShrinkageStop(ShrinkageStop)}.
-     */
-    @Deprecated
-    SupplySyntaxType withStrategy(
-            Function<CaseSupplyCycle, CasesLimitStrategy> casesLimitStrategyFactory,
-            OptionalLimits optionalLimits);
-
-    /**
-     * Fluent syntax for configuring a limit to the number of cases supplied
-     * to a consumer.
-     *
-     * @param casesLimit     The maximum number of cases that can be supplied
-     *                       - note that this is no guarantee that so many
-     *                       cases will be supplied, it is simply a limit.
-     * @param optionalLimits Optional limits used to configure other aspects
-     *                       of supplying and shrinkage.
-     * @param shrinkageStop  Allows external control of the shrinkage process
-     *                       in addition to what is configured by the {@code
-     *                       optionalLimits}. See also {@link ShrinkageStop}.
-     * @return An instance of {@link SupplyToSyntax} with the limit configured.
-     * @deprecated Use {@link TrialsScaffolding#withLimit} and follow with
-     * calls to {@link SupplyToSyntax#withComplexityLimit(int)},
-     * {@link SupplyToSyntax#withShrinkageAttemptsLimit(int)} and
-     * {@link SupplyToSyntax#withShrinkageStop(ShrinkageStop)}.
-     */
-    @Deprecated
-    SupplySyntaxType withLimits(int casesLimit,
-                                OptionalLimits optionalLimits,
-                                ShrinkageStop<? super Case> shrinkageStop);
-
-    /**
-     * Fluent syntax for configuring a limit strategy for the number of cases
-     * supplied to a consumer.
-     *
-     * @param casesLimitStrategyFactory A factory method that should produce
-     *                                  a *fresh* instance of a
-     *                                  {@link CasesLimitStrategy} on each call.
-     * @param optionalLimits            Optional limits used to configure
-     *                                  other aspects of supplying and
-     *                                  shrinkage.
-     * @param shrinkageStop             Allows external control of the
-     *                                  shrinkage process in addition to what
-     *                                  is configured by the {@code
-     *                                  optionalLimits}. See also
-     *                                  {@link ShrinkageStop}.
-     * @return An instance of {@link SupplyToSyntax} with the strategy
-     * configured.
-     * @apiNote The factory {@code casesLimitStrategyFactory} takes an
-     * argument of {@link CaseSupplyCycle}; this can be used to dynamically
-     * configure the strategy depending on which cycle the strategy is
-     * intended for, or simply disregarded if a one-size-fits-all approach is
-     * desired.
-     * @deprecated Use the simplest overload of
-     * {@link TrialsScaffolding#withStrategy} and follow with calls to
-     * {@link SupplyToSyntax#withComplexityLimit(int)},
-     * {@link SupplyToSyntax#withShrinkageAttemptsLimit(int)} and
-     * {@link SupplyToSyntax#withShrinkageStop(ShrinkageStop)}.
-     */
-    @Deprecated
-    SupplySyntaxType withStrategy(
-            Function<CaseSupplyCycle, CasesLimitStrategy> casesLimitStrategyFactory,
-            OptionalLimits optionalLimits,
-            ShrinkageStop<? super Case> shrinkageStop);
 
     /**
      * Reproduce a trial case using a recipe. This is intended to repeatedly
@@ -296,54 +189,6 @@ public interface TrialsScaffolding<Case,
         interface SupplyToSyntaxTuple4<Case1, Case2, Case3, Case4>
                 extends SupplyToSyntax<Tuple4<Case1, Case2, Case3, Case4>> {
             void supplyTo(Consumer4<Case1, Case2, Case3, Case4> quadConsumer);
-        }
-    }
-
-    /**
-     * @deprecated Avoid using this - use {@link TrialsScaffolding#withLimit}
-     * or {@link TrialsScaffolding#withStrategy} and follow with calls to
-     * {@link SupplyToSyntax#withComplexityLimit(int)},
-     * {@link SupplyToSyntax#withShrinkageAttemptsLimit(int)} and
-     * {@link SupplyToSyntax#withShrinkageStop(ShrinkageStop)}.
-     */
-    @Deprecated
-    @lombok.Builder(toBuilder = true)
-    @lombok.EqualsAndHashCode
-    class OptionalLimits {
-        public static OptionalLimits defaults =
-                OptionalLimits.builder().build();
-        /**
-         * The maximum permitted complexity when generating a case.
-         *
-         * @apiNote Complexity is something associated with the production of
-         * a {@code Case} when a {@link Trials} is supplied to some test
-         * consumer. It ranges from one up to (and including) the {@code
-         * complexityLimit} and captures some sense of the case being more
-         * elaborately constructed as it increases - as an example, the use
-         * of flatmapping to combine inputs from multiple trials instances
-         * drives the complexity up for each flatmap stage. In practice, this
-         * results in larger collection instances having greater complexity.
-         * Deeply recursive trials also result in high complexity.
-         */
-        @lombok.Builder.Default
-        public final int complexity = defaultComplexityLimit;
-        /**
-         * The maximum number of shrinkage attempts when shrinking a case.
-         * Setting this to zero disables shrinkage and will thus yield the
-         * original failing case.
-         */
-        @lombok.Builder.Default
-        public final int shrinkageAttempts =
-                defaultShrinkageAttemptsLimit;
-
-        // This is only here to placate the mixed Java and Scala compilation;
-        // that doesn't play well with Lombok.
-        static OptionalLimits factory(int complexity,
-                                      int shrinkageAttempts) {
-            return builder()
-                    .complexity(complexity)
-                    .shrinkageAttempts(shrinkageAttempts)
-                    .build();
         }
     }
 }

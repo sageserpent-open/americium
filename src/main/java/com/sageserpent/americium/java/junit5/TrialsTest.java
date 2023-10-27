@@ -54,7 +54,7 @@ public @interface TrialsTest {
     String[] trials() default "";
 
     /**
-     * @see Trials#withLimits(int, Trials.OptionalLimits)
+     * @see Trials#withLimit(int)
      */
     int casesLimit();
 

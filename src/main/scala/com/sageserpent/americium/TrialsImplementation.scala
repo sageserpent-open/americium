@@ -8,11 +8,11 @@ import cats.~>
 import com.google.common.collect.Ordering as _
 import com.google.common.hash
 import com.sageserpent.americium.TrialsApis.scalaApi
-import com.sageserpent.americium.TrialsScaffolding.ShrinkageStop
+import com.sageserpent.americium.TrialsScaffolding.{ShrinkageStop, noStopping}
 import com.sageserpent.americium.generation.*
 import com.sageserpent.americium.generation.Decision.{DecisionStages, parseDecisionIndices}
 import com.sageserpent.americium.generation.GenerationOperation.Generation
-import com.sageserpent.americium.java.TrialsScaffolding.OptionalLimits
+import com.sageserpent.americium.java.TrialsDefaults.{defaultComplexityLimit, defaultShrinkageAttemptsLimit}
 import com.sageserpent.americium.java.{Builder, CaseSupplyCycle, CasesLimitStrategy, CrossApiIterator, TestIntegrationContext, TrialsScaffolding as JavaTrialsScaffolding, TrialsSkeletalImplementation as JavaTrialsSkeletalImplementation}
 import com.sageserpent.americium.{Trials as ScalaTrials, TrialsScaffolding as ScalaTrialsScaffolding, TrialsSkeletalImplementation as ScalaTrialsSkeletalImplementation}
 import fs2.Stream as Fs2Stream
@@ -22,7 +22,7 @@ import org.apache.commons.text.StringEscapeUtils
 import org.rocksdb.*
 
 import _root_.java.util.Iterator as JavaIterator
-import _root_.java.util.function.{Consumer, Predicate, Function as JavaFunction}
+import _root_.java.util.function.{Consumer, Function as JavaFunction}
 import scala.collection.Iterator as ScalaIterator
 
 object TrialsImplementation {
@@ -125,82 +125,14 @@ case class TrialsImplementation[Case](
   ): JavaTrialsScaffolding.SupplyToSyntax[Case]
     with ScalaTrialsScaffolding.SupplyToSyntax[Case] =
     withStrategy(
-      casesLimitStrategyFactory = casesLimitStrategyFactory,
-      OptionalLimits.defaults
-    )
-
-  override def withLimits(
-      casesLimit: Int,
-      optionalLimits: OptionalLimits
-  ): JavaTrialsScaffolding.SupplyToSyntax[Case]
-    with ScalaTrialsScaffolding.SupplyToSyntax[Case] =
-    withLimits(
-      casesLimit = casesLimit,
-      complexityLimit = optionalLimits.complexity,
-      shrinkageAttemptsLimit = optionalLimits.shrinkageAttempts,
-      shrinkageStop = { () =>
-        val predicate: Predicate[_ >: Case] =
-          JavaTrialsScaffolding.noStopping.build()
-
-        predicate.test _
-      }
-    )
-
-  override def withStrategy(
-      casesLimitStrategyFactory: JavaFunction[
-        CaseSupplyCycle,
-        CasesLimitStrategy
-      ],
-      optionalLimits: OptionalLimits
-  ): JavaTrialsScaffolding.SupplyToSyntax[Case]
-    with ScalaTrialsScaffolding.SupplyToSyntax[Case] =
-    withStrategy(
       casesLimitStrategyFactory = casesLimitStrategyFactory.apply,
-      complexityLimit = optionalLimits.complexity,
-      shrinkageAttemptsLimit = optionalLimits.shrinkageAttempts,
-      shrinkageStop = { () =>
-        val predicate: Predicate[_ >: Case] =
-          JavaTrialsScaffolding.noStopping.build()
-
-        predicate.test _
-      }
-    )
-
-  override def withLimits(
-      casesLimit: Int,
-      optionalLimits: OptionalLimits,
-      shrinkageStop: JavaTrialsScaffolding.ShrinkageStop[_ >: Case]
-  ): JavaTrialsScaffolding.SupplyToSyntax[Case]
-    with ScalaTrialsScaffolding.SupplyToSyntax[Case] =
-    withLimits(
-      casesLimit = casesLimit,
-      complexityLimit = optionalLimits.complexity,
-      shrinkageAttemptsLimit = optionalLimits.shrinkageAttempts,
-      shrinkageStop = { () =>
-        val predicate = shrinkageStop.build()
-
-        predicate.test _
-      }
-    )
-
-  override def withStrategy(
-      casesLimitStrategyFactory: JavaFunction[
-        CaseSupplyCycle,
-        CasesLimitStrategy
-      ],
-      optionalLimits: OptionalLimits,
-      shrinkageStop: JavaTrialsScaffolding.ShrinkageStop[_ >: Case]
-  ): JavaTrialsScaffolding.SupplyToSyntax[Case]
-    with ScalaTrialsScaffolding.SupplyToSyntax[Case] =
-    withStrategy(
-      casesLimitStrategyFactory = casesLimitStrategyFactory.apply,
-      complexityLimit = optionalLimits.complexity,
-      shrinkageAttemptsLimit = optionalLimits.shrinkageAttempts,
-      shrinkageStop = { () =>
-        val predicate = shrinkageStop.build()
-
-        predicate.test _
-      }
+      // This is hokey: although the Scala compiler refuses to allow a call to
+      // the Scala-API overload of `.withStrategy` using a raw Java function
+      // value, without providing an additional argument it regards the call as
+      // ambiguous between the Java API and Scala API overloads. Ho-hum.
+      defaultComplexityLimit,
+      defaultShrinkageAttemptsLimit,
+      noStopping
     )
 
   override def withLimits(
