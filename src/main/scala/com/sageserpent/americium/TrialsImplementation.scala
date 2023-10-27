@@ -72,7 +72,7 @@ case class TrialsImplementation[Case](
                   ChoiceOf(decisionIndex) :: remainingDecisionStages,
                   complexity
                 ) =
-                  decisionStages
+                  decisionStages: @unchecked
                 _ <- State.set(Context(remainingDecisionStages, 1 + complexity))
               } yield choicesByCumulativeFrequency
                 .minAfter(1 + decisionIndex)
@@ -86,7 +86,7 @@ case class TrialsImplementation[Case](
                   FactoryInputOf(input) :: remainingDecisionStages,
                   complexity
                 ) =
-                  decisionStages
+                  decisionStages: @unchecked
                 _ <- State.set(Context(remainingDecisionStages, 1 + complexity))
               } yield factory(input.toInt)
 

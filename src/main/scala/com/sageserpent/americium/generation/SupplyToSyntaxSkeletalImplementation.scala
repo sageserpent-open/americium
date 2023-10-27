@@ -331,7 +331,7 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
                 for {
                   _ <- liftUnitIfTheComplexityIsNotTooLarge(state)
                   index #:: remainingPossibleIndices =
-                    possibilitiesThatFollowSomeChoiceOfDecisionStages
+                    (possibilitiesThatFollowSomeChoiceOfDecisionStages
                       .get(
                         state.decisionStagesInReverseOrder
                       ) match {
@@ -343,7 +343,7 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
                           .buildRandomSequenceOfDistinctIntegersFromZeroToOneLessThan(
                             numberOfChoices
                           )
-                    }
+                    }): @unchecked
 
                   _ <- StateT
                     .set[Option, State](

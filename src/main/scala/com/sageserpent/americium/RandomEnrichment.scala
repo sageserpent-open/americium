@@ -186,7 +186,7 @@ trait RandomEnrichment {
           if (streams.isEmpty) None
           else {
             val candidateStreamToPickFrom :: remainingStreams =
-              random.shuffle(streams)
+              random.shuffle(streams): @unchecked
             candidateStreamToPickFrom match {
               case LazyList() =>
                 pickAnItem(remainingStreams)
@@ -224,7 +224,7 @@ trait RandomEnrichment {
                 splitPiece: Container[Item],
                 remainingItems: Container[Item]
               ) =
-                items splitAt (indexToSplitAt - indexOfPreviousSplit)
+                items splitAt (indexToSplitAt - indexOfPreviousSplit): @unchecked
               splitPiece #:: splits(
                 remainingIndicesToSplitAt,
                 remainingItems,

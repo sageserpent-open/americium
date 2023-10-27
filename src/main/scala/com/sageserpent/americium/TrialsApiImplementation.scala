@@ -489,7 +489,7 @@ class TrialsApiImplementation extends CommonApi with ScalaTrialsApi {
       else
         integers(0, candidateLists.size - 1).flatMap { chosenCandidateIndex =>
           val (prefix, Vector(listToPickFrom, suffix*)) =
-            candidateLists.splitAt(chosenCandidateIndex)
+            candidateLists.splitAt(chosenCandidateIndex): @unchecked
 
           val remainders = prefix ++ suffix
 

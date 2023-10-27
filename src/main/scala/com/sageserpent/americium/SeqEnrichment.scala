@@ -1,7 +1,6 @@
 package com.sageserpent.americium
 
 import scala.collection.BuildFrom
-import scala.collection.immutable.List
 import scala.language.postfixOps
 
 trait SeqEnrichment {
@@ -14,7 +13,7 @@ trait SeqEnrichment {
       if (items.isEmpty)
         Seq.empty[Container[Item]]
       else {
-        val Seq(head, tail @ _*) = items
+        val Seq(head, tail @ _*) = items: @unchecked
         val reversedGroupsInReverse =
           tail.foldLeft(List(List(head)))((groups, item) => {
             assert(groups.nonEmpty)

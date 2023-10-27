@@ -313,7 +313,7 @@ object RangeOfSlots {
           indexOfVacantSlotAsOrderedByMissingItem: Int,
           inclusiveLowerBound: Int,
           exclusiveUpperBound: Int
-      ) = {
+      ): (Int, BinaryTreeNode) = {
         require(indexOfVacantSlotAsOrderedByMissingItem >= 0)
         require(
           indexOfVacantSlotAsOrderedByMissingItem < numberOfSlots
