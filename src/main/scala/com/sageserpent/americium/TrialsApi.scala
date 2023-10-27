@@ -321,7 +321,7 @@ trait TrialsApi {
     *   permutations are generated from.
     * @param permutationSize
     *   The size of the generated permutations; must be in the range ''[0;
-    *   numberOfIndices)''.
+    *   numberOfIndices]''.
     * @return
     *   A [[Trials]] instance whose cases are permutations of the integer range
     *   ''[0; numberOfIndices)''.
@@ -340,7 +340,7 @@ trait TrialsApi {
     *   combinations are generated from.
     * @param combinationSize
     *   The size of the generated combinations; must be in the range ''[0;
-    *   numberOfIndices)''.
+    *   numberOfIndices]''.
     * @return
     *   A [[Trials]] instance whose cases are combinations of the integer range
     *   ''[0; numberOfIndices)''.
