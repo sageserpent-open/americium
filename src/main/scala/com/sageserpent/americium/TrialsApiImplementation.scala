@@ -11,8 +11,11 @@ import scala.collection.immutable.SortedMap
 class TrialsApiImplementation extends CommonApi with ScalaTrialsApi {
   override def delay[Case](
       delayed: => ScalaTrials[Case]
-  ): TrialsImplementation[Case] =
-    TrialsImplementation(Free.defer(delayed.generation))
+  ): TrialsImplementation[Case] = {
+    lazy val placatingScala3 = delayed.generation
+
+    TrialsImplementation(Free.defer(placatingScala3))
+  }
 
   override def impossible[Case]: TrialsImplementation[Case] = {
     // Rather than defining a new case object and additional logic in the
