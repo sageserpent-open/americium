@@ -2,7 +2,7 @@ import sbt.Tests.{Group, SubProcess}
 import sbtrelease.ReleaseStateTransformations._
 import xerial.sbt.Sonatype._
 
-lazy val javaVersion = "22"
+lazy val javaVersion = "1.9"
 
 lazy val scala2_13_Version = "2.13.12"
 
@@ -124,7 +124,7 @@ lazy val settings = Seq(
   ),
   libraryDependencies += "org.hamcrest"          % "hamcrest" % "2.2"    % Test,
   libraryDependencies += "com.eed3si9n.expecty" %% "expecty"  % "0.16.0" % Test,
-  libraryDependencies += "org.projectlombok" % "lombok" % "1.18.22" % Provided
+  libraryDependencies += "org.projectlombok" % "lombok" % "1.18.30" % Provided
 )
 
 lazy val americium = (project in file(".")).settings(settings: _*)
