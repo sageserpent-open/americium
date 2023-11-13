@@ -2,7 +2,7 @@ package com.sageserpent.americium
 
 import com.sageserpent.americium.TrialsScaffolding.{noShrinking, noStopping}
 import com.sageserpent.americium.generation.JavaPropertyNames.{nondeterminsticJavaProperty, recipeHashJavaProperty, recipeJavaProperty}
-import com.sageserpent.americium.java.{Builder, CaseSupplyCycle, CasesLimitStrategy, Trials as JavaTrials, TrialsApi as JavaTrialsApi}
+import com.sageserpent.americium.java.{Builder, CaseSupplyCycle, CasesLimitStrategy, NoValidTrialsException, Trials as JavaTrials, TrialsApi as JavaTrialsApi}
 import cyclops.control.Either as JavaEither
 import org.mockito.ArgumentMatchers.{any, argThat}
 import org.mockito.Mockito
@@ -1057,7 +1057,7 @@ class TrialsSpec
       }
     }
 
-  they should "may yield varying cases if the seed is varied" in
+  they can "yield varying cases if the seed is varied" in
     forAll(
       Table(
         "trials",
@@ -1373,6 +1373,40 @@ class TrialsSpec
 
       exceptionFromSecondAttempt.provokingCase shouldBe exception.provokingCase
     }
+
+  they should "raise an exception when no useful trials are performed" in {
+    val complexityLimit = 5
+
+    forAll(
+      Table(
+        "trials",
+        // Everything is filtered out.
+        api.integers.filter(_ => false),
+        // Everything is filtered out post-hoc in the test.
+        api.integers.map(2 * _),
+        // Everything is valid, but too complex.
+        Iterator.fill(complexityLimit)(api.integers).foldLeft(api.integers) {
+          (lhs, rhs) =>
+            for {
+              partialSum   <- lhs
+              contribution <- rhs
+            } yield partialSum + contribution
+        } filter (1 == _ % 2)
+      )
+    ) { sut =>
+      val onlyAcceptOddIntegers = { (caze: Int) =>
+        if (0 == caze % 2) { Trials.reject() }
+        else fail("The test logic is faulty - it is generating odd integers.")
+      }
+
+      val _ = intercept[NoValidTrialsException](
+        sut
+          .withLimit(limit)
+          .withComplexityLimit(complexityLimit)
+          .supplyTo(onlyAcceptOddIntegers)
+      )
+    }
+  }
 
   "an exceptional case" should "be reproduced via its recipe" in forAll(
     Table(
