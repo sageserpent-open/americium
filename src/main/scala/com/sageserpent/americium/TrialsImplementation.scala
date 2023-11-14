@@ -198,7 +198,8 @@ case class TrialsImplementation[Case](
         complexityLimit: Int,
         shrinkageAttemptsLimit: Int,
         seed: Long,
-        shrinkageStop: ShrinkageStop[Case]
+        shrinkageStop: ShrinkageStop[Case],
+        validTrialsCheckEnabled: Boolean
     ) extends SupplyToSyntaxSkeletalImplementation[Case] {
       override protected val generation: Generation[_ <: Case] =
         thisTrialsImplementation.generation
@@ -256,7 +257,8 @@ case class TrialsImplementation[Case](
           enabled: Boolean
       ): JavaTrialsScaffolding.SupplyToSyntax[
         Case
-      ] with ScalaTrialsScaffolding.SupplyToSyntax[Case] = ???
+      ] with ScalaTrialsScaffolding.SupplyToSyntax[Case] =
+        copy(validTrialsCheckEnabled = enabled)
 
       // Java-only API ...
       override def withShrinkageStop(
@@ -285,7 +287,8 @@ case class TrialsImplementation[Case](
       complexityLimit = complexityLimit,
       shrinkageAttemptsLimit = shrinkageAttemptsLimit,
       seed = 734874L,
-      shrinkageStop = shrinkageStop
+      shrinkageStop = shrinkageStop,
+      validTrialsCheckEnabled = true
     )
   }
 

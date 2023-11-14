@@ -116,6 +116,7 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
   protected val shrinkageAttemptsLimit: Int
   protected val seed: Long
   protected val shrinkageStop: ShrinkageStop[Case]
+  protected val validTrialsCheckEnabled: Boolean
   protected val generation: Generation[_ <: Case]
 
   type StreamedCases =
@@ -551,30 +552,31 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
         // maximally shrunk case being de-duplicated, or because shrinkage is
         // not improving, or because shrinkage forces all potential test cases
         // to be filtered out.
-        if (caseSupplyCycle.isInitial) new CasesLimitStrategy {
+        if (validTrialsCheckEnabled && caseSupplyCycle.isInitial)
+          new CasesLimitStrategy {
 
-          val underlyingStrategy = undecoratedCasesLimitStrategy
+            val underlyingStrategy = undecoratedCasesLimitStrategy
 
-          var numberOfValidCasesEmitted = 0
+            var numberOfValidCasesEmitted = 0
 
-          override def moreToDo(): Boolean = {
-            val moreToDo = underlyingStrategy.moreToDo()
-            if (!moreToDo && 0 == numberOfValidCasesEmitted)
-              throw new NoValidTrialsException()
-            moreToDo
+            override def moreToDo(): Boolean = {
+              val moreToDo = underlyingStrategy.moreToDo()
+              if (!moreToDo && 0 == numberOfValidCasesEmitted)
+                throw new NoValidTrialsException()
+              moreToDo
+            }
+            override def noteRejectionOfCase(): Unit = {
+              require(0 < numberOfValidCasesEmitted)
+              numberOfValidCasesEmitted -= 1
+              underlyingStrategy.noteRejectionOfCase()
+            }
+            override def noteEmissionOfCase(): Unit = {
+              numberOfValidCasesEmitted += 1
+              underlyingStrategy.noteEmissionOfCase()
+            }
+            override def noteStarvation(): Unit =
+              underlyingStrategy.noteStarvation()
           }
-          override def noteRejectionOfCase(): Unit = {
-            require(0 < numberOfValidCasesEmitted)
-            numberOfValidCasesEmitted -= 1
-            underlyingStrategy.noteRejectionOfCase()
-          }
-          override def noteEmissionOfCase(): Unit = {
-            numberOfValidCasesEmitted += 1
-            underlyingStrategy.noteEmissionOfCase()
-          }
-          override def noteStarvation(): Unit =
-            underlyingStrategy.noteStarvation()
-        }
         else undecoratedCasesLimitStrategy
       }
 

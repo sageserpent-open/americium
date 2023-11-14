@@ -834,6 +834,7 @@ public class TrialsApiTests {
             api
                     .<Integer>impossible()
                     .withLimit(100)
+                    .withValidTrialsCheck(false)
                     .supplyTo(consumer);
 
             verify(consumer, never()).accept(anyInt());
@@ -842,11 +843,13 @@ public class TrialsApiTests {
         {
             final Consumer consumer = mock(Consumer.class);
 
-            api
-                    .integers()
-                    .flatMap(unused -> api.impossible())
-                    .withLimit(100)
-                    .supplyTo(consumer);
+            assertThrows(NoValidTrialsException.class, () ->
+                    api
+                            .integers()
+                            .flatMap(unused -> api.impossible())
+                            .withLimit(100)
+                            .withValidTrialsCheck(true)
+                            .supplyTo(consumer));
 
             verify(consumer, never()).accept(anyInt());
         }
