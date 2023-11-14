@@ -62,6 +62,14 @@ object tupleTrials {
           self.supplyToSyntax.withShrinkageStop(shrinkageStop)
       }
 
+      override def withValidTrialsCheck(
+          enabled: Boolean
+      ): SupplyToSyntaxTuple2 = new SupplyToSyntaxTuple2 {
+        override protected val supplyToSyntax
+            : TrialsScaffolding.SupplyToSyntax[(Case1, Case2)] =
+          self.supplyToSyntax.withValidTrialsCheck(enabled)
+      }
+
       override def supplyTo(consumer: ((Case1, Case2)) => Unit): Unit =
         supplyToSyntax.supplyTo(consumer)
 
@@ -188,6 +196,16 @@ object tupleTrials {
         override protected val supplyToSyntax
             : TrialsScaffolding.SupplyToSyntax[(Case1, Case2, Case3)] =
           self.supplyToSyntax.withShrinkageStop(shrinkageStop)
+      }
+
+      override def withValidTrialsCheck(
+          enabled: Boolean
+      ): TrialsScaffolding.SupplyToSyntax[
+        (Case1, Case2, Case3)
+      ] = new SupplyToSyntaxTuple3 {
+        override protected val supplyToSyntax
+            : TrialsScaffolding.SupplyToSyntax[(Case1, Case2, Case3)] =
+          self.supplyToSyntax.withValidTrialsCheck(enabled)
       }
 
       override def supplyTo(consumer: ((Case1, Case2, Case3)) => Unit): Unit =
@@ -321,6 +339,12 @@ object tupleTrials {
             : TrialsScaffolding.SupplyToSyntax[(Case1, Case2, Case3, Case4)] =
           self.withShrinkageStop(shrinkageStop)
       }
+
+      override def withValidTrialsCheck(
+          enabled: Boolean
+      ): TrialsScaffolding.SupplyToSyntax[
+        (Case1, Case2, Case3, Case4)
+      ] = self.supplyToSyntax.withValidTrialsCheck(enabled)
 
       override def supplyTo(
           consumer: ((Case1, Case2, Case3, Case4)) => Unit

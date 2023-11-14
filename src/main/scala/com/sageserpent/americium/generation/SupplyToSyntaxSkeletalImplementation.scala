@@ -663,6 +663,12 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
     Case
   ] with ScalaTrialsScaffolding.SupplyToSyntax[Case]
 
+  override def withValidTrialsCheck(
+      enabled: Boolean
+  ): JavaTrialsScaffolding.SupplyToSyntax[
+    Case
+  ] with ScalaTrialsScaffolding.SupplyToSyntax[Case]
+
   // Java-only API ...
   override def supplyTo(consumer: Consumer[Case]): Unit =
     supplyTo(consumer.accept)

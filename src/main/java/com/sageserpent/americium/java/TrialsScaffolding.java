@@ -138,6 +138,18 @@ public interface TrialsScaffolding<Case,
                 ShrinkageStop<? super Case> shrinkageStop);
 
         /**
+         * Configures whether a check is made after supplying test cases that
+         * any valid trials were performed during supply.
+         * <p>
+         * If either no test cases were produced, or the trials rejected all
+         * of them, then the check will throw a {@link NoValidTrialsException}.
+         *
+         * @param enabled If true, perform the check once supply is finished.
+         * @apiNote Checking is enabled by default.
+         */
+        SupplyToSyntax<Case> withValidTrialsCheck(boolean enabled);
+
+        /**
          * Consume trial cases until either there are no more or an exception
          * is thrown by {@code consumer}. If an exception is thrown, attempts
          * will be made to shrink the trial case that caused the exception to

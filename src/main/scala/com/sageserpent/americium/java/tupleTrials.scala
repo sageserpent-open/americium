@@ -90,6 +90,14 @@ object tupleTrials {
           self.supplyToSyntax.withShrinkageStop(shrinkageStop)
       }
 
+      override def withValidTrialsCheck(
+          enabled: Boolean
+      ): SupplyToSyntaxTuple2 = new SupplyToSyntaxTuple2 {
+        override protected val supplyToSyntax
+            : TrialsScaffolding.SupplyToSyntax[JavaTuple2[Case1, Case2]] =
+          self.supplyToSyntax.withValidTrialsCheck(enabled)
+      }
+
       override def supplyTo(
           consumer: Consumer[JavaTuple2[Case1, Case2]]
       ): Unit = supplyToSyntax.supplyTo(consumer)
@@ -201,6 +209,14 @@ object tupleTrials {
         override protected val supplyToSyntax: TrialsScaffolding.SupplyToSyntax[
           JavaTuple3[Case1, Case2, Case3]
         ] = self.supplyToSyntax.withShrinkageStop(shrinkageStop)
+      }
+
+      override def withValidTrialsCheck(
+          enabled: Boolean
+      ): SupplyToSyntaxTuple3 = new SupplyToSyntaxTuple3 {
+        override protected val supplyToSyntax: TrialsScaffolding.SupplyToSyntax[
+          JavaTuple3[Case1, Case2, Case3]
+        ] = self.supplyToSyntax.withValidTrialsCheck(enabled)
       }
 
       override def supplyTo(
@@ -328,6 +344,14 @@ object tupleTrials {
         override protected val supplyToSyntax: TrialsScaffolding.SupplyToSyntax[
           JavaTuple4[Case1, Case2, Case3, Case4]
         ] = self.supplyToSyntax.withShrinkageStop(shrinkageStop)
+      }
+
+      override def withValidTrialsCheck(
+          enabled: Boolean
+      ): SupplyToSyntaxTuple4 = new SupplyToSyntaxTuple4 {
+        override protected val supplyToSyntax: TrialsScaffolding.SupplyToSyntax[
+          JavaTuple4[Case1, Case2, Case3, Case4]
+        ] = self.supplyToSyntax.withValidTrialsCheck(enabled)
       }
 
       override def supplyTo(

@@ -252,6 +252,12 @@ case class TrialsImplementation[Case](
       ] with ScalaTrialsScaffolding.SupplyToSyntax[Case] =
         copy(shrinkageAttemptsLimit = shrinkageAttemptsLimit)
 
+      override def withValidTrialsCheck(
+          enabled: Boolean
+      ): JavaTrialsScaffolding.SupplyToSyntax[
+        Case
+      ] with ScalaTrialsScaffolding.SupplyToSyntax[Case] = ???
+
       // Java-only API ...
       override def withShrinkageStop(
           shrinkageStop: JavaTrialsScaffolding.ShrinkageStop[
@@ -340,6 +346,12 @@ case class TrialsImplementation[Case](
         Case
       ] with ScalaTrialsScaffolding.SupplyToSyntax[Case] =
         this // Shrinkage does not take place when reproducing a test case.
+
+      override def withValidTrialsCheck(
+          enabled: Boolean
+      ): JavaTrialsScaffolding.SupplyToSyntax[
+        Case
+      ] with ScalaTrialsScaffolding.SupplyToSyntax[Case] = ???
 
       // Java-only API ...
       override def withShrinkageStop(
