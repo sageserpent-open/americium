@@ -10,7 +10,7 @@ import com.sageserpent.americium.generation.Decision.{DecisionStages, parseDecis
 import com.sageserpent.americium.generation.GenerationOperation.Generation
 import com.sageserpent.americium.generation.JavaPropertyNames.*
 import com.sageserpent.americium.generation.SupplyToSyntaxSkeletalImplementation.{maximumScaleDeflationLevel, minimumScaleDeflationLevel, rocksDbResource}
-import com.sageserpent.americium.java.{CaseFailureReporting, CaseSupplyCycle, CasesLimitStrategy, CrossApiIterator, InlinedCaseFiltration, TestIntegrationContext, TrialsScaffolding as JavaTrialsScaffolding}
+import com.sageserpent.americium.java.{CaseFailureReporting, CaseSupplyCycle, CasesLimitStrategy, CrossApiIterator, InlinedCaseFiltration, NoValidTrialsException, TestIntegrationContext, TrialsScaffolding as JavaTrialsScaffolding}
 import com.sageserpent.americium.randomEnrichment.RichRandom
 import com.sageserpent.americium.{CaseFactory, TestIntegrationContextImplementation, Trials, TrialsScaffolding as ScalaTrialsScaffolding}
 import fs2.{Pull, Stream as Fs2Stream}
@@ -539,7 +539,44 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
         override def numberOfPreviousFailures(): Int = shrinkageAttemptIndex
       }
 
-      val casesLimitStrategy = casesLimitStrategyFactory(caseSupplyCycle)
+      val undecoratedCasesLimitStrategy: CasesLimitStrategy =
+        casesLimitStrategyFactory(
+          caseSupplyCycle
+        )
+
+      val casesLimitStrategy = {
+        // If we're in the initial cycle of supplying test cases, check to see
+        // if *any* valid trials were made in that cycle. Otherwise don't
+        // bother; exhaustion is a possibility when shrinking, due to the same
+        // maximally shrunk case being de-duplicated, or because shrinkage is
+        // not improving, or because shrinkage forces all potential test cases
+        // to be filtered out.
+        if (caseSupplyCycle.isInitial) new CasesLimitStrategy {
+
+          val underlyingStrategy = undecoratedCasesLimitStrategy
+
+          var numberOfValidCasesEmitted = 0
+
+          override def moreToDo(): Boolean = {
+            val moreToDo = underlyingStrategy.moreToDo()
+            if (!moreToDo && 0 == numberOfValidCasesEmitted)
+              throw new NoValidTrialsException()
+            moreToDo
+          }
+          override def noteRejectionOfCase(): Unit = {
+            require(0 < numberOfValidCasesEmitted)
+            numberOfValidCasesEmitted -= 1
+            underlyingStrategy.noteRejectionOfCase()
+          }
+          override def noteEmissionOfCase(): Unit = {
+            numberOfValidCasesEmitted += 1
+            underlyingStrategy.noteEmissionOfCase()
+          }
+          override def noteStarvation(): Unit =
+            underlyingStrategy.noteStarvation()
+        }
+        else undecoratedCasesLimitStrategy
+      }
 
       val inlinedCaseFiltration: InlinedCaseFiltration =
         (
