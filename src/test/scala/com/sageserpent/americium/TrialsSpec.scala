@@ -1,8 +1,19 @@
 package com.sageserpent.americium
 
 import com.sageserpent.americium.TrialsScaffolding.{noShrinking, noStopping}
-import com.sageserpent.americium.generation.JavaPropertyNames.{nondeterminsticJavaProperty, recipeHashJavaProperty, recipeJavaProperty}
-import com.sageserpent.americium.java.{Builder, CaseSupplyCycle, CasesLimitStrategy, Trials as JavaTrials, TrialsApi as JavaTrialsApi}
+import com.sageserpent.americium.generation.JavaPropertyNames.{
+  nondeterminsticJavaProperty,
+  recipeHashJavaProperty,
+  recipeJavaProperty
+}
+import com.sageserpent.americium.java.{
+  Builder,
+  CaseSupplyCycle,
+  CasesLimitStrategy,
+  NoValidTrialsException,
+  Trials as JavaTrials,
+  TrialsApi as JavaTrialsApi
+}
 import cyclops.control.Either as JavaEither
 import org.mockito.ArgumentMatchers.{any, argThat}
 import org.mockito.Mockito
@@ -443,7 +454,10 @@ class TrialsSpec
 
         val mockConsumer: Any => Unit = mock(classOf[Any => Unit])
 
-        sut.withLimit(limit).supplyTo(mockConsumer)
+        sut
+          .withLimit(limit)
+          .withValidTrialsCheck(enabled = false)
+          .supplyTo(mockConsumer)
 
         possibleChoices.foreach(possibleChoice =>
           verify(mockConsumer).apply(possibleChoice)
@@ -476,7 +490,10 @@ class TrialsSpec
 
         val mockConsumer: Any => Unit = mock(classOf[Any => Unit])
 
-        sut.withLimit(limit).supplyTo(mockConsumer)
+        sut
+          .withLimit(limit)
+          .withValidTrialsCheck(enabled = false)
+          .supplyTo(mockConsumer)
 
         weightedChoices.foreach { case (weight, possibleChoice) =>
           verify(mockConsumer, times(weight)).apply(possibleChoice)
@@ -682,7 +699,10 @@ class TrialsSpec
 
         val mockConsumer: Any => Unit = mock(classOf[Any => Unit])
 
-        sut.withLimit(limit).supplyTo(mockConsumer)
+        sut
+          .withLimit(limit)
+          .withValidTrialsCheck(enabled = false)
+          .supplyTo(mockConsumer)
 
         alternatives
           .foreach {
@@ -725,7 +745,10 @@ class TrialsSpec
 
         val mockConsumer: Any => Unit = mock(classOf[Any => Unit])
 
-        sut.withLimit(limit).supplyTo(mockConsumer)
+        sut
+          .withLimit(limit)
+          .withValidTrialsCheck(enabled = false)
+          .supplyTo(mockConsumer)
 
         weightedAlternatives
           .foreach {
@@ -1057,7 +1080,7 @@ class TrialsSpec
       }
     }
 
-  they should "may yield varying cases if the seed is varied" in
+  they can "yield varying cases if the seed is varied" in
     forAll(
       Table(
         "trials",
@@ -1143,6 +1166,7 @@ class TrialsSpec
             .flatMap(_ => api.impossible)
             .withLimit(limit)
             .withSeed(seed)
+            .withValidTrialsCheck(enabled = false)
             .supplyTo(mockConsumer)
 
           verify(mockConsumer, never()).apply(any)
@@ -1155,6 +1179,7 @@ class TrialsSpec
             .flatMap((_: Any) => javaApi.impossible[AnyRef])
             .withLimit(limit)
             .withSeed(seed)
+            .withValidTrialsCheck(false)
             .supplyTo(mockConsumer)
 
           verify(mockConsumer, never()).accept(any)
@@ -1306,6 +1331,7 @@ class TrialsSpec
               casesLimitStrategyFactory = casesLimitStrategyFactory
             )
             .withShrinkageAttemptsLimit(shrinkageAttemptsLimit)
+            .withValidTrialsCheck(enabled = false)
             .supplyTo { caze =>
               emissionBalance -= 1
               rejectionBalance -= 1
@@ -1373,6 +1399,60 @@ class TrialsSpec
 
       exceptionFromSecondAttempt.provokingCase shouldBe exception.provokingCase
     }
+
+  they should "raise an exception when no useful trials are performed" in {
+    val complexityLimit = 5
+
+    forAll(
+      Table(
+        "trials",
+        // Everything is filtered out.
+        api.integers.filter(_ => false),
+        // Everything is filtered out post-hoc in the test.
+        api.integers.map(2 * _),
+        // Everything is valid, but too complex.
+        Iterator.fill(complexityLimit)(api.integers).foldLeft(api.integers) {
+          (lhs, rhs) =>
+            for {
+              partialSum   <- lhs
+              contribution <- rhs
+            } yield partialSum + contribution
+        } filter (1 == _ % 2)
+      )
+    ) { sut =>
+      val onlyAcceptOddIntegers = { (caze: Int) =>
+        if (0 == caze % 2) { Trials.reject() }
+        else fail("The test logic is faulty - it is generating odd integers.")
+      }
+
+      // First with explicit configuration of the check for valid trials...
+
+      val _ = intercept[NoValidTrialsException](
+        sut
+          .withLimit(limit)
+          .withComplexityLimit(complexityLimit)
+          .withValidTrialsCheck(enabled = true)
+          .supplyTo(onlyAcceptOddIntegers)
+      )
+
+      // Now with the default configuration...
+
+      val _ = intercept[NoValidTrialsException](
+        sut
+          .withLimit(limit)
+          .withComplexityLimit(complexityLimit)
+          .supplyTo(onlyAcceptOddIntegers)
+      )
+
+      // One last time, only disable the check for valid trials...
+
+      sut
+        .withLimit(limit)
+        .withComplexityLimit(complexityLimit)
+        .withValidTrialsCheck(enabled = false)
+        .supplyTo(onlyAcceptOddIntegers)
+    }
+  }
 
   "an exceptional case" should "be reproduced via its recipe" in forAll(
     Table(
@@ -1995,6 +2075,7 @@ class TrialsSpec
       trials
         .filter(oddHash)
         .withLimit(limit)
+        .withValidTrialsCheck(enabled = false)
         .supplyTo(expectedCase =>
           doNothing().when(mockConsumer).apply(expectedCase)
         )
@@ -2002,6 +2083,7 @@ class TrialsSpec
       // ... now let's see if we see the same cases when we filter inline.
       trials
         .withLimit(limit)
+        .withValidTrialsCheck(enabled = false)
         .supplyTo(caze =>
           Trials.whenever(oddHash(caze)) {
             mockConsumer(caze)

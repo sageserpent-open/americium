@@ -693,7 +693,7 @@ public class TrialsApiTests {
             final TrialsFactoring.TrialException trialException =
                     assertThrows(TrialsFactoring.TrialException.class, () -> api
                             .integers()
-                            .withLimits(100, Trials.OptionalLimits.defaults)
+                            .withLimit(100)
                             .supplyTo(caze -> {
                                 if (1 == caze % 2) {
                                     throw new RuntimeException();
@@ -710,11 +710,10 @@ public class TrialsApiTests {
             final TrialsFactoring.TrialException trialException =
                     assertThrows(TrialsFactoring.TrialException.class, () -> api
                             .integers()
-                            .withLimits(100,
-                                        Trials.OptionalLimits.defaults,
-                                        () -> caze ->
-                                                upperBoundOfFinalShrunkCase >=
-                                                caze)
+                            .withLimit(100).withShrinkageStop(
+                                    () -> caze ->
+                                            upperBoundOfFinalShrunkCase >=
+                                            caze)
                             .supplyTo(caze -> {
                                 if (1 == caze % 2) {
                                     throw new RuntimeException();
@@ -835,6 +834,7 @@ public class TrialsApiTests {
             api
                     .<Integer>impossible()
                     .withLimit(100)
+                    .withValidTrialsCheck(false)
                     .supplyTo(consumer);
 
             verify(consumer, never()).accept(anyInt());
@@ -843,11 +843,13 @@ public class TrialsApiTests {
         {
             final Consumer consumer = mock(Consumer.class);
 
-            api
-                    .integers()
-                    .flatMap(unused -> api.impossible())
-                    .withLimit(100)
-                    .supplyTo(consumer);
+            assertThrows(NoValidTrialsException.class, () ->
+                    api
+                            .integers()
+                            .flatMap(unused -> api.impossible())
+                            .withLimit(100)
+                            .withValidTrialsCheck(true)
+                            .supplyTo(consumer));
 
             verify(consumer, never()).accept(anyInt());
         }

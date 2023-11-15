@@ -1,7 +1,7 @@
 package com.sageserpent.americium
 
 import cats.Eq
-import cats.kernel.laws.discipline._
+import cats.kernel.laws.discipline.*
 import cats.laws.{IsEqArrow, discipline}
 import org.scalacheck.{Arbitrary, Gen, Prop}
 import org.scalatest.flatspec.AnyFlatSpec
@@ -19,9 +19,12 @@ class TrialsLaws extends AnyFlatSpec with Checkers {
       def capturesOf(trials: Trials[X]): List[X] = {
         val captures = mutable.ListBuffer.empty[X]
 
-        trials.withLimit(capturesSizeLimit).supplyTo {
-          captures += (_: X): Unit
-        }
+        trials
+          .withLimit(capturesSizeLimit)
+          .withValidTrialsCheck(enabled = false)
+          .supplyTo {
+            captures += (_: X): Unit
+          }
 
         captures.toList
       }
