@@ -1,19 +1,8 @@
 package com.sageserpent.americium
 
 import com.sageserpent.americium.TrialsScaffolding.{noShrinking, noStopping}
-import com.sageserpent.americium.generation.JavaPropertyNames.{
-  nondeterminsticJavaProperty,
-  recipeHashJavaProperty,
-  recipeJavaProperty
-}
-import com.sageserpent.americium.java.{
-  Builder,
-  CaseSupplyCycle,
-  CasesLimitStrategy,
-  NoValidTrialsException,
-  Trials as JavaTrials,
-  TrialsApi as JavaTrialsApi
-}
+import com.sageserpent.americium.generation.JavaPropertyNames.{nondeterminsticJavaProperty, recipeHashJavaProperty, recipeJavaProperty}
+import com.sageserpent.americium.java.{Builder, CaseSupplyCycle, CasesLimitStrategy, NoValidTrialsException, Trials as JavaTrials, TrialsApi as JavaTrialsApi}
 import cyclops.control.Either as JavaEither
 import org.mockito.ArgumentMatchers.{any, argThat}
 import org.mockito.Mockito
@@ -1496,6 +1485,10 @@ class TrialsSpec
       recursiveUseOfComplexityForWeighting.map {
         case list if 0 == list.sum % 3 => JackInABox(list)
         case list => list
+      },
+      api.doubles(0.01, 1).map {
+        case value if 0.2 >= value => JackInABox(value)
+        case value                 => value
       }
     )
   ) { sut =>
