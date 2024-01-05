@@ -1478,7 +1478,13 @@ class TrialsSpec
         }),
         api.choose(-10 until 0)
       ),
-      api.uniqueIds.map(id => if (0 == id % 2) JackInABox(id) else id),
+      api.uniqueIds.sortedSets
+        .filter(_.nonEmpty)
+        .map(ids => {
+          val sum = ids.sum
+          if (0 < sum && 0 == sum % 5) JackInABox(ids)
+          else ids
+        }),
       implicitly[Factory[Option[Int]]].trials.map {
         case None        => JackInABox(())
         case Some(value) => value
