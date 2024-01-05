@@ -52,7 +52,11 @@ case class TrialsImplementation[Case](
     reproduce(parseDecisionIndices(recipe))
 
   private def reproduce(decisionStages: DecisionStages): Case = {
-    case class Context(decisionStages: DecisionStages, complexity: Int)
+    case class Context(
+        decisionStages: DecisionStages,
+        complexity: Int,
+        nextUniqueId: Int
+    )
 
     type DecisionIndicesContext[Caze] = State[Context, Caze]
 
@@ -70,10 +74,13 @@ case class TrialsImplementation[Case](
                 decisionStages <- State.get[Context]
                 Context(
                   ChoiceOf(decisionIndex) :: remainingDecisionStages,
-                  complexity
+                  complexity,
+                  nextUniqueId
                 ) =
                   decisionStages: @unchecked
-                _ <- State.set(Context(remainingDecisionStages, 1 + complexity))
+                _ <- State.set(
+                  Context(remainingDecisionStages, 1 + complexity, nextUniqueId)
+                )
               } yield choicesByCumulativeFrequency
                 .minAfter(1 + decisionIndex)
                 .get
@@ -84,10 +91,13 @@ case class TrialsImplementation[Case](
                 decisionStages <- State.get[Context]
                 Context(
                   FactoryInputOf(input) :: remainingDecisionStages,
-                  complexity
+                  complexity,
+                  nextUniqueId
                 ) =
                   decisionStages: @unchecked
-                _ <- State.set(Context(remainingDecisionStages, 1 + complexity))
+                _ <- State.set(
+                  Context(remainingDecisionStages, 1 + complexity, nextUniqueId)
+                )
               } yield factory(input.toInt)
 
             // NOTE: pattern-match only on `Some`, as we are reproducing a case
@@ -101,13 +111,15 @@ case class TrialsImplementation[Case](
 
             case ResetComplexity(_) =>
               ().pure[DecisionIndicesContext]
+
+            case UniqueId => State.get[Context].map(_.nextUniqueId)
           }
         }
       }
 
     generation
       .foldMap(interpreter)
-      .runA(Context(decisionStages, complexity = 0))
+      .runA(Context(decisionStages, complexity = 0, nextUniqueId = 0))
       .value
   }
 
