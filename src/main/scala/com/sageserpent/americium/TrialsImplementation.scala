@@ -56,7 +56,10 @@ case class TrialsImplementation[Case](
         decisionStages: DecisionStages,
         complexity: Int,
         nextUniqueId: Int
-    )
+    ) {
+      def uniqueId(): (Context, Int) =
+        copy(nextUniqueId = 1 + nextUniqueId) -> nextUniqueId
+    }
 
     type DecisionIndicesContext[Caze] = State[Context, Caze]
 
@@ -112,7 +115,7 @@ case class TrialsImplementation[Case](
             case ResetComplexity(_) =>
               ().pure[DecisionIndicesContext]
 
-            case UniqueId => State.get[Context].map(_.nextUniqueId)
+            case UniqueId => State(_.uniqueId())
           }
         }
       }
