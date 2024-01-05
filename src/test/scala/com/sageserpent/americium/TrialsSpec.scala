@@ -1,19 +1,8 @@
 package com.sageserpent.americium
 
 import com.sageserpent.americium.TrialsScaffolding.{noShrinking, noStopping}
-import com.sageserpent.americium.generation.JavaPropertyNames.{
-  nondeterminsticJavaProperty,
-  recipeHashJavaProperty,
-  recipeJavaProperty
-}
-import com.sageserpent.americium.java.{
-  Builder,
-  CaseSupplyCycle,
-  CasesLimitStrategy,
-  NoValidTrialsException,
-  Trials as JavaTrials,
-  TrialsApi as JavaTrialsApi
-}
+import com.sageserpent.americium.generation.JavaPropertyNames.{nondeterminsticJavaProperty, recipeHashJavaProperty, recipeJavaProperty}
+import com.sageserpent.americium.java.{Builder, CaseSupplyCycle, CasesLimitStrategy, NoValidTrialsException, Trials as JavaTrials, TrialsApi as JavaTrialsApi}
 import cyclops.control.Either as JavaEither
 import org.mockito.ArgumentMatchers.{any, argThat}
 import org.mockito.Mockito
@@ -1489,6 +1478,7 @@ class TrialsSpec
         }),
         api.choose(-10 until 0)
       ),
+      api.uniqueIds.map(id => if (0 == id % 2) JackInABox(id) else id),
       implicitly[Factory[Option[Int]]].trials.map {
         case None        => JackInABox(())
         case Some(value) => value
