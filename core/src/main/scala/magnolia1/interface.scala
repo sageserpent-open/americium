@@ -373,8 +373,7 @@ end CallByNeed
 
 // Both params are later nullified to reduce overhead and increase performance.
 // The supportDynamicValueEvaluation is passed as a function so that it can be nullified. Otherwise, there is no need for the function value.
-final class CallByNeed[+A] private (private[this] var eval: () => A, private var supportDynamicValueEvaluation: () => Boolean)
-    extends Serializable {
+final class CallByNeed[+A](private[this] var eval: () => A, private var supportDynamicValueEvaluation: () => Boolean) extends Serializable {
 
   // This second constructor is necessary to support backwards compatibility for v1.3.6 and earlier
   def this(eval: () => A) = this(eval, () => false)
