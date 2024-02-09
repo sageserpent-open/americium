@@ -1492,6 +1492,10 @@ class TrialsSpec
       recursiveUseOfComplexityForWeighting.map {
         case list if 0 == list.sum % 3 => JackInABox(list)
         case list => list
+      },
+      api.doubles(0.01, 1).map {
+        case value if 0.2 >= value => JackInABox(value)
+        case value                 => value
       }
     )
   ) { sut =>

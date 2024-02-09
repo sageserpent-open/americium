@@ -101,7 +101,7 @@ case class TrialsImplementation[Case](
                 _ <- State.set(
                   Context(remainingDecisionStages, 1 + complexity, nextUniqueId)
                 )
-              } yield factory(input.toInt)
+              } yield factory(input)
 
             // NOTE: pattern-match only on `Some`, as we are reproducing a case
             // that by dint of being reproduced, must have passed filtration the
