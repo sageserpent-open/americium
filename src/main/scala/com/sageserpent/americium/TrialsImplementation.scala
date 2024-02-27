@@ -12,6 +12,7 @@ import com.sageserpent.americium.TrialsScaffolding.{ShrinkageStop, noStopping}
 import com.sageserpent.americium.generation.*
 import com.sageserpent.americium.generation.Decision.{DecisionStages, parseDecisionIndices}
 import com.sageserpent.americium.generation.GenerationOperation.Generation
+import com.sageserpent.americium.generation.SupplyToSyntaxSkeletalImplementation.RocksDBConnection
 import com.sageserpent.americium.java.TrialsDefaults.{defaultComplexityLimit, defaultShrinkageAttemptsLimit}
 import com.sageserpent.americium.java.{Builder, CaseSupplyCycle, CasesLimitStrategy, CrossApiIterator, TestIntegrationContext, TrialsScaffolding as JavaTrialsScaffolding, TrialsSkeletalImplementation as JavaTrialsSkeletalImplementation}
 import com.sageserpent.americium.{Trials as ScalaTrials, TrialsScaffolding as ScalaTrialsScaffolding, TrialsSkeletalImplementation as ScalaTrialsSkeletalImplementation}
@@ -19,7 +20,6 @@ import fs2.Stream as Fs2Stream
 import io.circe.generic.auto.*
 import io.circe.syntax.*
 import org.apache.commons.text.StringEscapeUtils
-import org.rocksdb.*
 
 import _root_.java.util.Iterator as JavaIterator
 import _root_.java.util.function.{Consumer, Function as JavaFunction}
@@ -224,7 +224,7 @@ case class TrialsImplementation[Case](
       ): Case = thisTrialsImplementation.reproduce(decisionStages)
 
       protected override def raiseTrialException(
-          rocksDb: Option[(RocksDB, ColumnFamilyHandle)]
+          rocksDb: Option[RocksDBConnection]
       )(
           throwable: Throwable,
           caze: Case,
@@ -236,13 +236,9 @@ case class TrialsImplementation[Case](
         // TODO: suppose this throws an exception? Probably best to
         // just log it and carry on, as the user wants to see a test
         // failure rather than an issue with the database.
-        rocksDb.foreach { case (rocksDb, columnFamilyForRecipeHashes) =>
-          rocksDb.put(
-            columnFamilyForRecipeHashes,
-            exception.recipeHash.map(_.toByte).toArray,
-            exception.recipe.map(_.toByte).toArray
-          )
-        }
+        rocksDb.foreach(
+          _.recordRecipeHash(exception.recipeHash, exception.recipe)
+        )
 
         Fs2Stream.raiseError[SyncIO](exception)
       }

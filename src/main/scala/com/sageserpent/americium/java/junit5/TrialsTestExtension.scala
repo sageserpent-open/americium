@@ -6,7 +6,6 @@ import cyclops.companion.Streams
 import cyclops.data.tuple.{Tuple2 as JavaTuple2, Tuple3 as JavaTuple3, Tuple4 as JavaTuple4}
 import org.junit.jupiter.api.extension.*
 import org.junit.platform.commons.support.{AnnotationSupport, HierarchyTraversalMode, ReflectionSupport}
-import org.junit.platform.commons.util.ExceptionUtils
 import org.opentest4j.TestAbortedException
 
 import java.lang.invoke.MethodType
@@ -27,23 +26,23 @@ object TrialsTestExtension {
   }
   protected val tupleExpansions: List[TupleAdaptation[_ <: AnyRef]] =
     List(
-      new TupleAdaptation[JavaTuple2[_, _]] {
-        override def clazz: Class[JavaTuple2[_, _]] = classOf[JavaTuple2[_, _]]
-        override def expand(potentialTuple: JavaTuple2[_, _]): Seq[AnyRef] =
+      new TupleAdaptation[JavaTuple2[?, ?]] {
+        override def clazz: Class[JavaTuple2[?, ?]] = classOf[JavaTuple2[?, ?]]
+        override def expand(potentialTuple: JavaTuple2[?, ?]): Seq[AnyRef] =
           potentialTuple.toArray
       },
-      new TupleAdaptation[JavaTuple3[_, _, _]] {
-        override def clazz: Class[JavaTuple3[_, _, _]] =
-          classOf[JavaTuple3[_, _, _]]
+      new TupleAdaptation[JavaTuple3[?, ?, ?]] {
+        override def clazz: Class[JavaTuple3[?, ?, ?]] =
+          classOf[JavaTuple3[?, ?, ?]]
         override def expand(
-            potentialTuple: JavaTuple3[_, _, _]
+            potentialTuple: JavaTuple3[?, ?, ?]
         ): Seq[AnyRef] = potentialTuple.toArray
       },
-      new TupleAdaptation[JavaTuple4[_, _, _, _]] {
-        override def clazz: Class[JavaTuple4[_, _, _, _]] =
-          classOf[JavaTuple4[_, _, _, _]]
+      new TupleAdaptation[JavaTuple4[?, ?, ?, ?]] {
+        override def clazz: Class[JavaTuple4[?, ?, ?, ?]] =
+          classOf[JavaTuple4[?, ?, ?, ?]]
         override def expand(
-            potentialTuple: JavaTuple4[_, _, _, _]
+            potentialTuple: JavaTuple4[?, ?, ?, ?]
         ): Seq[AnyRef] = potentialTuple.toArray
       }
     )
@@ -276,19 +275,12 @@ class TrialsTestExtension extends TestTemplateInvocationContextProvider {
                   if (
                     !testIntegrationContext.inlinedCaseFiltration
                       .executeInFiltrationContext(
-                        () => {
-                          try
-                            super.interceptTestMethod(
-                              invocation,
-                              invocationContext,
-                              extensionContext
-                            )
-                          catch {
-                            case throwable: Throwable =>
-                              ExceptionUtils
-                                .throwAsUncheckedException(throwable)
-                          }
-                        },
+                        () =>
+                          super.interceptTestMethod(
+                            invocation,
+                            invocationContext,
+                            extensionContext
+                          ),
                         additionalExceptionsToHandleAsFiltration
                       )
                   ) throw new TestAbortedException

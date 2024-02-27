@@ -1,6 +1,6 @@
 import sbt.Tests.{Group, SubProcess}
-import sbtrelease.ReleaseStateTransformations._
-import xerial.sbt.Sonatype._
+import sbtrelease.ReleaseStateTransformations.*
+import xerial.sbt.Sonatype.*
 
 lazy val javaVersion = "1.9"
 
