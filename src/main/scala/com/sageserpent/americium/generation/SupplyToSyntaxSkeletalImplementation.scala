@@ -3,13 +3,13 @@ package com.sageserpent.americium.generation
 import cats.data.StateT
 import cats.effect.SyncIO
 import cats.effect.kernel.Resource
-import cats.~>
-import com.google.common.collect.{ImmutableList, Ordering as _, *}
+import cats.{Eval, ~>}
+import com.google.common.collect.{Ordering as _, *}
 import com.sageserpent.americium.TrialsScaffolding.ShrinkageStop
 import com.sageserpent.americium.generation.Decision.{DecisionStages, parseDecisionIndices}
 import com.sageserpent.americium.generation.GenerationOperation.Generation
 import com.sageserpent.americium.generation.JavaPropertyNames.*
-import com.sageserpent.americium.generation.SupplyToSyntaxSkeletalImplementation.{RocksDBConnection, maximumScaleDeflationLevel, minimumScaleDeflationLevel, rocksDbResource}
+import com.sageserpent.americium.generation.SupplyToSyntaxSkeletalImplementation.{RocksDBConnection, maximumScaleDeflationLevel, minimumScaleDeflationLevel, readOnlyRocksDbConnectionResource}
 import com.sageserpent.americium.java.{CaseFailureReporting, CaseSupplyCycle, CasesLimitStrategy, CrossApiIterator, InlinedCaseFiltration, NoValidTrialsException, TestIntegrationContext, TrialsScaffolding as JavaTrialsScaffolding}
 import com.sageserpent.americium.randomEnrichment.RichRandom
 import com.sageserpent.americium.{CaseFactory, TestIntegrationContextImplementation, Trials, TrialsScaffolding as ScalaTrialsScaffolding}
@@ -53,36 +53,8 @@ object SupplyToSyntaxSkeletalImplementation {
     columnFamilyOptions
   )
 
-  case class RocksDBConnection(
-      rocksDb: RocksDB,
-      columnFamilyHandleForRecipeHashes: ColumnFamilyHandle
-  ) {
-    def recordRecipeHash(recipeHash: String, recipe: String): Unit = {
-      rocksDb.put(
-        columnFamilyHandleForRecipeHashes,
-        recipeHash.map(_.toByte).toArray,
-        recipe.map(_.toByte).toArray
-      )
-    }
-
-    def recipeFromRecipeHash(recipeHash: String): String = rocksDb
-      .get(
-        columnFamilyHandleForRecipeHashes,
-        recipeHash.map(_.toByte).toArray
-      )
-      .map(_.toChar)
-      .mkString
-
-    def close(): Unit = {
-      columnFamilyHandleForRecipeHashes.close()
-      rocksDb.close()
-    }
-  }
-
-  def rocksDbResource(
-      readOnly: Boolean = false
-  ): Resource[SyncIO, RocksDBConnection] =
-    Resource.make(acquire = SyncIO {
+  object RocksDBConnection {
+    private def connection(readOnly: Boolean): RocksDBConnection = {
       Option(System.getProperty(temporaryDirectoryJavaProperty)).fold(ifEmpty =
         throw new RuntimeException(
           s"No definition of Java property: `$temporaryDirectoryJavaProperty`"
@@ -127,8 +99,48 @@ object SupplyToSyntaxSkeletalImplementation {
           columnFamilyHandleForRecipeHashes = columnFamilyHandles.get(1)
         )
       }
-    })(release =
-      connection =>
+    }
+
+    def readOnlyConnection(): RocksDBConnection = connection(readOnly = true)
+
+    val evaluation: Eval[RocksDBConnection] =
+      Eval.later {
+        val result = connection(readOnly = false)
+        Runtime.getRuntime.addShutdownHook(new Thread(() => result.close()))
+        result
+      }
+  }
+
+  case class RocksDBConnection(
+      rocksDb: RocksDB,
+      columnFamilyHandleForRecipeHashes: ColumnFamilyHandle
+  ) {
+    def recordRecipeHash(recipeHash: String, recipe: String): Unit = {
+      rocksDb.put(
+        columnFamilyHandleForRecipeHashes,
+        recipeHash.map(_.toByte).toArray,
+        recipe.map(_.toByte).toArray
+      )
+    }
+
+    def recipeFromRecipeHash(recipeHash: String): String = rocksDb
+      .get(
+        columnFamilyHandleForRecipeHashes,
+        recipeHash.map(_.toByte).toArray
+      )
+      .map(_.toChar)
+      .mkString
+
+    def close(): Unit = {
+      columnFamilyHandleForRecipeHashes.close()
+      rocksDb.close()
+    }
+  }
+
+  def readOnlyRocksDbConnectionResource(
+  ): Resource[SyncIO, RocksDBConnection] =
+    Resource.make(acquire = SyncIO { RocksDBConnection.readOnlyConnection() })(
+      release = connection =>
         SyncIO {
           connection.close()
         }
@@ -739,25 +751,11 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
   protected def reproduce(decisionStages: DecisionStages): Case
 
   protected def raiseTrialException(
-      rocksDb: Option[RocksDBConnection]
-  )(
+      rocksDbConnection: Option[RocksDBConnection],
       throwable: Throwable,
       caze: Case,
       decisionStages: DecisionStages
   ): StreamedCases
-
-  private def raiseTrialException(
-      throwable: Throwable,
-      caseData: CaseData
-  ): StreamedCases = Fs2Stream
-    .resource(rocksDbResource())
-    .flatMap(rocksDbPayload =>
-      raiseTrialException(Some(rocksDbPayload))(
-        throwable,
-        caseData.caze,
-        caseData.decisionStagesInReverseOrder.reverse
-      )
-    )
 
   private def shrinkableCases(): StreamedCases = {
     var shrinkageCasesFromDownstream: Option[StreamedCases] = None
@@ -800,7 +798,19 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
           (carryOnButSwitchToShrinkageApproachOnCaseFailure)
       )
 
-    def streamedCasesWithShrinkageOnFailure(): StreamedCases = {
+    def streamedCasesWithShrinkageOnFailure(
+        rocksDBConnection: RocksDBConnection
+    ): StreamedCases = {
+      def raiseTrialException(
+          throwable: Throwable,
+          caseData: CaseData
+      ): StreamedCases = this.raiseTrialException(
+        Some(rocksDBConnection),
+        throwable,
+        caseData.caze,
+        caseData.decisionStagesInReverseOrder.reverse
+      )
+
       val nonDeterministic = Option(
         System.getProperty(nondeterminsticJavaProperty)
       ).fold(ifEmpty = false)(_.toBoolean)
@@ -976,11 +986,7 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
         caze = caze,
         caseFailureReporting = { (throwable: Throwable) =>
           shrinkageCasesFromDownstream = Some(
-            raiseTrialException(None)(
-              throwable,
-              caze,
-              decisionStages
-            )
+            raiseTrialException(None, throwable, caze, decisionStages)
           )
         },
         inlinedCaseFiltration = {
@@ -1000,7 +1006,7 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
     Option(System.getProperty(recipeHashJavaProperty))
       .map(recipeHash =>
         Fs2Stream
-          .resource(rocksDbResource(readOnly = true))
+          .resource(readOnlyRocksDbConnectionResource())
           .flatMap { connection =>
             val singleTestIntegrationContext = Fs2Stream
               .eval(SyncIO {
@@ -1021,7 +1027,9 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
             ).stream
           )
       )
-      .getOrElse(streamedCasesWithShrinkageOnFailure())
+      .getOrElse(
+        streamedCasesWithShrinkageOnFailure(RocksDBConnection.evaluation.value)
+      )
   }
 
   // Scala-only API ...

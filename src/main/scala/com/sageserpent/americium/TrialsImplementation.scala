@@ -224,8 +224,7 @@ case class TrialsImplementation[Case](
       ): Case = thisTrialsImplementation.reproduce(decisionStages)
 
       protected override def raiseTrialException(
-          rocksDb: Option[RocksDBConnection]
-      )(
+          rocksDbConnection: Option[RocksDBConnection],
           throwable: Throwable,
           caze: Case,
           decisionStages: DecisionStages
@@ -236,7 +235,7 @@ case class TrialsImplementation[Case](
         // TODO: suppose this throws an exception? Probably best to
         // just log it and carry on, as the user wants to see a test
         // failure rather than an issue with the database.
-        rocksDb.foreach(
+        rocksDbConnection.foreach(
           _.recordRecipeHash(exception.recipeHash, exception.recipe)
         )
 
