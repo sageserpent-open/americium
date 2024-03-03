@@ -19,11 +19,12 @@ import scalacache.*
 import scalacache.caffeine.CaffeineCache
 
 import _root_.java.util.function.Consumer
-import _root_.java.util.{ArrayList as JavaArrayList, Iterator as JavaIterator}
+import _root_.java.util.{ArrayList as JavaArrayList, Iterator as JavaIterator, Set as JavaSet}
 import java.nio.file.Path
 import scala.annotation.tailrec
 import scala.collection.immutable.SortedMap
 import scala.collection.{mutable, Iterator as ScalaIterator}
+import scala.jdk.CollectionConverters.SetHasAsScala
 import scala.util.Random
 
 object SupplyToSyntaxSkeletalImplementation {
@@ -53,6 +54,11 @@ object SupplyToSyntaxSkeletalImplementation {
     columnFamilyOptions
   )
 
+  val columnFamilyDescriptorForTestCaseIds = new ColumnFamilyDescriptor(
+    "TestCaseIdKeyRecipeValue".getBytes(),
+    columnFamilyOptions
+  )
+
   object RocksDBConnection {
     private def connection(readOnly: Boolean): RocksDBConnection = {
       Option(System.getProperty(temporaryDirectoryJavaProperty)).fold(ifEmpty =
@@ -67,7 +73,8 @@ object SupplyToSyntaxSkeletalImplementation {
         val columnFamilyDescriptors =
           ImmutableList.of(
             defaultColumnFamilyDescriptor,
-            columnFamilyDescriptorForRecipeHashes
+            columnFamilyDescriptorForRecipeHashes,
+            columnFamilyDescriptorForTestCaseIds
           )
 
         val columnFamilyHandles = new JavaArrayList[ColumnFamilyHandle]()
@@ -96,7 +103,8 @@ object SupplyToSyntaxSkeletalImplementation {
 
         RocksDBConnection(
           rocksDB,
-          columnFamilyHandleForRecipeHashes = columnFamilyHandles.get(1)
+          columnFamilyHandleForRecipeHashes = columnFamilyHandles.get(1),
+          columnFamilyHandleForTestCaseIds = columnFamilyHandles.get(2)
         )
       }
     }
@@ -113,7 +121,8 @@ object SupplyToSyntaxSkeletalImplementation {
 
   case class RocksDBConnection(
       rocksDb: RocksDB,
-      columnFamilyHandleForRecipeHashes: ColumnFamilyHandle
+      columnFamilyHandleForRecipeHashes: ColumnFamilyHandle,
+      columnFamilyHandleForTestCaseIds: ColumnFamilyHandle
   ) {
     def recordRecipeHash(recipeHash: String, recipe: String): Unit = {
       rocksDb.put(
@@ -131,8 +140,25 @@ object SupplyToSyntaxSkeletalImplementation {
       .map(_.toChar)
       .mkString
 
+    def recordTestCaseId(testCaseId: String, recipe: String): Unit = {
+      rocksDb.put(
+        columnFamilyHandleForTestCaseIds,
+        testCaseId.map(_.toByte).toArray,
+        recipe.map(_.toByte).toArray
+      )
+    }
+
+    def recipeFromTestCaseId(testCaseId: String): String = rocksDb
+      .get(
+        columnFamilyHandleForTestCaseIds,
+        testCaseId.map(_.toByte).toArray
+      )
+      .map(_.toChar)
+      .mkString
+
     def close(): Unit = {
       columnFamilyHandleForRecipeHashes.close()
+      columnFamilyHandleForTestCaseIds.close()
       rocksDb.close()
     }
   }
@@ -716,37 +742,46 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
   override def supplyTo(consumer: Consumer[Case]): Unit =
     supplyTo(consumer.accept)
 
-  override def asIterator(): JavaIterator[Case] with ScalaIterator[Case] =
-    CrossApiIterator.from(
-      lazyListOfTestIntegrationContexts().map(_.caze).iterator
+  override def asIterator(): CrossApiIterator[Case] =
+    crossApiIteratorOverTestIntegrationContexts(collection.Set.empty)
+      .map(_.caze)
+
+  override def testIntegrationContexts(
+      replayedTestCaseIds: JavaSet[String]
+  ): JavaIterator[TestIntegrationContext[Case]] =
+    crossApiIteratorOverTestIntegrationContexts(
+      replayedTestCaseIds.asScala
     )
 
-  override def testIntegrationContexts()
-      : JavaIterator[TestIntegrationContext[Case]]
-        with ScalaIterator[TestIntegrationContext[Case]] =
-    CrossApiIterator.from(lazyListOfTestIntegrationContexts().iterator)
+  override def testIntegrationContexts(
+      replayedTestCaseIds: Set[String]
+  ): ScalaIterator[TestIntegrationContext[Case]] =
+    crossApiIteratorOverTestIntegrationContexts(replayedTestCaseIds)
 
-  private def lazyListOfTestIntegrationContexts()
-      : LazyList[TestIntegrationContext[Case]] = {
-    LazyList.unfold(shrinkableCases()) { streamedCases =>
-      streamedCases.pull.uncons1
-        .flatMap {
-          case None              => Pull.done
-          case Some(headAndTail) => Pull.output1(headAndTail)
+  private def crossApiIteratorOverTestIntegrationContexts(
+      replayedTestCaseIds: collection.Set[String]
+  ): CrossApiIterator[TestIntegrationContext[Case]] = CrossApiIterator.from(
+    LazyList
+      .unfold(shrinkableCases(replayedTestCaseIds)) { streamedCases =>
+        streamedCases.pull.uncons1
+          .flatMap {
+            case None              => Pull.done
+            case Some(headAndTail) => Pull.output1(headAndTail)
+          }
+          .stream
+          .head
+          .compile
+          .last
+          .attempt
+          .unsafeRunSync() match {
+          case Left(throwable) =>
+            throw throwable
+          case Right(cargo) =>
+            cargo
         }
-        .stream
-        .head
-        .compile
-        .last
-        .attempt
-        .unsafeRunSync() match {
-        case Left(throwable) =>
-          throw throwable
-        case Right(cargo) =>
-          cargo
       }
-    }
-  }
+      .iterator
+  )
 
   protected def reproduce(decisionStages: DecisionStages): Case
 
@@ -757,7 +792,9 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
       decisionStages: DecisionStages
   ): StreamedCases
 
-  private def shrinkableCases(): StreamedCases = {
+  private def shrinkableCases(
+      replayedTestCaseIds: collection.Set[String]
+  ): StreamedCases = {
     var shrinkageCasesFromDownstream: Option[StreamedCases] = None
 
     def carryOnButSwitchToShrinkageApproachOnCaseFailure(
@@ -922,7 +959,13 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
                         )
                       },
                     inlinedCaseFiltration = inlinedCaseFiltration,
-                    isPartOfShrinkage = true
+                    isPartOfShrinkage = true,
+                    testCaseRecording = rocksDBConnection.recordTestCaseId(
+                      _,
+                      Decision.json(
+                        caseData.decisionStagesInReverseOrder.reverse
+                      )
+                    )
                   )
                 )
               }
@@ -965,7 +1008,13 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
                 )
               },
               inlinedCaseFiltration = inlinedCaseFiltration,
-              isPartOfShrinkage = false
+              isPartOfShrinkage = false,
+              testCaseRecording = rocksDBConnection.recordTestCaseId(
+                _,
+                Decision.json(
+                  caseData.decisionStagesInReverseOrder.reverse
+                )
+              )
             )
           }
       }
@@ -999,47 +1048,67 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
             runnable.run()
             true
         },
-        isPartOfShrinkage = false
+        isPartOfShrinkage = false,
+        testCaseRecording = _ => {}
       )
     }
 
-    Option(System.getProperty(recipeHashJavaProperty))
-      .map(recipeHash =>
-        Fs2Stream
-          .resource(readOnlyRocksDbConnectionResource())
-          .flatMap { connection =>
-            val singleTestIntegrationContext = Fs2Stream
-              .eval(SyncIO {
-                val recipe = connection.recipeFromRecipeHash(recipeHash)
+    if (replayedTestCaseIds.nonEmpty) {
+      val replayedTestIntegrationContexts = Fs2Stream
+        .resource(readOnlyRocksDbConnectionResource())
+        .flatMap { connection =>
+          Fs2Stream.evalSeq(SyncIO {
+            replayedTestCaseIds
+              .map(connection.recipeFromTestCaseId)
+              .toSeq
+              .map(testIntegrationContextReproducing)
+          })
+        }
 
-                testIntegrationContextReproducing(recipe)
-              })
-            carryOnButSwitchToShrinkageApproachOnCaseFailure(
-              singleTestIntegrationContext
-            ).stream
-          }
-      )
-      .orElse(
-        Option(System.getProperty(recipeJavaProperty))
-          .map(recipe =>
-            carryOnButSwitchToShrinkageApproachOnCaseFailure(
-              Fs2Stream.emit(testIntegrationContextReproducing(recipe))
-            ).stream
+      carryOnButSwitchToShrinkageApproachOnCaseFailure(
+        replayedTestIntegrationContexts
+      ).stream
+    } else
+      Option(System.getProperty(recipeHashJavaProperty))
+        .map(recipeHash =>
+          Fs2Stream
+            .resource(readOnlyRocksDbConnectionResource())
+            .flatMap { connection =>
+              val singleTestIntegrationContext = Fs2Stream
+                .eval(SyncIO {
+                  val recipe = connection.recipeFromRecipeHash(recipeHash)
+
+                  testIntegrationContextReproducing(recipe)
+                })
+              carryOnButSwitchToShrinkageApproachOnCaseFailure(
+                singleTestIntegrationContext
+              ).stream
+            }
+        )
+        .orElse(
+          Option(System.getProperty(recipeJavaProperty))
+            .map(recipe =>
+              carryOnButSwitchToShrinkageApproachOnCaseFailure(
+                Fs2Stream.emit(testIntegrationContextReproducing(recipe))
+              ).stream
+            )
+        )
+        .getOrElse(
+          streamedCasesWithShrinkageOnFailure(
+            RocksDBConnection.evaluation.value
           )
-      )
-      .getOrElse(
-        streamedCasesWithShrinkageOnFailure(RocksDBConnection.evaluation.value)
-      )
+        )
   }
 
   // Scala-only API ...
   override def supplyTo(consumer: Case => Unit): Unit = {
-    shrinkableCases()
+    shrinkableCases(Set.empty)
       .flatMap {
         case TestIntegrationContextImplementation(
               caze: Case,
               caseFailureReporting: CaseFailureReporting,
               inlinedCaseFiltration: InlinedCaseFiltration,
+              _,
               _
             ) =>
           Fs2Stream.eval(SyncIO {

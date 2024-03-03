@@ -61,7 +61,8 @@ public class JUnit5 {
             TrialsScaffolding.SupplyToSyntax<Case> supplier,
             Consumer<Case> consumer) {
         return package$.MODULE$.dynamicTests(
-                CollectionConverters.asScala(supplier.testIntegrationContexts()),
+                CollectionConverters.asScala(supplier.testIntegrationContexts(
+                        null)),
                 FunctionConverters.asScalaFromConsumer(consumer));
     }
 
@@ -74,7 +75,8 @@ public class JUnit5 {
             TrialsScaffolding.SupplyToSyntax<Tuple2<Case1, Case2>> supplier,
             BiConsumer<Case1, Case2> biConsumer) {
         return package$.MODULE$.dynamicTests(
-                CollectionConverters.asScala(supplier.testIntegrationContexts()),
+                CollectionConverters.asScala(supplier.testIntegrationContexts(
+                        null)),
                 FunctionConverters.asScalaFromConsumer(pair -> biConsumer.accept(
                         pair._1(),
                         pair._2())));
@@ -89,7 +91,8 @@ public class JUnit5 {
             TrialsScaffolding.SupplyToSyntax<Tuple3<Case1, Case2, Case3>> supplier,
             Consumer3<Case1, Case2, Case3> triConsumer) {
         return package$.MODULE$.dynamicTests(
-                CollectionConverters.asScala(supplier.testIntegrationContexts()),
+                CollectionConverters.asScala(supplier.testIntegrationContexts(
+                        null)),
                 FunctionConverters.asScalaFromConsumer(triple -> triConsumer.accept(
                         triple._1(),
                         triple._2(),
@@ -106,7 +109,8 @@ public class JUnit5 {
                     Case4>> supplier,
             Consumer4<Case1, Case2, Case3, Case4> quadConsumer) {
         return package$.MODULE$.dynamicTests(
-                CollectionConverters.asScala(supplier.testIntegrationContexts()),
+                CollectionConverters.asScala(supplier.testIntegrationContexts(
+                        null)),
                 FunctionConverters.asScalaFromConsumer(quadruple -> quadConsumer.accept(
                         quadruple._1(),
                         quadruple._2(),

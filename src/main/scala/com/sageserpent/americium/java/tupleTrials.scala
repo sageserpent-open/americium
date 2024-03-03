@@ -6,7 +6,7 @@ import com.sageserpent.americium.java.{Trials as JavaTrials, TrialsScaffolding a
 import cyclops.data.tuple.{Tuple2 as JavaTuple2, Tuple3 as JavaTuple3, Tuple4 as JavaTuple4}
 import cyclops.function.{Consumer3, Consumer4}
 
-import _root_.java.util.Iterator as JavaIterator
+import _root_.java.util.{Iterator as JavaIterator, Set as JavaSet}
 import java.util.function.{BiConsumer, Consumer, Function as JavaFunction}
 
 object tupleTrials {
@@ -105,9 +105,10 @@ object tupleTrials {
       override def asIterator: JavaIterator[JavaTuple2[Case1, Case2]] =
         supplyToSyntax.asIterator
 
-      override def testIntegrationContexts
-          : JavaIterator[TestIntegrationContext[JavaTuple2[Case1, Case2]]] =
-        supplyToSyntax.testIntegrationContexts
+      override def testIntegrationContexts(
+          replayedTestCaseIds: JavaSet[String]
+      ): JavaIterator[TestIntegrationContext[JavaTuple2[Case1, Case2]]] =
+        supplyToSyntax.testIntegrationContexts(replayedTestCaseIds)
 
       protected val supplyToSyntax: TrialsScaffolding.SupplyToSyntax[
         JavaTuple2[Case1, Case2]
@@ -226,9 +227,11 @@ object tupleTrials {
       override def asIterator: JavaIterator[JavaTuple3[Case1, Case2, Case3]] =
         supplyToSyntax.asIterator
 
-      override def testIntegrationContexts: JavaIterator[
+      override def testIntegrationContexts(
+          replayedTestCaseIds: JavaSet[String]
+      ): JavaIterator[
         TestIntegrationContext[JavaTuple3[Case1, Case2, Case3]]
-      ] = supplyToSyntax.testIntegrationContexts
+      ] = supplyToSyntax.testIntegrationContexts(replayedTestCaseIds)
 
       protected val supplyToSyntax: TrialsScaffolding.SupplyToSyntax[
         JavaTuple3[Case1, Case2, Case3]
@@ -362,9 +365,11 @@ object tupleTrials {
           : JavaIterator[JavaTuple4[Case1, Case2, Case3, Case4]] =
         supplyToSyntax.asIterator
 
-      override def testIntegrationContexts: JavaIterator[
+      override def testIntegrationContexts(
+          replayedTestCaseIds: JavaSet[String]
+      ): JavaIterator[
         TestIntegrationContext[JavaTuple4[Case1, Case2, Case3, Case4]]
-      ] = supplyToSyntax.testIntegrationContexts
+      ] = supplyToSyntax.testIntegrationContexts(replayedTestCaseIds)
 
       protected val supplyToSyntax: TrialsScaffolding.SupplyToSyntax[
         JavaTuple4[Case1, Case2, Case3, Case4]

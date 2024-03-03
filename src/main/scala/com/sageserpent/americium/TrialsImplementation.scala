@@ -17,12 +17,10 @@ import com.sageserpent.americium.java.TrialsDefaults.{defaultComplexityLimit, de
 import com.sageserpent.americium.java.{Builder, CaseSupplyCycle, CasesLimitStrategy, CrossApiIterator, TestIntegrationContext, TrialsScaffolding as JavaTrialsScaffolding, TrialsSkeletalImplementation as JavaTrialsSkeletalImplementation}
 import com.sageserpent.americium.{Trials as ScalaTrials, TrialsScaffolding as ScalaTrialsScaffolding, TrialsSkeletalImplementation as ScalaTrialsSkeletalImplementation}
 import fs2.Stream as Fs2Stream
-import io.circe.generic.auto.*
-import io.circe.syntax.*
 import org.apache.commons.text.StringEscapeUtils
 
-import _root_.java.util.Iterator as JavaIterator
 import _root_.java.util.function.{Consumer, Function as JavaFunction}
+import _root_.java.util.{Iterator as JavaIterator, Set as JavaSet}
 import scala.collection.Iterator as ScalaIterator
 
 object TrialsImplementation {
@@ -307,8 +305,8 @@ case class TrialsImplementation[Case](
       caze: Case,
       decisionStages: DecisionStages
   ) = {
-    val json           = decisionStages.asJson.spaces4
-    val compressedJson = decisionStages.asJson.noSpaces
+    val json           = Decision.json(decisionStages)
+    val compressedJson = Decision.compressedJson(decisionStages)
 
     val jsonHashInHexadecimal = hash.Hashing
       .murmur3_128()
@@ -344,27 +342,28 @@ case class TrialsImplementation[Case](
       ): JavaTrialsScaffolding.SupplyToSyntax[
         Case
       ] with ScalaTrialsScaffolding.SupplyToSyntax[Case] =
-        this // Seeding has no effect, as the reproduction is deterministic according to `recipe`.
+        this // Seeding has no effect, as the reproduction is determined entirely by `recipe`.
 
       override def withComplexityLimit(
           complexityLimit: Int
       ): JavaTrialsScaffolding.SupplyToSyntax[
         Case
       ] with ScalaTrialsScaffolding.SupplyToSyntax[Case] =
-        this // There is no complexity limit, as the reproduction is deterministic according to `recipe`.
+        this // There is no complexity limit, as the reproduction is determined entirely by `recipe`.
 
       override def withShrinkageAttemptsLimit(
           shrinkageAttemptsLimit: Int
       ): JavaTrialsScaffolding.SupplyToSyntax[
         Case
       ] with ScalaTrialsScaffolding.SupplyToSyntax[Case] =
-        this // Shrinkage does not take place when reproducing a test case.
+        this // Shrinkage does not take place, as the reproduction is determined entirely by `recipe`.
 
       override def withValidTrialsCheck(
           enabled: Boolean
       ): JavaTrialsScaffolding.SupplyToSyntax[
         Case
-      ] with ScalaTrialsScaffolding.SupplyToSyntax[Case] = ???
+      ] with ScalaTrialsScaffolding.SupplyToSyntax[Case] =
+        this // There is no valid trials check, as the reproduction is determined entirely by `recipe`.
 
       // Java-only API ...
       override def withShrinkageStop(
@@ -374,7 +373,7 @@ case class TrialsImplementation[Case](
       ): JavaTrialsScaffolding.SupplyToSyntax[
         Case
       ] with ScalaTrialsScaffolding.SupplyToSyntax[Case] =
-        this // Shrinkage does not take place when reproducing a test case.
+        this // Shrinkage does not take place, as the reproduction is determined entirely by `recipe`.
 
       override def supplyTo(consumer: Consumer[Case]): Unit =
         supplyTo(consumer.accept)
@@ -385,9 +384,18 @@ case class TrialsImplementation[Case](
           reproduce(decisionStages)
         }.iterator)
 
-      override def testIntegrationContexts()
+      override def testIntegrationContexts(
+          replayedTestCaseIds: JavaSet[String]
+      ): JavaIterator[TestIntegrationContext[Case]] =
+        testIntegrationContexts()
+
+      override def testIntegrationContexts(
+          replayedTestCaseIds: Set[String]
+      ): ScalaIterator[TestIntegrationContext[Case]] = testIntegrationContexts()
+
+      private def testIntegrationContexts()
           : JavaIterator[TestIntegrationContext[Case]]
-            with ScalaIterator[TestIntegrationContext[Case]] =
+            with ScalaIterator[TestIntegrationContext[Case]] = {
         CrossApiIterator.from(Seq({
           val decisionStages = parseDecisionIndices(recipe)
           val caze           = reproduce(decisionStages)
@@ -405,9 +413,11 @@ case class TrialsImplementation[Case](
                 runnable.run()
                 true
             },
-            isPartOfShrinkage = false
+            isPartOfShrinkage = false,
+            testCaseRecording = _ => {}
           )
         }: TestIntegrationContext[Case]).iterator)
+      }
 
       // Scala-only API ...
       override def withShrinkageStop(

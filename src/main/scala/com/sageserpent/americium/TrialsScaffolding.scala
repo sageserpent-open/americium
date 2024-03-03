@@ -90,7 +90,7 @@ object TrialsScaffolding {
 
     def asIterator(): Iterator[Case]
 
-    def testIntegrationContexts(): Iterator[TestIntegrationContext[Case]]
+    def testIntegrationContexts(replayedTestCaseIds: Set[String]): Iterator[TestIntegrationContext[Case]]
   }
 
   trait SupplyToSyntaxTuple2[+Case1, +Case2]

@@ -98,7 +98,10 @@ object TrialsTestExtension {
             )
           }
       }
-      .testIntegrationContexts
+      .testIntegrationContexts(
+        LauncherDiscoveryListenerCapturingReplayedTestCaseIds
+          .replayedTestCaseIds()
+      )
       .asInstanceOf[util.Iterator[TestIntegrationContext[AnyRef]]]
   }
 
@@ -221,6 +224,7 @@ class TrialsTestExtension extends TestTemplateInvocationContextProvider {
 
       adaptedArguments.toArray
     }
+
     Streams
       .stream(testIntegrationContexts(context))
       .map((testIntegrationContext: TestIntegrationContext[AnyRef]) =>
@@ -272,11 +276,14 @@ class TrialsTestExtension extends TestTemplateInvocationContextProvider {
                     invocationContext: ReflectiveInvocationContext[Method],
                     extensionContext: ExtensionContext
                 ): Unit = {
+                  testIntegrationContext.testCaseRecording
+                    .record(extensionContext.getUniqueId)
+
                   if (
                     !testIntegrationContext.inlinedCaseFiltration
                       .executeInFiltrationContext(
                         () =>
-                          super.interceptTestMethod(
+                          super.interceptTestTemplateMethod(
                             invocation,
                             invocationContext,
                             extensionContext

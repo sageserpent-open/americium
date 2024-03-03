@@ -106,6 +106,7 @@ lazy val settings = Seq(
   libraryDependencies += "com.google.guava" % "guava"   % "32.0.0-jre",
   libraryDependencies += "com.oath.cyclops" % "cyclops" % "10.4.0",
   libraryDependencies += "org.junit.jupiter" % "junit-jupiter-params" % "5.10.2",
+  libraryDependencies += "org.junit.platform" % "junit-platform-launcher" % "1.10.2",
   libraryDependencies += "org.rocksdb"        % "rocksdbjni"   % "7.1.1",
   libraryDependencies += "org.apache.commons" % "commons-text" % "1.10.0",
   libraryDependencies += ("com.github.cb372" %% "scalacache-caffeine" % "0.28.0") cross CrossVersion.for3Use2_13,

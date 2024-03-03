@@ -50,7 +50,7 @@ package object junit5 {
     def dynamicTests(
         parameterisedTest: Case => Unit
     ): DynamicTests =
-      junit5.dynamicTests(supplier.testIntegrationContexts(), parameterisedTest)
+      junit5.dynamicTests(supplier.testIntegrationContexts(???), parameterisedTest)
   }
 
   implicit class Tuple2Syntax[Case1, Case2](
@@ -64,7 +64,7 @@ package object junit5 {
     def dynamicTests(
         parameterisedTest: (Case1, Case2) => Unit
     ): DynamicTests = junit5.dynamicTests(
-      supplier.testIntegrationContexts(),
+      supplier.testIntegrationContexts(???),
       parameterisedTest.tupled
     )
   }
@@ -82,7 +82,7 @@ package object junit5 {
     def dynamicTests(
         parameterisedTest: (Case1, Case2, Case3) => Unit
     ): DynamicTests = junit5.dynamicTests(
-      supplier.testIntegrationContexts(),
+      supplier.testIntegrationContexts(???),
       parameterisedTest.tupled
     )
   }
@@ -99,7 +99,7 @@ package object junit5 {
     def dynamicTests(
         parameterisedTest: (Case1, Case2, Case3, Case4) => Unit
     ): DynamicTests = junit5.dynamicTests(
-      supplier.testIntegrationContexts(),
+      supplier.testIntegrationContexts(???),
       parameterisedTest.tupled
     )
   }
