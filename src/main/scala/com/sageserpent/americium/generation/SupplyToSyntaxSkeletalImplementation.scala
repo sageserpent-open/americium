@@ -3,24 +3,23 @@ package com.sageserpent.americium.generation
 import cats.data.StateT
 import cats.effect.SyncIO
 import cats.effect.kernel.Resource
-import cats.{Eval, ~>}
+import cats.~>
 import com.google.common.collect.{Ordering as _, *}
 import com.sageserpent.americium.TrialsScaffolding.ShrinkageStop
 import com.sageserpent.americium.generation.Decision.{DecisionStages, parseDecisionIndices}
 import com.sageserpent.americium.generation.GenerationOperation.Generation
 import com.sageserpent.americium.generation.JavaPropertyNames.*
-import com.sageserpent.americium.generation.SupplyToSyntaxSkeletalImplementation.{RocksDBConnection, maximumScaleDeflationLevel, minimumScaleDeflationLevel, readOnlyRocksDbConnectionResource}
+import com.sageserpent.americium.generation.SupplyToSyntaxSkeletalImplementation.{maximumScaleDeflationLevel, minimumScaleDeflationLevel, readOnlyRocksDbConnectionResource}
 import com.sageserpent.americium.java.{CaseFailureReporting, CaseSupplyCycle, CasesLimitStrategy, CrossApiIterator, InlinedCaseFiltration, NoValidTrialsException, TestIntegrationContext, TrialsScaffolding as JavaTrialsScaffolding}
 import com.sageserpent.americium.randomEnrichment.RichRandom
+import com.sageserpent.americium.storage.RocksDBConnection
 import com.sageserpent.americium.{CaseFactory, TestIntegrationContextImplementation, Trials, TrialsScaffolding as ScalaTrialsScaffolding}
 import fs2.{Pull, Stream as Fs2Stream}
-import org.rocksdb.{Cache as _, *}
+import org.rocksdb.Cache as _
 import scalacache.*
 import scalacache.caffeine.CaffeineCache
 
-import _root_.java.util.ArrayList as JavaArrayList
 import _root_.java.util.function.Consumer
-import java.nio.file.Path
 import scala.annotation.tailrec
 import scala.collection.immutable.SortedMap
 import scala.collection.mutable
@@ -33,134 +32,6 @@ object SupplyToSyntaxSkeletalImplementation {
   val minimumScaleDeflationLevel = 0
 
   val maximumScaleDeflationLevel = 50
-
-  val rocksDbOptions = new DBOptions()
-    .optimizeForSmallDb()
-    .setCreateIfMissing(true)
-    .setCreateMissingColumnFamilies(true)
-
-  val columnFamilyOptions = new ColumnFamilyOptions()
-    .setCompressionType(CompressionType.LZ4_COMPRESSION)
-    .setBottommostCompressionType(CompressionType.ZSTD_COMPRESSION)
-
-  val defaultColumnFamilyDescriptor = new ColumnFamilyDescriptor(
-    RocksDB.DEFAULT_COLUMN_FAMILY,
-    columnFamilyOptions
-  )
-
-  val columnFamilyDescriptorForRecipeHashes = new ColumnFamilyDescriptor(
-    "RecipeHashKeyRecipeValue".getBytes(),
-    columnFamilyOptions
-  )
-
-  val columnFamilyDescriptorForTestCaseIds = new ColumnFamilyDescriptor(
-    "TestCaseIdKeyRecipeValue".getBytes(),
-    columnFamilyOptions
-  )
-
-  object RocksDBConnection {
-    private def connection(readOnly: Boolean): RocksDBConnection = {
-      Option(System.getProperty(temporaryDirectoryJavaProperty)).fold(ifEmpty =
-        throw new RuntimeException(
-          s"No definition of Java property: `$temporaryDirectoryJavaProperty`"
-        )
-      ) { directory =>
-        val runDatabase = Option(
-          System.getProperty(runDatabaseJavaProperty)
-        ).getOrElse(runDatabaseDefault)
-
-        val columnFamilyDescriptors =
-          ImmutableList.of(
-            defaultColumnFamilyDescriptor,
-            columnFamilyDescriptorForRecipeHashes,
-            columnFamilyDescriptorForTestCaseIds
-          )
-
-        val columnFamilyHandles = new JavaArrayList[ColumnFamilyHandle]()
-
-        val rocksDB =
-          if (readOnly)
-            RocksDB.openReadOnly(
-              rocksDbOptions,
-              Path
-                .of(directory)
-                .resolve(runDatabase)
-                .toString,
-              columnFamilyDescriptors,
-              columnFamilyHandles
-            )
-          else
-            RocksDB.open(
-              rocksDbOptions,
-              Path
-                .of(directory)
-                .resolve(runDatabase)
-                .toString,
-              columnFamilyDescriptors,
-              columnFamilyHandles
-            )
-
-        RocksDBConnection(
-          rocksDB,
-          columnFamilyHandleForRecipeHashes = columnFamilyHandles.get(1),
-          columnFamilyHandleForTestCaseIds = columnFamilyHandles.get(2)
-        )
-      }
-    }
-
-    def readOnlyConnection(): RocksDBConnection = connection(readOnly = true)
-
-    val evaluation: Eval[RocksDBConnection] =
-      Eval.later {
-        val result = connection(readOnly = false)
-        Runtime.getRuntime.addShutdownHook(new Thread(() => result.close()))
-        result
-      }
-  }
-
-  case class RocksDBConnection(
-      rocksDb: RocksDB,
-      columnFamilyHandleForRecipeHashes: ColumnFamilyHandle,
-      columnFamilyHandleForTestCaseIds: ColumnFamilyHandle
-  ) {
-    def recordRecipeHash(recipeHash: String, recipe: String): Unit = {
-      rocksDb.put(
-        columnFamilyHandleForRecipeHashes,
-        recipeHash.map(_.toByte).toArray,
-        recipe.map(_.toByte).toArray
-      )
-    }
-
-    def recipeFromRecipeHash(recipeHash: String): String = rocksDb
-      .get(
-        columnFamilyHandleForRecipeHashes,
-        recipeHash.map(_.toByte).toArray
-      )
-      .map(_.toChar)
-      .mkString
-
-    def recordTestCaseId(testCaseId: String, recipe: String): Unit = {
-      rocksDb.put(
-        columnFamilyHandleForTestCaseIds,
-        testCaseId.map(_.toByte).toArray,
-        recipe.map(_.toByte).toArray
-      )
-    }
-
-    def recipeFromTestCaseId(testCaseId: String): String = rocksDb
-      .get(
-        columnFamilyHandleForTestCaseIds,
-        testCaseId.map(_.toByte).toArray
-      )
-      .map(_.toChar)
-      .mkString
-
-    def close(): Unit = {
-      columnFamilyHandleForRecipeHashes.close()
-      columnFamilyHandleForTestCaseIds.close()
-      rocksDb.close()
-    }
-  }
 
   def readOnlyRocksDbConnectionResource(
   ): Resource[SyncIO, RocksDBConnection] =
