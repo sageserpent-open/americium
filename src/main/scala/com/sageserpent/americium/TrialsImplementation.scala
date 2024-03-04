@@ -19,8 +19,8 @@ import com.sageserpent.americium.{Trials as ScalaTrials, TrialsScaffolding as Sc
 import fs2.Stream as Fs2Stream
 import org.apache.commons.text.StringEscapeUtils
 
+import _root_.java.util.Iterator as JavaIterator
 import _root_.java.util.function.{Consumer, Function as JavaFunction}
-import _root_.java.util.{Iterator as JavaIterator, Set as JavaSet}
 import scala.collection.Iterator as ScalaIterator
 
 object TrialsImplementation {
@@ -384,18 +384,8 @@ case class TrialsImplementation[Case](
           reproduce(decisionStages)
         }.iterator)
 
-      override def testIntegrationContexts(
-          replayedTestCaseIds: JavaSet[String]
-      ): JavaIterator[TestIntegrationContext[Case]] =
-        testIntegrationContexts()
-
-      override def testIntegrationContexts(
-          replayedTestCaseIds: Set[String]
-      ): ScalaIterator[TestIntegrationContext[Case]] = testIntegrationContexts()
-
-      private def testIntegrationContexts()
-          : JavaIterator[TestIntegrationContext[Case]]
-            with ScalaIterator[TestIntegrationContext[Case]] = {
+      override def testIntegrationContexts()
+          : CrossApiIterator[TestIntegrationContext[Case]] = {
         CrossApiIterator.from(Seq({
           val decisionStages = parseDecisionIndices(recipe)
           val caze           = reproduce(decisionStages)

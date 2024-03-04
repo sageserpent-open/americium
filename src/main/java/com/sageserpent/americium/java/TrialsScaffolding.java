@@ -8,7 +8,6 @@ import cyclops.function.Consumer3;
 import cyclops.function.Consumer4;
 
 import java.util.Iterator;
-import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -168,8 +167,7 @@ public interface TrialsScaffolding<Case,
 
         Iterator<Case> asIterator();
 
-        Iterator<TestIntegrationContext<Case>> testIntegrationContexts(
-                Set<String> replayedTestCaseIds);
+        Iterator<TestIntegrationContext<Case>> testIntegrationContexts();
     }
 
     interface Tuple2Trials<Case1, Case2> extends

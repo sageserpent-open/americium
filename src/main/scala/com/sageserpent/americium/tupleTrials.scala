@@ -76,13 +76,11 @@ object tupleTrials {
       override def asIterator(): Iterator[(Case1, Case2)] =
         supplyToSyntax.asIterator()
 
-      override def testIntegrationContexts(
-          replayedTestCaseIds: Set[String]
-      ): Iterator[
+      override def testIntegrationContexts(): Iterator[
         TestIntegrationContext[
           (Case1, Case2)
         ]
-      ] = supplyToSyntax.testIntegrationContexts(replayedTestCaseIds)
+      ] = supplyToSyntax.testIntegrationContexts()
 
       protected val supplyToSyntax: TrialsScaffolding.SupplyToSyntax[
         (Case1, Case2)
@@ -216,13 +214,11 @@ object tupleTrials {
       override def asIterator(): Iterator[(Case1, Case2, Case3)] =
         supplyToSyntax.asIterator()
 
-      override def testIntegrationContexts(
-          replayedTestCaseIds: Set[String]
-      ): Iterator[
+      override def testIntegrationContexts(): Iterator[
         TestIntegrationContext[
           (Case1, Case2, Case3)
         ]
-      ] = supplyToSyntax.testIntegrationContexts(replayedTestCaseIds)
+      ] = supplyToSyntax.testIntegrationContexts()
 
       protected val supplyToSyntax: TrialsScaffolding.SupplyToSyntax[
         (Case1, Case2, Case3)
@@ -357,13 +353,11 @@ object tupleTrials {
       override def asIterator(): Iterator[(Case1, Case2, Case3, Case4)] =
         supplyToSyntax.asIterator()
 
-      override def testIntegrationContexts(
-          replayedTestCaseIds: Set[String]
-      ): Iterator[
+      override def testIntegrationContexts(): Iterator[
         TestIntegrationContext[
           (Case1, Case2, Case3, Case4)
         ]
-      ] = supplyToSyntax.testIntegrationContexts(replayedTestCaseIds)
+      ] = supplyToSyntax.testIntegrationContexts()
 
       protected val supplyToSyntax: TrialsScaffolding.SupplyToSyntax[
         (Case1, Case2, Case3, Case4)

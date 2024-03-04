@@ -1,16 +1,8 @@
 package com.sageserpent.americium
 
 import com.sageserpent.americium.TrialsScaffolding.{ShrinkageStop, noStopping}
-import com.sageserpent.americium.java.TrialsDefaults.{
-  defaultComplexityLimit,
-  defaultShrinkageAttemptsLimit
-}
-import com.sageserpent.americium.java.{
-  CaseSupplyCycle,
-  CasesLimitStrategy,
-  TestIntegrationContext,
-  TrialsFactoring
-}
+import com.sageserpent.americium.java.TrialsDefaults.{defaultComplexityLimit, defaultShrinkageAttemptsLimit}
+import com.sageserpent.americium.java.{CaseSupplyCycle, CasesLimitStrategy, TestIntegrationContext, TrialsFactoring}
 
 object TrialsScaffolding {
 
@@ -90,7 +82,7 @@ object TrialsScaffolding {
 
     def asIterator(): Iterator[Case]
 
-    def testIntegrationContexts(replayedTestCaseIds: Set[String]): Iterator[TestIntegrationContext[Case]]
+    def testIntegrationContexts(): Iterator[TestIntegrationContext[Case]]
   }
 
   trait SupplyToSyntaxTuple2[+Case1, +Case2]

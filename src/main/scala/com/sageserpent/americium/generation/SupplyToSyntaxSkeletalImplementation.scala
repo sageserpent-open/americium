@@ -18,13 +18,12 @@ import org.rocksdb.{Cache as _, *}
 import scalacache.*
 import scalacache.caffeine.CaffeineCache
 
+import _root_.java.util.ArrayList as JavaArrayList
 import _root_.java.util.function.Consumer
-import _root_.java.util.{ArrayList as JavaArrayList, Iterator as JavaIterator, Set as JavaSet}
 import java.nio.file.Path
 import scala.annotation.tailrec
 import scala.collection.immutable.SortedMap
-import scala.collection.{mutable, Iterator as ScalaIterator}
-import scala.jdk.CollectionConverters.SetHasAsScala
+import scala.collection.mutable
 import scala.util.Random
 
 object SupplyToSyntaxSkeletalImplementation {
@@ -743,26 +742,17 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
     supplyTo(consumer.accept)
 
   override def asIterator(): CrossApiIterator[Case] =
-    crossApiIteratorOverTestIntegrationContexts(collection.Set.empty)
+    crossApiIteratorOverTestIntegrationContexts()
       .map(_.caze)
 
-  override def testIntegrationContexts(
-      replayedTestCaseIds: JavaSet[String]
-  ): JavaIterator[TestIntegrationContext[Case]] =
-    crossApiIteratorOverTestIntegrationContexts(
-      replayedTestCaseIds.asScala
-    )
+  override def testIntegrationContexts()
+      : CrossApiIterator[TestIntegrationContext[Case]] =
+    crossApiIteratorOverTestIntegrationContexts()
 
-  override def testIntegrationContexts(
-      replayedTestCaseIds: Set[String]
-  ): ScalaIterator[TestIntegrationContext[Case]] =
-    crossApiIteratorOverTestIntegrationContexts(replayedTestCaseIds)
-
-  private def crossApiIteratorOverTestIntegrationContexts(
-      replayedTestCaseIds: collection.Set[String]
-  ): CrossApiIterator[TestIntegrationContext[Case]] = CrossApiIterator.from(
+  private def crossApiIteratorOverTestIntegrationContexts()
+      : CrossApiIterator[TestIntegrationContext[Case]] = CrossApiIterator.from(
     LazyList
-      .unfold(shrinkableCases(replayedTestCaseIds)) { streamedCases =>
+      .unfold(shrinkableCases()) { streamedCases =>
         streamedCases.pull.uncons1
           .flatMap {
             case None              => Pull.done
@@ -792,9 +782,7 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
       decisionStages: DecisionStages
   ): StreamedCases
 
-  private def shrinkableCases(
-      replayedTestCaseIds: collection.Set[String]
-  ): StreamedCases = {
+  private def shrinkableCases(): StreamedCases = {
     var shrinkageCasesFromDownstream: Option[StreamedCases] = None
 
     def carryOnButSwitchToShrinkageApproachOnCaseFailure(
@@ -1053,56 +1041,40 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
       )
     }
 
-    if (replayedTestCaseIds.nonEmpty) {
-      val replayedTestIntegrationContexts = Fs2Stream
-        .resource(readOnlyRocksDbConnectionResource())
-        .flatMap { connection =>
-          Fs2Stream.evalSeq(SyncIO {
-            replayedTestCaseIds
-              .map(connection.recipeFromTestCaseId)
-              .toSeq
-              .map(testIntegrationContextReproducing)
-          })
-        }
+    Option(System.getProperty(recipeHashJavaProperty))
+      .map(recipeHash =>
+        Fs2Stream
+          .resource(readOnlyRocksDbConnectionResource())
+          .flatMap { connection =>
+            val singleTestIntegrationContext = Fs2Stream
+              .eval(SyncIO {
+                val recipe = connection.recipeFromRecipeHash(recipeHash)
 
-      carryOnButSwitchToShrinkageApproachOnCaseFailure(
-        replayedTestIntegrationContexts
-      ).stream
-    } else
-      Option(System.getProperty(recipeHashJavaProperty))
-        .map(recipeHash =>
-          Fs2Stream
-            .resource(readOnlyRocksDbConnectionResource())
-            .flatMap { connection =>
-              val singleTestIntegrationContext = Fs2Stream
-                .eval(SyncIO {
-                  val recipe = connection.recipeFromRecipeHash(recipeHash)
-
-                  testIntegrationContextReproducing(recipe)
-                })
-              carryOnButSwitchToShrinkageApproachOnCaseFailure(
-                singleTestIntegrationContext
-              ).stream
-            }
-        )
-        .orElse(
-          Option(System.getProperty(recipeJavaProperty))
-            .map(recipe =>
-              carryOnButSwitchToShrinkageApproachOnCaseFailure(
-                Fs2Stream.emit(testIntegrationContextReproducing(recipe))
-              ).stream
-            )
-        )
-        .getOrElse(
-          streamedCasesWithShrinkageOnFailure(
-            RocksDBConnection.evaluation.value
+                testIntegrationContextReproducing(recipe)
+              })
+            carryOnButSwitchToShrinkageApproachOnCaseFailure(
+              singleTestIntegrationContext
+            ).stream
+          }
+      )
+      .orElse(
+        Option(System.getProperty(recipeJavaProperty))
+          .map(recipe =>
+            carryOnButSwitchToShrinkageApproachOnCaseFailure(
+              Fs2Stream.emit(testIntegrationContextReproducing(recipe))
+            ).stream
           )
+      )
+      .getOrElse(
+        streamedCasesWithShrinkageOnFailure(
+          RocksDBConnection.evaluation.value
         )
+      )
   }
 
   // Scala-only API ...
   override def supplyTo(consumer: Case => Unit): Unit = {
-    shrinkableCases(Set.empty)
+    shrinkableCases()
       .flatMap {
         case TestIntegrationContextImplementation(
               caze: Case,

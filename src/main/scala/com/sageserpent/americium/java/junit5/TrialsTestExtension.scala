@@ -98,10 +98,7 @@ object TrialsTestExtension {
             )
           }
       }
-      .testIntegrationContexts(
-        LauncherDiscoveryListenerCapturingReplayedTestCaseIds
-          .replayedTestCaseIds()
-      )
+      .testIntegrationContexts()
       .asInstanceOf[util.Iterator[TestIntegrationContext[AnyRef]]]
   }
 
