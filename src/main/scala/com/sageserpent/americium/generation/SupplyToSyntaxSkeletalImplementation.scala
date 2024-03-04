@@ -820,7 +820,7 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
                     inlinedCaseFiltration = inlinedCaseFiltration,
                     isPartOfShrinkage = true,
                     recipe = Decision.json(
-                      caseData.decisionStagesInReverseOrder.reverse
+                      potentialShrunkCaseData.decisionStagesInReverseOrder.reverse
                     )
                   )
                 )

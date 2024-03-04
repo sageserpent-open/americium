@@ -235,19 +235,19 @@ class TrialsTestExtension extends TestTemplateInvocationContextProvider {
           .asInstanceOf[util.Iterator[TestIntegrationContext[AnyRef]]]
       )
       .map { testIntegrationContext =>
-        val replayed = TestExecutionListenerCapturingUniqueIds
-          .uniqueId()
-          .toScala
-          .filter(replayedTestCaseIds.contains)
-          .flatMap(uniqueId =>
-            rocksDBConnection.recipeFromTestCaseId(uniqueId.toString)
-          )
-          .map(supply.reproduce)
-          .asInstanceOf[Option[AnyRef]]
+        def wrappedCase(uniqueId: String): Vector[AnyRef] = {
+          val replayed = Some(uniqueId)
+            .filter(replayedTestCaseIds.contains)
+            .flatMap(uniqueId =>
+              rocksDBConnection.recipeFromTestCaseId(uniqueId)
+            )
+            .map(supply.reproduce)
+            .asInstanceOf[Option[AnyRef]]
 
-        val caze = replayed.getOrElse(testIntegrationContext.caze)
+          val caze = replayed.getOrElse(testIntegrationContext.caze)
 
-        val wrappedCase = wrap(caze)
+          wrap(caze)
+        }
 
         new TestTemplateInvocationContext() {
           override def getDisplayName(invocationIndex: Int): String = {
@@ -256,24 +256,22 @@ class TrialsTestExtension extends TestTemplateInvocationContextProvider {
               else ""
 
             String.format(
-              "%s%s %s",
+              "%s%s",
               shrinkagePrefix,
-              super.getDisplayName(invocationIndex),
-              if (1 < wrappedCase.size) wrappedCase
-              else wrappedCase(0)
+              super.getDisplayName(invocationIndex)
             )
           }
 
           override def getAdditionalExtensions: util.List[Extension] = {
-            val adaptedArguments = extractedArguments(wrappedCase)
-
             List(
               new ParameterResolver() {
                 override def supportsParameter(
                     parameterContext: ParameterContext,
                     extensionContext: ExtensionContext
                 ): Boolean = Option(
-                  adaptedArguments(parameterContext.getIndex)
+                  extractedArguments(wrappedCase(extensionContext.getUniqueId))(
+                    parameterContext.getIndex
+                  )
                 ).forall((parameter: Any) => {
                   val formalParameterType =
                     parameterContext.getParameter.getType
@@ -289,7 +287,10 @@ class TrialsTestExtension extends TestTemplateInvocationContextProvider {
                 override def resolveParameter(
                     parameterContext: ParameterContext,
                     extensionContext: ExtensionContext
-                ): Any = adaptedArguments(parameterContext.getIndex)
+                ): Any =
+                  extractedArguments(wrappedCase(extensionContext.getUniqueId))(
+                    parameterContext.getIndex
+                  )
               },
               new InvocationInterceptor() {
                 override def interceptTestTemplateMethod(
@@ -297,10 +298,12 @@ class TrialsTestExtension extends TestTemplateInvocationContextProvider {
                     invocationContext: ReflectiveInvocationContext[Method],
                     extensionContext: ExtensionContext
                 ): Unit = {
-                  rocksDBConnection.recordTestCaseId(
-                    extensionContext.getUniqueId,
-                    testIntegrationContext.recipe
-                  )
+                  if (replayedTestCaseIds.isEmpty) {
+                    rocksDBConnection.recordTestCaseId(
+                      extensionContext.getUniqueId,
+                      testIntegrationContext.recipe
+                    )
+                  }
 
                   if (
                     !testIntegrationContext.inlinedCaseFiltration
