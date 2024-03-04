@@ -819,11 +819,8 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
                       },
                     inlinedCaseFiltration = inlinedCaseFiltration,
                     isPartOfShrinkage = true,
-                    testCaseRecording = rocksDBConnection.recordTestCaseId(
-                      _,
-                      Decision.json(
-                        caseData.decisionStagesInReverseOrder.reverse
-                      )
+                    recipe = Decision.json(
+                      caseData.decisionStagesInReverseOrder.reverse
                     )
                   )
                 )
@@ -868,11 +865,8 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
               },
               inlinedCaseFiltration = inlinedCaseFiltration,
               isPartOfShrinkage = false,
-              testCaseRecording = rocksDBConnection.recordTestCaseId(
-                _,
-                Decision.json(
-                  caseData.decisionStagesInReverseOrder.reverse
-                )
+              recipe = Decision.json(
+                caseData.decisionStagesInReverseOrder.reverse
               )
             )
           }
@@ -908,7 +902,7 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
             true
         },
         isPartOfShrinkage = false,
-        testCaseRecording = _ => {}
+        recipe = recipe
       )
     }
 

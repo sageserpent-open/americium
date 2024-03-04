@@ -404,7 +404,7 @@ case class TrialsImplementation[Case](
                 true
             },
             isPartOfShrinkage = false,
-            testCaseRecording = _ => {}
+            recipe = recipe
           )
         }: TestIntegrationContext[Case]).iterator)
       }

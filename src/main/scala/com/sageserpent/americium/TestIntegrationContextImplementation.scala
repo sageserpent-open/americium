@@ -1,10 +1,10 @@
 package com.sageserpent.americium
-import com.sageserpent.americium.java.{CaseFailureReporting, InlinedCaseFiltration, TestCaseRecording}
+import com.sageserpent.americium.java.{CaseFailureReporting, InlinedCaseFiltration}
 
 case class TestIntegrationContextImplementation[Case](
     caze: Case,
     caseFailureReporting: CaseFailureReporting,
     inlinedCaseFiltration: InlinedCaseFiltration,
     isPartOfShrinkage: Boolean,
-    testCaseRecording: TestCaseRecording
+    recipe: String
 ) extends com.sageserpent.americium.java.TestIntegrationContext[Case]

@@ -2,6 +2,7 @@ package com.sageserpent.americium.java.junit5
 
 import com.sageserpent.americium.Trials as ScalaTrials
 import com.sageserpent.americium.java.{TestIntegrationContext, TrialsScaffolding}
+import com.sageserpent.americium.storage.RocksDBConnection
 import cyclops.companion.Streams
 import cyclops.data.tuple.{Tuple2 as JavaTuple2, Tuple3 as JavaTuple3, Tuple4 as JavaTuple4}
 import org.junit.jupiter.api.extension.*
@@ -222,6 +223,8 @@ class TrialsTestExtension extends TestTemplateInvocationContextProvider {
       adaptedArguments.toArray
     }
 
+    val rocksDBConnection = RocksDBConnection.evaluation.value
+
     Streams
       .stream(testIntegrationContexts(context))
       .map((testIntegrationContext: TestIntegrationContext[AnyRef]) =>
@@ -273,8 +276,10 @@ class TrialsTestExtension extends TestTemplateInvocationContextProvider {
                     invocationContext: ReflectiveInvocationContext[Method],
                     extensionContext: ExtensionContext
                 ): Unit = {
-                  testIntegrationContext.testCaseRecording
-                    .record(extensionContext.getUniqueId)
+                  rocksDBConnection.recordTestCaseId(
+                    extensionContext.getUniqueId,
+                    testIntegrationContext.recipe
+                  )
 
                   if (
                     !testIntegrationContext.inlinedCaseFiltration
