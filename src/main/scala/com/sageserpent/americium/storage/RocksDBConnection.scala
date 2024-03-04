@@ -108,6 +108,8 @@ case class RocksDBConnection(
     )
   }
 
+  // TODO: suppose there isn't a recipe? This should look like
+  // `recipeFromTestCaseId`...
   def recipeFromRecipeHash(recipeHash: String): String = rocksDb
     .get(
       columnFamilyHandleForRecipeHashes,
@@ -124,13 +126,13 @@ case class RocksDBConnection(
     )
   }
 
-  def recipeFromTestCaseId(testCaseId: String): String = rocksDb
-    .get(
-      columnFamilyHandleForTestCaseIds,
-      testCaseId.map(_.toByte).toArray
-    )
-    .map(_.toChar)
-    .mkString
+  def recipeFromTestCaseId(testCaseId: String): Option[String] = Option(
+    rocksDb
+      .get(
+        columnFamilyHandleForTestCaseIds,
+        testCaseId.map(_.toByte).toArray
+      )
+  ).map(_.map(_.toChar).mkString)
 
   def close(): Unit = {
     columnFamilyHandleForRecipeHashes.close()

@@ -109,6 +109,10 @@ object tupleTrials {
           : JavaIterator[TestIntegrationContext[JavaTuple2[Case1, Case2]]] =
         supplyToSyntax.testIntegrationContexts()
 
+      override def reproduce(
+          recipe: String
+      ): JavaTuple2[Case1, Case2] = supplyToSyntax.reproduce(recipe)
+
       protected val supplyToSyntax: TrialsScaffolding.SupplyToSyntax[
         JavaTuple2[Case1, Case2]
       ]
@@ -229,6 +233,10 @@ object tupleTrials {
       override def testIntegrationContexts(): JavaIterator[
         TestIntegrationContext[JavaTuple3[Case1, Case2, Case3]]
       ] = supplyToSyntax.testIntegrationContexts()
+
+      override def reproduce(
+          recipe: String
+      ): JavaTuple3[Case1, Case2, Case3] = supplyToSyntax.reproduce(recipe)
 
       protected val supplyToSyntax: TrialsScaffolding.SupplyToSyntax[
         JavaTuple3[Case1, Case2, Case3]
@@ -365,6 +373,11 @@ object tupleTrials {
       override def testIntegrationContexts(): JavaIterator[
         TestIntegrationContext[JavaTuple4[Case1, Case2, Case3, Case4]]
       ] = supplyToSyntax.testIntegrationContexts()
+
+      override def reproduce(
+          recipe: String
+      ): JavaTuple4[Case1, Case2, Case3, Case4] =
+        supplyToSyntax.reproduce(recipe)
 
       protected val supplyToSyntax: TrialsScaffolding.SupplyToSyntax[
         JavaTuple4[Case1, Case2, Case3, Case4]

@@ -217,6 +217,9 @@ case class TrialsImplementation[Case](
       override protected val generation: Generation[_ <: Case] =
         thisTrialsImplementation.generation
 
+      override def reproduce(recipe: String): Case =
+        thisTrialsImplementation.reproduce(recipe)
+
       override protected def reproduce(
           decisionStages: DecisionStages
       ): Case = thisTrialsImplementation.reproduce(decisionStages)
@@ -381,14 +384,14 @@ case class TrialsImplementation[Case](
       override def asIterator(): JavaIterator[Case] with ScalaIterator[Case] =
         CrossApiIterator.from(Seq {
           val decisionStages = parseDecisionIndices(recipe)
-          reproduce(decisionStages)
+          thisTrialsImplementation.reproduce(decisionStages)
         }.iterator)
 
       override def testIntegrationContexts()
           : CrossApiIterator[TestIntegrationContext[Case]] = {
         CrossApiIterator.from(Seq({
           val decisionStages = parseDecisionIndices(recipe)
-          val caze           = reproduce(decisionStages)
+          val caze = thisTrialsImplementation.reproduce(decisionStages)
 
           TestIntegrationContextImplementation[Case](
             caze = caze,
@@ -409,6 +412,9 @@ case class TrialsImplementation[Case](
         }: TestIntegrationContext[Case]).iterator)
       }
 
+      override def reproduce(recipe: String): Case =
+        thisTrialsImplementation.reproduce(recipe)
+
       // Scala-only API ...
       override def withShrinkageStop(
           shrinkageStop: ShrinkageStop[
@@ -420,7 +426,7 @@ case class TrialsImplementation[Case](
 
       override def supplyTo(consumer: Case => Unit): Unit = {
         val decisionStages = parseDecisionIndices(recipe)
-        val reproducedCase = reproduce(decisionStages)
+        val reproducedCase = thisTrialsImplementation.reproduce(decisionStages)
 
         try {
           consumer(reproducedCase)

@@ -168,6 +168,8 @@ public interface TrialsScaffolding<Case,
         Iterator<Case> asIterator();
 
         Iterator<TestIntegrationContext<Case>> testIntegrationContexts();
+
+        Case reproduce(String recipe);
     }
 
     interface Tuple2Trials<Case1, Case2> extends

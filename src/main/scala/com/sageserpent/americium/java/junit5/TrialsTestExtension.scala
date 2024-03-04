@@ -52,9 +52,9 @@ object TrialsTestExtension {
       : Array[Class[_ <: Throwable]] =
     Array(classOf[TestAbortedException])
 
-  protected def testIntegrationContexts(
+  private def supplyToSyntax(
       context: ExtensionContext
-  ): util.Iterator[TestIntegrationContext[AnyRef]] = {
+  ): TrialsScaffolding.SupplyToSyntax[_ >: Vector[AnyRef]] = {
     val testMethod = context.getRequiredTestMethod
 
     AnnotationSupport
@@ -99,8 +99,6 @@ object TrialsTestExtension {
             )
           }
       }
-      .testIntegrationContexts()
-      .asInstanceOf[util.Iterator[TestIntegrationContext[AnyRef]]]
   }
 
   private def instancesReferredToBy[Clazz](
@@ -181,7 +179,7 @@ class TrialsTestExtension extends TestTemplateInvocationContextProvider {
     val formalParameterTypes = method.getParameterTypes
 
     def extractedArguments(
-        testIntegrationContext: TestIntegrationContext[AnyRef]
+        wrappedCase: Vector[AnyRef]
     ): Array[Any] = {
       // Ported from Java code, and staying with that style...
       val adaptedArguments = new mutable.ArrayBuffer[AnyRef]
@@ -190,7 +188,7 @@ class TrialsTestExtension extends TestTemplateInvocationContextProvider {
         val cachedTupleAdaptations =
           new mutable.HashMap[Integer, TupleAdaptation[AnyRef]]
         var formalParameterIndex = 0
-        val argumentIterator     = wrap(testIntegrationContext.caze).iterator
+        val argumentIterator     = wrappedCase.iterator
 
         while ({
           formalParameterTypes.length > formalParameterIndex && argumentIterator.hasNext
@@ -225,26 +223,49 @@ class TrialsTestExtension extends TestTemplateInvocationContextProvider {
 
     val rocksDBConnection = RocksDBConnection.evaluation.value
 
+    val replayedTestCaseIds =
+      LauncherDiscoveryListenerCapturingReplayedUniqueIds.replayedTestCaseIds()
+
+    val supply = supplyToSyntax(context)
+
     Streams
-      .stream(testIntegrationContexts(context))
-      .map((testIntegrationContext: TestIntegrationContext[AnyRef]) =>
+      .stream(
+        supply
+          .testIntegrationContexts()
+          .asInstanceOf[util.Iterator[TestIntegrationContext[AnyRef]]]
+      )
+      .map { testIntegrationContext =>
+        val replayed = TestExecutionListenerCapturingUniqueIds
+          .uniqueId()
+          .toScala
+          .filter(replayedTestCaseIds.contains)
+          .flatMap(uniqueId =>
+            rocksDBConnection.recipeFromTestCaseId(uniqueId.toString)
+          )
+          .map(supply.reproduce)
+          .asInstanceOf[Option[AnyRef]]
+
+        val caze = replayed.getOrElse(testIntegrationContext.caze)
+
+        val wrappedCase = wrap(caze)
+
         new TestTemplateInvocationContext() {
           override def getDisplayName(invocationIndex: Int): String = {
             val shrinkagePrefix =
               if (testIntegrationContext.isPartOfShrinkage) "Shrinking ... "
               else ""
-            val caze = wrap(testIntegrationContext.caze)
+
             String.format(
               "%s%s %s",
               shrinkagePrefix,
               super.getDisplayName(invocationIndex),
-              if (1 < caze.size) caze
-              else caze(0)
+              if (1 < wrappedCase.size) wrappedCase
+              else wrappedCase(0)
             )
           }
 
           override def getAdditionalExtensions: util.List[Extension] = {
-            val adaptedArguments = extractedArguments(testIntegrationContext)
+            val adaptedArguments = extractedArguments(wrappedCase)
 
             List(
               new ParameterResolver() {
@@ -306,6 +327,6 @@ class TrialsTestExtension extends TestTemplateInvocationContextProvider {
             ).asJava
           }
         }
-      )
+      }
   }
 }
