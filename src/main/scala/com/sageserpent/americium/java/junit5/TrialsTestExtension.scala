@@ -237,16 +237,22 @@ class TrialsTestExtension extends TestTemplateInvocationContextProvider {
       )
       .map { testIntegrationContext =>
         new TestTemplateInvocationContext() {
+          val casesByUniqueIdCache =
+            mutable.HashMap.empty[UniqueId, Option[AnyRef]]
+
           private def caseWithPlaybackSubstitution(
               uniqueId: Option[UniqueId]
           ): AnyRef = {
             val replayed = uniqueId
               .filter(replayedTestCaseIds.contains)
               .flatMap(uniqueId =>
-                rocksDBConnection.recipeFromTestCaseId(uniqueId.toString)
+                casesByUniqueIdCache.getOrElseUpdate(
+                  uniqueId,
+                  rocksDBConnection
+                    .recipeFromTestCaseId(uniqueId.toString)
+                    .map(supply.reproduce(_).asInstanceOf[AnyRef])
+                )
               )
-              .map(supply.reproduce)
-              .asInstanceOf[Option[AnyRef]]
 
             replayed.getOrElse(testIntegrationContext.caze)
           }
@@ -273,8 +279,8 @@ class TrialsTestExtension extends TestTemplateInvocationContextProvider {
                 override def supportsParameter(
                     parameterContext: ParameterContext,
                     extensionContext: ExtensionContext
-                ): Boolean = Option(
-                  extractedArguments(
+                ): Boolean = {
+                  val potentiallyNullValuedParameter = extractedArguments(
                     wrap(
                       caseWithPlaybackSubstitution(
                         TestExecutionListenerCapturingUniqueIds
@@ -282,21 +288,23 @@ class TrialsTestExtension extends TestTemplateInvocationContextProvider {
                           .toScala
                       )
                     )
-                  )(
-                    parameterContext.getIndex
+                  )(parameterContext.getIndex)
+
+                  Option(potentiallyNullValuedParameter).forall(
+                    (parameter: Any) => {
+                      val formalParameterType =
+                        parameterContext.getParameter.getType
+                      val formalParameterReferenceType =
+                        if (formalParameterType.isPrimitive)
+                          MethodType
+                            .methodType(formalParameterType)
+                            .wrap
+                            .returnType
+                        else formalParameterType
+                      formalParameterReferenceType.isInstance(parameter)
+                    }
                   )
-                ).forall((parameter: Any) => {
-                  val formalParameterType =
-                    parameterContext.getParameter.getType
-                  val formalParameterReferenceType =
-                    if (formalParameterType.isPrimitive)
-                      MethodType
-                        .methodType(formalParameterType)
-                        .wrap
-                        .returnType
-                    else formalParameterType
-                  formalParameterReferenceType.isInstance(parameter)
-                })
+                }
                 override def resolveParameter(
                     parameterContext: ParameterContext,
                     extensionContext: ExtensionContext
