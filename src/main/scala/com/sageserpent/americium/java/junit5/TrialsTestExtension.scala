@@ -365,10 +365,14 @@ class TrialsTestExtension extends TestTemplateInvocationContextProvider {
             override def getDisplayName(
                 invocationIndex: Int
             ): String = {
-              String.format(
-                "%s (Direct replay)",
-                super.getDisplayName(invocationIndex)
-              )
+              val details =
+                if (1 == casesAvailableForReplayByUniqueId.size)
+                  casesAvailableForReplayByUniqueId
+                    .get(casesAvailableForReplayByUniqueId.keys.head)
+                    .getOrElse("")
+                else ""
+
+              s"${super.getDisplayName(invocationIndex)} $details"
             }
 
             override protected def invocationInterceptor
@@ -421,13 +425,11 @@ class TrialsTestExtension extends TestTemplateInvocationContextProvider {
                 if (testIntegrationContext.isPartOfShrinkage) "Shrinking ... "
                 else ""
 
-              String.format(
-                "%s%s %s",
-                shrinkagePrefix,
-                super.getDisplayName(invocationIndex),
+              val details =
                 if (1 < wrappedTestCase.size) wrappedTestCase
                 else wrappedTestCase(0)
-              )
+
+              s"$shrinkagePrefix${super.getDisplayName(invocationIndex)} $details"
             }
 
             override protected def invocationInterceptor
