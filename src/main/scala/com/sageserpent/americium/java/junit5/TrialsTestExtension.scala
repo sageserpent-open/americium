@@ -190,9 +190,9 @@ class TrialsTestExtension extends TestTemplateInvocationContextProvider {
         var formalParameterIndex = 0
         val argumentIterator     = wrappedCase.iterator
 
-        while ({
+        while (
           formalParameterTypes.length > formalParameterIndex && argumentIterator.hasNext
-        }) {
+        ) {
           val argument = argumentIterator.next
           val formalParameterType =
             formalParameterTypes(formalParameterIndex)
@@ -235,25 +235,29 @@ class TrialsTestExtension extends TestTemplateInvocationContextProvider {
           .asInstanceOf[util.Iterator[TestIntegrationContext[AnyRef]]]
       )
       .map { testIntegrationContext =>
-        def wrappedCase(uniqueId: String): Vector[AnyRef] = {
-          val replayed = Some(uniqueId)
-            .filter(replayedTestCaseIds.contains)
-            .flatMap(uniqueId =>
-              rocksDBConnection.recipeFromTestCaseId(uniqueId)
-            )
-            .map(supply.reproduce)
-            .asInstanceOf[Option[AnyRef]]
-
-          val caze = replayed.getOrElse(testIntegrationContext.caze)
-
-          wrap(caze)
-        }
-
         new TestTemplateInvocationContext() {
+          private def caseWithPlaybackSubstitution(
+              uniqueId: Option[String]
+          ): AnyRef = {
+            val replayed = uniqueId
+              .filter(replayedTestCaseIds.contains)
+              .flatMap(uniqueId =>
+                rocksDBConnection.recipeFromTestCaseId(uniqueId)
+              )
+              .map(supply.reproduce)
+              .asInstanceOf[Option[AnyRef]]
+
+            replayed.getOrElse(testIntegrationContext.caze)
+          }
+
           override def getDisplayName(invocationIndex: Int): String = {
             val shrinkagePrefix =
               if (testIntegrationContext.isPartOfShrinkage) "Shrinking ... "
               else ""
+
+            // TODO: some kind of magic that lets us obtain the full `UniqueId`
+            // for the trial, so we can pass it to
+            // `caseWithPlaybackSubstitution`...
 
             String.format(
               "%s%s",
@@ -269,7 +273,15 @@ class TrialsTestExtension extends TestTemplateInvocationContextProvider {
                     parameterContext: ParameterContext,
                     extensionContext: ExtensionContext
                 ): Boolean = Option(
-                  extractedArguments(wrappedCase(extensionContext.getUniqueId))(
+                  extractedArguments(
+                    wrap(
+                      caseWithPlaybackSubstitution(
+                        TestExecutionListenerCapturingUniqueIds
+                          .uniqueId()
+                          .toScala
+                      )
+                    )
+                  )(
                     parameterContext.getIndex
                   )
                 ).forall((parameter: Any) => {
@@ -288,7 +300,15 @@ class TrialsTestExtension extends TestTemplateInvocationContextProvider {
                     parameterContext: ParameterContext,
                     extensionContext: ExtensionContext
                 ): Any =
-                  extractedArguments(wrappedCase(extensionContext.getUniqueId))(
+                  extractedArguments(
+                    wrap(
+                      caseWithPlaybackSubstitution(
+                        TestExecutionListenerCapturingUniqueIds
+                          .uniqueId()
+                          .toScala
+                      )
+                    )
+                  )(
                     parameterContext.getIndex
                   )
               },
