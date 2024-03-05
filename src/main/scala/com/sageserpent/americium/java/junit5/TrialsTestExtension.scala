@@ -369,6 +369,15 @@ class TrialsTestExtension extends TestTemplateInvocationContextProvider {
               }
             }
 
+            override def getDisplayName(
+                invocationIndex: Int
+            ): String = {
+              String.format(
+                "%s (Direct replay)",
+                super.getDisplayName(invocationIndex)
+              )
+            }
+
             override protected def invocationInterceptor
                 : InvocationInterceptor = {
               val delegatedSuper = super.invocationInterceptor
