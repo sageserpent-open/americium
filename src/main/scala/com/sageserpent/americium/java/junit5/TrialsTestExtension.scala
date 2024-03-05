@@ -222,14 +222,7 @@ object TrialsTestExtension {
         }
       }
 
-    private def testWatcher: TestWatcher = new TestWatcher() {
-      override def testFailed(
-          context: ExtensionContext,
-          cause: Throwable
-      ): Unit = {
-        caseFailureReporting.report(cause)
-      }
-    }
+    private def testWatcher: TestWatcher = new TestWatcher() {}
 
     override def getAdditionalExtensions: util.List[Extension] = List(
       parameterResolver,
