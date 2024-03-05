@@ -13,9 +13,9 @@ import java.util.stream.Collectors;
 
 public class LauncherDiscoveryListenerCapturingReplayedUniqueIds
         implements LauncherDiscoveryListener {
-    private final static Set<String> replayedTestCaseIds = new HashSet<>();
+    private final static Set<UniqueId> replayedTestCaseIds = new HashSet<>();
 
-    public static Set<String> replayedTestCaseIds() {
+    public static Set<UniqueId> replayedTestCaseIds() {
         return Collections.unmodifiableSet(replayedTestCaseIds);
     }
 
@@ -25,7 +25,6 @@ public class LauncherDiscoveryListenerCapturingReplayedUniqueIds
                                            .getSelectorsByType(UniqueIdSelector.class)
                                            .stream()
                                            .map(UniqueIdSelector::getUniqueId)
-                                           .map(UniqueId::toString)
                                            .collect(Collectors.toList()));
 
         LauncherDiscoveryListener.super.launcherDiscoveryStarted(request);

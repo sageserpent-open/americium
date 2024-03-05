@@ -7,6 +7,7 @@ import cyclops.companion.Streams
 import cyclops.data.tuple.{Tuple2 as JavaTuple2, Tuple3 as JavaTuple3, Tuple4 as JavaTuple4}
 import org.junit.jupiter.api.extension.*
 import org.junit.platform.commons.support.{AnnotationSupport, HierarchyTraversalMode, ReflectionSupport}
+import org.junit.platform.engine.UniqueId
 import org.opentest4j.TestAbortedException
 
 import java.lang.invoke.MethodType
@@ -237,12 +238,12 @@ class TrialsTestExtension extends TestTemplateInvocationContextProvider {
       .map { testIntegrationContext =>
         new TestTemplateInvocationContext() {
           private def caseWithPlaybackSubstitution(
-              uniqueId: Option[String]
+              uniqueId: Option[UniqueId]
           ): AnyRef = {
             val replayed = uniqueId
               .filter(replayedTestCaseIds.contains)
               .flatMap(uniqueId =>
-                rocksDBConnection.recipeFromTestCaseId(uniqueId)
+                rocksDBConnection.recipeFromTestCaseId(uniqueId.toString)
               )
               .map(supply.reproduce)
               .asInstanceOf[Option[AnyRef]]

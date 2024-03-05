@@ -1,6 +1,7 @@
 package com.sageserpent.americium.java.junit5;
 
 import org.junit.platform.engine.TestExecutionResult;
+import org.junit.platform.engine.UniqueId;
 import org.junit.platform.launcher.TestExecutionListener;
 import org.junit.platform.launcher.TestIdentifier;
 
@@ -8,15 +9,15 @@ import java.util.Optional;
 
 public class TestExecutionListenerCapturingUniqueIds implements
         TestExecutionListener {
-    private static final ThreadLocal<String> uniqueId = new ThreadLocal<>();
+    private static final ThreadLocal<UniqueId> uniqueId = new ThreadLocal<>();
 
-    public static Optional<String> uniqueId() {
+    public static Optional<UniqueId> uniqueId() {
         return Optional.ofNullable(uniqueId.get());
     }
 
     @Override
     public void dynamicTestRegistered(TestIdentifier testIdentifier) {
-        TestExecutionListenerCapturingUniqueIds.uniqueId.set(testIdentifier.getUniqueId());
+        TestExecutionListenerCapturingUniqueIds.uniqueId.set(testIdentifier.getUniqueIdObject());
 
         TestExecutionListener.super.dynamicTestRegistered(testIdentifier);
     }
