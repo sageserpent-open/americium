@@ -15,7 +15,7 @@ public class LauncherDiscoveryListenerCapturingReplayedUniqueIds
         implements LauncherDiscoveryListener {
     private final static Set<UniqueId> replayedTestCaseIds = new HashSet<>();
 
-    public static Set<UniqueId> replayedTestCaseIds() {
+    public static Set<UniqueId> replayedUniqueIds() {
         return Collections.unmodifiableSet(replayedTestCaseIds);
     }
 
