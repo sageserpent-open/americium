@@ -345,7 +345,9 @@ class TrialsTestExtension extends TestTemplateInvocationContextProvider {
 
             override protected def caseFailureReporting
                 : CaseFailureReporting = {
-              // TODO: need to wrap up the exception...
+              // NOTE: don't wrap the exception as we are doing replay; this
+              // matches how all the failing trials bar the last have their
+              // exceptions reported.
               throwable => throw throwable
             }
 
