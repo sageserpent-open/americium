@@ -207,18 +207,18 @@ object TrialsTestExtension {
             invocationContext: ReflectiveInvocationContext[Method],
             extensionContext: ExtensionContext
         ): Unit = {
-          if (
-            !inlinedCaseFiltration
-              .executeInFiltrationContext(
-                () =>
-                  super.interceptTestTemplateMethod(
-                    invocation,
-                    invocationContext,
-                    extensionContext
-                  ),
-                additionalExceptionsToHandleAsFiltration
-              )
-          ) throw new TestAbortedException
+          val eligible = inlinedCaseFiltration
+            .executeInFiltrationContext(
+              () =>
+                super.interceptTestTemplateMethod(
+                  invocation,
+                  invocationContext,
+                  extensionContext
+                ),
+              additionalExceptionsToHandleAsFiltration
+            )
+
+          if (!eligible) throw new TestAbortedException
         }
       }
 
