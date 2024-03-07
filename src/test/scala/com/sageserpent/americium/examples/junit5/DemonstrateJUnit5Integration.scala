@@ -59,7 +59,7 @@ class DemonstrateJUnit5Integration {
 
         assert(0 != partOne % 3)
 
-        println(s"Test case #$trialsCount is $partOne, $partTwo")
+        println(s"Test case is $partOne, $partTwo")
 
       })
 
