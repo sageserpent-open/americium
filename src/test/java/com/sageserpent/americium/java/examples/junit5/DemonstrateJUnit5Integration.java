@@ -13,10 +13,7 @@ import com.sageserpent.americium.java.junit5.TrialsTest;
 import cyclops.data.tuple.Tuple;
 import cyclops.data.tuple.Tuple2;
 import cyclops.data.tuple.Tuple3;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DynamicTest;
-import org.junit.jupiter.api.TestFactory;
+import org.junit.jupiter.api.*;
 
 import java.util.Collections;
 import java.util.Iterator;
@@ -139,6 +136,7 @@ public class DemonstrateJUnit5Integration {
 
     // This now detects the 'failing' test case correctly - but it is still a
     // test failure. Need to rethink what this test should look like....
+    @Disabled
     @ConfiguredTrialsTest("configuredStringPairs")
     void copiedFromJqwik(String first, String second) {
         System.out.format("%s, %s\n", first, second);
