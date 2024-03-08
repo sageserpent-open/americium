@@ -96,7 +96,7 @@ object RocksDBConnection {
 }
 
 // TODO: split the responsibilities into two databases? `SupplyToSyntaxSkeletalImplementation` cares about recipe
-// hashes and is core functionality, whereas `TrialsTestExtension` cares about test case ids and is an add-on.
+// hashes and is core functionality, whereas `TrialsTestExtension` cares about `UniqueId` and is an add-on.
 case class RocksDBConnection(
     rocksDb: RocksDB,
     columnFamilyHandleForRecipeHashes: ColumnFamilyHandle,
@@ -147,19 +147,21 @@ case class RocksDBConnection(
       )
   ).map(_.map(_.toChar).mkString)
 
-  def recordTestCaseId(testCaseId: String, recipe: String): Unit = {
+  // TODO: shouldn't `uniqueId` be typed as `UniqueId`!
+  def recordUniqueId(uniqueId: String, recipe: String): Unit = {
     rocksDb.put(
       columnFamilyHandleForTestCaseIds,
-      testCaseId.map(_.toByte).toArray,
+      uniqueId.map(_.toByte).toArray,
       recipe.map(_.toByte).toArray
     )
   }
 
-  def recipeFromTestCaseId(testCaseId: String): Option[String] = Option(
+  // TODO: shouldn't `uniqueId` be typed as `UniqueId`!
+  def recipeFromUniqueId(uniqueId: String): Option[String] = Option(
     rocksDb
       .get(
         columnFamilyHandleForTestCaseIds,
-        testCaseId.map(_.toByte).toArray
+        uniqueId.map(_.toByte).toArray
       )
   ).map(_.map(_.toChar).mkString)
 

@@ -300,7 +300,7 @@ class TrialsTestExtension extends TestTemplateInvocationContextProvider {
         replayedUniqueIds
           .flatMap(uniqueId =>
             rocksDBConnection
-              .recipeFromTestCaseId(uniqueId.toString)
+              .recipeFromUniqueId(uniqueId.toString)
               .map(uniqueId -> supply.reproduce(_).asInstanceOf[AnyRef])
           )
       )
@@ -447,7 +447,7 @@ class TrialsTestExtension extends TestTemplateInvocationContextProvider {
                   // `TestExecutionListenerCapturingUniqueIds.uniqueId`, but we
                   // finally have the full unique id from `extensionContext`
                   // courtesy of JUnit5, so let's use it as intended.
-                  rocksDBConnection.recordTestCaseId(
+                  rocksDBConnection.recordUniqueId(
                     extensionContext.getUniqueId,
                     testIntegrationContext.recipe
                   )

@@ -133,7 +133,7 @@ package object junit5 {
         replayedUniqueIds
           .flatMap(uniqueId =>
             rocksDBConnection
-              .recipeFromTestCaseId(uniqueId.toString)
+              .recipeFromUniqueId(uniqueId.toString)
               .map(uniqueId -> reproduceFromRecipe(_))
           )
       )
@@ -226,7 +226,7 @@ package object junit5 {
           { () =>
             TestExecutionListenerCapturingUniqueIds.uniqueId.ifPresent(
               uniqueId =>
-                rocksDBConnection.recordTestCaseId(
+                rocksDBConnection.recordUniqueId(
                   uniqueId.toString,
                   recipe
                 )
