@@ -2,7 +2,7 @@ package com.sageserpent.americium
 
 import com.sageserpent.americium.TrialsScaffolding.{noShrinking, noStopping}
 import com.sageserpent.americium.generation.JavaPropertyNames.{nondeterminsticJavaProperty, recipeHashJavaProperty, recipeJavaProperty}
-import com.sageserpent.americium.java.{Builder, CaseSupplyCycle, CasesLimitStrategy, NoValidTrialsException, RecipeStorageIsNotPresent, Trials as JavaTrials, TrialsApi as JavaTrialsApi}
+import com.sageserpent.americium.java.{Builder, CaseSupplyCycle, CasesLimitStrategy, NoValidTrialsException, RecipeStorageIsNotPresentException, Trials as JavaTrials, TrialsApi as JavaTrialsApi}
 import com.sageserpent.americium.storage.RocksDBConnection
 import cyclops.control.Either as JavaEither
 import org.mockito.ArgumentMatchers.{any, argThat}
@@ -2512,7 +2512,7 @@ class TrialsSpecInQuarantineDueToUseOfRecipeHashSystemProperty
           )
 
         try {
-          intercept[RecipeStorageIsNotPresent](
+          intercept[RecipeStorageIsNotPresentException](
             sut.withLimit(limit).supplyTo(mockConsumer)
           )
         } finally {

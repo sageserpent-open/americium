@@ -102,28 +102,33 @@ case class RocksDBConnection(
     columnFamilyHandleForRecipeHashes: ColumnFamilyHandle,
     columnFamilyHandleForTestCaseIds: ColumnFamilyHandle
 ) {
-  def reset(): Unit = {
-    Using.resource(rocksDb.newIterator(columnFamilyHandleForRecipeHashes)) {
-      iterator =>
+  private def dropColumnFamilyEntries(
+      columnFamilyHandle: ColumnFamilyHandle
+  ): Unit =
+    Using.resource(rocksDb.newIterator(columnFamilyHandle)) { iterator =>
+      val firstRecipeHash: Array[Byte] = {
+        iterator.seekToFirst()
+        iterator.key
+      }
 
-        val firstRecipeHash: Array[Byte] = {
-          iterator.seekToFirst()
-          iterator.key
-        }
+      val onePastLastRecipeHash: Array[Byte] = {
+        iterator.seekToLast()
+        iterator.key() :+ 0
+      }
 
-        val onePastLastRecipeHash: Array[Byte] = {
-          iterator.seekToLast()
-          iterator.key() :+ 0
-        }
+      // NOTE: the range has an exclusive upper bound, hence the use of
+      // `onePastLastRecipeHash`.
+      rocksDb.deleteRange(
+        columnFamilyHandleForRecipeHashes,
+        firstRecipeHash,
+        onePastLastRecipeHash
+      )
 
-        // NOTE: the range has an exclusive upper bound, hence the use of
-        // `onePastLastRecipeHash`.
-        rocksDb.deleteRange(
-          columnFamilyHandleForRecipeHashes,
-          firstRecipeHash,
-          onePastLastRecipeHash
-        )
     }
+
+  def reset(): Unit = {
+    dropColumnFamilyEntries(columnFamilyHandleForRecipeHashes)
+    dropColumnFamilyEntries(columnFamilyHandleForTestCaseIds)
   }
 
   def recordRecipeHash(recipeHash: String, recipe: String): Unit = {
@@ -134,15 +139,13 @@ case class RocksDBConnection(
     )
   }
 
-  // TODO: suppose there isn't a recipe? This should look like
-  // `recipeFromTestCaseId`...
-  def recipeFromRecipeHash(recipeHash: String): String = rocksDb
-    .get(
-      columnFamilyHandleForRecipeHashes,
-      recipeHash.map(_.toByte).toArray
-    )
-    .map(_.toChar)
-    .mkString
+  def recipeFromRecipeHash(recipeHash: String): Option[String] = Option(
+    rocksDb
+      .get(
+        columnFamilyHandleForRecipeHashes,
+        recipeHash.map(_.toByte).toArray
+      )
+  ).map(_.map(_.toChar).mkString)
 
   def recordTestCaseId(testCaseId: String, recipe: String): Unit = {
     rocksDb.put(
