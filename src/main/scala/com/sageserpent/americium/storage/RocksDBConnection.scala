@@ -7,8 +7,26 @@ import org.rocksdb.*
 
 import _root_.java.util.ArrayList as JavaArrayList
 import java.nio.file.Path
+import scala.util.Using
 
 object RocksDBConnection {
+  private def runDatabasePath: Path =
+    Option(System.getProperty(temporaryDirectoryJavaProperty)) match {
+      case None =>
+        throw new RuntimeException(
+          s"No definition of Java property: `$temporaryDirectoryJavaProperty`"
+        )
+
+      case Some(directory) =>
+        val file = Option(
+          System.getProperty(runDatabaseJavaProperty)
+        ).getOrElse(runDatabaseDefault)
+
+        Path
+          .of(directory)
+          .resolve(file)
+    }
+
   private val rocksDbOptions = new DBOptions()
     .optimizeForSmallDb()
     .setCreateIfMissing(true)
@@ -35,52 +53,36 @@ object RocksDBConnection {
   )
 
   private def connection(readOnly: Boolean): RocksDBConnection = {
-    Option(System.getProperty(temporaryDirectoryJavaProperty)).fold(ifEmpty =
-      throw new RuntimeException(
-        s"No definition of Java property: `$temporaryDirectoryJavaProperty`"
+    val columnFamilyDescriptors =
+      ImmutableList.of(
+        defaultColumnFamilyDescriptor,
+        columnFamilyDescriptorForRecipeHashes,
+        columnFamilyDescriptorForTestCaseIds
       )
-    ) { directory =>
-      val runDatabase = Option(
-        System.getProperty(runDatabaseJavaProperty)
-      ).getOrElse(runDatabaseDefault)
 
-      val columnFamilyDescriptors =
-        ImmutableList.of(
-          defaultColumnFamilyDescriptor,
-          columnFamilyDescriptorForRecipeHashes,
-          columnFamilyDescriptorForTestCaseIds
+    val columnFamilyHandles = new JavaArrayList[ColumnFamilyHandle]()
+
+    val rocksDB =
+      if (readOnly)
+        RocksDB.openReadOnly(
+          rocksDbOptions,
+          runDatabasePath.toString,
+          columnFamilyDescriptors,
+          columnFamilyHandles
+        )
+      else
+        RocksDB.open(
+          rocksDbOptions,
+          runDatabasePath.toString,
+          columnFamilyDescriptors,
+          columnFamilyHandles
         )
 
-      val columnFamilyHandles = new JavaArrayList[ColumnFamilyHandle]()
-
-      val rocksDB =
-        if (readOnly)
-          RocksDB.openReadOnly(
-            rocksDbOptions,
-            Path
-              .of(directory)
-              .resolve(runDatabase)
-              .toString,
-            columnFamilyDescriptors,
-            columnFamilyHandles
-          )
-        else
-          RocksDB.open(
-            rocksDbOptions,
-            Path
-              .of(directory)
-              .resolve(runDatabase)
-              .toString,
-            columnFamilyDescriptors,
-            columnFamilyHandles
-          )
-
-      RocksDBConnection(
-        rocksDB,
-        columnFamilyHandleForRecipeHashes = columnFamilyHandles.get(1),
-        columnFamilyHandleForTestCaseIds = columnFamilyHandles.get(2)
-      )
-    }
+    RocksDBConnection(
+      rocksDB,
+      columnFamilyHandleForRecipeHashes = columnFamilyHandles.get(1),
+      columnFamilyHandleForTestCaseIds = columnFamilyHandles.get(2)
+    )
   }
 
   def readOnlyConnection(): RocksDBConnection = connection(readOnly = true)
@@ -100,6 +102,30 @@ case class RocksDBConnection(
     columnFamilyHandleForRecipeHashes: ColumnFamilyHandle,
     columnFamilyHandleForTestCaseIds: ColumnFamilyHandle
 ) {
+  def reset(): Unit = {
+    Using.resource(rocksDb.newIterator(columnFamilyHandleForRecipeHashes)) {
+      iterator =>
+
+        val firstRecipeHash: Array[Byte] = {
+          iterator.seekToFirst()
+          iterator.key
+        }
+
+        val onePastLastRecipeHash: Array[Byte] = {
+          iterator.seekToLast()
+          iterator.key() :+ 0
+        }
+
+        // NOTE: the range has an exclusive upper bound, hence the use of
+        // `onePastLastRecipeHash`.
+        rocksDb.deleteRange(
+          columnFamilyHandleForRecipeHashes,
+          firstRecipeHash,
+          onePastLastRecipeHash
+        )
+    }
+  }
+
   def recordRecipeHash(recipeHash: String, recipe: String): Unit = {
     rocksDb.put(
       columnFamilyHandleForRecipeHashes,
