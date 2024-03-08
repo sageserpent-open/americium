@@ -10,7 +10,7 @@ import com.sageserpent.americium.generation.Decision.{DecisionStages, parseDecis
 import com.sageserpent.americium.generation.GenerationOperation.Generation
 import com.sageserpent.americium.generation.JavaPropertyNames.*
 import com.sageserpent.americium.generation.SupplyToSyntaxSkeletalImplementation.{maximumScaleDeflationLevel, minimumScaleDeflationLevel, readOnlyRocksDbConnectionResource}
-import com.sageserpent.americium.java.{CaseFailureReporting, CaseSupplyCycle, CasesLimitStrategy, CrossApiIterator, InlinedCaseFiltration, NoValidTrialsException, RecipeStorageIsNotPresentException, TestIntegrationContext, TrialsScaffolding as JavaTrialsScaffolding}
+import com.sageserpent.americium.java.{CaseFailureReporting, CaseSupplyCycle, CasesLimitStrategy, CrossApiIterator, InlinedCaseFiltration, NoValidTrialsException, TestIntegrationContext, TrialsScaffolding as JavaTrialsScaffolding}
 import com.sageserpent.americium.randomEnrichment.RichRandom
 import com.sageserpent.americium.storage.RocksDBConnection
 import com.sageserpent.americium.{CaseFactory, TestIntegrationContextImplementation, Trials, TrialsScaffolding as ScalaTrialsScaffolding}
@@ -913,12 +913,9 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
           .flatMap { connection =>
             val singleTestIntegrationContext = Fs2Stream
               .eval(SyncIO {
-                val recipe = connection.recipeFromRecipeHash(recipeHash)
-
-                recipe.map(testIntegrationContextReproducing) match {
-                  case Some(context) => context
-                  case None => throw new RecipeStorageIsNotPresentException
-                }
+                testIntegrationContextReproducing(
+                  connection.recipeFromRecipeHash(recipeHash)
+                )
               })
             carryOnButSwitchToShrinkageApproachOnCaseFailure(
               singleTestIntegrationContext

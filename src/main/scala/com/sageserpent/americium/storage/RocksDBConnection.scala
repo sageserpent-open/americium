@@ -3,6 +3,8 @@ import cats.Eval
 import com.google.common.collect.ImmutableList
 import com.sageserpent.americium.generation.JavaPropertyNames.{runDatabaseJavaProperty, temporaryDirectoryJavaProperty}
 import com.sageserpent.americium.generation.SupplyToSyntaxSkeletalImplementation.runDatabaseDefault
+import com.sageserpent.americium.java.RecipeIsNotPresentException
+import com.sageserpent.americium.storage.RocksDBConnection.databasePath
 import org.rocksdb.*
 
 import _root_.java.util.ArrayList as JavaArrayList
@@ -10,7 +12,7 @@ import java.nio.file.Path
 import scala.util.Using
 
 object RocksDBConnection {
-  private def runDatabasePath: Path =
+  private def databasePath: Path =
     Option(System.getProperty(temporaryDirectoryJavaProperty)) match {
       case None =>
         throw new RuntimeException(
@@ -66,14 +68,14 @@ object RocksDBConnection {
       if (readOnly)
         RocksDB.openReadOnly(
           rocksDbOptions,
-          runDatabasePath.toString,
+          databasePath.toString,
           columnFamilyDescriptors,
           columnFamilyHandles
         )
       else
         RocksDB.open(
           rocksDbOptions,
-          runDatabasePath.toString,
+          databasePath.toString,
           columnFamilyDescriptors,
           columnFamilyHandles
         )
@@ -139,13 +141,16 @@ case class RocksDBConnection(
     )
   }
 
-  def recipeFromRecipeHash(recipeHash: String): Option[String] = Option(
+  def recipeFromRecipeHash(recipeHash: String): String = Option(
     rocksDb
       .get(
         columnFamilyHandleForRecipeHashes,
         recipeHash.map(_.toByte).toArray
       )
-  ).map(_.map(_.toChar).mkString)
+  ) match {
+    case Some(value) => value.map(_.toChar).mkString
+    case None => throw new RecipeIsNotPresentException(recipeHash, databasePath)
+  }
 
   // TODO: shouldn't `uniqueId` be typed as `UniqueId`!
   def recordUniqueId(uniqueId: String, recipe: String): Unit = {
@@ -156,7 +161,9 @@ case class RocksDBConnection(
     )
   }
 
-  // TODO: shouldn't `uniqueId` be typed as `UniqueId`!
+  // TODO: shouldn't `uniqueId` be typed as `UniqueId`! Also, why does this get
+  // to quietly wrap a null result into an `Option`, whereas
+  // `recipeFromRecipeHash` throws an exception?
   def recipeFromUniqueId(uniqueId: String): Option[String] = Option(
     rocksDb
       .get(
