@@ -71,7 +71,6 @@ lazy val test = (projectMatrix in file("test"))
   .settings(commonSettings)
   .settings(
     name := "magnolia-test",
-    scalacOptions += "-Yretain-trees",
     projectDependencies ++= Seq(
       "org.scalameta" %%% "munit" % "1.0.0-M6"
     ),
