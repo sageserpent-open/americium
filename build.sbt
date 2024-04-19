@@ -73,7 +73,7 @@ lazy val test = (projectMatrix in file("test"))
     name := "magnolia-test",
     scalacOptions += "-Yretain-trees",
     projectDependencies ++= Seq(
-      "org.scalameta" %%% "munit" % "1.0.0-M6"
+      "org.scalameta" %%% "munit" % "1.0.0-M12"
     ),
     testFrameworks += new TestFramework("munit.Framework"),
     publishArtifact := false
