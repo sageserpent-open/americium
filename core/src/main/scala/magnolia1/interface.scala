@@ -40,6 +40,7 @@ object CaseClass:
       *   default argument value, if any
       */
     def default: Option[PType]
+    def dynamicDefault: Option[() => PType]
     def inheritedAnnotations: IArray[Any] = IArray.empty[Any]
     override def toString: String = s"Param($label)"
 
@@ -63,6 +64,9 @@ object CaseClass:
       ):
         type PType = P
         def default: Option[PType] = defaultVal.value
+        def dynamicDefault: Option[() => PType] = defaultVal.dynamicValue().fold[Option[() => PType]](None) { _ =>
+          Some(() => defaultVal.dynamicValue().get)
+        }
         def typeclass = cbn.value
         override def inheritedAnnotations = inheritedAnns
         def deref(value: T): P =
@@ -87,6 +91,9 @@ object CaseClass:
       ):
         type PType = P
         def default: Option[PType] = defaultVal.value
+        def dynamicDefault: Option[() => PType] = defaultVal.dynamicValue().fold[Option[() => PType]](None) { _ =>
+          Some(() => defaultVal.dynamicValue().get)
+        }
         def typeclass = cbn.value
         def deref(value: T): P =
           value.asInstanceOf[Product].productElement(idx).asInstanceOf[P]
@@ -162,6 +169,9 @@ abstract class CaseClass[Typeclass[_], Type](
     ):
       type PType = P
       def default: Option[PType] = defaultVal.value
+      def dynamicDefault: Option[() => PType] = defaultVal.dynamicValue().fold[Option[() => PType]](None) { _ =>
+        Some(() => defaultVal.dynamicValue().get)
+      }
       def typeclass = cbn.value
       override def inheritedAnnotations = inheritedAnns
       def deref(value: Type): P =
@@ -347,8 +357,15 @@ end SealedTrait
 object CallByNeed:
   def apply[A](a: => A): CallByNeed[A] = new CallByNeed(() => a)
 
-final class CallByNeed[+A](private[this] var eval: () => A) extends Serializable:
-  lazy val value: A =
+  object CallByNeed {
+    def apply[A](a: => A): CallByNeed[A] = new CallByNeed(() => a)
+  }
+
+final class CallByNeed[+A](private[this] var eval: () => A) extends Serializable {
+  val dynamicValue: () => A = eval
+  lazy val value: A = {
     val result = eval()
     eval = null
     result
+  }
+}
