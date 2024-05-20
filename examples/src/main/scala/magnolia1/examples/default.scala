@@ -5,6 +5,7 @@ import magnolia1._
 /** typeclass for providing a default value for a particular type */
 trait HasDefault[T]:
   def defaultValue: Either[String, T]
+  def getDynamicDefaultValueForParam(paramLabel: String): Option[Any] = None
 
 /** companion object and derivation object for [[HasDefault]] */
 object HasDefault extends AutoDerivation[HasDefault]:
@@ -19,6 +20,18 @@ object HasDefault extends AutoDerivation[HasDefault]:
           case None      => param.typeclass.defaultValue
         }
       }
+
+      override def getDynamicDefaultValueForParam(paramLabel: String): Option[Any] =
+        val arr = IArray.genericWrapArray {
+          ctx.params
+            .filter(_.label == paramLabel)
+        }.toArray
+
+        val res = arr.headOption
+          .flatMap(_.evaluateDefault.map(res => res()))
+        println("Printing res:")
+        println(res.mkString("Array(", ", ", ")"))
+        res
     }
 
   /** chooses which subtype to delegate to */
@@ -27,6 +40,12 @@ object HasDefault extends AutoDerivation[HasDefault]:
       def defaultValue = ctx.subtypes.headOption match
         case Some(sub) => sub.typeclass.defaultValue
         case None      => Left("no subtypes")
+
+      override def getDynamicDefaultValueForParam(paramLabel: String): Option[Any] =
+        ctx.subtypes.headOption match {
+          case Some(sub) => sub.typeclass.getDynamicDefaultValueForParam(paramLabel)
+          case _         => None
+        }
 
   /** default value for a string; the empty string */
   given string: HasDefault[String] with
@@ -38,6 +57,9 @@ object HasDefault extends AutoDerivation[HasDefault]:
   /** oh, no, there is no default Boolean... whatever will we do? */
   given boolean: HasDefault[Boolean] with
     def defaultValue = Left("truth is a lie")
+
+  given double: HasDefault[Double] with
+    def defaultValue = Right(0)
 
   /** default value for sequences; the empty sequence */
   given seq[A]: HasDefault[Seq[A]] with

@@ -1,5 +1,7 @@
 package magnolia1
 
+import magnolia1.CaseClass.getDefaultEvaluatorFromDefaultVal
+
 import scala.annotation.tailrec
 import scala.reflect.*
 
@@ -40,7 +42,7 @@ object CaseClass:
       *   default argument value, if any
       */
     def default: Option[PType]
-    def dynamicDefault: Option[() => PType]
+    def evaluateDefault: Option[() => PType]
     def inheritedAnnotations: IArray[Any] = IArray.empty[Any]
     override def toString: String = s"Param($label)"
 
@@ -64,9 +66,7 @@ object CaseClass:
       ):
         type PType = P
         def default: Option[PType] = defaultVal.value
-        def dynamicDefault: Option[() => PType] = defaultVal.dynamicValue().fold[Option[() => PType]](None) { _ =>
-          Some(() => defaultVal.dynamicValue().get)
-        }
+        def evaluateDefault: Option[() => PType] = CaseClass.getDefaultEvaluatorFromDefaultVal(defaultVal)
         def typeclass = cbn.value
         override def inheritedAnnotations = inheritedAnns
         def deref(value: T): P =
@@ -91,13 +91,18 @@ object CaseClass:
       ):
         type PType = P
         def default: Option[PType] = defaultVal.value
-        def dynamicDefault: Option[() => PType] = defaultVal.dynamicValue().fold[Option[() => PType]](None) { _ =>
-          Some(() => defaultVal.dynamicValue().get)
-        }
+        def evaluateDefault: Option[() => PType] = getDefaultEvaluatorFromDefaultVal(defaultVal)
         def typeclass = cbn.value
         def deref(value: T): P =
           value.asInstanceOf[Product].productElement(idx).asInstanceOf[P]
   end Param
+
+  private def getDefaultEvaluatorFromDefaultVal[P](defaultVal: CallByNeed[Option[P]]): Option[() => P] =
+    defaultVal.valueEvaluator.flatMap { evaluator =>
+      evaluator().fold[Option[() => P]](None) { _ =>
+        Some(() => evaluator().get)
+      }
+    }
 end CaseClass
 
 /** In the terminology of Algebraic Data Types (ADTs), case classes are known as 'product types'.
@@ -169,9 +174,7 @@ abstract class CaseClass[Typeclass[_], Type](
     ):
       type PType = P
       def default: Option[PType] = defaultVal.value
-      def dynamicDefault: Option[() => PType] = defaultVal.dynamicValue().fold[Option[() => PType]](None) { _ =>
-        Some(() => defaultVal.dynamicValue().get)
-      }
+      def evaluateDefault: Option[() => PType] = getDefaultEvaluatorFromDefaultVal(defaultVal)
       def typeclass = cbn.value
       override def inheritedAnnotations = inheritedAnns
       def deref(value: Type): P =
@@ -355,17 +358,33 @@ object SealedTrait:
 end SealedTrait
 
 object CallByNeed:
-  def apply[A](a: => A): CallByNeed[A] = new CallByNeed(() => a)
+  def apply[A](a: => A): CallByNeed[A] = new CallByNeed(() => a, () => false)
+  def withValueEvaluator[A](a: => A): CallByNeed[A] = new CallByNeed(() => a, () => true)
+end CallByNeed
 
-  object CallByNeed {
-    def apply[A](a: => A): CallByNeed[A] = new CallByNeed(() => a)
+// Both params are later nullified to reduce overhead and increase performance.
+// The supportDynamicValueEvaluation is passed as a function so that it can be nullified. Otherwise, there is no need for the function value.
+final class CallByNeed[+A] private (private[this] var eval: () => A, private var supportDynamicValueEvaluation: () => Boolean)
+    extends Serializable {
+  val valueEvaluator: Option[() => A] = {
+    val finalRes = if (supportDynamicValueEvaluation()) {
+      val res = Some(eval)
+      eval = null
+      res
+    } else {
+      None
+    }
+    supportDynamicValueEvaluation = null
+    finalRes
   }
 
-final class CallByNeed[+A](private[this] var eval: () => A) extends Serializable {
-  val dynamicValue: () => A = eval
   lazy val value: A = {
-    val result = eval()
-    eval = null
-    result
+    if (eval == null) {
+      valueEvaluator.get.apply()
+    } else {
+      val result = eval()
+      eval = null
+      result
+    }
   }
 }

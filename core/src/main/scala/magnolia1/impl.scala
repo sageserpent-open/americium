@@ -102,7 +102,7 @@ object CaseClassDerivation:
         paramFromMaps[Typeclass, A, p](
           label,
           CallByNeed(summonInline[Typeclass[p]]),
-          CallByNeed(defaults.get(label).flatten.flatMap(d => unsafeCast(d.apply))),
+          CallByNeed.withValueEvaluator(defaults.get(label).flatten.flatMap(d => unsafeCast(d.apply))),
           repeated,
           annotations,
           inheritedAnnotations,

@@ -37,6 +37,19 @@ class DefaultValuesTests extends munit.FunSuite:
     assertEquals(res, Right(Item("", 1, 0)))
   }
 
+  test("access dynamic default constructor values") {
+    val res1 = summon[HasDefault[ParamsWithDynamicDefault]].getDynamicDefaultValueForParam("a")
+    val res2 = summon[HasDefault[ParamsWithDynamicDefault]].getDynamicDefaultValueForParam("a")
+
+    assertEquals(res1.isDefined, true)
+    assertEquals(res2.isDefined, true)
+
+    for {
+      default1 <- res1
+      default2 <- res2
+    } yield assertNotEquals(default1, default2)
+  }
+
   test("construct a HasDefault instance for a generic product with default values") {
     val res = HasDefault.derived[ParamsWithDefaultGeneric[String, Int]].defaultValue
     assertEquals(res, Right(ParamsWithDefaultGeneric("A", 0)))
@@ -51,6 +64,8 @@ class DefaultValuesTests extends munit.FunSuite:
 object DefaultValuesTests:
 
   case class ParamsWithDefault(a: Int = 3, b: Int = 4)
+
+  case class ParamsWithDynamicDefault(a: Double = scala.math.random())
 
   case class ParamsWithDefaultGeneric[A, B](a: A = "A", b: B = "B")
 
