@@ -22,16 +22,14 @@ object HasDefault extends AutoDerivation[HasDefault]:
       }
 
       override def getDynamicDefaultValueForParam(paramLabel: String): Option[Any] =
-        val arr = IArray.genericWrapArray {
-          ctx.params
-            .filter(_.label == paramLabel)
-        }.toArray
-
-        val res = arr.headOption
+        IArray
+          .genericWrapArray {
+            ctx.params
+              .filter(_.label == paramLabel)
+          }
+          .toArray
+          .headOption
           .flatMap(_.evaluateDefault.map(res => res()))
-        println("Printing res:")
-        println(res.mkString("Array(", ", ", ")"))
-        res
     }
 
   /** chooses which subtype to delegate to */

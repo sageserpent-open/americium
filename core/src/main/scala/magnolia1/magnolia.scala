@@ -1,10 +1,6 @@
 package magnolia1
 
-import scala.compiletime.*
 import scala.deriving.Mirror
-import scala.reflect.*
-
-import Macro.*
 
 trait CommonDerivation[TypeClass[_]]:
   type Typeclass[T] = TypeClass[T]
