@@ -42,7 +42,7 @@ object CaseClass:
       *   default argument value, if any
       */
     def default: Option[PType]
-    def evaluateDefault: Option[() => PType]
+    def evaluateDefault: Option[() => PType] = None
     def inheritedAnnotations: IArray[Any] = IArray.empty[Any]
     override def toString: String = s"Param($label)"
 
@@ -66,7 +66,7 @@ object CaseClass:
       ):
         type PType = P
         def default: Option[PType] = defaultVal.value
-        def evaluateDefault: Option[() => PType] = CaseClass.getDefaultEvaluatorFromDefaultVal(defaultVal)
+        override def evaluateDefault: Option[() => PType] = CaseClass.getDefaultEvaluatorFromDefaultVal(defaultVal)
         def typeclass = cbn.value
         override def inheritedAnnotations = inheritedAnns
         def deref(value: T): P =
@@ -91,7 +91,7 @@ object CaseClass:
       ):
         type PType = P
         def default: Option[PType] = defaultVal.value
-        def evaluateDefault: Option[() => PType] = getDefaultEvaluatorFromDefaultVal(defaultVal)
+        override def evaluateDefault: Option[() => PType] = getDefaultEvaluatorFromDefaultVal(defaultVal)
         def typeclass = cbn.value
         def deref(value: T): P =
           value.asInstanceOf[Product].productElement(idx).asInstanceOf[P]
@@ -174,7 +174,7 @@ abstract class CaseClass[Typeclass[_], Type](
     ):
       type PType = P
       def default: Option[PType] = defaultVal.value
-      def evaluateDefault: Option[() => PType] = getDefaultEvaluatorFromDefaultVal(defaultVal)
+      override def evaluateDefault: Option[() => PType] = getDefaultEvaluatorFromDefaultVal(defaultVal)
       def typeclass = cbn.value
       override def inheritedAnnotations = inheritedAnns
       def deref(value: Type): P =
@@ -373,6 +373,9 @@ end CallByNeed
 // The supportDynamicValueEvaluation is passed as a function so that it can be nullified. Otherwise, there is no need for the function value.
 final class CallByNeed[+A] private (private[this] var eval: () => A, private var supportDynamicValueEvaluation: () => Boolean)
     extends Serializable {
+
+  def this(eval: () => A) = this(eval, () => false)
+
   val valueEvaluator: Option[() => A] = {
     val finalRes = if (supportDynamicValueEvaluation()) {
       val res = Some(eval)
