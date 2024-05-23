@@ -42,6 +42,7 @@ object CaseClass:
       *   default argument value, if any
       */
     def default: Option[PType]
+    /** provides a function to evaluate the default value for this parameter, as defined in the case class constructor */
     def evaluateDefault: Option[() => PType] = None
     def inheritedAnnotations: IArray[Any] = IArray.empty[Any]
     override def toString: String = s"Param($label)"
@@ -374,6 +375,7 @@ end CallByNeed
 final class CallByNeed[+A] private (private[this] var eval: () => A, private var supportDynamicValueEvaluation: () => Boolean)
     extends Serializable {
 
+  // This second constructor is necessary to support backwards compatibility for v1.3.6 and earlier
   def this(eval: () => A) = this(eval, () => false)
 
   val valueEvaluator: Option[() => A] = {
