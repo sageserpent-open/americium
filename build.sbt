@@ -2,6 +2,8 @@ import sbt.Tests.{Group, SubProcess}
 import sbtrelease.ReleaseStateTransformations.*
 import xerial.sbt.Sonatype.*
 
+import java.io.OutputStream
+
 lazy val javaVersion = "1.9"
 
 lazy val scala2_13_Version = "2.13.12"
@@ -73,6 +75,7 @@ lazy val settings = Seq(
 
     case _ => Seq.empty
   }),
+  testOptions += Tests.Argument(jupiterTestFramework, "-q"),
   Test / testGrouping := {
     val tests = (Test / definedTests).value
 
@@ -83,11 +86,15 @@ lazy val settings = Seq(
           groupName,
           group,
           SubProcess(
-            (Test / forkOptions).value.withRunJVMOptions(
-              Vector(
-                s"-Dtrials.runDatabase=trialsRunDatabaseForGroup$groupName"
+            (Test / forkOptions).value
+              .withRunJVMOptions(
+                Vector(
+                  s"-Dtrials.runDatabase=trialsRunDatabaseForGroup$groupName"
+                )
               )
-            )
+              .withOutputStrategy(
+                OutputStrategy.CustomOutput(OutputStream.nullOutputStream)
+              )
           )
         )
       }
@@ -118,7 +125,7 @@ lazy val settings = Seq(
   libraryDependencies += "org.mockito" % "mockito-core" % "4.2.0" % Test,
   libraryDependencies += "org.mockito" % "mockito-junit-jupiter" % "4.2.0" % Test,
   libraryDependencies += "com.github.seregamorph" % "hamcrest-more-matchers" % "0.1" % Test,
-  libraryDependencies += "net.aichler" % "jupiter-interface" % JupiterKeys.jupiterVersion.value % Test,
+  libraryDependencies += "com.github.sbt.junit" % "jupiter-interface" % JupiterKeys.jupiterVersion.value % Test,
   libraryDependencies ++= Seq(
     "org.junit.platform" % "junit-platform-runner" % "1.10.2" % Test,
     "org.junit.jupiter"  % "junit-jupiter-engine"  % "5.10.2" % Test
