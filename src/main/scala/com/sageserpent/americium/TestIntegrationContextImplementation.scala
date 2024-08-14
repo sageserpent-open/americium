@@ -1,5 +1,8 @@
 package com.sageserpent.americium
-import com.sageserpent.americium.java.{CaseFailureReporting, InlinedCaseFiltration}
+import com.sageserpent.americium.java.{
+  CaseFailureReporting,
+  InlinedCaseFiltration
+}
 
 case class TestIntegrationContextImplementation[Case](
     caze: Case,

@@ -14,13 +14,15 @@ object BargainBasement {
       @tailrec
       def productOfPartialResultAndNumberOfSubpermutations(
           originalSize: Int,
-          partialResult: Int): Int =
+          partialResult: Int
+      ): Int =
         if (originalSize == numberOfItemsLeftOutOfPermutation)
           partialResult
         else
           productOfPartialResultAndNumberOfSubpermutations(
             originalSize - 1,
-            originalSize * partialResult)
+            originalSize * partialResult
+          )
       productOfPartialResultAndNumberOfSubpermutations(originalSize, 1)
     }
   }
@@ -32,9 +34,9 @@ object BargainBasement {
     val unpickedSize = originalSize - combinationSize
     if (combinationSize < unpickedSize)
       numberOfPermutations(originalSize, combinationSize) / factorial(
-        combinationSize)
+        combinationSize
+      )
     else
-      numberOfPermutations(originalSize, unpickedSize) / factorial(
-        unpickedSize)
+      numberOfPermutations(originalSize, unpickedSize) / factorial(unpickedSize)
   }
 }

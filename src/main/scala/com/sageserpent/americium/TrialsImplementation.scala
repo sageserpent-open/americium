@@ -10,12 +10,30 @@ import com.google.common.hash
 import com.sageserpent.americium.TrialsApis.scalaApi
 import com.sageserpent.americium.TrialsScaffolding.{ShrinkageStop, noStopping}
 import com.sageserpent.americium.generation.*
-import com.sageserpent.americium.generation.Decision.{DecisionStages, parseDecisionIndices}
+import com.sageserpent.americium.generation.Decision.{
+  DecisionStages,
+  parseDecisionIndices
+}
 import com.sageserpent.americium.generation.GenerationOperation.Generation
-import com.sageserpent.americium.java.TrialsDefaults.{defaultComplexityLimit, defaultShrinkageAttemptsLimit}
-import com.sageserpent.americium.java.{Builder, CaseSupplyCycle, CasesLimitStrategy, CrossApiIterator, TestIntegrationContext, TrialsScaffolding as JavaTrialsScaffolding, TrialsSkeletalImplementation as JavaTrialsSkeletalImplementation}
+import com.sageserpent.americium.java.TrialsDefaults.{
+  defaultComplexityLimit,
+  defaultShrinkageAttemptsLimit
+}
+import com.sageserpent.americium.java.{
+  Builder,
+  CaseSupplyCycle,
+  CasesLimitStrategy,
+  CrossApiIterator,
+  TestIntegrationContext,
+  TrialsScaffolding as JavaTrialsScaffolding,
+  TrialsSkeletalImplementation as JavaTrialsSkeletalImplementation
+}
 import com.sageserpent.americium.storage.RocksDBConnection
-import com.sageserpent.americium.{Trials as ScalaTrials, TrialsScaffolding as ScalaTrialsScaffolding, TrialsSkeletalImplementation as ScalaTrialsSkeletalImplementation}
+import com.sageserpent.americium.{
+  Trials as ScalaTrials,
+  TrialsScaffolding as ScalaTrialsScaffolding,
+  TrialsSkeletalImplementation as ScalaTrialsSkeletalImplementation
+}
 import fs2.Stream as Fs2Stream
 import org.apache.commons.text.StringEscapeUtils
 
