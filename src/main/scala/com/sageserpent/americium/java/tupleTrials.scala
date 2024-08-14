@@ -2,8 +2,15 @@ package com.sageserpent.americium.java
 
 import cats.implicits.*
 import cats.{Functor, Semigroupal}
-import com.sageserpent.americium.java.{Trials as JavaTrials, TrialsScaffolding as JavaTrialsScaffolding}
-import cyclops.data.tuple.{Tuple2 as JavaTuple2, Tuple3 as JavaTuple3, Tuple4 as JavaTuple4}
+import com.sageserpent.americium.java.{
+  Trials as JavaTrials,
+  TrialsScaffolding as JavaTrialsScaffolding
+}
+import cyclops.data.tuple.{
+  Tuple2 as JavaTuple2,
+  Tuple3 as JavaTuple3,
+  Tuple4 as JavaTuple4
+}
 import cyclops.function.{Consumer3, Consumer4}
 
 import _root_.java.util.Iterator as JavaIterator

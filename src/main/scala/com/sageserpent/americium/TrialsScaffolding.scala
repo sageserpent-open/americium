@@ -1,8 +1,16 @@
 package com.sageserpent.americium
 
 import com.sageserpent.americium.TrialsScaffolding.{ShrinkageStop, noStopping}
-import com.sageserpent.americium.java.TrialsDefaults.{defaultComplexityLimit, defaultShrinkageAttemptsLimit}
-import com.sageserpent.americium.java.{CaseSupplyCycle, CasesLimitStrategy, TestIntegrationContext, TrialsFactoring}
+import com.sageserpent.americium.java.TrialsDefaults.{
+  defaultComplexityLimit,
+  defaultShrinkageAttemptsLimit
+}
+import com.sageserpent.americium.java.{
+  CaseSupplyCycle,
+  CasesLimitStrategy,
+  TestIntegrationContext,
+  TrialsFactoring
+}
 
 object TrialsScaffolding {
 
@@ -66,7 +74,7 @@ object TrialsScaffolding {
     def withValidTrialsCheck(enabled: Boolean): SupplyToSyntax[Case]
 
     /** Consume trial cases until either there are no more or an exception is
-      * thrown by {@code consumer}. If an exception is thrown, attempts will be
+      * thrown by {@code consumer} . If an exception is thrown, attempts will be
       * made to shrink the trial case that caused the exception to a simpler
       * case that throws an exception - the specific kind of exception isn't
       * necessarily the same between the first exceptional case and the final
@@ -76,7 +84,8 @@ object TrialsScaffolding {
       * provoked the exception.
       *
       * @param consumer
-      *   An operation that consumes a {@code Case}, and may throw an exception.
+      *   An operation that consumes a {@code Case} , and may throw an
+      *   exception.
       */
     def supplyTo(consumer: Case => Unit): Unit
 

@@ -2,9 +2,22 @@ package com.sageserpent.americium.java
 import com.google.common.collect.ImmutableList
 import com.sageserpent.americium.generation.Factory
 import com.sageserpent.americium.java.Trials as JavaTrials
-import com.sageserpent.americium.{CommonApi, Trials, TrialsImplementation, CaseFactory as ScalaCaseFactory}
+import com.sageserpent.americium.{
+  CommonApi,
+  Trials,
+  TrialsImplementation,
+  CaseFactory as ScalaCaseFactory
+}
 
-import _root_.java.lang.{Boolean as JavaBoolean, Byte as JavaByte, Character as JavaCharacter, Double as JavaDouble, Integer as JavaInteger, Iterable as JavaIterable, Long as JavaLong}
+import _root_.java.lang.{
+  Boolean as JavaBoolean,
+  Byte as JavaByte,
+  Character as JavaCharacter,
+  Double as JavaDouble,
+  Integer as JavaInteger,
+  Iterable as JavaIterable,
+  Long as JavaLong
+}
 import _root_.java.math.{BigInteger, BigDecimal as JavaBigDecimal}
 import _root_.java.util.function.{Supplier, Function as JavaFunction}
 import _root_.java.util.{List as JavaList, Map as JavaMap}

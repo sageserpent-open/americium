@@ -3,7 +3,10 @@ import cats.Traverse
 import cats.free.Free
 import cats.implicits.*
 import com.sageserpent.americium.generation.*
-import com.sageserpent.americium.{Trials as ScalaTrials, TrialsApi as ScalaTrialsApi}
+import com.sageserpent.americium.{
+  Trials as ScalaTrials,
+  TrialsApi as ScalaTrialsApi
+}
 
 import _root_.java.time.Instant
 import scala.collection.immutable.SortedMap

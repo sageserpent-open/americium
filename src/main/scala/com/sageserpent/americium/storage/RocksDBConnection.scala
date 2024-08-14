@@ -1,7 +1,10 @@
 package com.sageserpent.americium.storage
 import cats.Eval
 import com.google.common.collect.ImmutableList
-import com.sageserpent.americium.generation.JavaPropertyNames.{runDatabaseJavaProperty, temporaryDirectoryJavaProperty}
+import com.sageserpent.americium.generation.JavaPropertyNames.{
+  runDatabaseJavaProperty,
+  temporaryDirectoryJavaProperty
+}
 import com.sageserpent.americium.generation.SupplyToSyntaxSkeletalImplementation.runDatabaseDefault
 import com.sageserpent.americium.java.RecipeIsNotPresentException
 import com.sageserpent.americium.storage.RocksDBConnection.databasePath

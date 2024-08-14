@@ -1,6 +1,13 @@
 package com.sageserpent.americium
-import com.sageserpent.americium.java.junit5.{LauncherDiscoveryListenerCapturingReplayedUniqueIds, TestExecutionListenerCapturingUniqueIds}
-import com.sageserpent.americium.java.{CaseFailureReporting, InlinedCaseFiltration, TestIntegrationContext}
+import com.sageserpent.americium.java.junit5.{
+  LauncherDiscoveryListenerCapturingReplayedUniqueIds,
+  TestExecutionListenerCapturingUniqueIds
+}
+import com.sageserpent.americium.java.{
+  CaseFailureReporting,
+  InlinedCaseFiltration,
+  TestIntegrationContext
+}
 import com.sageserpent.americium.storage.RocksDBConnection
 import org.junit.jupiter.api.DynamicTest
 import org.junit.jupiter.api.DynamicTest.dynamicTest
@@ -47,7 +54,7 @@ package object junit5 {
       * }}}
       *
       * @param parameterisedTest
-      *   Parameterised test that consumes a test case of type {@code Case}.
+      *   Parameterised test that consumes a test case of type {@code Case} .
       * @return
       *   An iterator of [[DynamicTest]] instances, suitable for use with the
       *   [[org.junit.jupiter.api.TestFactory]] annotation provided by JUnit5.

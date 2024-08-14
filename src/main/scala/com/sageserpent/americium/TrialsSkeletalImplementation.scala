@@ -4,7 +4,10 @@ import com.sageserpent.americium.TrialsApis.scalaApi
 import com.sageserpent.americium.generation.FiltrationResult
 import com.sageserpent.americium.generation.GenerationOperation.Generation
 import com.sageserpent.americium.tupleTrials.Tuple2Trials as ScalaTuple2Trials
-import com.sageserpent.americium.{Trials as ScalaTrials, TrialsScaffolding as ScalaTrialsScaffolding}
+import com.sageserpent.americium.{
+  Trials as ScalaTrials,
+  TrialsScaffolding as ScalaTrialsScaffolding
+}
 
 import scala.collection.immutable.{SortedMap, SortedSet}
 

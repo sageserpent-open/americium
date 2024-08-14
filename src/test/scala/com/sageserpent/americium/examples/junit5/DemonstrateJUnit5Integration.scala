@@ -116,7 +116,7 @@ class DemonstrateJUnit5Integration {
     val expectedNumberOfTestCases = 15
     val supplier =
       api.integers.withLimit(expectedNumberOfTestCases)
-    
+
     supplier.dynamicTests(testCase => {
       Trials.whenever(0 != testCase % 3) {
         println(s"Test case is $testCase")
