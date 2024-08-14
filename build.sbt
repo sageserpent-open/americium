@@ -6,9 +6,9 @@ import java.io.OutputStream
 
 lazy val javaVersion = "1.9"
 
-lazy val scala2_13_Version = "2.13.12"
+lazy val scala2_13_Version = "2.13.14"
 
-lazy val scala3_Version = "3.3.1"
+lazy val scala3_Version = "3.3.3"
 
 ThisBuild / scalaVersion := scala2_13_Version
 
@@ -106,18 +106,18 @@ lazy val settings = Seq(
   libraryDependencies += "org.typelevel" %% "cats-core"             % "2.7.0",
   libraryDependencies += "org.typelevel" %% "cats-free"             % "2.7.0",
   libraryDependencies += "org.typelevel" %% "cats-collections-core" % "0.9.3",
-  libraryDependencies += "co.fs2"        %% "fs2-core"              % "3.2.5",
+  libraryDependencies += "co.fs2"        %% "fs2-core"              % "3.2.14",
   libraryDependencies += "io.circe"      %% "circe-core"            % "0.14.2",
   libraryDependencies += "io.circe"      %% "circe-generic"         % "0.14.2",
   libraryDependencies += "io.circe"      %% "circe-parser"          % "0.14.2",
-  libraryDependencies += "com.google.guava" % "guava"   % "32.0.0-jre",
+  libraryDependencies += "com.google.guava" % "guava"   % "32.0.1-jre",
   libraryDependencies += "com.oath.cyclops" % "cyclops" % "10.4.1",
   libraryDependencies += "org.junit.jupiter" % "junit-jupiter-params" % "5.10.2",
   libraryDependencies += "org.junit.platform" % "junit-platform-launcher" % "1.10.2",
   libraryDependencies += "org.rocksdb"        % "rocksdbjni"   % "7.1.1",
   libraryDependencies += "org.apache.commons" % "commons-text" % "1.10.0",
   libraryDependencies += ("com.github.cb372" %% "scalacache-caffeine" % "0.28.0") cross CrossVersion.for3Use2_13,
-  libraryDependencies += "com.lihaoyi"    %% "pprint"     % "0.8.1",
+  libraryDependencies += "com.lihaoyi"    %% "pprint"     % "0.9.0",
   libraryDependencies += "org.typelevel"  %% "cats-laws"  % "2.7.0"  % Test,
   libraryDependencies += "org.scalatest"  %% "scalatest"  % "3.2.9"  % Test,
   libraryDependencies += "org.scalacheck" %% "scalacheck" % "1.15.4" % Test,
