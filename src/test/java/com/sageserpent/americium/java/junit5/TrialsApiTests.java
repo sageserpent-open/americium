@@ -116,7 +116,7 @@ public class TrialsApiTests {
         final int limit = 20;
 
         alternateTrials.withLimit(limit).supplyTo(number -> {
-            //System.out.println(number.doubleValue());
+            System.out.println(number.doubleValue());
         });
 
         final Trials<Number> alternateTrialsFromArray =
@@ -124,53 +124,54 @@ public class TrialsApiTests {
                                            bigDecimalTrials});
 
         alternateTrialsFromArray.withLimit(limit).supplyTo(number -> {
-            //System.out.println(number.doubleValue());
+            System.out.println(number.doubleValue());
         });
 
-        //System.out.println("Chained integers...");
+        System.out.println("Chained integers...");
 
         chainedIntegers().withLimit(limit).supplyTo(System.out::println);
 
-        //System.out.println("Chained integers using an explicit termination
-        // case...");
+        System.out.println(
+                "Chained integers using an explicit termination case...");
 
         chainedIntegersUsingAnExplicitTerminationCase()
                 .withLimit(limit)
                 .supplyTo(System.out::println);
 
-        //System.out.println("Chained integers and Booleans in a tree...");
+        System.out.println("Chained integers and Booleans in a tree...");
 
         chainedBooleansAndIntegersInATree()
                 .withLimit(limit)
                 .supplyTo(System.out::println);
 
-        //System.out.println("A list of doubles...");
+        System.out.println("A list of doubles...");
 
         doubleTrials
                 .immutableLists()
                 .withLimit(limit)
                 .supplyTo(System.out::println);
 
-        //System.out.println("A set of doubles...");
+        System.out.println("A set of doubles...");
 
         doubleTrials
                 .immutableSets()
                 .withLimit(limit)
                 .supplyTo(System.out::println);
 
-        //System.out.println("A sorted set of doubles...");
+        System.out.println("A sorted set of doubles...");
 
         doubleTrials
                 .immutableSortedSets(Double::compareTo)
                 .withLimit(limit)
                 .supplyTo(System.out::println);
 
-        //System.out.println("A sorted set of doubles via the generic method.
-        // ..");
+        System.out.println("A sorted set of doubles via the generic method...");
 
         doubleTrials
-                .collections(() -> new Builder<Double, SortedSet<Double>>() {
-                    final SortedSet<Double> sortedSet = new TreeSet<>();
+                .collections(() -> new Builder<Double,
+                        SortedSet<Double>>() {
+                    final SortedSet<Double> sortedSet =
+                            new TreeSet<>();
 
                     @Override
                     public void add(Double caze) {
@@ -185,7 +186,7 @@ public class TrialsApiTests {
                 .withLimit(limit)
                 .supplyTo(System.out::println);
 
-        //System.out.println("A map of strings keyed by integers...");
+        System.out.println("A map of strings keyed by integers...");
 
         Trials<Integer> integersTrialsWithVariety = api.choose(1, 2, 3);
 
@@ -194,7 +195,7 @@ public class TrialsApiTests {
                 .withLimit(limit)
                 .supplyTo(System.out::println);
 
-        //System.out.println("A sorted map of strings keyed by integers...");
+        System.out.println("A sorted map of strings keyed by integers...");
 
         integersTrialsWithVariety
                 .immutableSortedMaps(Integer::compare, api.strings())
@@ -205,7 +206,7 @@ public class TrialsApiTests {
     @ParameterizedTest
     @MethodSource(value = "sets")
     void testDriveSetsProvider(ImmutableSet<String> distinctStrings) {
-        //System.out.println(distinctStrings);
+        System.out.println(distinctStrings);
     }
 
     @ParameterizedTest
@@ -226,7 +227,7 @@ public class TrialsApiTests {
                             .stream()
                             .allMatch(value -> 0 == value % 2);
                     Trials.whenever(satisfiedPrecondition, () -> {
-                        //System.out.println(setOfIntegers);
+                        System.out.println(setOfIntegers);
                         assertThat("All members of the set are even",
                                    satisfiedPrecondition);
                     });
@@ -260,7 +261,7 @@ public class TrialsApiTests {
                        list.size(),
                        equalTo(numberOfElements));
 
-            //System.out.println(list);
+            System.out.println(list);
 
             for (int index = 0; numberOfElements > index; ++index) {
                 assertThat("The range should not exceed the index",
@@ -310,7 +311,7 @@ public class TrialsApiTests {
                        list.size(),
                        equalTo(numberOfElements));
 
-            //System.out.println(list);
+            System.out.println(list);
 
             for (int index = 0; numberOfElements > index; ++index) {
                 assertThat("The range should not exceed the index",
@@ -332,7 +333,7 @@ public class TrialsApiTests {
                        list.size(),
                        equalTo(numberOfElements));
 
-            //System.out.println(list);
+            System.out.println(list);
         });
     }
 
@@ -364,7 +365,7 @@ public class TrialsApiTests {
                        list.size(),
                        equalTo(numberOfElements));
 
-            //System.out.println(list);
+            System.out.println(list);
         });
     }
 
@@ -407,7 +408,7 @@ public class TrialsApiTests {
         final TrialsFactoring.TrialException trialException =
                 shouldHarbourAnError.failureGet().toOptional().get();
 
-        //System.out.println("Now to reproduce the failure...");
+        System.out.println("Now to reproduce the failure...");
 
         final Try<Void, TrialsFactoring.TrialException> mustHarbourAnError =
                 Try.runWithCatch(() -> {
@@ -676,12 +677,12 @@ public class TrialsApiTests {
                             final double root = Math.sqrt(input);
                             assertThat(Double.isNaN(root), is(false));
                         } catch (Throwable throwable) {
-                            //System.out.println(input);
+                            System.out.println(input);
                             throw throwable;
                         }
                     });
         } catch (TrialsScaffolding.TrialException exception) {
-            //System.out.println(exception);
+            System.out.println(exception);
             assertThat((double) exception.provokingCase(), closeTo(0, 0.1));
         }
     }
@@ -921,7 +922,7 @@ public class TrialsApiTests {
 
         doAnswer(invocation -> {
             final List<Integer> argument = invocation.getArgument(0);
-            //System.out.println(argument);
+            System.out.println(argument);
             cases.add(argument);
             return null;
         }).when(consumer).accept(ArgumentMatchers.any(List.class));
