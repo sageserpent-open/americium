@@ -130,7 +130,7 @@ lazy val settings = Seq(
     "org.junit.platform" % "junit-platform-runner" % "1.10.2" % Test,
     "org.junit.jupiter"  % "junit-jupiter-engine"  % "5.10.2" % Test
   ),
-  libraryDependencies += "org.hamcrest"          % "hamcrest" % "2.2"    % Test,
+  libraryDependencies += "org.hamcrest"          % "hamcrest" % "3.0"    % Test,
   libraryDependencies += "com.eed3si9n.expecty" %% "expecty"  % "0.16.0" % Test
 )
 
