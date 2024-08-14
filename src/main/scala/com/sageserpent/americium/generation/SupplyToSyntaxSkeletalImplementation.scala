@@ -743,8 +743,7 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
             scaleDeflationLevel = Some(scaleDeflationLevel),
             shrinkageIsImproving = {
               case (decisionStagesInReverseOrder, factoryInputsCost) =>
-                decisionStagesInReverseOrder.size < caseData.decisionStagesInReverseOrder.size
-                || (factoryInputsCost <= caseData.cost)
+                decisionStagesInReverseOrder.size < caseData.decisionStagesInReverseOrder.size || (factoryInputsCost <= caseData.cost)
             },
             decisionStagesToGuideShrinkage = Option.when(
               0 < numberOfShrinksInPanicModeIncludingThisOne

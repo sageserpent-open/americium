@@ -6,9 +6,9 @@ import java.io.OutputStream
 
 lazy val javaVersion = "1.9"
 
-lazy val scala2_13_Version = "2.13.12"
+lazy val scala2_13_Version = "2.13.14"
 
-lazy val scala3_Version = "3.3.1"
+lazy val scala3_Version = "3.3.3"
 
 ThisBuild / scalaVersion := scala2_13_Version
 
