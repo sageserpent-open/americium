@@ -112,14 +112,14 @@ lazy val settings = Seq(
   libraryDependencies += "io.circe"      %% "circe-parser"          % "0.14.9",
   libraryDependencies += "com.google.guava" % "guava"   % "32.0.1-jre",
   libraryDependencies += "com.oath.cyclops" % "cyclops" % "10.4.1",
-  libraryDependencies += "org.junit.jupiter" % "junit-jupiter-params" % "5.10.3",
+  libraryDependencies += "org.junit.jupiter" % "junit-jupiter-params" % "5.11.0",
   libraryDependencies += "org.junit.platform" % "junit-platform-launcher" % "1.10.3",
   libraryDependencies += "org.rocksdb"        % "rocksdbjni"   % "7.1.2",
   libraryDependencies += "org.apache.commons" % "commons-text" % "1.12.0",
   libraryDependencies += ("com.github.cb372" %% "scalacache-caffeine" % "0.28.0") cross CrossVersion.for3Use2_13,
   libraryDependencies += "com.lihaoyi"    %% "pprint"     % "0.9.0",
-  libraryDependencies += "org.typelevel"  %% "cats-laws"  % "2.12.0"  % Test,
-  libraryDependencies += "org.scalatest"  %% "scalatest"  % "3.2.19"  % Test,
+  libraryDependencies += "org.typelevel"  %% "cats-laws"  % "2.12.0" % Test,
+  libraryDependencies += "org.scalatest"  %% "scalatest"  % "3.2.19" % Test,
   libraryDependencies += "org.scalacheck" %% "scalacheck" % "1.18.0" % Test,
   libraryDependencies += "org.scalatestplus" %% "scalacheck-1-15" % "3.2.11.0" % Test,
   libraryDependencies += "org.mockito" % "mockito-core" % "4.11.0" % Test,
@@ -128,7 +128,7 @@ lazy val settings = Seq(
   libraryDependencies += "com.github.sbt.junit" % "jupiter-interface" % JupiterKeys.jupiterVersion.value % Test,
   libraryDependencies ++= Seq(
     "org.junit.platform" % "junit-platform-runner" % "1.10.3" % Test,
-    "org.junit.jupiter"  % "junit-jupiter-engine"  % "5.10.3" % Test
+    "org.junit.jupiter"  % "junit-jupiter-engine"  % "5.11.0" % Test
   ),
   libraryDependencies += "org.hamcrest"          % "hamcrest" % "3.0"    % Test,
   libraryDependencies += "com.eed3si9n.expecty" %% "expecty"  % "0.16.0" % Test
