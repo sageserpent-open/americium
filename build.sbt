@@ -75,7 +75,7 @@ lazy val settings = Seq(
 
     case _ => Seq.empty
   }),
-  testOptions += Tests.Argument(jupiterTestFramework, "-q"),
+  Test / testOptions += Tests.Argument(jupiterTestFramework, "-q"),
   Test / testGrouping := {
     val tests = (Test / definedTests).value
 
