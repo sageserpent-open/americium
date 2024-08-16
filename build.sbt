@@ -113,7 +113,7 @@ lazy val settings = Seq(
   libraryDependencies += "com.google.guava" % "guava"   % "32.1.3-jre",
   libraryDependencies += "com.oath.cyclops" % "cyclops" % "10.4.1",
   libraryDependencies += "org.junit.jupiter" % "junit-jupiter-params" % "5.11.0",
-  libraryDependencies += "org.junit.platform" % "junit-platform-launcher" % "1.10.3",
+  libraryDependencies += "org.junit.platform" % "junit-platform-launcher" % "1.11.0",
   libraryDependencies += "org.rocksdb"        % "rocksdbjni"   % "7.1.2",
   libraryDependencies += "org.apache.commons" % "commons-text" % "1.12.0",
   libraryDependencies += ("com.github.cb372" %% "scalacache-caffeine" % "0.28.0") cross CrossVersion.for3Use2_13,
@@ -127,7 +127,7 @@ lazy val settings = Seq(
   libraryDependencies += "com.github.seregamorph" % "hamcrest-more-matchers" % "0.1" % Test,
   libraryDependencies += "com.github.sbt.junit" % "jupiter-interface" % JupiterKeys.jupiterVersion.value % Test,
   libraryDependencies ++= Seq(
-    "org.junit.platform" % "junit-platform-runner" % "1.10.3" % Test,
+    "org.junit.platform" % "junit-platform-runner" % "1.11.0" % Test,
     "org.junit.jupiter"  % "junit-jupiter-engine"  % "5.11.0" % Test
   ),
   libraryDependencies += "org.hamcrest"          % "hamcrest" % "3.0"    % Test,
