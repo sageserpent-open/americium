@@ -153,11 +153,11 @@ class RichRandomMiscellaneaSpec extends AnyFlatSpec with Matchers {
     val candidatesWithRandomAccess = candidates.toArray
 
     for (
-      index <- random
-        .buildRandomSequenceOfDistinctIntegersFromZeroToOneLessThan(
-          candidatesWithRandomAccess.length
-        ) take numberToChoose
-    )
+        index <- random
+          .buildRandomSequenceOfDistinctIntegersFromZeroToOneLessThan(
+            candidatesWithRandomAccess.length
+          ) take numberToChoose
+      )
       yield candidatesWithRandomAccess(index)
   }
 
@@ -242,14 +242,15 @@ class RichRandomMiscellaneaSpec extends AnyFlatSpec with Matchers {
 
         val oversampledOutputs =
           for (
-            _ <- 1 to scala.math
-              .ceil(
-                empiricallyDeterminedMultiplicationFactorToEnsureCoverage * expectedNumberOfPermutations
-              )
-              .toInt
-          ) yield {
-            random.chooseOneOf(superSet.toSeq)
-          }
+              _ <- 1 to scala.math
+                .ceil(
+                  empiricallyDeterminedMultiplicationFactorToEnsureCoverage * expectedNumberOfPermutations
+                )
+                .toInt
+            )
+            yield {
+              random.chooseOneOf(superSet.toSeq)
+            }
         assert(oversampledOutputs.toSet.size == expectedNumberOfPermutations)
       }
 
@@ -263,30 +264,32 @@ class RichRandomMiscellaneaSpec extends AnyFlatSpec with Matchers {
 
           val oversampledOutputs =
             for (
-              _ <- 1 to scala.math
-                .ceil(
-                  empiricallyDeterminedMultiplicationFactorToEnsureCoverage * expectedNumberOfPermutations
-                )
-                .toInt
-            ) yield {
-              random.chooseSeveralOf(superSet.toSeq, subsetSize) toList
-            }
+                _ <- 1 to scala.math
+                  .ceil(
+                    empiricallyDeterminedMultiplicationFactorToEnsureCoverage * expectedNumberOfPermutations
+                  )
+                  .toInt
+              )
+              yield {
+                random.chooseSeveralOf(superSet.toSeq, subsetSize) toList
+              }
           assert(oversampledOutputs.toSet.size == expectedNumberOfPermutations)
 
           val oversampledOutputsViaAnotherWay =
             for (
-              _ <- 1 to scala.math
-                .ceil(
-                  empiricallyDeterminedMultiplicationFactorToEnsureCoverage * expectedNumberOfPermutations
-                )
-                .toInt
-            ) yield {
-              anotherWayOfChoosingSeveralOf(
-                random,
-                superSet.toSeq,
-                subsetSize
-              ) toList
-            }
+                _ <- 1 to scala.math
+                  .ceil(
+                    empiricallyDeterminedMultiplicationFactorToEnsureCoverage * expectedNumberOfPermutations
+                  )
+                  .toInt
+              )
+              yield {
+                anotherWayOfChoosingSeveralOf(
+                  random,
+                  superSet.toSeq,
+                  subsetSize
+                ) toList
+              }
           assert(
             oversampledOutputsViaAnotherWay.toSet.size == expectedNumberOfPermutations
           )
