@@ -1,6 +1,6 @@
 addDependencyTreePlugin
 
-addSbtPlugin("com.github.sbt.junit" % "sbt-jupiter-interface" % "0.11.4")
+addSbtPlugin("com.github.sbt.junit" % "sbt-jupiter-interface" % "0.13.0")
 addSbtPlugin("org.scalameta"        % "sbt-scalafmt"          % "2.5.2")
 addSbtPlugin("com.github.sbt"       % "sbt-release"           % "1.4.0")
 addSbtPlugin("com.github.sbt"       % "sbt-pgp"               % "2.2.1")
