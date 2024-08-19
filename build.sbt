@@ -75,6 +75,7 @@ lazy val settings = Seq(
 
     case _ => Seq.empty
   }),
+  Test / test / logLevel := Level.Error,
   Test / testOptions += Tests.Argument(jupiterTestFramework, "-q"),
   Test / testGrouping := {
     val tests = (Test / definedTests).value
