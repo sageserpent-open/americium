@@ -135,4 +135,6 @@ lazy val settings = Seq(
   libraryDependencies += "com.eed3si9n.expecty" %% "expecty"  % "0.16.0" % Test
 )
 
-lazy val americium = (project in file(".")).settings(settings: _*)
+lazy val americium = (project in file("."))
+  .settings(settings: _*)
+  .disablePlugins(plugins.JUnitXmlReportPlugin)
