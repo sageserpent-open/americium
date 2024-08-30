@@ -1,6 +1,5 @@
 import sbt.Tests.{Group, SubProcess}
 import sbtrelease.ReleaseStateTransformations.*
-import xerial.sbt.Sonatype.*
 
 import java.io.OutputStream
 
@@ -13,22 +12,13 @@ lazy val scala3_Version = "3.3.3"
 ThisBuild / scalaVersion := scala2_13_Version
 
 lazy val settings = Seq(
-  crossScalaVersions     := Seq(scala2_13_Version, scala3_Version),
-  publishTo              := sonatypePublishToBundle.value,
-  pomIncludeRepository   := { _ => false },
-  sonatypeCredentialHost := "s01.oss.sonatype.org",
-  publishMavenStyle      := true,
+  crossScalaVersions   := Seq(scala2_13_Version, scala3_Version),
+  pomIncludeRepository := { _ => false },
+  publishMavenStyle    := true,
   licenses += ("MIT", url("https://opensource.org/licenses/MIT")),
   organization     := "com.sageserpent",
   organizationName := "sageserpent",
   description      := "Generation of test data for parameterised testing",
-  sonatypeProjectHosting := Some(
-    GitHubHosting(
-      user = "sageserpent-open",
-      repository = "americium",
-      email = "gjmurphy1@icloud.com"
-    )
-  ),
   releaseCrossBuild := false, // Don't use the support for cross-building provided by `sbt-release`....
   releaseProcess := Seq[ReleaseStep](
     checkSnapshotDependencies,
@@ -42,13 +32,11 @@ lazy val settings = Seq(
     setReleaseVersion,
     commitReleaseVersion,
     tagRelease,
-    releaseStepCommandAndRemaining(
-      "+publishSigned"
-    ), // ... finally the publishing step using SBT's own mechanism.
-    releaseStepCommand("sonatypeBundleRelease"),
+    // *DO NOT* run `+publishSigned`, `sonatypeBundleRelease` and `pushChanges`
+    // - the equivalent is done on GitHub by
+    // `gha-scala-library-release-workflow`.
     setNextVersion,
-    commitNextVersion,
-    pushChanges
+    commitNextVersion
   ),
   name := "americium",
   scalacOptions ++= (CrossVersion.partialVersion(
