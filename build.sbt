@@ -4,7 +4,7 @@ import xerial.sbt.Sonatype.*
 
 import java.io.OutputStream
 
-lazy val javaVersion = "1.9"
+lazy val javaVersion = "19"
 
 lazy val scala2_13_Version = "2.13.14"
 
@@ -55,9 +55,9 @@ lazy val settings = Seq(
     scalaVersion.value
   ) match {
     case Some((2, _)) =>
-      Seq("-Xsource:3")
+      Seq("-Xsource:3", s"-java-output-version:$javaVersion")
     case Some((3, _)) =>
-      Seq("-explain")
+      Seq("-explain", s"-java-output-version:$javaVersion")
 
     case _ => Nil
   }),
