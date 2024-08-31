@@ -1,3 +1,5 @@
+import com.jsuereth.sbtpgp.GetSignaturesModule
+import com.jsuereth.sbtpgp.PgpKeys.{signaturesModule, updatePgpSignatures}
 import sbt.Tests.{Group, SubProcess}
 
 import java.io.OutputStream
@@ -11,6 +13,12 @@ lazy val scala3_Version = "3.3.3"
 ThisBuild / scalaVersion := scala2_13_Version
 
 lazy val settings = Seq(
+  (updatePgpSignatures / signaturesModule) :=
+    GetSignaturesModule(
+      projectID.value,
+      libraryDependencies.value,
+      Configurations.Default :: Configurations.Pom :: Configurations.Compile :: Nil
+    ),
   crossScalaVersions := Seq(scala2_13_Version, scala3_Version),
   name               := "americium",
   scalacOptions ++= (CrossVersion.partialVersion(
