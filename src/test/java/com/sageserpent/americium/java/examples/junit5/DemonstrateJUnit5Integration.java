@@ -134,9 +134,9 @@ public class DemonstrateJUnit5Integration {
         });
     }
 
-    @Disabled
     // This now detects the 'failing' test case correctly - but it is still a
     // test failure. Need to rethink what this test should look like....
+    @Disabled
     @ConfiguredTrialsTest("configuredStringPairs")
     void copiedFromJqwik(String first, String second) {
         System.out.format("%s, %s\n", first, second);

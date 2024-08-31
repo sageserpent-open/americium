@@ -168,8 +168,10 @@ public class TrialsApiTests {
         System.out.println("A sorted set of doubles via the generic method...");
 
         doubleTrials
-                .collections(() -> new Builder<Double, SortedSet<Double>>() {
-                    final SortedSet<Double> sortedSet = new TreeSet<>();
+                .collections(() -> new Builder<Double,
+                        SortedSet<Double>>() {
+                    final SortedSet<Double> sortedSet =
+                            new TreeSet<>();
 
                     @Override
                     public void add(Double caze) {

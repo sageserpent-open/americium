@@ -25,7 +25,7 @@ class DemonstrateJUnit5Integration {
 
         assert(0 != testCase % 3)
 
-        println(s"Test case #$trialsCount is $testCase")
+        println(s"Test case is $testCase")
 
       })
 
@@ -59,7 +59,7 @@ class DemonstrateJUnit5Integration {
 
         assert(0 != partOne % 3)
 
-        println(s"Test case #$trialsCount is $partOne, $partTwo")
+        println(s"Test case is $partOne, $partTwo")
 
       })
 
@@ -109,5 +109,19 @@ class DemonstrateJUnit5Integration {
           })
         }
       }
+  }
+
+  @TestFactory
+  def dynamicTestsExampleWithIgnoredTestCases: DynamicTests = {
+    val expectedNumberOfTestCases = 15
+    val supplier =
+      api.integers.withLimit(expectedNumberOfTestCases)
+
+    supplier.dynamicTests(testCase => {
+      Trials.whenever(0 != testCase % 3) {
+        println(s"Test case is $testCase")
+      }
+
+    })
   }
 }
