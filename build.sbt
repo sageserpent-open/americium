@@ -3,7 +3,7 @@ import sbtrelease.ReleaseStateTransformations.*
 
 import java.io.OutputStream
 
-lazy val javaVersion = "19"
+lazy val javaVersion = "17"
 
 lazy val scala2_13_Version = "2.13.14"
 
