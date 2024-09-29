@@ -6,39 +6,16 @@ import cats.effect.kernel.Resource
 import cats.~>
 import com.google.common.collect.{Ordering as _, *}
 import com.sageserpent.americium.TrialsScaffolding.ShrinkageStop
-import com.sageserpent.americium.generation.Decision.{
-  DecisionStages,
-  parseDecisionIndices
-}
+import com.sageserpent.americium.generation.Decision.{DecisionStages, parseDecisionIndices}
 import com.sageserpent.americium.generation.GenerationOperation.Generation
 import com.sageserpent.americium.generation.JavaPropertyNames.*
-import com.sageserpent.americium.generation.SupplyToSyntaxSkeletalImplementation.{
-  maximumScaleDeflationLevel,
-  minimumScaleDeflationLevel,
-  readOnlyRocksDbConnectionResource
-}
-import com.sageserpent.americium.java.{
-  CaseFailureReporting,
-  CaseSupplyCycle,
-  CasesLimitStrategy,
-  CrossApiIterator,
-  InlinedCaseFiltration,
-  NoValidTrialsException,
-  TestIntegrationContext,
-  TrialsScaffolding as JavaTrialsScaffolding
-}
+import com.sageserpent.americium.generation.SupplyToSyntaxSkeletalImplementation.{maximumScaleDeflationLevel, minimumScaleDeflationLevel, readOnlyRocksDbConnectionResource}
+import com.sageserpent.americium.java.{CaseFailureReporting, CaseSupplyCycle, CasesLimitStrategy, CrossApiIterator, InlinedCaseFiltration, NoValidTrialsException, TestIntegrationContext, TrialsScaffolding as JavaTrialsScaffolding}
 import com.sageserpent.americium.randomEnrichment.RichRandom
 import com.sageserpent.americium.storage.RocksDBConnection
-import com.sageserpent.americium.{
-  CaseFactory,
-  TestIntegrationContextImplementation,
-  Trials,
-  TrialsScaffolding as ScalaTrialsScaffolding
-}
+import com.sageserpent.americium.{CaseFactory, TestIntegrationContextImplementation, Trials, TrialsScaffolding as ScalaTrialsScaffolding}
 import fs2.{Pull, Stream as Fs2Stream}
 import org.rocksdb.Cache as _
-import scalacache.*
-import scalacache.caffeine.CaffeineCache
 
 import _root_.java.util.function.Consumer
 import scala.annotation.tailrec
@@ -62,8 +39,6 @@ object SupplyToSyntaxSkeletalImplementation {
           connection.close()
         }
     )
-
-  implicit val cache: Cache[BigDecimal] = CaffeineCache[BigDecimal]
 }
 
 trait SupplyToSyntaxSkeletalImplementation[Case]
@@ -168,6 +143,8 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
 
   val potentialDuplicates =
     mutable.Set.empty[DecisionStagesInReverseOrder]
+
+  val deflatedScaleCache = mutable.Map.empty[(BigDecimal, Int), BigDecimal]
 
   private def cases(
       complexityLimit: Int,
@@ -322,24 +299,22 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
       else StateT.liftF(None)
     }
 
-    def deflatedScale(maximumScale: BigDecimal, level: Int): BigDecimal = {
-      import SupplyToSyntaxSkeletalImplementation.cache
-      import scalacache.modes.sync.*
-
-      caching[Id, BigDecimal](maximumScale -> level)(None) {
-        if (maximumScale <= Double.MaxValue)
-          maximumScale / Math.pow(
-            maximumScale.toDouble,
-            level.toDouble / maximumScaleDeflationLevel
-          )
-        else {
-          deflatedScale(Double.MaxValue, level) * deflatedScale(
-            maximumScale / Double.MaxValue,
-            level
-          )
+    def deflatedScale(maximumScale: BigDecimal, level: Int): BigDecimal =
+      deflatedScaleCache.getOrElseUpdate(
+        maximumScale -> level, {
+          if (maximumScale <= Double.MaxValue)
+            maximumScale / Math.pow(
+              maximumScale.toDouble,
+              level.toDouble / maximumScaleDeflationLevel
+            )
+          else {
+            deflatedScale(Double.MaxValue, level) * deflatedScale(
+              maximumScale / Double.MaxValue,
+              level
+            )
+          }
         }
-      }
-    }
+      )
 
     def interpretFactory[Case](
         factory: CaseFactory[Case]
