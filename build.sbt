@@ -101,7 +101,7 @@ lazy val settings = Seq(
   libraryDependencies += "io.circe"      %% "circe-parser"          % "0.14.10",
   libraryDependencies += "com.google.guava" % "guava"   % "33.3.1-jre",
   libraryDependencies += "com.oath.cyclops" % "cyclops" % "10.4.1",
-  libraryDependencies += "org.junit.jupiter" % "junit-jupiter-params" % "5.11.0",
+  libraryDependencies += "org.junit.jupiter" % "junit-jupiter-params" % "5.11.1",
   libraryDependencies += "org.junit.platform" % "junit-platform-launcher" % "1.11.0",
   libraryDependencies += "org.rocksdb"        % "rocksdbjni"   % "9.6.1",
   libraryDependencies += "org.apache.commons" % "commons-text" % "1.12.0",
@@ -116,7 +116,7 @@ lazy val settings = Seq(
   libraryDependencies += "com.github.sbt.junit" % "jupiter-interface" % JupiterKeys.jupiterVersion.value % Test,
   libraryDependencies ++= Seq(
     "org.junit.platform" % "junit-platform-runner" % "1.11.0" % Test,
-    "org.junit.jupiter"  % "junit-jupiter-engine"  % "5.11.0" % Test
+    "org.junit.jupiter"  % "junit-jupiter-engine"  % "5.11.1" % Test
   ),
   libraryDependencies += "org.hamcrest"          % "hamcrest" % "3.0"    % Test,
   libraryDependencies += "com.eed3si9n.expecty" %% "expecty"  % "0.16.0" % Test
