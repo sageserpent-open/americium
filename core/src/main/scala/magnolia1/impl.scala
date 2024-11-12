@@ -114,8 +114,8 @@ object CaseClassDerivation:
           override def apply(): Option[p] = defaults.get(label).flatten.flatMap(d => unsafeCast(d.apply))
         paramFromMaps[Typeclass, A, p](
           label,
-          new CallByNeed(tc),
-          new CallByNeed(d, () => true),
+          CallByNeed.createLazy(tc),
+          CallByNeed.createValueEvaluator(d),
           repeated,
           annotations,
           inheritedAnnotations,
@@ -203,7 +203,7 @@ trait SealedTraitDerivation:
                 IArray.from(paramTypeAnns[A]),
                 isObject[s],
                 idx,
-                new CallByNeed(tc),
+                CallByNeed.createLazy(tc),
                 isType,
                 asType
               )
