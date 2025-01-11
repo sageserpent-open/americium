@@ -278,7 +278,7 @@ object Macro:
 
     private def filterAnnotation(a: Term): Boolean =
       scala.util.Try(a.tpe <:< TypeRepr.of[scala.annotation.Annotation]).toOption.contains(true) &&
-      (a.tpe.typeSymbol.maybeOwner.isNoSymbol ||
-        (a.tpe.typeSymbol.owner.fullName != "scala.annotation.internal" &&
-          a.tpe.typeSymbol.owner.fullName != "jdk.internal"))
+        (a.tpe.typeSymbol.maybeOwner.isNoSymbol ||
+          (a.tpe.typeSymbol.owner.fullName != "scala.annotation.internal" &&
+            a.tpe.typeSymbol.owner.fullName != "jdk.internal"))
   }
