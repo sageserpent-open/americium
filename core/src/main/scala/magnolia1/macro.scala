@@ -178,14 +178,14 @@ object Macro:
 
     private val tpe: TypeRepr = TypeRepr.of[T]
 
-    def anns: Expr[List[Any]] =
+    def anns: Expr[List[scala.annotation.Annotation]] =
       Expr.ofList {
         tpe.typeSymbol.annotations
           .filter(filterAnnotation)
-          .map(_.asExpr.asInstanceOf[Expr[Any]])
+          .map(_.asExpr.asInstanceOf[Expr[scala.annotation.Annotation]])
       }
 
-    def inheritedAnns: Expr[List[Any]] =
+    def inheritedAnns: Expr[List[scala.annotation.Annotation]] =
       Expr.ofList {
         tpe.baseClasses
           .filterNot(isObjectOrScala)
@@ -194,10 +194,10 @@ object Macro:
           } // skip self
           .flatten
           .filter(filterAnnotation)
-          .map(_.asExpr.asInstanceOf[Expr[Any]])
+          .map(_.asExpr.asInstanceOf[Expr[scala.annotation.Annotation]])
       }
 
-    def typeAnns: Expr[List[Any]] = {
+    def typeAnns: Expr[List[scala.annotation.Annotation]] = {
 
       def getAnnotations(t: TypeRepr): List[Term] = t match
         case AnnotatedType(inner, ann) => ann :: getAnnotations(inner)
@@ -212,7 +212,7 @@ object Macro:
               .collect { case t: TypeTree => t.tpe }
               .flatMap(getAnnotations)
               .filter(filterAnnotation)
-              .map(_.asExpr.asInstanceOf[Expr[Any]])
+              .map(_.asExpr.asInstanceOf[Expr[scala.annotation.Annotation]])
           case _ =>
             // Best effort in case whe -Yretain-trees is not used
             // Does not support class parent annotations (in the extends clouse)
@@ -220,12 +220,12 @@ object Macro:
               .map(tpe.baseType(_))
               .flatMap(getAnnotations(_))
               .filter(filterAnnotation)
-              .map(_.asExpr)
+              .map(_.asExprOf[scala.annotation.Annotation])
         }
       }
     }
 
-    def paramAnns: Expr[List[(String, List[Any])]] =
+    def paramAnns: Expr[List[(String, List[scala.annotation.Annotation])]] =
       Expr.ofList {
         groupByParamName {
           (fromConstructor(tpe.typeSymbol) ++ fromDeclarations(tpe.typeSymbol))
@@ -233,7 +233,7 @@ object Macro:
         }
       }
 
-    def inheritedParamAnns: Expr[List[(String, List[Any])]] =
+    def inheritedParamAnns: Expr[List[(String, List[scala.annotation.Annotation])]] =
       Expr.ofList {
         groupByParamName {
           tpe.baseClasses
@@ -248,25 +248,25 @@ object Macro:
         }
       }
 
-    private def fromConstructor(from: Symbol): List[(String, List[Expr[Any]])] =
+    private def fromConstructor(from: Symbol): List[(String, List[Expr[scala.annotation.Annotation]])] =
       from.primaryConstructor.paramSymss.flatten.map { field =>
         field.name -> field.annotations
           .filter(filterAnnotation)
-          .map(_.asExpr.asInstanceOf[Expr[Any]])
+          .map(_.asExpr.asInstanceOf[Expr[scala.annotation.Annotation]])
       }
 
     private def fromDeclarations(
         from: Symbol,
         inherited: Boolean = false
-    ): List[(String, List[Expr[Any]])] =
+    ): List[(String, List[Expr[scala.annotation.Annotation]])] =
       from.fieldMembers.collect { case field: Symbol =>
         val annotations = if (!inherited) field.annotations else field.allOverriddenSymbols.flatMap(_.annotations).toList
         field.name -> annotations
           .filter(filterAnnotation)
-          .map(_.asExpr.asInstanceOf[Expr[Any]])
+          .map(_.asExpr.asInstanceOf[Expr[scala.annotation.Annotation]])
       }
 
-    private def groupByParamName(anns: List[(String, List[Expr[Any]])]) =
+    private def groupByParamName(anns: List[(String, List[Expr[scala.annotation.Annotation]])]) =
       anns
         .groupBy { case (name, _) => name }
         .toList
@@ -277,7 +277,8 @@ object Macro:
       bc.name.contains("java.lang.Object") || bc.fullName.startsWith("scala.")
 
     private def filterAnnotation(a: Term): Boolean =
-      a.tpe.typeSymbol.maybeOwner.isNoSymbol ||
+      scala.util.Try(a.tpe <:< TypeRepr.of[scala.annotation.Annotation]).toOption.contains(true) &&
+      (a.tpe.typeSymbol.maybeOwner.isNoSymbol ||
         (a.tpe.typeSymbol.owner.fullName != "scala.annotation.internal" &&
-          a.tpe.typeSymbol.owner.fullName != "jdk.internal")
+          a.tpe.typeSymbol.owner.fullName != "jdk.internal"))
   }
