@@ -6,14 +6,35 @@ import cats.effect.kernel.Resource
 import cats.~>
 import com.google.common.collect.{Ordering as _, *}
 import com.sageserpent.americium.TrialsScaffolding.ShrinkageStop
-import com.sageserpent.americium.generation.Decision.{DecisionStages, parseDecisionIndices}
+import com.sageserpent.americium.generation.Decision.{
+  DecisionStages,
+  parseDecisionIndices
+}
 import com.sageserpent.americium.generation.GenerationOperation.Generation
 import com.sageserpent.americium.generation.JavaPropertyNames.*
-import com.sageserpent.americium.generation.SupplyToSyntaxSkeletalImplementation.{maximumScaleDeflationLevel, minimumScaleDeflationLevel, readOnlyRocksDbConnectionResource}
-import com.sageserpent.americium.java.{CaseFailureReporting, CaseSupplyCycle, CasesLimitStrategy, CrossApiIterator, InlinedCaseFiltration, NoValidTrialsException, TestIntegrationContext, TrialsScaffolding as JavaTrialsScaffolding}
+import com.sageserpent.americium.generation.SupplyToSyntaxSkeletalImplementation.{
+  maximumScaleDeflationLevel,
+  minimumScaleDeflationLevel,
+  readOnlyRocksDbConnectionResource
+}
+import com.sageserpent.americium.java.{
+  CaseFailureReporting,
+  CaseSupplyCycle,
+  CasesLimitStrategy,
+  CrossApiIterator,
+  InlinedCaseFiltration,
+  NoValidTrialsException,
+  TestIntegrationContext,
+  TrialsScaffolding as JavaTrialsScaffolding
+}
 import com.sageserpent.americium.randomEnrichment.RichRandom
 import com.sageserpent.americium.storage.RocksDBConnection
-import com.sageserpent.americium.{CaseFactory, TestIntegrationContextImplementation, Trials, TrialsScaffolding as ScalaTrialsScaffolding}
+import com.sageserpent.americium.{
+  CaseFactory,
+  TestIntegrationContextImplementation,
+  Trials,
+  TrialsScaffolding as ScalaTrialsScaffolding
+}
 import fs2.{Pull, Stream as Fs2Stream}
 import org.rocksdb.Cache as _
 
