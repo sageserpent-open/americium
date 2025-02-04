@@ -3,6 +3,7 @@ package magnolia1
 import magnolia1.CaseClass.getDefaultEvaluatorFromDefaultVal
 
 import scala.annotation.tailrec
+import scala.collection.immutable.ArraySeq
 import scala.reflect.*
 
 case class TypeInfo(
@@ -156,6 +157,7 @@ abstract class CaseClass[Typeclass[_], Type](
       makeParam: Param => Either[Err, PType]
   ): Either[List[Err], Type]
   def rawConstruct(fieldValues: Seq[Any]): Type
+  def rawConstruct(fieldValues: Array[Any]): Type = rawConstruct(ArraySeq.unsafeWrapArray(fieldValues))
 
   def param[P](
       name: String,
