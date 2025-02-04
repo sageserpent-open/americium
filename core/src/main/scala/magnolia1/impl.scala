@@ -62,10 +62,13 @@ object CaseClassDerivation:
         typeAnnotations
       ):
     def construct[PType: ClassTag](makeParam: Param => PType): A =
-      product.fromProduct(Tuple.fromArray(parameters.map(makeParam).to(Array)))
+      product.fromProduct(Tuple.fromIArray(parameters.map(makeParam)))
 
-    def rawConstruct(fieldValues: Seq[Any]): A =
-      product.fromProduct(Tuple.fromArray(fieldValues.to(Array)))
+    override def rawConstruct(fieldValues: Seq[Any]): A =
+      rawConstruct(fieldValues.toArray)
+
+    override def rawConstruct(fieldValues: Array[Any]): A =
+      product.fromProduct(Tuple.fromArray(fieldValues))
 
     def constructEither[Err, PType: ClassTag](
         makeParam: Param => Either[Err, PType]
