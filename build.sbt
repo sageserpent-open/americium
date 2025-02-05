@@ -59,7 +59,7 @@ lazy val settings = Seq(
         "org.scala-lang"                % "scala-reflect" % scalaVersion.value
       )
     case Some((3, _)) =>
-      Seq("com.softwaremill.magnolia1_3" %% "magnolia" % "1.3.9")
+      Seq("com.softwaremill.magnolia1_3" %% "magnolia" % "1.3.11")
 
     case _ => Seq.empty
   }),
