@@ -111,17 +111,17 @@ object CaseClassDerivation:
         val label = constValue[l].asInstanceOf[String]
         val tc = new SerializableFunction0[Typeclass[p]]:
           override def apply(): Typeclass[p] = summonInline[Typeclass[p]]
-        val evaluator: () => Any = defaults(label).orNull
         val d =
-          if (evaluator ne null) {
-            new SerializableFunction0[Option[p]]:
-              override def apply(): Option[p] =
-                val v = evaluator()
-                if (v.isInstanceOf[p]) Some(v.asInstanceOf[p])
-                else None
-          } else {
-            new SerializableFunction0[Option[p]]:
-              override def apply(): Option[p] = None
+          defaults(label) match {
+            case Some(evaluator) =>
+              new SerializableFunction0[Option[p]]:
+                override def apply(): Option[p] =
+                  val v = evaluator()
+                  if (v.isInstanceOf[p]) Some(v.asInstanceOf[p])
+                  else None
+            case _ =>
+              new SerializableFunction0[Option[p]]:
+                override def apply(): Option[p] = None
           }
         paramFromMaps[Typeclass, A, p](
           label,
