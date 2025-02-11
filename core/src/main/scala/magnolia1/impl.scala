@@ -117,7 +117,7 @@ object CaseClassDerivation:
               new SerializableFunction0[Option[p]]:
                 override def apply(): Option[p] =
                   val v = evaluator()
-                  if (v.isInstanceOf[p]) Some(v.asInstanceOf[p])
+                  if ((v: @unchecked).isInstanceOf[p]) Some(v.asInstanceOf[p])
                   else None
             case _ =>
               new SerializableFunction0[Option[p]]:
