@@ -1,8 +1,6 @@
 package com.sageserpent.americium
 import magnolia1.{AutoDerivation, CaseClass, Monadic, SealedTrait}
 
-import scala.deriving.Mirror
-
 trait Factory[Case] {
   def trials: Trials[Case]
 }
