@@ -5,14 +5,11 @@ import java.io.OutputStream
 
 lazy val javaVersion = "17"
 
-lazy val scala2_13_Version = "2.13.16"
-
 lazy val scala3_Version = "3.3.5"
 
-ThisBuild / scalaVersion := scala2_13_Version
+ThisBuild / scalaVersion := scala3_Version
 
 lazy val settings = Seq(
-  crossScalaVersions   := Seq(scala2_13_Version, scala3_Version),
   pomIncludeRepository := { _ => false },
   publishMavenStyle    := true,
   licenses += ("MIT", url("https://opensource.org/licenses/MIT")),
@@ -59,7 +56,7 @@ lazy val settings = Seq(
         "org.scala-lang"                % "scala-reflect" % scalaVersion.value
       )
     case Some((3, _)) =>
-      Seq("com.softwaremill.magnolia1_3" %% "magnolia" % "1.3.13")
+      Seq("com.softwaremill.magnolia1_3" %% "magnolia" % "1.3.11")
 
     case _ => Seq.empty
   }),
