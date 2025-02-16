@@ -55,9 +55,6 @@ lazy val settings = Seq(
         "com.softwaremill.magnolia1_2" %% "magnolia"      % "1.1.10",
         "org.scala-lang"                % "scala-reflect" % scalaVersion.value
       )
-    case Some((3, _)) =>
-      Seq("com.softwaremill.magnolia1_3" %% "magnolia" % "1.3.11")
-
     case _ => Seq.empty
   }),
   Test / test / logLevel := Level.Error,
@@ -119,6 +116,9 @@ lazy val settings = Seq(
   libraryDependencies += "com.eed3si9n.expecty" %% "expecty"  % "0.17.0" % Test
 )
 
+lazy val magnolia = project in file("magnolia/core")
+
 lazy val americium = (project in file("."))
   .settings(settings: _*)
   .disablePlugins(plugins.JUnitXmlReportPlugin)
+  .dependsOn(magnolia)
