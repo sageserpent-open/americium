@@ -105,7 +105,7 @@ lazy val settings = Seq(
     "org.junit.jupiter" % "junit-jupiter-params" % JupiterKeys.junitJupiterVersion.value,
     "org.junit.platform" % "junit-platform-launcher" % JupiterKeys.junitPlatformVersion.value
   ),
-  libraryDependencies += "org.rocksdb"        % "rocksdbjni"   % "9.10.0",
+  libraryDependencies += "org.rocksdb"        % "rocksdbjni"   % "10.0.1",
   libraryDependencies += "org.apache.commons" % "commons-text" % "1.13.1",
   libraryDependencies += "com.lihaoyi"       %% "pprint"       % "0.9.0",
   libraryDependencies += "org.typelevel"  %% "cats-laws"  % "2.13.0" % Test,
