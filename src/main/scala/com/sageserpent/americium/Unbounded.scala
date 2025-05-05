@@ -1,29 +1,33 @@
 package com.sageserpent.americium
 
-import scala.language.implicitConversions
-import scala.math.Ordered
-
 object Unbounded {
-  implicit def convertToOrdered[X: Ordering](
-      unbounded: Unbounded[X]
-  ): Ordered[Unbounded[X]] =
-    (another: Unbounded[X]) =>
-      (unbounded, another) match {
+  implicit def ordering[X: Ordering]: Ordering[Unbounded[X]] =
+    (first: Unbounded[X], second: Unbounded[X]) =>
+      (first, second) match {
         case (Finite(thisUnlifted), Finite(anotherUnlifted)) =>
           Ordering[X].compare(thisUnlifted, anotherUnlifted)
-        case (PositiveInfinity(), PositiveInfinity()) => 0
-        case (NegativeInfinity(), NegativeInfinity()) => 0
-        case (_, PositiveInfinity())                  => -1
-        case (NegativeInfinity(), _)                  => -1
-        case (PositiveInfinity(), _)                  => 1
-        case (_, NegativeInfinity())                  => 1
+        case (PositiveInfinity, PositiveInfinity) => 0
+        case (NegativeInfinity, NegativeInfinity) => 0
+        case (_, PositiveInfinity)                => -1
+        case (NegativeInfinity, _)                => -1
+        case (PositiveInfinity, _)                => 1
+        case (_, NegativeInfinity)                => 1
       }
+
+  implicit val negativeInfinityOrdering: Ordering[NegativeInfinity.type] =
+    (one: NegativeInfinity.type, andTheSame: NegativeInfinity.type) => 0
+  implicit val positiveInfinityOrdering: Ordering[PositiveInfinity.type] =
+    (one: PositiveInfinity.type, andTheSame: PositiveInfinity.type) => 0
+
+  implicit def finiteOrdering[X: Ordering]: Ordering[Finite[X]] =
+    (first: Finite[X], second: Finite[X]) =>
+      ordering(implicitly[Ordering[X]]).compare(first, second)
 }
 
-sealed trait Unbounded[X]
+sealed trait Unbounded[+X]
 
-case class Finite[X](unlifted: X) extends Unbounded[X]
+case class Finite[X: Ordering](unlifted: X) extends Unbounded[X]
 
-case class NegativeInfinity[X]() extends Unbounded[X]
+case object NegativeInfinity extends Unbounded[Nothing]
 
-case class PositiveInfinity[X]() extends Unbounded[X]
+case object PositiveInfinity extends Unbounded[Nothing]
