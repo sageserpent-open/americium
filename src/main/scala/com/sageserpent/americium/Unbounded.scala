@@ -13,21 +13,32 @@ object Unbounded {
         case (PositiveInfinity, _)                => 1
         case (_, NegativeInfinity)                => 1
       }
-
-  implicit val negativeInfinityOrdering: Ordering[NegativeInfinity.type] =
-    (one: NegativeInfinity.type, andTheSame: NegativeInfinity.type) => 0
-  implicit val positiveInfinityOrdering: Ordering[PositiveInfinity.type] =
-    (one: PositiveInfinity.type, andTheSame: PositiveInfinity.type) => 0
-
-  implicit def finiteOrdering[X: Ordering]: Ordering[Finite[X]] =
-    (first: Finite[X], second: Finite[X]) =>
-      Ordering[X].compare(first.unlifted, second.unlifted)
 }
 
 sealed trait Unbounded[+X]
 
-case class Finite[X: Ordering](unlifted: X) extends Unbounded[X]
+case class Finite[X: Ordering](unlifted: X)
+    extends Unbounded[X]
+    with Ordered[Unbounded[X]] {
+  override def compare(that: Unbounded[X]): Int =
+    Unbounded.ordering.compare(this, that)
+}
 
-case object NegativeInfinity extends Unbounded[Nothing]
+case object NegativeInfinity
+    extends Unbounded[Nothing]
+    with Ordered[Unbounded[_ <: Any]] {
 
-case object PositiveInfinity extends Unbounded[Nothing]
+  override def compare(that: Unbounded[_]): Int = that match {
+    case NegativeInfinity => 0
+    case _                => -1
+  }
+}
+
+case object PositiveInfinity
+    extends Unbounded[Nothing]
+    with Ordered[Unbounded[_ <: Any]] {
+  override def compare(that: Unbounded[_]): Int = that match {
+    case PositiveInfinity => 0
+    case _                => 1
+  }
+}
