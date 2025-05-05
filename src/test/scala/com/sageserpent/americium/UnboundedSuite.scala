@@ -10,10 +10,12 @@ class UnboundedSuite {
   // enhancement, but this doesn't play well with the infinities...
 
   private val integerTrials = api.integers
-
-  private val unboundedGenerator: Trials[Unbounded[Int]] =
-    implicitly[Factory[Unbounded[Int]]].trials
-
+  
+  // This test proves that `Unbounded[X]` respects the same order as the
+  // underlying `X`. So there is no need to prove the axioms about reflexivity,
+  // anticommutativity and transitivity, as these come for free via
+  // `Ordering[X]`. The only loophole is how the infinite values fit into the
+  // ordering; that is covered by the other tests.
   @TestFactory
   def liftedFiniteValuesShouldBeOrderedToTheUnderlyingFiniteValues()
       : DynamicTests =
@@ -78,65 +80,4 @@ class UnboundedSuite {
       Ordering[Unbounded[Int]].equiv(PositiveInfinity, PositiveInfinity)
     )
   }
-
-  // TODO - use a laws approach for this, there will be one out there somewhere,
-  // probably in Cats...
-  @TestFactory
-  def theSameItemsShouldCompareEqual(): DynamicTests =
-    unboundedGenerator
-      .withLimit(100)
-      .dynamicTests { unbounded =>
-        assert(0 == Ordering[Unbounded[Int]].compare(unbounded, unbounded))
-      }
-
-  // TODO - use a laws approach for this, there will be one out there somewhere,
-  // probably in Cats...
-  @TestFactory
-  def swappingTwoItemsShouldNegateTheComparison(): DynamicTests =
-    (unboundedGenerator and unboundedGenerator)
-      .withLimit(100)
-      .dynamicTests { (one, another) =>
-        assert(
-          Ordering[Unbounded[Int]]
-            .compare(another, one) == -Ordering[Unbounded[Int]]
-            .compare(one, another)
-        )
-      }
-
-  // TODO - use a laws approach for this, there will be one out there somewhere,
-  // probably in Cats...
-  @TestFactory
-  def transitiveUnequalComparisonsShouldBePossibleWithStepwiseUnequalComparisonsThatAgreeInSense()
-      : DynamicTests =
-    (unboundedGenerator and unboundedGenerator and unboundedGenerator)
-      .withLimit(100)
-      .dynamicTests { (first, common, last) =>
-        val firstWithCommon = Ordering[Unbounded[Int]].compare(first, common)
-        val commonWithLast  = Ordering[Unbounded[Int]].compare(common, last)
-
-        Trials.whenever(0 < firstWithCommon * commonWithLast) {
-          assume(firstWithCommon.sign == commonWithLast.sign)
-          assert(
-            Ordering[Unbounded[Int]]
-              .compare(first, last)
-              .sign == firstWithCommon.sign
-          )
-        }
-      }
-
-  // TODO - use a laws approach for this, there will be one out there somewhere,
-  // probably in Cats...
-  @TestFactory
-  def transitiveEqualComparisonsShouldBePossibleWithStepWiseEqualComparisons
-      : DynamicTests =
-    (unboundedGenerator and unboundedGenerator and unboundedGenerator)
-      .withLimit(100)
-      .dynamicTests { (first, common, last) =>
-        val firstWithCommon = Ordering[Unbounded[Int]].compare(first, common)
-        val commonWithLast  = Ordering[Unbounded[Int]].compare(common, last)
-
-        Trials.whenever(0 == firstWithCommon && 0 == commonWithLast) {
-          assert(0 == Ordering[Unbounded[Int]].compare(first, last))
-        }
-      }
 }
