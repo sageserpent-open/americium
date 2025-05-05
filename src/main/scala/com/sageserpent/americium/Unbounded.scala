@@ -21,7 +21,7 @@ object Unbounded {
 
   implicit def finiteOrdering[X: Ordering]: Ordering[Finite[X]] =
     (first: Finite[X], second: Finite[X]) =>
-      ordering(implicitly[Ordering[X]]).compare(first, second)
+      Ordering[X].compare(first.unlifted, second.unlifted)
 }
 
 sealed trait Unbounded[+X]
