@@ -46,13 +46,19 @@ class UnboundedSuite {
           ) == firstUnderlying.compare(secondUnderlying)
         )
         assert(
+          Finite(firstUnderlying).compare(
+            Finite(
+              secondUnderlying
+            ): Unbounded[Int]
+          ) == firstUnderlying.compare(secondUnderlying)
+        )
+        assert(
           (Finite(firstUnderlying): Unbounded[Int]).compare(
             Finite(
               secondUnderlying
             )
           ) == firstUnderlying.compare(secondUnderlying)
         )
-
     }
 
   @TestFactory
@@ -79,6 +85,12 @@ class UnboundedSuite {
           (NegativeInfinity: Unbounded[Int]) < Finite(underlying)
         )
         assert(
+          (NegativeInfinity: Unbounded[Int]) < (Finite(underlying): Unbounded[
+            Int
+          ])
+        )
+
+        assert(
           Finite(underlying) > NegativeInfinity
         )
         assert(
@@ -87,6 +99,12 @@ class UnboundedSuite {
         assert(
           (Finite(underlying): Unbounded[Int]) > NegativeInfinity
         )
+        assert(
+          (Finite(underlying): Unbounded[Int]) > (NegativeInfinity: Unbounded[
+            Int
+          ])
+        )
+
       }
 
   @TestFactory
@@ -113,6 +131,12 @@ class UnboundedSuite {
           (PositiveInfinity: Unbounded[Int]) > Finite(underlying)
         )
         assert(
+          (PositiveInfinity: Unbounded[Int]) > (Finite(underlying): Unbounded[
+            Int
+          ])
+        )
+
+        assert(
           Finite(underlying) < PositiveInfinity
         )
         assert(
@@ -120,6 +144,11 @@ class UnboundedSuite {
         )
         assert(
           (Finite(underlying): Unbounded[Int]) < PositiveInfinity
+        )
+        assert(
+          (Finite(underlying): Unbounded[Int]) < (PositiveInfinity: Unbounded[
+            Int
+          ])
         )
       }
 
@@ -133,9 +162,16 @@ class UnboundedSuite {
     assert(NegativeInfinity < PositiveInfinity)
     assert(NegativeInfinity < (PositiveInfinity: Unbounded[Int]))
     assert((NegativeInfinity: Unbounded[Int]) < PositiveInfinity)
+    assert(
+      (NegativeInfinity: Unbounded[Int]) < (PositiveInfinity: Unbounded[Int])
+    )
+
     assert(PositiveInfinity > NegativeInfinity)
     assert(PositiveInfinity > (NegativeInfinity: Unbounded[Int]))
     assert((PositiveInfinity: Unbounded[Int]) > NegativeInfinity)
+    assert(
+      (PositiveInfinity: Unbounded[Int]) > (NegativeInfinity: Unbounded[Int])
+    )
   }
 
   @Test
@@ -155,6 +191,9 @@ class UnboundedSuite {
     assert(
       (NegativeInfinity: Unbounded[Int]) == NegativeInfinity
     )
+    assert(
+      (NegativeInfinity: Unbounded[Int]) == (NegativeInfinity: Unbounded[Int])
+    )
   }
 
   @Test
@@ -173,6 +212,9 @@ class UnboundedSuite {
     )
     assert(
       (PositiveInfinity: Unbounded[Int]) == PositiveInfinity
+    )
+    assert(
+      (PositiveInfinity: Unbounded[Int]) == (PositiveInfinity: Unbounded[Int])
     )
   }
 }
