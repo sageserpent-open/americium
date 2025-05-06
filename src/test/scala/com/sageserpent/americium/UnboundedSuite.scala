@@ -5,8 +5,6 @@ import com.sageserpent.americium.Trials.api
 import com.sageserpent.americium.junit5.*
 import org.junit.jupiter.api.{Test, TestFactory}
 
-import scala.math.Ordered.orderingToOrdered
-
 class UnboundedSuite {
   private val integerTrials = api.integers
 

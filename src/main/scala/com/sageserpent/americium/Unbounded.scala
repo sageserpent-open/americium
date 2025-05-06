@@ -1,4 +1,5 @@
 package com.sageserpent.americium
+import scala.language.implicitConversions
 
 object Unbounded {
   implicit def ordering[X: Ordering]: Ordering[Unbounded[X]] =
@@ -13,6 +14,11 @@ object Unbounded {
         case (PositiveInfinity, _)                => 1
         case (_, NegativeInfinity)                => 1
       }
+
+  implicit def orderedSyntaxFor[X: Ordering](
+      unbounded: Unbounded[X]
+  ): Ordered[Unbounded[X]] =
+    scala.math.Ordered.orderingToOrdered[Unbounded[X]](unbounded)
 }
 
 sealed trait Unbounded[+X]
@@ -27,7 +33,6 @@ case class Finite[X: Ordering](unlifted: X)
 case object NegativeInfinity
     extends Unbounded[Nothing]
     with Ordered[Unbounded[_ <: Any]] {
-
   override def compare(that: Unbounded[_]): Int = that match {
     case NegativeInfinity => 0
     case _                => -1
