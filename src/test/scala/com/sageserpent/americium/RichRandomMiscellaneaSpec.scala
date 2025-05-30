@@ -171,7 +171,7 @@ class RichRandomMiscellaneaSpec extends AnyFlatSpec with Matchers {
     val random = new Random(1)
 
     for (numberOfConsecutiveItems <- 1 to 105) {
-      val superSet = 0 until numberOfConsecutiveItems toSet
+      val superSet   = 0 until numberOfConsecutiveItems toSet
       val chosenItem =
         random.chooseAnyNumberFromZeroToOneLessThan(numberOfConsecutiveItems)
       testOnSuperSetAndItemsChosenFromIt(superSet, List(chosenItem), 1)
@@ -324,7 +324,7 @@ class RichRandomMiscellaneaSpec extends AnyFlatSpec with Matchers {
   }
 
   it should "yield the items in each sequence when picking alternately from several sequences" in {
-    val randomBehaviour = new Random(89734873)
+    val randomBehaviour                             = new Random(89734873)
     def testHandoff(sequences: Seq[Seq[Int]]): Unit = {
       val alternatelyPickedSequence =
         randomBehaviour.pickAlternatelyFrom(sequences)
@@ -340,7 +340,7 @@ class RichRandomMiscellaneaSpec extends AnyFlatSpec with Matchers {
   }
 
   it should "preserve the item order in each sequence when picking alternately from several sequences" in {
-    val randomBehaviour = new Random(2317667)
+    val randomBehaviour                                  = new Random(2317667)
     def testHandoff(sequences: Seq[Seq[Int]]): Assertion = {
       val alternatelyPickedSequence =
         randomBehaviour.pickAlternatelyFrom(sequences)
@@ -388,7 +388,7 @@ class RichRandomMiscellaneaSpec extends AnyFlatSpec with Matchers {
   }
 
   it should "pick fairly from each sequence when picking alternately from several sequences" in {
-    val randomBehaviour = new Random(2317667)
+    val randomBehaviour                             = new Random(2317667)
     def testHandoff(sequences: Seq[Seq[Int]]): Unit = {
       val alternatelyPickedSequence =
         randomBehaviour.pickAlternatelyFrom(sequences)

@@ -363,8 +363,8 @@ class TrialsApiImplementation extends CommonApi with ScalaTrialsApi {
         require(upperBoundInput >= input)
         caseFactory(input)
       }
-      override def lowerBoundInput: BigInt = caseFactory.lowerBoundInput
-      override def upperBoundInput: BigInt = caseFactory.upperBoundInput
+      override def lowerBoundInput: BigInt      = caseFactory.lowerBoundInput
+      override def upperBoundInput: BigInt      = caseFactory.upperBoundInput
       override def maximallyShrunkInput: BigInt =
         caseFactory.maximallyShrunkInput
     })

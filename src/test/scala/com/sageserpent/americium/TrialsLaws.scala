@@ -33,8 +33,8 @@ class TrialsLaws extends AnyFlatSpec with Checkers {
     }
 
   implicit def arbitraryTrials[X: Arbitrary]: Arbitrary[Trials[X]] = {
-    val genX    = implicitly[Arbitrary[X]].arbitrary
-    val viaOnly = genX.map(api.only)
+    val genX      = implicitly[Arbitrary[X]].arbitrary
+    val viaOnly   = genX.map(api.only)
     val viaChoose = for {
       first  <- genX
       second <- genX

@@ -15,7 +15,7 @@ class DemonstrateJUnit5Integration {
   @TestFactory
   def dynamicTestsExample: DynamicTests = {
     val expectedNumberOfTestCases = 15
-    val supplier =
+    val supplier                  =
       api.integers.withLimit(expectedNumberOfTestCases)
     var trialsCount: Int = 0
 
@@ -49,7 +49,7 @@ class DemonstrateJUnit5Integration {
   @TestFactory
   def dynamicTestsExampleUsingAGangOfTwo(): DynamicTests = {
     val expectedNumberOfTestCases = 15
-    val supplier =
+    val supplier                  =
       (api.integers and api.strings).withLimit(expectedNumberOfTestCases)
     var trialsCount: Int = 0
 
@@ -114,7 +114,7 @@ class DemonstrateJUnit5Integration {
   @TestFactory
   def dynamicTestsExampleWithIgnoredTestCases: DynamicTests = {
     val expectedNumberOfTestCases = 15
-    val supplier =
+    val supplier                  =
       api.integers.withLimit(expectedNumberOfTestCases)
 
     supplier.dynamicTests(testCase => {

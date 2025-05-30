@@ -172,8 +172,8 @@ trait TrialsApiImplementation extends CommonApi with TrialsApiWart {
         require(upperBoundInput >= input)
         caseFactory(input.bigInteger)
       }
-      override def lowerBoundInput: BigInt = caseFactory.lowerBoundInput()
-      override def upperBoundInput: BigInt = caseFactory.upperBoundInput()
+      override def lowerBoundInput: BigInt      = caseFactory.lowerBoundInput()
+      override def upperBoundInput: BigInt      = caseFactory.upperBoundInput()
       override def maximallyShrunkInput: BigInt =
         caseFactory.maximallyShrunkInput
     })
