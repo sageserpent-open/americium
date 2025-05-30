@@ -47,7 +47,7 @@ trees.withLimit(10).supplyTo { tree =>
 def statelyTrees: Trials[Tree] = api.complexities.flatMap(complexity =>
   api.alternateWithWeights(
     complexity -> api.uniqueIds.map(Leaf.apply),
-    2 -> api
+    2          -> api
       .integers(1, 5)
       .flatMap(numberOfSubtrees =>
         statelyTrees.listsOfSize(numberOfSubtrees).map(Branching.apply)

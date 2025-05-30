@@ -34,7 +34,7 @@ import scala.jdk.OptionConverters.RichOptional
 object TrialsTestExtension {
   val simpleWrapping: TupleAdaptation[AnyRef] = {
     new TupleAdaptation[AnyRef] {
-      override def clazz: Class[AnyRef] = classOf[AnyRef]
+      override def clazz: Class[AnyRef]                        = classOf[AnyRef]
       override def expand(potentialTuple: AnyRef): Seq[AnyRef] =
         Seq(potentialTuple)
     }
@@ -120,7 +120,7 @@ object TrialsTestExtension {
       context: ExtensionContext,
       clazz: Class[Clazz]
   ): List[Clazz] = {
-    val testClass = context.getRequiredTestClass
+    val testClass      = context.getRequiredTestClass
     val supplierFields = ReflectionSupport
       .findFields(
         testClass,
@@ -271,7 +271,7 @@ class TrialsTestExtension extends TestTemplateInvocationContextProvider {
         while (
           formalParameterTypes.length > formalParameterIndex && argumentIterator.hasNext
         ) {
-          val parameter = argumentIterator.next
+          val parameter           = argumentIterator.next
           val formalParameterType =
             formalParameterTypes(formalParameterIndex)
           val expansion = cachedTupleAdaptations

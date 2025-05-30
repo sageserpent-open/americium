@@ -133,7 +133,7 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
     final def appendInReverseOnTo(
         partialResult: DecisionStages
     ): DecisionStages = this match {
-      case NoDecisionStages => partialResult
+      case NoDecisionStages          => partialResult
       case _: InternedDecisionStages =>
         Option(
           nonEmptyToAndFromInternedDecisionStages.inverse().get(this)
