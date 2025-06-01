@@ -149,7 +149,7 @@ class RichSeqSpec extends AnyFlatSpec with Matchers {
       .withLimit(100)
       .supplyTo { inputMultiplierSequences =>
         val numberOfSequences = inputMultiplierSequences.length
-        val inputSequences = inputMultiplierSequences.zipWithIndex.map {
+        val inputSequences    = inputMultiplierSequences.zipWithIndex.map {
           case (multipliers, sequenceMarker) =>
             multipliers map (sequenceMarker + numberOfSequences * _)
         }
@@ -167,7 +167,7 @@ class RichSeqSpec extends AnyFlatSpec with Matchers {
       .withLimit(100)
       .supplyTo { inputMultiplierSequences =>
         val numberOfSequences = inputMultiplierSequences.length
-        val inputSequences = inputMultiplierSequences.zipWithIndex.map {
+        val inputSequences    = inputMultiplierSequences.zipWithIndex.map {
           case (multipliers, sequenceMarker) =>
             multipliers map (sequenceMarker + numberOfSequences * _)
         }

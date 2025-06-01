@@ -147,7 +147,7 @@ object TrialsSpec {
     api.complexities.flatMap(complexity =>
       api.alternateWithWeights(
         complexity -> api.only(Nil),
-        50 -> (for {
+        50         -> (for {
           id      <- api.integers(1, 10)
           simpler <- recursiveUseOfComplexityForWeighting
         } yield id :: simpler)
@@ -852,7 +852,7 @@ class TrialsSpec
 
         val sut: Trials[(Any, UUID)] =
           api.alternate(alternatives map {
-            case sequence: Seq[_] => api.choose(sequence)
+            case sequence: Seq[_]       => api.choose(sequence)
             case factory: (Long => Any) =>
               api.streamLegacy(factory)
             case singleton => api.only(singleton)
@@ -909,7 +909,7 @@ class TrialsSpec
 
         val sut: Trials[List[(Any, UUID)]] =
           (input match {
-            case sequence: Seq[_] => api.choose(sequence)
+            case sequence: Seq[_]       => api.choose(sequence)
             case factory: (Long => Any) =>
               api.streamLegacy(factory)
             case singleton => api.only(singleton)
@@ -964,7 +964,7 @@ class TrialsSpec
 
         val sut: Trials[List[Any]] =
           (input match {
-            case sequence: Seq[_] => api.choose(sequence)
+            case sequence: Seq[_]       => api.choose(sequence)
             case factory: (Long => Any) =>
               api.streamLegacy(factory)
             case singleton => api.only(singleton)
@@ -1028,8 +1028,8 @@ class TrialsSpec
 
         val sut: Trials[List[Any]] =
           (input match {
-            case trials: Trials[_] => trials
-            case sequence: Seq[_]  => api.choose(sequence)
+            case trials: Trials[_]      => trials
+            case sequence: Seq[_]       => api.choose(sequence)
             case factory: (Long => Any) =>
               api.streamLegacy(factory)
             case singleton => api.only(singleton)

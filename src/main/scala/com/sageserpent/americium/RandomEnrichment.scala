@@ -136,7 +136,7 @@ trait RandomEnrichment {
         if (candidateBlock isEmpty) exemplarTuples
         else {
           val candidateBlockSize = candidateBlock size
-          val exemplar = () =>
+          val exemplar           = () =>
             buildRandomSequenceOfDistinctCandidatesChosenFrom(
               candidateBlock
             ).head
@@ -205,7 +205,7 @@ trait RandomEnrichment {
       val numberOfItems = items.size
       if (0 < numberOfItems) {
         val numberOfSplitsDesired = chooseAnyNumberFromOneTo(numberOfItems)
-        val indicesToSplitAt =
+        val indicesToSplitAt      =
           buildRandomSequenceOfDistinctIntegersFromZeroToOneLessThan(
             numberOfItems
           ) map (1 + _) take numberOfSplitsDesired sorted
