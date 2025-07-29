@@ -107,7 +107,7 @@ lazy val settings = Seq(
   ),
   libraryDependencies += "org.rocksdb"        % "rocksdbjni"   % "10.2.1",
   libraryDependencies += "org.apache.commons" % "commons-text" % "1.14.0",
-  libraryDependencies += "com.lihaoyi"       %% "pprint"       % "0.9.0",
+  libraryDependencies += "com.lihaoyi"       %% "pprint"       % "0.9.3",
   libraryDependencies += "org.typelevel"  %% "cats-laws"  % "2.13.0" % Test,
   libraryDependencies += "org.scalatest"  %% "scalatest"  % "3.2.19" % Test,
   libraryDependencies += "org.scalacheck" %% "scalacheck" % "1.18.1" % Test,
