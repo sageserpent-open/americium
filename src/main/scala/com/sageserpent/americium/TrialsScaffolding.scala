@@ -91,6 +91,8 @@ object TrialsScaffolding {
     def asIterator(): Iterator[Case]
 
     def testIntegrationContexts(): Iterator[TestIntegrationContext[Case]]
+
+    def reproduce(recipe: String): Case
   }
 
   trait SupplyToSyntaxTuple2[+Case1, +Case2]

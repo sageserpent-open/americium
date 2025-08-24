@@ -10,16 +10,32 @@ import com.google.common.hash
 import com.sageserpent.americium.TrialsApis.scalaApi
 import com.sageserpent.americium.TrialsScaffolding.{ShrinkageStop, noStopping}
 import com.sageserpent.americium.generation.*
-import com.sageserpent.americium.generation.Decision.{DecisionStages, parseDecisionIndices}
+import com.sageserpent.americium.generation.Decision.{
+  DecisionStages,
+  parseDecisionIndices
+}
 import com.sageserpent.americium.generation.GenerationOperation.Generation
-import com.sageserpent.americium.java.TrialsDefaults.{defaultComplexityLimit, defaultShrinkageAttemptsLimit}
-import com.sageserpent.americium.java.{Builder, CaseSupplyCycle, CasesLimitStrategy, CrossApiIterator, TestIntegrationContext, TrialsScaffolding as JavaTrialsScaffolding, TrialsSkeletalImplementation as JavaTrialsSkeletalImplementation}
-import com.sageserpent.americium.{Trials as ScalaTrials, TrialsScaffolding as ScalaTrialsScaffolding, TrialsSkeletalImplementation as ScalaTrialsSkeletalImplementation}
+import com.sageserpent.americium.java.TrialsDefaults.{
+  defaultComplexityLimit,
+  defaultShrinkageAttemptsLimit
+}
+import com.sageserpent.americium.java.{
+  Builder,
+  CaseSupplyCycle,
+  CasesLimitStrategy,
+  CrossApiIterator,
+  TestIntegrationContext,
+  TrialsScaffolding as JavaTrialsScaffolding,
+  TrialsSkeletalImplementation as JavaTrialsSkeletalImplementation
+}
+import com.sageserpent.americium.storage.RocksDBConnection
+import com.sageserpent.americium.{
+  Trials as ScalaTrials,
+  TrialsScaffolding as ScalaTrialsScaffolding,
+  TrialsSkeletalImplementation as ScalaTrialsSkeletalImplementation
+}
 import fs2.Stream as Fs2Stream
-import io.circe.generic.auto.*
-import io.circe.syntax.*
 import org.apache.commons.text.StringEscapeUtils
-import org.rocksdb.*
 
 import _root_.java.util.Iterator as JavaIterator
 import _root_.java.util.function.{Consumer, Function as JavaFunction}
@@ -47,93 +63,11 @@ case class TrialsImplementation[Case](
 
   override def javaTrials: TrialsImplementation[Case] = this
 
-  // Java and Scala API ...
-  override def reproduce(recipe: String): Case =
-    reproduce(parseDecisionIndices(recipe))
-
-  private def reproduce(decisionStages: DecisionStages): Case = {
-    case class Context(decisionStages: DecisionStages, complexity: Int)
-
-    type DecisionIndicesContext[Caze] = State[Context, Caze]
-
-    // NOTE: unlike the companion interpreter over in
-    // `SupplyToSyntaxSkeletalImplementation.cases`, this one has a relatively
-    // sane implementation.
-    def interpreter: GenerationOperation ~> DecisionIndicesContext =
-      new (GenerationOperation ~> DecisionIndicesContext) {
-        override def apply[Case](
-            generationOperation: GenerationOperation[Case]
-        ): DecisionIndicesContext[Case] = {
-          generationOperation match {
-            case Choice(choicesByCumulativeFrequency) =>
-              for {
-                decisionStages <- State.get[Context]
-                Context(
-                  ChoiceOf(decisionIndex) :: remainingDecisionStages,
-                  complexity
-                ) =
-                  decisionStages: @unchecked
-                _ <- State.set(Context(remainingDecisionStages, 1 + complexity))
-              } yield choicesByCumulativeFrequency
-                .minAfter(1 + decisionIndex)
-                .get
-                ._2
-
-            case Factory(factory) =>
-              for {
-                decisionStages <- State.get[Context]
-                Context(
-                  FactoryInputOf(input) :: remainingDecisionStages,
-                  complexity
-                ) =
-                  decisionStages: @unchecked
-                _ <- State.set(Context(remainingDecisionStages, 1 + complexity))
-              } yield factory(input.toInt)
-
-            // NOTE: pattern-match only on `Some`, as we are reproducing a case
-            // that by dint of being reproduced, must have passed filtration the
-            // first time around.
-            case FiltrationResult(Some(result)) =>
-              result.pure[DecisionIndicesContext]
-
-            case NoteComplexity =>
-              State.get[Context].map(_.complexity)
-
-            case ResetComplexity(_) =>
-              ().pure[DecisionIndicesContext]
-          }
-        }
-      }
-
-    generation
-      .foldMap(interpreter)
-      .runA(Context(decisionStages, complexity = 0))
-      .value
-  }
-
   override def withLimit(
       limit: Int
   ): JavaTrialsScaffolding.SupplyToSyntax[Case]
     with ScalaTrialsScaffolding.SupplyToSyntax[Case] =
     withLimits(casesLimit = limit)
-
-  override def withStrategy(
-      casesLimitStrategyFactory: JavaFunction[
-        CaseSupplyCycle,
-        CasesLimitStrategy
-      ]
-  ): JavaTrialsScaffolding.SupplyToSyntax[Case]
-    with ScalaTrialsScaffolding.SupplyToSyntax[Case] =
-    withStrategy(
-      casesLimitStrategyFactory = casesLimitStrategyFactory.apply,
-      // This is hokey: although the Scala compiler refuses to allow a call to
-      // the Scala-API overload of `.withStrategy` using a raw Java function
-      // value, without providing an additional argument it regards the call as
-      // ambiguous between the Java API and Scala API overloads. Ho-hum.
-      defaultComplexityLimit,
-      defaultShrinkageAttemptsLimit,
-      noStopping
-    )
 
   override def withLimits(
       casesLimit: Int,
@@ -204,33 +138,8 @@ case class TrialsImplementation[Case](
       override protected val generation: Generation[_ <: Case] =
         thisTrialsImplementation.generation
 
-      override protected def reproduce(
-          decisionStages: DecisionStages
-      ): Case = thisTrialsImplementation.reproduce(decisionStages)
-
-      protected override def raiseTrialException(
-          rocksDb: Option[(RocksDB, ColumnFamilyHandle)]
-      )(
-          throwable: Throwable,
-          caze: Case,
-          decisionStages: DecisionStages
-      ): StreamedCases = {
-        val exception: TrialException =
-          trialException(throwable, caze, decisionStages)
-
-        // TODO: suppose this throws an exception? Probably best to
-        // just log it and carry on, as the user wants to see a test
-        // failure rather than an issue with the database.
-        rocksDb.foreach { case (rocksDb, columnFamilyForRecipeHashes) =>
-          rocksDb.put(
-            columnFamilyForRecipeHashes,
-            exception.recipeHash.map(_.toByte).toArray,
-            exception.recipe.map(_.toByte).toArray
-          )
-        }
-
-        Fs2Stream.raiseError[SyncIO](exception)
-      }
+      override def reproduce(recipe: String): Case =
+        thisTrialsImplementation.reproduce(recipe)
 
       override def withSeed(
           seed: Long
@@ -280,6 +189,29 @@ case class TrialsImplementation[Case](
       ): JavaTrialsScaffolding.SupplyToSyntax[Case]
         with ScalaTrialsScaffolding.SupplyToSyntax[Case] =
         copy(shrinkageStop = shrinkageStop)
+
+      override protected def reproduce(
+          decisionStages: DecisionStages
+      ): Case = thisTrialsImplementation.reproduce(decisionStages)
+
+      protected override def raiseTrialException(
+          rocksDbConnection: Option[RocksDBConnection],
+          throwable: Throwable,
+          caze: Case,
+          decisionStages: DecisionStages
+      ): StreamedCases = {
+        val exception: TrialException =
+          trialException(throwable, caze, decisionStages)
+
+        // TODO: suppose this throws an exception? Probably best to
+        // just log it and carry on, as the user wants to see a test
+        // failure rather than an issue with the database.
+        rocksDbConnection.foreach(
+          _.recordRecipeHash(exception.recipeHash, exception.recipe)
+        )
+
+        Fs2Stream.raiseError[SyncIO](exception)
+      }
     }
 
     SupplyToSyntaxImplementation(
@@ -292,13 +224,92 @@ case class TrialsImplementation[Case](
     )
   }
 
+  // Java and Scala API ...
+  override def reproduce(recipe: String): Case =
+    reproduce(parseDecisionIndices(recipe))
+
+  private def reproduce(decisionStages: DecisionStages): Case = {
+    case class Context(
+        decisionStages: DecisionStages,
+        complexity: Int,
+        nextUniqueId: Int
+    ) {
+      def uniqueId(): (Context, Int) =
+        copy(nextUniqueId = 1 + nextUniqueId) -> nextUniqueId
+    }
+
+    type DecisionIndicesContext[Caze] = State[Context, Caze]
+
+    // NOTE: unlike the companion interpreter over in
+    // `SupplyToSyntaxSkeletalImplementation.cases`, this one has a relatively
+    // sane implementation.
+    def interpreter: GenerationOperation ~> DecisionIndicesContext =
+      new (GenerationOperation ~> DecisionIndicesContext) {
+        override def apply[Case](
+            generationOperation: GenerationOperation[Case]
+        ): DecisionIndicesContext[Case] = {
+          generationOperation match {
+            case Choice(choicesByCumulativeFrequency) =>
+              for {
+                decisionStages <- State.get[Context]
+                Context(
+                  ChoiceOf(decisionIndex) :: remainingDecisionStages,
+                  complexity,
+                  nextUniqueId
+                ) =
+                  decisionStages: @unchecked
+                _ <- State.set(
+                  Context(remainingDecisionStages, 1 + complexity, nextUniqueId)
+                )
+              } yield choicesByCumulativeFrequency
+                .minAfter(1 + decisionIndex)
+                .get
+                ._2
+
+            case Factory(factory) =>
+              for {
+                decisionStages <- State.get[Context]
+                Context(
+                  FactoryInputOf(input) :: remainingDecisionStages,
+                  complexity,
+                  nextUniqueId
+                ) =
+                  decisionStages: @unchecked
+                _ <- State.set(
+                  Context(remainingDecisionStages, 1 + complexity, nextUniqueId)
+                )
+              } yield factory(input)
+
+            // NOTE: pattern-match only on `Some`, as we are reproducing a case
+            // that by dint of being reproduced, must have passed filtration the
+            // first time around.
+            case FiltrationResult(Some(result)) =>
+              result.pure[DecisionIndicesContext]
+
+            case NoteComplexity =>
+              State.get[Context].map(_.complexity)
+
+            case ResetComplexity(_) =>
+              ().pure[DecisionIndicesContext]
+
+            case UniqueId => State(_.uniqueId())
+          }
+        }
+      }
+
+    generation
+      .foldMap(interpreter)
+      .runA(Context(decisionStages, complexity = 0, nextUniqueId = 0))
+      .value
+  }
+
   private def trialException(
       throwable: Throwable,
       caze: Case,
       decisionStages: DecisionStages
   ) = {
-    val json           = decisionStages.asJson.spaces4
-    val compressedJson = decisionStages.asJson.noSpaces
+    val json           = Decision.json(decisionStages)
+    val compressedJson = Decision.compressedJson(decisionStages)
 
     val jsonHashInHexadecimal = hash.Hashing
       .murmur3_128()
@@ -317,6 +328,25 @@ case class TrialsImplementation[Case](
     }
     trialException
   }
+
+  override def withStrategy(
+      casesLimitStrategyFactory: JavaFunction[
+        CaseSupplyCycle,
+        CasesLimitStrategy
+      ]
+  ): JavaTrialsScaffolding.SupplyToSyntax[Case]
+    with ScalaTrialsScaffolding.SupplyToSyntax[Case] =
+    withStrategy(
+      casesLimitStrategyFactory = casesLimitStrategyFactory.apply,
+      // This is hokey: although the Scala compiler refuses to allow a call to
+      // the Scala-API overload of `.withStrategy` using a raw Java function
+      // value, without providing an additional argument it regards the call as
+      // ambiguous between the Java API and Scala API overloads. Ho-hum.
+      defaultComplexityLimit,
+      defaultShrinkageAttemptsLimit,
+      noStopping
+    )
+
   def this(
       generationOperation: GenerationOperation[Case]
   ) = {
@@ -334,27 +364,28 @@ case class TrialsImplementation[Case](
       ): JavaTrialsScaffolding.SupplyToSyntax[
         Case
       ] with ScalaTrialsScaffolding.SupplyToSyntax[Case] =
-        this // Seeding has no effect, as the reproduction is deterministic according to `recipe`.
+        this // Seeding has no effect, as the reproduction is determined entirely by `recipe`.
 
       override def withComplexityLimit(
           complexityLimit: Int
       ): JavaTrialsScaffolding.SupplyToSyntax[
         Case
       ] with ScalaTrialsScaffolding.SupplyToSyntax[Case] =
-        this // There is no complexity limit, as the reproduction is deterministic according to `recipe`.
+        this // There is no complexity limit, as the reproduction is determined entirely by `recipe`.
 
       override def withShrinkageAttemptsLimit(
           shrinkageAttemptsLimit: Int
       ): JavaTrialsScaffolding.SupplyToSyntax[
         Case
       ] with ScalaTrialsScaffolding.SupplyToSyntax[Case] =
-        this // Shrinkage does not take place when reproducing a test case.
+        this // Shrinkage does not take place, as the reproduction is determined entirely by `recipe`.
 
       override def withValidTrialsCheck(
           enabled: Boolean
       ): JavaTrialsScaffolding.SupplyToSyntax[
         Case
-      ] with ScalaTrialsScaffolding.SupplyToSyntax[Case] = ???
+      ] with ScalaTrialsScaffolding.SupplyToSyntax[Case] =
+        this // There is no valid trials check, as the reproduction is determined entirely by `recipe`.
 
       // Java-only API ...
       override def withShrinkageStop(
@@ -364,7 +395,7 @@ case class TrialsImplementation[Case](
       ): JavaTrialsScaffolding.SupplyToSyntax[
         Case
       ] with ScalaTrialsScaffolding.SupplyToSyntax[Case] =
-        this // Shrinkage does not take place when reproducing a test case.
+        this // Shrinkage does not take place, as the reproduction is determined entirely by `recipe`.
 
       override def supplyTo(consumer: Consumer[Case]): Unit =
         supplyTo(consumer.accept)
@@ -372,15 +403,14 @@ case class TrialsImplementation[Case](
       override def asIterator(): JavaIterator[Case] with ScalaIterator[Case] =
         CrossApiIterator.from(Seq {
           val decisionStages = parseDecisionIndices(recipe)
-          reproduce(decisionStages)
+          thisTrialsImplementation.reproduce(decisionStages)
         }.iterator)
 
       override def testIntegrationContexts()
-          : JavaIterator[TestIntegrationContext[Case]]
-            with ScalaIterator[TestIntegrationContext[Case]] =
+          : CrossApiIterator[TestIntegrationContext[Case]] = {
         CrossApiIterator.from(Seq({
           val decisionStages = parseDecisionIndices(recipe)
-          val caze           = reproduce(decisionStages)
+          val caze = thisTrialsImplementation.reproduce(decisionStages)
 
           TestIntegrationContextImplementation[Case](
             caze = caze,
@@ -395,9 +425,14 @@ case class TrialsImplementation[Case](
                 runnable.run()
                 true
             },
-            isPartOfShrinkage = false
+            isPartOfShrinkage = false,
+            recipe = recipe
           )
         }: TestIntegrationContext[Case]).iterator)
+      }
+
+      override def reproduce(recipe: String): Case =
+        thisTrialsImplementation.reproduce(recipe)
 
       // Scala-only API ...
       override def withShrinkageStop(
@@ -410,7 +445,7 @@ case class TrialsImplementation[Case](
 
       override def supplyTo(consumer: Case => Unit): Unit = {
         val decisionStages = parseDecisionIndices(recipe)
-        val reproducedCase = reproduce(decisionStages)
+        val reproducedCase = thisTrialsImplementation.reproduce(decisionStages)
 
         try {
           consumer(reproducedCase)
@@ -420,6 +455,18 @@ case class TrialsImplementation[Case](
         }
       }
     }
+
+  override def several[Collection](implicit
+      factory: scala.collection.Factory[Case, Collection]
+  ): TrialsImplementation[Collection] = several(new Builder[Case, Collection] {
+    private val underlyingBuilder = factory.newBuilder
+
+    override def add(caze: Case): Unit = {
+      underlyingBuilder += caze
+    }
+
+    override def build(): Collection = underlyingBuilder.result()
+  })
 
   protected override def several[Collection](
       builderFactory: => Builder[Case, Collection]
@@ -439,17 +486,20 @@ case class TrialsImplementation[Case](
     addItems(Nil)
   }
 
-  override def several[Collection](implicit
-      factory: scala.collection.Factory[Case, Collection]
-  ): TrialsImplementation[Collection] = several(new Builder[Case, Collection] {
-    private val underlyingBuilder = factory.newBuilder
+  override def lotsOfSize[Collection](size: Int)(implicit
+      factory: collection.Factory[Case, Collection]
+  ): TrialsImplementation[Collection] = lotsOfSize(
+    size,
+    new Builder[Case, Collection] {
+      private val underlyingBuilder = factory.newBuilder
 
-    override def add(caze: Case): Unit = {
-      underlyingBuilder += caze
+      override def add(caze: Case): Unit = {
+        underlyingBuilder += caze
+      }
+
+      override def build(): Collection = underlyingBuilder.result()
     }
-
-    override def build(): Collection = underlyingBuilder.result()
-  })
+  )
 
   protected def lotsOfSize[Collection](
       size: Int,
@@ -480,19 +530,4 @@ case class TrialsImplementation[Case](
 
       addItems(size, Nil)
     })
-
-  override def lotsOfSize[Collection](size: Int)(implicit
-      factory: collection.Factory[Case, Collection]
-  ): TrialsImplementation[Collection] = lotsOfSize(
-    size,
-    new Builder[Case, Collection] {
-      private val underlyingBuilder = factory.newBuilder
-
-      override def add(caze: Case): Unit = {
-        underlyingBuilder += caze
-      }
-
-      override def build(): Collection = underlyingBuilder.result()
-    }
-  )
 }

@@ -245,6 +245,13 @@ class TrialsApiImplementation extends CommonApi with ScalaTrialsApi {
     if (0 != imageInterval)
       stream(
         new CaseFactory[BigDecimal] {
+          // If the lower bound is less than `Long.MinValue` or the upper bound
+          // is greater than `Long.MaxValue`, we round it to an integral value
+          // and scale it up by this factor in the input side domain to give a
+          // level of fractional precision in the image. Otherwise we can just
+          // use `[Long.MinValue, Long.MaxValue]` as the domain because the
+          // image is a smaller interval contained in the domain (the domain
+          // being seen as a floating-point interval).
           val numberOfSubdivisionsOfDoubleUnity = 100
 
           lazy val convertedLowerBoundInput: BigDecimal =
@@ -252,7 +259,7 @@ class TrialsApiImplementation extends CommonApi with ScalaTrialsApi {
           lazy val convertedUpperBoundInput: BigDecimal =
             BigDecimal(upperBoundInput)
 
-          // NOTE: the input side representation of `shrinkageTarget` is
+          // NOTE: this input side domain representation of `shrinkageTarget` is
           // anchored to an exact big integer, so that the forward conversion to
           // the image doesn't lose precision.
           lazy val convertedMaximallyShrunkInput: BigDecimal =

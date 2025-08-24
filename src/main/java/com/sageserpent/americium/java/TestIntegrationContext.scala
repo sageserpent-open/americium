@@ -5,4 +5,5 @@ trait TestIntegrationContext[+Case] {
   def caseFailureReporting: CaseFailureReporting
   def inlinedCaseFiltration: InlinedCaseFiltration
   def isPartOfShrinkage: Boolean
+  def recipe: String
 }
