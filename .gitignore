@@ -9,3 +9,4 @@ project/target/
 target/
 /.project
 /.bsp
+/project/.bloop/
