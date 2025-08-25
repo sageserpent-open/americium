@@ -1,12 +1,25 @@
 package com.sageserpent.americium.java.junit5
 
 import com.sageserpent.americium.Trials as ScalaTrials
-import com.sageserpent.americium.java.{CaseFailureReporting, InlinedCaseFiltration, TestIntegrationContext, TrialsScaffolding}
+import com.sageserpent.americium.java.{
+  CaseFailureReporting,
+  InlinedCaseFiltration,
+  TestIntegrationContext,
+  TrialsScaffolding
+}
 import com.sageserpent.americium.storage.RocksDBConnection
 import cyclops.companion.Streams
-import cyclops.data.tuple.{Tuple2 as JavaTuple2, Tuple3 as JavaTuple3, Tuple4 as JavaTuple4}
+import cyclops.data.tuple.{
+  Tuple2 as JavaTuple2,
+  Tuple3 as JavaTuple3,
+  Tuple4 as JavaTuple4
+}
 import org.junit.jupiter.api.extension.*
-import org.junit.platform.commons.support.{AnnotationSupport, HierarchyTraversalMode, ReflectionSupport}
+import org.junit.platform.commons.support.{
+  AnnotationSupport,
+  HierarchyTraversalMode,
+  ReflectionSupport
+}
 import org.junit.platform.engine.UniqueId
 import org.opentest4j.TestAbortedException
 
@@ -21,7 +34,7 @@ import scala.jdk.OptionConverters.RichOptional
 object TrialsTestExtension {
   val simpleWrapping: TupleAdaptation[AnyRef] = {
     new TupleAdaptation[AnyRef] {
-      override def clazz: Class[AnyRef] = classOf[AnyRef]
+      override def clazz: Class[AnyRef]                        = classOf[AnyRef]
       override def expand(potentialTuple: AnyRef): Seq[AnyRef] =
         Seq(potentialTuple)
     }
@@ -107,7 +120,7 @@ object TrialsTestExtension {
       context: ExtensionContext,
       clazz: Class[Clazz]
   ): List[Clazz] = {
-    val testClass = context.getRequiredTestClass
+    val testClass      = context.getRequiredTestClass
     val supplierFields = ReflectionSupport
       .findFields(
         testClass,
@@ -168,9 +181,11 @@ object TrialsTestExtension {
   }
 
   trait TrialTemplateInvocationContext extends TestTemplateInvocationContext {
-    protected def inlinedCaseFiltration: InlinedCaseFiltration
-    protected def caseFailureReporting: CaseFailureReporting
-    protected def parameters: Array[AnyRef]
+    override def getAdditionalExtensions: util.List[Extension] = List(
+      parameterResolver,
+      invocationInterceptor,
+      testWatcher
+    ).asJava
 
     private def parameterResolver: ParameterResolver =
       new ParameterResolver() {
@@ -222,13 +237,13 @@ object TrialsTestExtension {
         }
       }
 
-    private def testWatcher: TestWatcher = new TestWatcher() {}
+    protected def inlinedCaseFiltration: InlinedCaseFiltration
 
-    override def getAdditionalExtensions: util.List[Extension] = List(
-      parameterResolver,
-      invocationInterceptor,
-      testWatcher
-    ).asJava
+    protected def caseFailureReporting: CaseFailureReporting
+
+    protected def parameters: Array[AnyRef]
+
+    protected def testWatcher: TestWatcher
   }
 }
 
@@ -258,7 +273,7 @@ class TrialsTestExtension extends TestTemplateInvocationContextProvider {
         while (
           formalParameterTypes.length > formalParameterIndex && argumentIterator.hasNext
         ) {
-          val parameter = argumentIterator.next
+          val parameter           = argumentIterator.next
           val formalParameterType =
             formalParameterTypes(formalParameterIndex)
           val expansion = cachedTupleAdaptations
@@ -398,6 +413,8 @@ class TrialsTestExtension extends TestTemplateInvocationContextProvider {
               }
             }
 
+            override protected def testWatcher: TestWatcher =
+              new TestWatcher() {}
           }
       })
     } else
@@ -455,6 +472,16 @@ class TrialsTestExtension extends TestTemplateInvocationContextProvider {
                 }
               }
             }
+
+            override protected def testWatcher: TestWatcher =
+              new TestWatcher() {
+                override def testFailed(
+                    context: ExtensionContext,
+                    cause: Throwable
+                ): Unit = {
+                  caseFailureReporting.report(cause)
+                }
+              }
           }
         }
   }
