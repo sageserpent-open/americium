@@ -82,6 +82,9 @@ object tupleTrials {
         ]
       ] = supplyToSyntax.testIntegrationContexts()
 
+      override def reproduce(recipe: String): (Case1, Case2) =
+        supplyToSyntax.reproduce(recipe)
+
       protected val supplyToSyntax: TrialsScaffolding.SupplyToSyntax[
         (Case1, Case2)
       ]
@@ -219,6 +222,10 @@ object tupleTrials {
           (Case1, Case2, Case3)
         ]
       ] = supplyToSyntax.testIntegrationContexts()
+
+      override def reproduce(
+          recipe: String
+      ): (Case1, Case2, Case3) = supplyToSyntax.reproduce(recipe)
 
       protected val supplyToSyntax: TrialsScaffolding.SupplyToSyntax[
         (Case1, Case2, Case3)
@@ -358,6 +365,10 @@ object tupleTrials {
           (Case1, Case2, Case3, Case4)
         ]
       ] = supplyToSyntax.testIntegrationContexts()
+
+      override def reproduce(
+          recipe: String
+      ): (Case1, Case2, Case3, Case4) = supplyToSyntax.reproduce(recipe)
 
       protected val supplyToSyntax: TrialsScaffolding.SupplyToSyntax[
         (Case1, Case2, Case3, Case4)

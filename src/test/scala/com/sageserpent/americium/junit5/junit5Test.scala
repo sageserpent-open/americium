@@ -31,7 +31,7 @@ class junit5Test extends AnyFlatSpec with Matchers with MockitoSessionSupport {
     val exception =
       intercept[integers.TrialException](dynamicTests.forEachRemaining(action))
 
-    exception.getCause should be theSameInstanceAs (problem)
+    exception.getCause should be theSameInstanceAs problem
 
     // we expect the maximally shrunk value of zero to have been submitted as it
     // is also a multiple of 5...

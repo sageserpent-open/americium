@@ -1,12 +1,13 @@
 package com.sageserpent.americium.java.junit5
 
 import com.sageserpent.americium.Trials as ScalaTrials
-import com.sageserpent.americium.java.{TestIntegrationContext, TrialsScaffolding}
+import com.sageserpent.americium.java.{CaseFailureReporting, InlinedCaseFiltration, TestIntegrationContext, TrialsScaffolding}
+import com.sageserpent.americium.storage.RocksDBConnection
 import cyclops.companion.Streams
 import cyclops.data.tuple.{Tuple2 as JavaTuple2, Tuple3 as JavaTuple3, Tuple4 as JavaTuple4}
 import org.junit.jupiter.api.extension.*
 import org.junit.platform.commons.support.{AnnotationSupport, HierarchyTraversalMode, ReflectionSupport}
-import org.junit.platform.commons.util.ExceptionUtils
+import org.junit.platform.engine.UniqueId
 import org.opentest4j.TestAbortedException
 
 import java.lang.invoke.MethodType
@@ -27,23 +28,23 @@ object TrialsTestExtension {
   }
   protected val tupleExpansions: List[TupleAdaptation[_ <: AnyRef]] =
     List(
-      new TupleAdaptation[JavaTuple2[_, _]] {
-        override def clazz: Class[JavaTuple2[_, _]] = classOf[JavaTuple2[_, _]]
-        override def expand(potentialTuple: JavaTuple2[_, _]): Seq[AnyRef] =
+      new TupleAdaptation[JavaTuple2[?, ?]] {
+        override def clazz: Class[JavaTuple2[?, ?]] = classOf[JavaTuple2[?, ?]]
+        override def expand(potentialTuple: JavaTuple2[?, ?]): Seq[AnyRef] =
           potentialTuple.toArray
       },
-      new TupleAdaptation[JavaTuple3[_, _, _]] {
-        override def clazz: Class[JavaTuple3[_, _, _]] =
-          classOf[JavaTuple3[_, _, _]]
+      new TupleAdaptation[JavaTuple3[?, ?, ?]] {
+        override def clazz: Class[JavaTuple3[?, ?, ?]] =
+          classOf[JavaTuple3[?, ?, ?]]
         override def expand(
-            potentialTuple: JavaTuple3[_, _, _]
+            potentialTuple: JavaTuple3[?, ?, ?]
         ): Seq[AnyRef] = potentialTuple.toArray
       },
-      new TupleAdaptation[JavaTuple4[_, _, _, _]] {
-        override def clazz: Class[JavaTuple4[_, _, _, _]] =
-          classOf[JavaTuple4[_, _, _, _]]
+      new TupleAdaptation[JavaTuple4[?, ?, ?, ?]] {
+        override def clazz: Class[JavaTuple4[?, ?, ?, ?]] =
+          classOf[JavaTuple4[?, ?, ?, ?]]
         override def expand(
-            potentialTuple: JavaTuple4[_, _, _, _]
+            potentialTuple: JavaTuple4[?, ?, ?, ?]
         ): Seq[AnyRef] = potentialTuple.toArray
       }
     )
@@ -52,9 +53,9 @@ object TrialsTestExtension {
       : Array[Class[_ <: Throwable]] =
     Array(classOf[TestAbortedException])
 
-  protected def testIntegrationContexts(
+  private def supplyToSyntax(
       context: ExtensionContext
-  ): util.Iterator[TestIntegrationContext[AnyRef]] = {
+  ): TrialsScaffolding.SupplyToSyntax[_ >: Vector[AnyRef]] = {
     val testMethod = context.getRequiredTestMethod
 
     AnnotationSupport
@@ -99,8 +100,6 @@ object TrialsTestExtension {
             )
           }
       }
-      .testIntegrationContexts
-      .asInstanceOf[util.Iterator[TestIntegrationContext[AnyRef]]]
   }
 
   private def instancesReferredToBy[Clazz](
@@ -167,6 +166,70 @@ object TrialsTestExtension {
     def clazz: Class[_ >: PotentialTuple]
     def expand(potentialTuple: PotentialTuple): Seq[AnyRef]
   }
+
+  trait TrialTemplateInvocationContext extends TestTemplateInvocationContext {
+    protected def inlinedCaseFiltration: InlinedCaseFiltration
+    protected def caseFailureReporting: CaseFailureReporting
+    protected def parameters: Array[AnyRef]
+
+    private def parameterResolver: ParameterResolver =
+      new ParameterResolver() {
+        override def supportsParameter(
+            parameterContext: ParameterContext,
+            extensionContext: ExtensionContext
+        ): Boolean = {
+          val parameterGuardedAgainstNullValue =
+            Option(parameters(parameterContext.getIndex))
+
+          parameterGuardedAgainstNullValue.forall((parameter: Any) => {
+            val formalParameterType =
+              parameterContext.getParameter.getType
+            val formalParameterReferenceType =
+              if (formalParameterType.isPrimitive)
+                MethodType
+                  .methodType(formalParameterType)
+                  .wrap
+                  .returnType
+              else formalParameterType
+            formalParameterReferenceType.isInstance(parameter)
+          })
+        }
+        override def resolveParameter(
+            parameterContext: ParameterContext,
+            extensionContext: ExtensionContext
+        ): Any = parameters(parameterContext.getIndex)
+      }
+
+    protected def invocationInterceptor: InvocationInterceptor =
+      new InvocationInterceptor() {
+        override def interceptTestTemplateMethod(
+            invocation: InvocationInterceptor.Invocation[Void],
+            invocationContext: ReflectiveInvocationContext[Method],
+            extensionContext: ExtensionContext
+        ): Unit = {
+          if (
+            !inlinedCaseFiltration
+              .executeInFiltrationContext(
+                () =>
+                  super.interceptTestTemplateMethod(
+                    invocation,
+                    invocationContext,
+                    extensionContext
+                  ),
+                additionalExceptionsToHandleAsFiltration
+              )
+          ) throw new TestAbortedException
+        }
+      }
+
+    private def testWatcher: TestWatcher = new TestWatcher() {}
+
+    override def getAdditionalExtensions: util.List[Extension] = List(
+      parameterResolver,
+      invocationInterceptor,
+      testWatcher
+    ).asJava
+  }
 }
 
 class TrialsTestExtension extends TestTemplateInvocationContextProvider {
@@ -180,131 +243,219 @@ class TrialsTestExtension extends TestTemplateInvocationContextProvider {
     val method               = context.getRequiredTestMethod
     val formalParameterTypes = method.getParameterTypes
 
-    def extractedArguments(
-        testIntegrationContext: TestIntegrationContext[AnyRef]
-    ): Array[Any] = {
+    def extractedParameters(
+        wrappedCase: Vector[AnyRef]
+    ): Array[AnyRef] = {
       // Ported from Java code, and staying with that style...
-      val adaptedArguments = new mutable.ArrayBuffer[AnyRef]
+      val adaptedParameters = new mutable.ArrayBuffer[AnyRef]
 
       {
         val cachedTupleAdaptations =
           new mutable.HashMap[Integer, TupleAdaptation[AnyRef]]
         var formalParameterIndex = 0
-        val argumentIterator     = wrap(testIntegrationContext.caze).iterator
+        val argumentIterator     = wrappedCase.iterator
 
-        while ({
+        while (
           formalParameterTypes.length > formalParameterIndex && argumentIterator.hasNext
-        }) {
-          val argument = argumentIterator.next
+        ) {
+          val parameter = argumentIterator.next
           val formalParameterType =
             formalParameterTypes(formalParameterIndex)
           val expansion = cachedTupleAdaptations
             .getOrElseUpdate(
               formalParameterIndex, {
-                // NOTE: don't use pattern matching on `argument` here - we want
-                // to adapt based on the *formal* argument type, not on the
+                // NOTE: don't use pattern matching on the parameter here - we
+                // want to adapt based on the *formal* argument type, not on the
                 // actual runtime type (which may implement additional
                 // interfaces).
-                if (formalParameterType.isInstance(argument))
+                if (formalParameterType.isInstance(parameter))
                   simpleWrapping
                 else
                   tupleExpansions
-                    .find(_.clazz.isInstance(argument))
+                    .find(_.clazz.isInstance(parameter))
                     .getOrElse(simpleWrapping)
                     .asInstanceOf[TupleAdaptation[AnyRef]]
               }
             )
-            .expand(argument)
+            .expand(parameter)
           formalParameterIndex += expansion.size
-          adaptedArguments.addAll(expansion)
+          adaptedParameters.addAll(expansion)
         }
       }
 
-      adaptedArguments.toArray
+      adaptedParameters.toArray
     }
-    Streams
-      .stream(testIntegrationContexts(context))
-      .map((testIntegrationContext: TestIntegrationContext[AnyRef]) =>
-        new TestTemplateInvocationContext() {
-          override def getDisplayName(invocationIndex: Int): String = {
-            val shrinkagePrefix =
-              if (testIntegrationContext.isPartOfShrinkage) "Shrinking ... "
-              else ""
-            val caze = wrap(testIntegrationContext.caze)
-            String.format(
-              "%s%s %s",
-              shrinkagePrefix,
-              super.getDisplayName(invocationIndex),
-              if (1 < caze.size) caze
-              else caze(0)
-            )
-          }
 
-          override def getAdditionalExtensions: util.List[Extension] = {
-            val adaptedArguments = extractedArguments(testIntegrationContext)
+    val rocksDBConnection = RocksDBConnection.evaluation.value
 
-            List(
-              new ParameterResolver() {
-                override def supportsParameter(
-                    parameterContext: ParameterContext,
-                    extensionContext: ExtensionContext
-                ): Boolean = Option(
-                  adaptedArguments(parameterContext.getIndex)
-                ).forall((parameter: Any) => {
-                  val formalParameterType =
-                    parameterContext.getParameter.getType
-                  val formalParameterReferenceType =
-                    if (formalParameterType.isPrimitive)
-                      MethodType
-                        .methodType(formalParameterType)
-                        .wrap
-                        .returnType
-                    else formalParameterType
-                  formalParameterReferenceType.isInstance(parameter)
-                })
-                override def resolveParameter(
-                    parameterContext: ParameterContext,
-                    extensionContext: ExtensionContext
-                ): Any = adaptedArguments(parameterContext.getIndex)
-              },
-              new InvocationInterceptor() {
+    val replayedUniqueIds =
+      LauncherDiscoveryListenerCapturingReplayedUniqueIds
+        .replayedUniqueIds()
+        .asScala
+
+    val supply = supplyToSyntax(context)
+
+    val casesAvailableForReplayByUniqueId: mutable.Map[UniqueId, AnyRef] =
+      mutable.Map.from(
+        replayedUniqueIds
+          .flatMap(uniqueId =>
+            rocksDBConnection
+              .recipeFromTestCaseId(uniqueId.toString)
+              .map(uniqueId -> supply.reproduce(_).asInstanceOf[AnyRef])
+          )
+      )
+
+    val haveReproducedTestCaseForAllReplayedUniqueIds =
+      replayedUniqueIds.nonEmpty && casesAvailableForReplayByUniqueId.keys == replayedUniqueIds
+
+    if (haveReproducedTestCaseForAllReplayedUniqueIds) {
+      Streams.stream(new util.Iterator[TestTemplateInvocationContext] {
+        override def hasNext: Boolean =
+          casesAvailableForReplayByUniqueId.nonEmpty
+
+        override def next(): TestTemplateInvocationContext =
+          new TrialTemplateInvocationContext {
+            override protected def inlinedCaseFiltration
+                : InlinedCaseFiltration =
+              (
+                  runnable: Runnable,
+                  additionalExceptionsToNoteAsFiltration: Array[
+                    Class[_ <: Throwable]
+                  ]
+              ) => {
+                val inlineFilterRejection = new RuntimeException
+
+                try {
+                  ScalaTrials.throwInlineFilterRejection.withValue(() =>
+                    throw inlineFilterRejection
+                  ) { runnable.run() }
+
+                  true
+                } catch {
+                  case exception: RuntimeException
+                      if inlineFilterRejection == exception =>
+                    false
+                  case throwable: Throwable
+                      if additionalExceptionsToNoteAsFiltration.exists(
+                        _.isInstance(throwable)
+                      ) =>
+                    throw throwable
+                }
+              }
+
+            override protected def caseFailureReporting
+                : CaseFailureReporting = {
+              // TODO: need to wrap up the exception...
+              throwable => throw throwable
+            }
+
+            override protected def parameters: Array[AnyRef] = {
+              val potentialReplayedTestCase =
+                TestExecutionListenerCapturingUniqueIds
+                  .uniqueId()
+                  .toScala
+                  .flatMap(casesAvailableForReplayByUniqueId.get)
+
+              potentialReplayedTestCase.fold(ifEmpty = Array.empty[AnyRef]) {
+                testCase =>
+                  extractedParameters(wrap(testCase))
+              }
+            }
+
+            override def getDisplayName(
+                invocationIndex: Int
+            ): String = {
+              val details =
+                if (1 == casesAvailableForReplayByUniqueId.size)
+                  casesAvailableForReplayByUniqueId
+                    .get(casesAvailableForReplayByUniqueId.keys.head)
+                    .getOrElse("")
+                else ""
+
+              s"${super.getDisplayName(invocationIndex)} $details"
+            }
+
+            override protected def invocationInterceptor
+                : InvocationInterceptor = {
+              val delegatedSuper = super.invocationInterceptor
+
+              new InvocationInterceptor {
                 override def interceptTestTemplateMethod(
                     invocation: InvocationInterceptor.Invocation[Void],
                     invocationContext: ReflectiveInvocationContext[Method],
                     extensionContext: ExtensionContext
                 ): Unit = {
-                  if (
-                    !testIntegrationContext.inlinedCaseFiltration
-                      .executeInFiltrationContext(
-                        () => {
-                          try
-                            super.interceptTestMethod(
-                              invocation,
-                              invocationContext,
-                              extensionContext
-                            )
-                          catch {
-                            case throwable: Throwable =>
-                              ExceptionUtils
-                                .throwAsUncheckedException(throwable)
-                          }
-                        },
-                        additionalExceptionsToHandleAsFiltration
-                      )
-                  ) throw new TestAbortedException
-                }
-              },
-              new TestWatcher() {
-                override def testFailed(
-                    context: ExtensionContext,
-                    cause: Throwable
-                ): Unit = {
-                  testIntegrationContext.caseFailureReporting.report(cause)
+                  TestExecutionListenerCapturingUniqueIds
+                    .uniqueId()
+                    .ifPresent(casesAvailableForReplayByUniqueId.remove)
+
+                  delegatedSuper.interceptTestTemplateMethod(
+                    invocation,
+                    invocationContext,
+                    extensionContext
+                  )
                 }
               }
-            ).asJava
+            }
+
+          }
+      })
+    } else
+      Streams
+        .stream(
+          supply
+            .testIntegrationContexts()
+            .asInstanceOf[util.Iterator[TestIntegrationContext[AnyRef]]]
+        )
+        .map { testIntegrationContext =>
+          new TrialTemplateInvocationContext {
+            private val wrappedTestCase: Vector[AnyRef] =
+              wrap(testIntegrationContext.caze)
+
+            override protected def inlinedCaseFiltration
+                : InlinedCaseFiltration =
+              testIntegrationContext.inlinedCaseFiltration
+            override protected def caseFailureReporting: CaseFailureReporting =
+              testIntegrationContext.caseFailureReporting
+            override protected val parameters: Array[AnyRef] =
+              extractedParameters(wrappedTestCase)
+
+            override def getDisplayName(invocationIndex: Int): String = {
+              val shrinkagePrefix =
+                if (testIntegrationContext.isPartOfShrinkage) "Shrinking ... "
+                else ""
+
+              val details =
+                if (1 < wrappedTestCase.size) wrappedTestCase
+                else wrappedTestCase(0)
+
+              s"$shrinkagePrefix${super.getDisplayName(invocationIndex)} $details"
+            }
+
+            override protected def invocationInterceptor
+                : InvocationInterceptor = {
+              val delegatedSuper = super.invocationInterceptor
+
+              new InvocationInterceptor {
+                override def interceptTestTemplateMethod(
+                    invocation: InvocationInterceptor.Invocation[Void],
+                    invocationContext: ReflectiveInvocationContext[Method],
+                    extensionContext: ExtensionContext
+                ): Unit = {
+                  rocksDBConnection.recordTestCaseId(
+                    extensionContext.getUniqueId,
+                    testIntegrationContext.recipe
+                  )
+
+                  delegatedSuper.interceptTestTemplateMethod(
+                    invocation,
+                    invocationContext,
+                    extensionContext
+                  )
+                }
+              }
+            }
           }
         }
-      )
   }
 }
