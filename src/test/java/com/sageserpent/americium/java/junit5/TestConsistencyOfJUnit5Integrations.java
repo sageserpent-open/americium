@@ -8,10 +8,7 @@ import cyclops.data.tuple.Tuple;
 import cyclops.data.tuple.Tuple2;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.core.StringContains;
-import org.junit.jupiter.api.DynamicTest;
-import org.junit.jupiter.api.Tag;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestFactory;
+import org.junit.jupiter.api.*;
 import org.junit.platform.engine.TestDescriptor;
 import org.junit.platform.engine.discovery.DiscoverySelectors;
 import org.junit.platform.launcher.TagFilter;
@@ -109,6 +106,9 @@ class TestConsistencyOfJUnit5Integrations {
         var events = EngineTestKit.engine("junit-jupiter")
                                   .selectors(DiscoverySelectors.selectClass(
                                           HiddenTiersTest.class))
+                                  .configurationParameter(
+                                          "junit.jupiter.conditions.deactivate",
+                                          "org.junit.*DisabledCondition")
                                   .filters(TagFilter.includeTags(
                                           "parameterisedTest"))
                                   .execute()
@@ -135,6 +135,9 @@ class TestConsistencyOfJUnit5Integrations {
         var events = EngineTestKit.engine("junit-jupiter")
                                   .selectors(DiscoverySelectors.selectClass(
                                           HiddenTiersTest.class))
+                                  .configurationParameter(
+                                          "junit.jupiter.conditions.deactivate",
+                                          "org.junit.*DisabledCondition")
                                   .filters(TagFilter.includeTags(
                                           "dynamicTestFactory"))
                                   .execute()
@@ -161,6 +164,7 @@ class TestConsistencyOfJUnit5Integrations {
     // Don't do this; the idea is to *prevent* deliberately failing tests
     // from being run by default, these should
     // only be run by `parameterisedTestIntegrationViaTrialsTestAnnotation`.
+    @Disabled
     static class HiddenTiersTest {
         private final static Trials<ImmutableList<Integer>> queryValueLists =
                 api()
