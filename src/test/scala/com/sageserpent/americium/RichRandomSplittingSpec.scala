@@ -56,7 +56,7 @@ class RichRandomSplittingSpec
           _ <- 1 to numberOfRepeats
           expectedItemsAndTheirFrequencies = (items groupBy identity).view
             .mapValues(_.length)
-          pieces = random.splitIntoNonEmptyPieces(items)
+          pieces                        = random.splitIntoNonEmptyPieces(items)
           actualItemsAndTheirFrequences = (pieces.flatten groupBy identity).view
             .mapValues(_.length)
         } {

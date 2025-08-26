@@ -1,11 +1,23 @@
 package com.sageserpent.americium
-import com.sageserpent.americium.java.TestIntegrationContext
+import com.sageserpent.americium.java.junit5.{
+  LauncherDiscoveryListenerCapturingReplayedUniqueIds,
+  TestExecutionListenerCapturingUniqueIds
+}
+import com.sageserpent.americium.java.{
+  CaseFailureReporting,
+  InlinedCaseFiltration,
+  TestIntegrationContext
+}
+import com.sageserpent.americium.storage.RocksDBConnection
 import org.junit.jupiter.api.DynamicTest
 import org.junit.jupiter.api.DynamicTest.dynamicTest
+import org.junit.platform.engine.UniqueId
 import org.opentest4j.TestAbortedException
 
 import _root_.java.util.Iterator as JavaIterator
-import scala.jdk.CollectionConverters.IteratorHasAsJava
+import scala.collection.mutable
+import scala.jdk.CollectionConverters.{IteratorHasAsJava, SetHasAsScala}
+import scala.jdk.OptionConverters.RichOptional
 
 package object junit5 {
   type DynamicTests = JavaIterator[DynamicTest]
@@ -42,7 +54,7 @@ package object junit5 {
       * }}}
       *
       * @param parameterisedTest
-      *   Parameterised test that consumes a test case of type {@code Case}.
+      *   Parameterised test that consumes a test case of type {@code Case} .
       * @return
       *   An iterator of [[DynamicTest]] instances, suitable for use with the
       *   [[org.junit.jupiter.api.TestFactory]] annotation provided by JUnit5.
@@ -50,7 +62,11 @@ package object junit5 {
     def dynamicTests(
         parameterisedTest: Case => Unit
     ): DynamicTests =
-      junit5.dynamicTests(supplier.testIntegrationContexts(), parameterisedTest)
+      junit5.dynamicTests(
+        supplier.testIntegrationContexts(),
+        supplier.reproduce,
+        parameterisedTest
+      )
   }
 
   implicit class Tuple2Syntax[Case1, Case2](
@@ -65,6 +81,7 @@ package object junit5 {
         parameterisedTest: (Case1, Case2) => Unit
     ): DynamicTests = junit5.dynamicTests(
       supplier.testIntegrationContexts(),
+      supplier.reproduce,
       parameterisedTest.tupled
     )
   }
@@ -83,6 +100,7 @@ package object junit5 {
         parameterisedTest: (Case1, Case2, Case3) => Unit
     ): DynamicTests = junit5.dynamicTests(
       supplier.testIntegrationContexts(),
+      supplier.reproduce,
       parameterisedTest.tupled
     )
   }
@@ -100,37 +118,157 @@ package object junit5 {
         parameterisedTest: (Case1, Case2, Case3, Case4) => Unit
     ): DynamicTests = junit5.dynamicTests(
       supplier.testIntegrationContexts(),
+      supplier.reproduce,
       parameterisedTest.tupled
     )
   }
 
   private[americium] def dynamicTests[Case](
       contexts: Iterator[TestIntegrationContext[Case]],
+      reproduceFromRecipe: String => Case,
       parameterisedTest: Case => Unit
   ): DynamicTests = {
-    contexts.zipWithIndex.map { case (context, invocationIndex) =>
-      val shrinkagePrefix =
-        if (context.isPartOfShrinkage) "Shrinking ... "
-        else ""
-      dynamicTest(
-        s"[${1 + invocationIndex}] $shrinkagePrefix${pprint.PPrinter.BlackWhite(context.caze)}",
-        { () =>
-          val eligible =
-            try {
-              context.inlinedCaseFiltration
-                .executeInFiltrationContext(
-                  () => parameterisedTest(context.caze),
-                  Array(classOf[TestAbortedException])
-                )
-            } catch {
-              case throwable: Throwable =>
-                context.caseFailureReporting.report(throwable)
-                throw throwable
-            }
+    val rocksDBConnection = RocksDBConnection.evaluation.value
 
-          if (!eligible) throw new TestAbortedException
-        }
+    val replayedUniqueIds =
+      LauncherDiscoveryListenerCapturingReplayedUniqueIds
+        .replayedUniqueIds()
+        .asScala
+
+    val casesAvailableForReplayByUniqueId: mutable.Map[UniqueId, Case] =
+      mutable.Map.from(
+        replayedUniqueIds
+          .flatMap(uniqueId =>
+            rocksDBConnection
+              .recipeFromUniqueId(uniqueId.toString)
+              .map(uniqueId -> reproduceFromRecipe(_))
+          )
       )
-    }.asJava
+
+    val haveReproducedTestCaseForAllReplayedUniqueIds =
+      replayedUniqueIds.nonEmpty && casesAvailableForReplayByUniqueId.keys == replayedUniqueIds
+
+    if (haveReproducedTestCaseForAllReplayedUniqueIds) {
+      new JavaIterator[DynamicTest] {
+        private var oneRelativeInvocationIndex: Integer = 0
+
+        private val inlinedCaseFiltration: InlinedCaseFiltration = (
+            runnable: Runnable,
+            additionalExceptionsToNoteAsFiltration: Array[
+              Class[_ <: Throwable]
+            ]
+        ) => {
+          val inlineFilterRejection = new RuntimeException
+
+          try {
+            Trials.throwInlineFilterRejection.withValue(() =>
+              throw inlineFilterRejection
+            ) { runnable.run() }
+
+            true
+          } catch {
+            case exception: RuntimeException
+                if inlineFilterRejection == exception =>
+              false
+            case throwable: Throwable
+                if additionalExceptionsToNoteAsFiltration.exists(
+                  _.isInstance(throwable)
+                ) =>
+              throw throwable
+          }
+        }
+
+        private val caseFailureReporting: CaseFailureReporting = throwable =>
+          throw throwable
+
+        override def hasNext: Boolean =
+          casesAvailableForReplayByUniqueId.nonEmpty
+
+        override def next(): DynamicTest = {
+          oneRelativeInvocationIndex += 1
+
+          val details =
+            if (1 == casesAvailableForReplayByUniqueId.size)
+              casesAvailableForReplayByUniqueId
+                .get(casesAvailableForReplayByUniqueId.keys.head)
+                .getOrElse("")
+            else ""
+
+          dynamicTest(
+            s"[$oneRelativeInvocationIndex] ${pprint.PPrinter.BlackWhite(details)}",
+            { () =>
+              val uniqueId =
+                TestExecutionListenerCapturingUniqueIds.uniqueId.toScala
+
+              val potentialReplayedTestCase =
+                uniqueId.flatMap(casesAvailableForReplayByUniqueId.get)
+
+              uniqueId.foreach(casesAvailableForReplayByUniqueId.remove)
+
+              potentialReplayedTestCase.foreach(
+                invoke(
+                  parameterisedTest,
+                  _,
+                  inlinedCaseFiltration,
+                  caseFailureReporting
+                )
+              )
+            }
+          )
+        }
+      }
+    } else {
+      contexts.zipWithIndex.map { case (context, invocationIndex) =>
+        val shrinkagePrefix =
+          if (context.isPartOfShrinkage) "Shrinking ... "
+          else ""
+
+        val caze                  = context.caze
+        val inlinedCaseFiltration = context.inlinedCaseFiltration
+        val caseFailureReporting  = context.caseFailureReporting
+        val recipe                = context.recipe
+
+        dynamicTest(
+          s"[${1 + invocationIndex}] $shrinkagePrefix${pprint.PPrinter.BlackWhite(caze)}",
+          { () =>
+            TestExecutionListenerCapturingUniqueIds.uniqueId.ifPresent(
+              uniqueId =>
+                rocksDBConnection.recordUniqueId(
+                  uniqueId.toString,
+                  recipe
+                )
+            )
+
+            invoke(
+              parameterisedTest,
+              caze,
+              inlinedCaseFiltration,
+              caseFailureReporting
+            )
+          }
+        )
+      }.asJava
+    }
+  }
+  private def invoke[Case](
+      parameterisedTest: Case => Unit,
+      caze: Case,
+      inlinedCaseFiltration: InlinedCaseFiltration,
+      caseFailureReporting: CaseFailureReporting
+  ): Unit = {
+    val eligible: Boolean =
+      try {
+        inlinedCaseFiltration
+          .executeInFiltrationContext(
+            () => parameterisedTest(caze),
+            Array(classOf[TestAbortedException])
+          )
+      } catch {
+        case throwable: Throwable =>
+          caseFailureReporting.report(throwable)
+          throw throwable
+      }
+
+    if (!eligible) throw new TestAbortedException
   }
 }

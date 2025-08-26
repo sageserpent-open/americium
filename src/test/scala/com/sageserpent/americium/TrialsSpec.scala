@@ -1,8 +1,21 @@
 package com.sageserpent.americium
 
 import com.sageserpent.americium.TrialsScaffolding.{noShrinking, noStopping}
-import com.sageserpent.americium.generation.JavaPropertyNames.{nondeterminsticJavaProperty, recipeHashJavaProperty, recipeJavaProperty}
-import com.sageserpent.americium.java.{Builder, CaseSupplyCycle, CasesLimitStrategy, NoValidTrialsException, Trials as JavaTrials, TrialsApi as JavaTrialsApi}
+import com.sageserpent.americium.generation.JavaPropertyNames.{
+  nondeterminsticJavaProperty,
+  recipeHashJavaProperty,
+  recipeJavaProperty
+}
+import com.sageserpent.americium.java.{
+  Builder,
+  CaseSupplyCycle,
+  CasesLimitStrategy,
+  NoValidTrialsException,
+  RecipeIsNotPresentException,
+  Trials as JavaTrials,
+  TrialsApi as JavaTrialsApi
+}
+import com.sageserpent.americium.storage.RocksDBConnection
 import cyclops.control.Either as JavaEither
 import org.mockito.ArgumentMatchers.{any, argThat}
 import org.mockito.Mockito
@@ -134,7 +147,7 @@ object TrialsSpec {
     api.complexities.flatMap(complexity =>
       api.alternateWithWeights(
         complexity -> api.only(Nil),
-        50 -> (for {
+        50         -> (for {
           id      <- api.integers(1, 10)
           simpler <- recursiveUseOfComplexityForWeighting
         } yield id :: simpler)
@@ -839,7 +852,7 @@ class TrialsSpec
 
         val sut: Trials[(Any, UUID)] =
           api.alternate(alternatives map {
-            case sequence: Seq[_] => api.choose(sequence)
+            case sequence: Seq[_]       => api.choose(sequence)
             case factory: (Long => Any) =>
               api.streamLegacy(factory)
             case singleton => api.only(singleton)
@@ -896,7 +909,7 @@ class TrialsSpec
 
         val sut: Trials[List[(Any, UUID)]] =
           (input match {
-            case sequence: Seq[_] => api.choose(sequence)
+            case sequence: Seq[_]       => api.choose(sequence)
             case factory: (Long => Any) =>
               api.streamLegacy(factory)
             case singleton => api.only(singleton)
@@ -951,7 +964,7 @@ class TrialsSpec
 
         val sut: Trials[List[Any]] =
           (input match {
-            case sequence: Seq[_] => api.choose(sequence)
+            case sequence: Seq[_]       => api.choose(sequence)
             case factory: (Long => Any) =>
               api.streamLegacy(factory)
             case singleton => api.only(singleton)
@@ -1015,8 +1028,8 @@ class TrialsSpec
 
         val sut: Trials[List[Any]] =
           (input match {
-            case trials: Trials[_] => trials
-            case sequence: Seq[_]  => api.choose(sequence)
+            case trials: Trials[_]      => trials
+            case sequence: Seq[_]       => api.choose(sequence)
             case factory: (Long => Any) =>
               api.streamLegacy(factory)
             case singleton => api.only(singleton)
@@ -2466,15 +2479,15 @@ class TrialsSpecInQuarantineDueToUseOfRecipeHashSystemProperty
         sut.withLimit(limit).supplyTo(surprisedConsumer)
       )
 
-      val mockConsumer: Any => Unit = mock(classOf[Any => Unit])
-
-      doAnswer(invocation =>
-        throw ExceptionWithCasePayload(
-          invocation.getArgument[JackInABox[_]](0).caze
-        )
-      ).when(mockConsumer).apply(any[JackInABox[_]]())
-
       val exceptionRecreatedViaRecipeHash = {
+        val mockConsumer: Any => Unit = mock(classOf[Any => Unit])
+
+        doAnswer(invocation =>
+          throw ExceptionWithCasePayload(
+            invocation.getArgument[JackInABox[_]](0).caze
+          )
+        ).when(mockConsumer).apply(any[JackInABox[_]]())
+
         val previousPropertyValue =
           Option(
             System.setProperty(recipeHashJavaProperty, exception.recipeHash)
@@ -2490,6 +2503,8 @@ class TrialsSpecInQuarantineDueToUseOfRecipeHashSystemProperty
           )(
             System.setProperty(recipeHashJavaProperty, _)
           )
+
+          verify(mockConsumer).apply(any())
         }
       }
 
@@ -2497,7 +2512,31 @@ class TrialsSpecInQuarantineDueToUseOfRecipeHashSystemProperty
       exceptionRecreatedViaRecipeHash.recipe shouldBe exception.recipe
       exceptionRecreatedViaRecipeHash.recipeHash shouldBe exception.recipeHash
 
-      verify(mockConsumer).apply(any())
+      // Tear down the storage of recipes...
+      RocksDBConnection.evaluation.value.reset()
+
+      {
+        val mockConsumer: Any => Unit = mock(classOf[Any => Unit])
+
+        val previousPropertyValue =
+          Option(
+            System.setProperty(recipeHashJavaProperty, exception.recipeHash)
+          )
+
+        try {
+          intercept[RecipeIsNotPresentException](
+            sut.withLimit(limit).supplyTo(mockConsumer)
+          )
+        } finally {
+          previousPropertyValue.fold(ifEmpty =
+            System.clearProperty(recipeHashJavaProperty)
+          )(
+            System.setProperty(recipeHashJavaProperty, _)
+          )
+
+          verify(mockConsumer, never()).apply(any())
+        }
+      }
     }
   }
 }
@@ -2572,7 +2611,7 @@ class TrialsSpecInQuarantineDueToUseOfRecipeSystemProperty
         )
       ).when(mockConsumer).apply(any[JackInABox[_]]())
 
-      val exceptionRecreatedViaRecipeHash = {
+      val exceptionRecreatedViaRecipe = {
         // NOTE: simulate what a shell would do with the escaped recipe.
         val whatWouldBePassedInFromAShell =
           exception.escapedRecipe.translateEscapes()
@@ -2597,9 +2636,9 @@ class TrialsSpecInQuarantineDueToUseOfRecipeSystemProperty
         }
       }
 
-      exceptionRecreatedViaRecipeHash.provokingCase shouldBe exception.provokingCase
-      exceptionRecreatedViaRecipeHash.recipe shouldBe exception.recipe
-      exceptionRecreatedViaRecipeHash.recipeHash shouldBe exception.recipeHash
+      exceptionRecreatedViaRecipe.provokingCase shouldBe exception.provokingCase
+      exceptionRecreatedViaRecipe.recipe shouldBe exception.recipe
+      exceptionRecreatedViaRecipe.recipeHash shouldBe exception.recipeHash
 
       verify(mockConsumer).apply(any())
     }

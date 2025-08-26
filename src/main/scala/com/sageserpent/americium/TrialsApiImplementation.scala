@@ -3,7 +3,10 @@ import cats.Traverse
 import cats.free.Free
 import cats.implicits.*
 import com.sageserpent.americium.generation.*
-import com.sageserpent.americium.{Trials as ScalaTrials, TrialsApi as ScalaTrialsApi}
+import com.sageserpent.americium.{
+  Trials as ScalaTrials,
+  TrialsApi as ScalaTrialsApi
+}
 
 import _root_.java.time.Instant
 import scala.collection.immutable.SortedMap
@@ -360,8 +363,8 @@ class TrialsApiImplementation extends CommonApi with ScalaTrialsApi {
         require(upperBoundInput >= input)
         caseFactory(input)
       }
-      override def lowerBoundInput: BigInt = caseFactory.lowerBoundInput
-      override def upperBoundInput: BigInt = caseFactory.upperBoundInput
+      override def lowerBoundInput: BigInt      = caseFactory.lowerBoundInput
+      override def upperBoundInput: BigInt      = caseFactory.upperBoundInput
       override def maximallyShrunkInput: BigInt =
         caseFactory.maximallyShrunkInput
     })

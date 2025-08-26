@@ -26,7 +26,8 @@ import org.opentest4j.TestAbortedException
 import java.lang.invoke.MethodType
 import java.lang.reflect.{Field, Method}
 import java.util
-import java.util.stream.Stream
+.stream.Stream
+import java.util.{Iterator as JavaIterator, List as JavaList}
 import scala.collection.mutable
 import scala.jdk.CollectionConverters.*
 import scala.jdk.OptionConverters.RichOptional
@@ -181,7 +182,7 @@ object TrialsTestExtension {
   }
 
   trait TrialTemplateInvocationContext extends TestTemplateInvocationContext {
-    override def getAdditionalExtensions: util.List[Extension] = List(
+    override def getAdditionalExtensions: JavaList[Extension] = List(
       parameterResolver,
       invocationInterceptor,
       testWatcher
@@ -222,18 +223,18 @@ object TrialsTestExtension {
             invocationContext: ReflectiveInvocationContext[Method],
             extensionContext: ExtensionContext
         ): Unit = {
-          if (
-            !inlinedCaseFiltration
-              .executeInFiltrationContext(
-                () =>
-                  super.interceptTestTemplateMethod(
-                    invocation,
-                    invocationContext,
-                    extensionContext
-                  ),
-                additionalExceptionsToHandleAsFiltration
-              )
-          ) throw new TestAbortedException
+          val eligible = inlinedCaseFiltration
+            .executeInFiltrationContext(
+              () =>
+                super.interceptTestTemplateMethod(
+                  invocation,
+                  invocationContext,
+                  extensionContext
+                ),
+              additionalExceptionsToHandleAsFiltration
+            )
+
+          if (!eligible) throw new TestAbortedException
         }
       }
 
@@ -315,7 +316,7 @@ class TrialsTestExtension extends TestTemplateInvocationContextProvider {
         replayedUniqueIds
           .flatMap(uniqueId =>
             rocksDBConnection
-              .recipeFromTestCaseId(uniqueId.toString)
+              .recipeFromUniqueId(uniqueId.toString)
               .map(uniqueId -> supply.reproduce(_).asInstanceOf[AnyRef])
           )
       )
@@ -324,7 +325,7 @@ class TrialsTestExtension extends TestTemplateInvocationContextProvider {
       replayedUniqueIds.nonEmpty && casesAvailableForReplayByUniqueId.keys == replayedUniqueIds
 
     if (haveReproducedTestCaseForAllReplayedUniqueIds) {
-      Streams.stream(new util.Iterator[TestTemplateInvocationContext] {
+      Streams.stream(new JavaIterator[TestTemplateInvocationContext] {
         override def hasNext: Boolean =
           casesAvailableForReplayByUniqueId.nonEmpty
 
@@ -360,7 +361,9 @@ class TrialsTestExtension extends TestTemplateInvocationContextProvider {
 
             override protected def caseFailureReporting
                 : CaseFailureReporting = {
-              // TODO: need to wrap up the exception...
+              // NOTE: don't wrap the exception as we are doing replay; this
+              // matches how all the failing trials bar the last have their
+              // exceptions reported.
               throwable => throw throwable
             }
 
@@ -412,7 +415,6 @@ class TrialsTestExtension extends TestTemplateInvocationContextProvider {
                 }
               }
             }
-
             override protected def testWatcher: TestWatcher =
               new TestWatcher() {}
           }
@@ -422,7 +424,7 @@ class TrialsTestExtension extends TestTemplateInvocationContextProvider {
         .stream(
           supply
             .testIntegrationContexts()
-            .asInstanceOf[util.Iterator[TestIntegrationContext[AnyRef]]]
+            .asInstanceOf[JavaIterator[TestIntegrationContext[AnyRef]]]
         )
         .map { testIntegrationContext =>
           new TrialTemplateInvocationContext {
@@ -459,7 +461,11 @@ class TrialsTestExtension extends TestTemplateInvocationContextProvider {
                     invocationContext: ReflectiveInvocationContext[Method],
                     extensionContext: ExtensionContext
                 ): Unit = {
-                  rocksDBConnection.recordTestCaseId(
+                  // NOTE: it would be more consistent to use
+                  // `TestExecutionListenerCapturingUniqueIds.uniqueId`, but we
+                  // finally have the full unique id from `extensionContext`
+                  // courtesy of JUnit5, so letuse it as intended.
+                  rocksDBConnection.recordUniqueId(
                     extensionContext.getUniqueId,
                     testIntegrationContext.recipe
                   )

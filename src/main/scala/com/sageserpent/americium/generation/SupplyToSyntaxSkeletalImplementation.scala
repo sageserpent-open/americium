@@ -37,9 +37,6 @@ import com.sageserpent.americium.{
 }
 import fs2.{Pull, Stream as Fs2Stream}
 import org.rocksdb.Cache as _
-import scalacache.*
-import scalacache.caffeine.CaffeineCache
-
 import _root_.java.util.Iterator as JavaIterator
 import _root_.java.util.function.Consumer
 import scala.annotation.tailrec
@@ -63,8 +60,6 @@ object SupplyToSyntaxSkeletalImplementation {
           connection.close()
         }
     )
-
-  implicit val cache: Cache[BigDecimal] = CaffeineCache[BigDecimal]
 }
 
 trait SupplyToSyntaxSkeletalImplementation[Case]
@@ -78,6 +73,8 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
     Function[(DecisionStagesInReverseOrder, BigInt), Boolean]
   val potentialDuplicates =
     mutable.Set.empty[DecisionStagesInReverseOrder]
+  val deflatedScaleCache = mutable.Map.empty[(BigDecimal, Int), BigDecimal]
+
   protected val casesLimitStrategyFactory: CaseSupplyCycle => CasesLimitStrategy
   protected val complexityLimit: Int
   protected val shrinkageAttemptsLimit: Int
@@ -442,9 +439,9 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
           .flatMap { connection =>
             val singleTestIntegrationContext = Fs2Stream
               .eval(SyncIO {
-                val recipe = connection.recipeFromRecipeHash(recipeHash)
-
-                testIntegrationContextReproducing(recipe)
+                testIntegrationContextReproducing(
+                  connection.recipeFromRecipeHash(recipeHash)
+                )
               })
             carryOnButSwitchToShrinkageApproachOnCaseFailure(
               singleTestIntegrationContext
@@ -619,24 +616,22 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
       else StateT.liftF(None)
     }
 
-    def deflatedScale(maximumScale: BigDecimal, level: Int): BigDecimal = {
-      import SupplyToSyntaxSkeletalImplementation.cache
-      import scalacache.modes.sync.*
-
-      caching[Id, BigDecimal](maximumScale -> level)(None) {
-        if (maximumScale <= Double.MaxValue)
-          maximumScale / Math.pow(
-            maximumScale.toDouble,
-            level.toDouble / maximumScaleDeflationLevel
-          )
-        else {
-          deflatedScale(Double.MaxValue, level) * deflatedScale(
-            maximumScale / Double.MaxValue,
-            level
-          )
+    def deflatedScale(maximumScale: BigDecimal, level: Int): BigDecimal =
+      deflatedScaleCache.getOrElseUpdate(
+        maximumScale -> level, {
+          if (maximumScale <= Double.MaxValue)
+            maximumScale / Math.pow(
+              maximumScale.toDouble,
+              level.toDouble / maximumScaleDeflationLevel
+            )
+          else {
+            deflatedScale(Double.MaxValue, level) * deflatedScale(
+              maximumScale / Double.MaxValue,
+              level
+            )
+          }
         }
-      }
-    }
+      )
 
     def interpretFactory[Case](
         factory: CaseFactory[Case]

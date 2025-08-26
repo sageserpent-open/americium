@@ -24,14 +24,14 @@ trait TrialsApi {
   def delay[Case](delayed: => Trials[Case]): Trials[Case]
 
   /** Make a [[Trials]] instance that only ever yields a single instance of
-    * {@code Case}. Typically used with alternation to mix in some important
+    * {@code Case} . Typically used with alternation to mix in some important
     * special case with say, a bunch of streamed cases, and also used as a base
     * case for recursively-defined trials.
     *
     * @param onlyCase
     * @tparam Case
     * @return
-    *   A [[Trials]] instance that only ever yields {@code onlyCase}.
+    *   A [[Trials]] instance that only ever yields {@code onlyCase} .
     */
   def only[Case](onlyCase: Case): Trials[Case]
 
@@ -119,7 +119,7 @@ trait TrialsApi {
     * yields sequences, where those sequences all have the size given by the
     * number of trials, and the element in each position in the sequence is
     * provided by the trials instance at the corresponding position within
-    * {@code sequenceOfTrials}.
+    * {@code sequenceOfTrials} .
     *
     * The sequence type for each yielded case is based on the sequence type for
     * the parameter.
@@ -353,7 +353,7 @@ trait TrialsApi {
   ): Trials[Vector[Int]]
 
   /** Produce a trials instance whose cases are vectors containing elements
-    * picked alternately from {@code iterables}. The order of elements
+    * picked alternately from {@code iterables} . The order of elements
     * contributed by any given iterable is preserved in the yielded vectors, but
     * there can be arbitrary alternation across the iterables.
     * @param shrinkToRoundRobin
@@ -367,7 +367,7 @@ trait TrialsApi {
     *   The type of the vector elements yielded by the resulting [[Trials]]
     *   instance.
     * @return
-    *   A [[Trials]] instance whose cases are vectors of {@code Element}.
+    *   A [[Trials]] instance whose cases are vectors of {@code Element} .
     */
   def pickAlternatelyFrom[Element](
       shrinkToRoundRobin: Boolean,

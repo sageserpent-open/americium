@@ -124,8 +124,8 @@ trait Trials[+Case]
     * [[TrialsScaffolding.withLimit]] etc. This grants the user the choice of
     * either supplying the combined trials in the usual way, in which case the
     * [[Function]] will take a [[Tuple2]] parameterised by types {@code Case}
-    * and {@code Case2}, or a [[Function2]] can be used taking separate
-    * arguments of types {@code Case} and {@code Case2}.
+    * and {@code Case2} , or a [[Function2]] can be used taking separate
+    * arguments of types {@code Case} and {@code Case2} .
     *
     * This can be repeated up to a limit by calling {@code and} on the results
     * to add more trials - this enables supply to consumers of higher argument
@@ -144,13 +144,13 @@ trait Trials[+Case]
     * the alternatives do not have to conform to the same type; instead here we
     * can switch in the test between unrelated types using an [[Either]]
     * instance to hold cases supplied from either this trials instance or from
-    * {@code alternativeTrials}.
+    * {@code alternativeTrials} .
     *
     * @param alternativeTrials
     * @tparam Case2
     * @return
     *   {@link Either} that is populated with either a {@code Case} or with a
-    *   {@code Case2}.
+    *   {@code Case2} .
     */
   def or[Case2](alternativeTrials: Trials[Case2]): Trials[Either[Case, Case2]]
 
@@ -166,10 +166,10 @@ trait Trials[+Case]
     * a [[Factory]].
     *
     * @param factory
-    *   A [[Factory]] that can build a {@code Collection}.
+    *   A [[Factory]] that can build a {@code Collection} .
     * @tparam Collection
     *   Any kind of collection that can take an arbitrary number of elements of
-    *   type {@code Case}.
+    *   type {@code Case} .
     * @return
     *   A [[Trials]] instance that yields {@code Collection} instances.
     */
@@ -185,7 +185,9 @@ trait Trials[+Case]
       ordering: Ordering[Case @uncheckedVariance]
   ): Trials[SortedSet[Case @uncheckedVariance]]
 
-  def maps[Value](values: Trials[Value]): Trials[Map[Case @uncheckedVariance, Value]]
+  def maps[Value](
+      values: Trials[Value]
+  ): Trials[Map[Case @uncheckedVariance, Value]]
 
   def sortedMaps[Value](values: Trials[Value])(implicit
       ordering: Ordering[Case @uncheckedVariance]
@@ -201,10 +203,10 @@ trait Trials[+Case]
     *   from. Be aware that sets, maps and bounded size collections don't have
     *   to accept that many elements.
     * @param factory
-    *   A [[Factory]] that can build a {@code Collection}.
+    *   A [[Factory]] that can build a {@code Collection} .
     * @tparam Collection
     *   Any kind of collection that can take an arbitrary number of elements of
-    *   type {@code Case}.
+    *   type {@code Case} .
     * @return
     *   A {@link Trials} instance that yields {@code Collection} instances.
     */

@@ -1,14 +1,37 @@
 package com.sageserpent.americium.storage
 import cats.Eval
 import com.google.common.collect.ImmutableList
-import com.sageserpent.americium.generation.JavaPropertyNames.{runDatabaseJavaProperty, temporaryDirectoryJavaProperty}
+import com.sageserpent.americium.generation.JavaPropertyNames.{
+  runDatabaseJavaProperty,
+  temporaryDirectoryJavaProperty
+}
 import com.sageserpent.americium.generation.SupplyToSyntaxSkeletalImplementation.runDatabaseDefault
+import com.sageserpent.americium.java.RecipeIsNotPresentException
+import com.sageserpent.americium.storage.RocksDBConnection.databasePath
 import org.rocksdb.*
 
 import _root_.java.util.ArrayList as JavaArrayList
 import java.nio.file.Path
+import scala.util.Using
 
 object RocksDBConnection {
+  private def databasePath: Path =
+    Option(System.getProperty(temporaryDirectoryJavaProperty)) match {
+      case None =>
+        throw new RuntimeException(
+          s"No definition of Java property: `$temporaryDirectoryJavaProperty`"
+        )
+
+      case Some(directory) =>
+        val file = Option(
+          System.getProperty(runDatabaseJavaProperty)
+        ).getOrElse(runDatabaseDefault)
+
+        Path
+          .of(directory)
+          .resolve(file)
+    }
+
   private val rocksDbOptions = new DBOptions()
     .optimizeForSmallDb()
     .setCreateIfMissing(true)
@@ -35,52 +58,36 @@ object RocksDBConnection {
   )
 
   private def connection(readOnly: Boolean): RocksDBConnection = {
-    Option(System.getProperty(temporaryDirectoryJavaProperty)).fold(ifEmpty =
-      throw new RuntimeException(
-        s"No definition of Java property: `$temporaryDirectoryJavaProperty`"
+    val columnFamilyDescriptors =
+      ImmutableList.of(
+        defaultColumnFamilyDescriptor,
+        columnFamilyDescriptorForRecipeHashes,
+        columnFamilyDescriptorForTestCaseIds
       )
-    ) { directory =>
-      val runDatabase = Option(
-        System.getProperty(runDatabaseJavaProperty)
-      ).getOrElse(runDatabaseDefault)
 
-      val columnFamilyDescriptors =
-        ImmutableList.of(
-          defaultColumnFamilyDescriptor,
-          columnFamilyDescriptorForRecipeHashes,
-          columnFamilyDescriptorForTestCaseIds
+    val columnFamilyHandles = new JavaArrayList[ColumnFamilyHandle]()
+
+    val rocksDB =
+      if (readOnly)
+        RocksDB.openReadOnly(
+          rocksDbOptions,
+          databasePath.toString,
+          columnFamilyDescriptors,
+          columnFamilyHandles
+        )
+      else
+        RocksDB.open(
+          rocksDbOptions,
+          databasePath.toString,
+          columnFamilyDescriptors,
+          columnFamilyHandles
         )
 
-      val columnFamilyHandles = new JavaArrayList[ColumnFamilyHandle]()
-
-      val rocksDB =
-        if (readOnly)
-          RocksDB.openReadOnly(
-            rocksDbOptions,
-            Path
-              .of(directory)
-              .resolve(runDatabase)
-              .toString,
-            columnFamilyDescriptors,
-            columnFamilyHandles
-          )
-        else
-          RocksDB.open(
-            rocksDbOptions,
-            Path
-              .of(directory)
-              .resolve(runDatabase)
-              .toString,
-            columnFamilyDescriptors,
-            columnFamilyHandles
-          )
-
-      RocksDBConnection(
-        rocksDB,
-        columnFamilyHandleForRecipeHashes = columnFamilyHandles.get(1),
-        columnFamilyHandleForTestCaseIds = columnFamilyHandles.get(2)
-      )
-    }
+    RocksDBConnection(
+      rocksDB,
+      columnFamilyHandleForRecipeHashes = columnFamilyHandles.get(1),
+      columnFamilyHandleForTestCaseIds = columnFamilyHandles.get(2)
+    )
   }
 
   def readOnlyConnection(): RocksDBConnection = connection(readOnly = true)
@@ -94,12 +101,41 @@ object RocksDBConnection {
 }
 
 // TODO: split the responsibilities into two databases? `SupplyToSyntaxSkeletalImplementation` cares about recipe
-// hashes and is core functionality, whereas `TrialsTestExtension` cares about test case ids and is an add-on.
+// hashes and is core functionality, whereas `TrialsTestExtension` cares about `UniqueId` and is an add-on.
 case class RocksDBConnection(
     rocksDb: RocksDB,
     columnFamilyHandleForRecipeHashes: ColumnFamilyHandle,
     columnFamilyHandleForTestCaseIds: ColumnFamilyHandle
 ) {
+  private def dropColumnFamilyEntries(
+      columnFamilyHandle: ColumnFamilyHandle
+  ): Unit =
+    Using.resource(rocksDb.newIterator(columnFamilyHandle)) { iterator =>
+      val firstRecipeHash: Array[Byte] = {
+        iterator.seekToFirst()
+        iterator.key
+      }
+
+      val onePastLastRecipeHash: Array[Byte] = {
+        iterator.seekToLast()
+        iterator.key() :+ 0
+      }
+
+      // NOTE: the range has an exclusive upper bound, hence the use of
+      // `onePastLastRecipeHash`.
+      rocksDb.deleteRange(
+        columnFamilyHandleForRecipeHashes,
+        firstRecipeHash,
+        onePastLastRecipeHash
+      )
+
+    }
+
+  def reset(): Unit = {
+    dropColumnFamilyEntries(columnFamilyHandleForRecipeHashes)
+    dropColumnFamilyEntries(columnFamilyHandleForTestCaseIds)
+  }
+
   def recordRecipeHash(recipeHash: String, recipe: String): Unit = {
     rocksDb.put(
       columnFamilyHandleForRecipeHashes,
@@ -108,29 +144,34 @@ case class RocksDBConnection(
     )
   }
 
-  // TODO: suppose there isn't a recipe? This should look like
-  // `recipeFromTestCaseId`...
-  def recipeFromRecipeHash(recipeHash: String): String = rocksDb
-    .get(
-      columnFamilyHandleForRecipeHashes,
-      recipeHash.map(_.toByte).toArray
-    )
-    .map(_.toChar)
-    .mkString
+  def recipeFromRecipeHash(recipeHash: String): String = Option(
+    rocksDb
+      .get(
+        columnFamilyHandleForRecipeHashes,
+        recipeHash.map(_.toByte).toArray
+      )
+  ) match {
+    case Some(value) => value.map(_.toChar).mkString
+    case None => throw new RecipeIsNotPresentException(recipeHash, databasePath)
+  }
 
-  def recordTestCaseId(testCaseId: String, recipe: String): Unit = {
+  // TODO: shouldn't `uniqueId` be typed as `UniqueId`!
+  def recordUniqueId(uniqueId: String, recipe: String): Unit = {
     rocksDb.put(
       columnFamilyHandleForTestCaseIds,
-      testCaseId.map(_.toByte).toArray,
+      uniqueId.map(_.toByte).toArray,
       recipe.map(_.toByte).toArray
     )
   }
 
-  def recipeFromTestCaseId(testCaseId: String): Option[String] = Option(
+  // TODO: shouldn't `uniqueId` be typed as `UniqueId`! Also, why does this get
+  // to quietly wrap a null result into an `Option`, whereas
+  // `recipeFromRecipeHash` throws an exception?
+  def recipeFromUniqueId(uniqueId: String): Option[String] = Option(
     rocksDb
       .get(
         columnFamilyHandleForTestCaseIds,
-        testCaseId.map(_.toByte).toArray
+        uniqueId.map(_.toByte).toArray
       )
   ).map(_.map(_.toChar).mkString)
 

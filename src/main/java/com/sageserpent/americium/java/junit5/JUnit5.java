@@ -62,6 +62,7 @@ public class JUnit5 {
             Consumer<Case> consumer) {
         return package$.MODULE$.dynamicTests(
                 CollectionConverters.asScala(supplier.testIntegrationContexts()),
+                supplier::reproduce,
                 FunctionConverters.asScalaFromConsumer(consumer));
     }
 
@@ -75,6 +76,7 @@ public class JUnit5 {
             BiConsumer<Case1, Case2> biConsumer) {
         return package$.MODULE$.dynamicTests(
                 CollectionConverters.asScala(supplier.testIntegrationContexts()),
+                supplier::reproduce,
                 FunctionConverters.asScalaFromConsumer(pair -> biConsumer.accept(
                         pair._1(),
                         pair._2())));
@@ -90,6 +92,7 @@ public class JUnit5 {
             Consumer3<Case1, Case2, Case3> triConsumer) {
         return package$.MODULE$.dynamicTests(
                 CollectionConverters.asScala(supplier.testIntegrationContexts()),
+                supplier::reproduce,
                 FunctionConverters.asScalaFromConsumer(triple -> triConsumer.accept(
                         triple._1(),
                         triple._2(),
@@ -107,6 +110,7 @@ public class JUnit5 {
             Consumer4<Case1, Case2, Case3, Case4> quadConsumer) {
         return package$.MODULE$.dynamicTests(
                 CollectionConverters.asScala(supplier.testIntegrationContexts()),
+                supplier::reproduce,
                 FunctionConverters.asScalaFromConsumer(quadruple -> quadConsumer.accept(
                         quadruple._1(),
                         quadruple._2(),
