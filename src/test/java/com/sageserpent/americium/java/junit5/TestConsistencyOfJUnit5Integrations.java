@@ -88,29 +88,34 @@ class TestConsistencyOfJUnit5Integrations {
                 .map(TestDescriptor::getDisplayName)
                 .toArray(String[]::new);
 
+        // Verify the sequence of test cases...
         for (int index = 0; index < canonicalTestCases.size(); ++index) {
-            MatcherAssert.assertThat(displayNames[index],
+            final String displayName = displayNames[index];
+            final var canonicalTestCase = canonicalTestCases.get(index);
+            MatcherAssert.assertThat(displayName,
                                      StringContains.containsString(
-                                             canonicalTestCases
-                                                     .get(index)
-                                                     .toString()));
+                                             canonicalTestCase.toString()));
         }
 
-        final Optional<Tuple2<ImmutableList<Integer>, ImmutableList<Integer>>>
-                cause = results
-                .containerEvents()
-                .filter(event -> EventType.FINISHED == event.getType())
-                .filter(eventHasPayload)
-                .findFirst()
-                .flatMap(Event::getPayload)
-                .flatMap(payload -> ((TestExecutionResult) payload)
-                        .getThrowable())
-                .map(throwable -> (Tuple2<ImmutableList<Integer>,
-                        ImmutableList<Integer>>) (((TrialsFactoring.TrialException) throwable).provokingCase()));
+        // Verify the maximally shrunk test case...
+        {
+            final Optional<Tuple2<ImmutableList<Integer>,
+                    ImmutableList<Integer>>>
+                    provokingCase = results
+                    .containerEvents()
+                    .filter(event -> EventType.FINISHED == event.getType())
+                    .filter(eventHasPayload)
+                    .findFirst()
+                    .flatMap(Event::getPayload)
+                    .flatMap(payload -> ((TestExecutionResult) payload)
+                            .getThrowable())
+                    .map(throwable -> (Tuple2<ImmutableList<Integer>,
+                            ImmutableList<Integer>>) (((TrialsFactoring.TrialException) throwable).provokingCase()));
 
-        MatcherAssert.assertThat(cause,
-                                 Matchers.equalTo(
-                                         canonicalMaximallyShrunkTestCase));
+            MatcherAssert.assertThat(provokingCase,
+                                     Matchers.equalTo(
+                                             canonicalMaximallyShrunkTestCase));
+        }
     }
 
     static {
