@@ -25,8 +25,7 @@ import org.opentest4j.TestAbortedException
 
 import java.lang.invoke.MethodType
 import java.lang.reflect.{Field, Method}
-import java.util
-.stream.Stream
+import java.util.stream.Stream
 import java.util.{Iterator as JavaIterator, List as JavaList}
 import scala.collection.mutable
 import scala.jdk.CollectionConverters.*
@@ -69,7 +68,7 @@ object TrialsTestExtension {
 
   private def supplyToSyntax(
       context: ExtensionContext
-  ): TrialsScaffolding.SupplyToSyntax[_ >: Vector[AnyRef]] = {
+  ): TrialsScaffolding.SupplyToSyntax[_] = {
     val testMethod = context.getRequiredTestMethod
 
     AnnotationSupport
@@ -86,13 +85,21 @@ object TrialsTestExtension {
             ]]
           ).map(_.trials.scalaTrials()).toVector
 
-        val vectors: ScalaTrials[Vector[AnyRef]] =
-          ScalaTrials.api.sequences(trials)
+        trials match {
+          case Vector(singleton) =>
+            singleton.javaTrials
+              .withLimit(annotation.casesLimit)
+              .withComplexityLimit(annotation.complexity)
+              .withShrinkageAttemptsLimit(annotation.shrinkageAttempts)
+          case _ =>
+            val vectors: ScalaTrials[Vector[AnyRef]] =
+              ScalaTrials.api.sequences(trials)
 
-        vectors.javaTrials
-          .withLimit(annotation.casesLimit)
-          .withComplexityLimit(annotation.complexity)
-          .withShrinkageAttemptsLimit(annotation.shrinkageAttempts)
+            vectors.javaTrials
+              .withLimit(annotation.casesLimit)
+              .withComplexityLimit(annotation.complexity)
+              .withShrinkageAttemptsLimit(annotation.shrinkageAttempts)
+        }
       })
       .getOrElse {
         AnnotationSupport
@@ -464,7 +471,7 @@ class TrialsTestExtension extends TestTemplateInvocationContextProvider {
                   // NOTE: it would be more consistent to use
                   // `TestExecutionListenerCapturingUniqueIds.uniqueId`, but we
                   // finally have the full unique id from `extensionContext`
-                  // courtesy of JUnit5, so letuse it as intended.
+                  // courtesy of JUnit5, so let's use it as intended.
                   rocksDBConnection.recordUniqueId(
                     extensionContext.getUniqueId,
                     testIntegrationContext.recipe

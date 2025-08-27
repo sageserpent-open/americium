@@ -7,9 +7,12 @@ import com.sageserpent.americium.java.examples.junit5.Tiers;
 import cyclops.data.tuple.Tuple;
 import cyclops.data.tuple.Tuple2;
 import org.hamcrest.MatcherAssert;
+import org.hamcrest.Matchers;
 import org.hamcrest.core.StringContains;
 import org.junit.jupiter.api.*;
+import org.junit.jupiter.engine.descriptor.TestTemplateTestDescriptor;
 import org.junit.platform.engine.TestDescriptor;
+import org.junit.platform.engine.TestExecutionResult;
 import org.junit.platform.engine.discovery.DiscoverySelectors;
 import org.junit.platform.launcher.TagFilter;
 import org.junit.platform.testkit.engine.EngineTestKit;
@@ -103,18 +106,19 @@ class TestConsistencyOfJUnit5Integrations {
 
     @Test
     void parameterisedTestIntegrationViaTrialsTestAnnotation() {
-        var events = EngineTestKit.engine("junit-jupiter")
-                                  .selectors(DiscoverySelectors.selectClass(
-                                          HiddenTiersTest.class))
-                                  .configurationParameter(
-                                          "junit.jupiter.conditions.deactivate",
-                                          "org.junit.*DisabledCondition")
-                                  .filters(TagFilter.includeTags(
-                                          "parameterisedTest"))
-                                  .execute()
-                                  .testEvents();
+        final var results =
+                EngineTestKit.engine("junit-jupiter")
+                             .selectors(DiscoverySelectors.selectClass(
+                                     HiddenTiersTest.class))
+                             .configurationParameter(
+                                     "junit.jupiter.conditions.deactivate",
+                                     "org.junit.*DisabledCondition")
+                             .filters(TagFilter.includeTags(
+                                     "parameterisedTest"))
+                             .execute();
+        final var events = results.testEvents();
 
-        var displayNames = events
+        final var displayNames = events
                 .stream()
                 .filter(event -> EventType.FINISHED == event.getType())
                 .map(Event::getTestDescriptor)
@@ -128,22 +132,39 @@ class TestConsistencyOfJUnit5Integrations {
                                                      .get(index)
                                                      .toString()));
         }
+
+        final Optional<Tuple2<ImmutableList<Integer>, ImmutableList<Integer>>>
+                cause = results
+                .containerEvents()
+                .filter(event -> EventType.FINISHED == event.getType())
+                .filter(event -> event.getTestDescriptor() instanceof TestTemplateTestDescriptor)
+                .findFirst()
+                .flatMap(Event::getPayload)
+                .flatMap(payload -> ((TestExecutionResult) payload)
+                        .getThrowable())
+                .map(throwable -> (Tuple2<ImmutableList<Integer>,
+                        ImmutableList<Integer>>) (((TrialsFactoring.TrialException) throwable).provokingCase()));
+
+        MatcherAssert.assertThat(cause,
+                                 Matchers.equalTo(
+                                         canonicalMaximallyShrunkTestCase));
     }
 
     @Test
     void dynamicTestFactoryIntegrationViaTestFactoryAnnotation() {
-        var events = EngineTestKit.engine("junit-jupiter")
-                                  .selectors(DiscoverySelectors.selectClass(
-                                          HiddenTiersTest.class))
-                                  .configurationParameter(
-                                          "junit.jupiter.conditions.deactivate",
-                                          "org.junit.*DisabledCondition")
-                                  .filters(TagFilter.includeTags(
-                                          "dynamicTestFactory"))
-                                  .execute()
-                                  .testEvents();
+        final var results =
+                EngineTestKit.engine("junit-jupiter")
+                             .selectors(DiscoverySelectors.selectClass(
+                                     HiddenTiersTest.class))
+                             .configurationParameter(
+                                     "junit.jupiter.conditions.deactivate",
+                                     "org.junit.*DisabledCondition")
+                             .filters(TagFilter.includeTags(
+                                     "dynamicTestFactory"))
+                             .execute();
+        final var events = results.testEvents();
 
-        var displayNames = events
+        final var displayNames = events
                 .stream()
                 .filter(event -> EventType.FINISHED == event.getType())
                 .map(Event::getTestDescriptor)
