@@ -10,11 +10,13 @@ import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.hamcrest.core.StringContains;
 import org.junit.jupiter.api.*;
+import org.junit.jupiter.engine.descriptor.TestFactoryTestDescriptor;
 import org.junit.jupiter.engine.descriptor.TestTemplateTestDescriptor;
 import org.junit.platform.engine.TestDescriptor;
 import org.junit.platform.engine.TestExecutionResult;
 import org.junit.platform.engine.discovery.DiscoverySelectors;
 import org.junit.platform.launcher.TagFilter;
+import org.junit.platform.testkit.engine.EngineExecutionResults;
 import org.junit.platform.testkit.engine.EngineTestKit;
 import org.junit.platform.testkit.engine.Event;
 import org.junit.platform.testkit.engine.EventType;
@@ -22,6 +24,7 @@ import org.junit.platform.testkit.engine.EventType;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -38,7 +41,7 @@ class TestConsistencyOfJUnit5Integrations {
             ImmutableList<Integer>>>
             canonicalMaximallyShrunkTestCase;
 
-    private static void sharedTestLogic(
+    private static void sharedAuxiliaryTestLogic(
             final ImmutableList<Integer> queryValues,
             final ImmutableList<Integer> feedSequence) {
         System.out.format("Query values: %s, feed sequence: %s\n",
@@ -74,6 +77,42 @@ class TestConsistencyOfJUnit5Integrations {
                                  containsInAnyOrder(queryValues.toArray()));
     }
 
+    private static void sharedDriverTestLogic(EngineExecutionResults results,
+                                              Predicate<Event> eventHasPayload) {
+        final var events = results.testEvents();
+
+        final var displayNames = events
+                .stream()
+                .filter(event -> EventType.FINISHED == event.getType())
+                .map(Event::getTestDescriptor)
+                .map(TestDescriptor::getDisplayName)
+                .toArray(String[]::new);
+
+        for (int index = 0; index < canonicalTestCases.size(); ++index) {
+            MatcherAssert.assertThat(displayNames[index],
+                                     StringContains.containsString(
+                                             canonicalTestCases
+                                                     .get(index)
+                                                     .toString()));
+        }
+
+        final Optional<Tuple2<ImmutableList<Integer>, ImmutableList<Integer>>>
+                cause = results
+                .containerEvents()
+                .filter(event -> EventType.FINISHED == event.getType())
+                .filter(eventHasPayload)
+                .findFirst()
+                .flatMap(Event::getPayload)
+                .flatMap(payload -> ((TestExecutionResult) payload)
+                        .getThrowable())
+                .map(throwable -> (Tuple2<ImmutableList<Integer>,
+                        ImmutableList<Integer>>) (((TrialsFactoring.TrialException) throwable).provokingCase()));
+
+        MatcherAssert.assertThat(cause,
+                                 Matchers.equalTo(
+                                         canonicalMaximallyShrunkTestCase));
+    }
+
     static {
         var maximallyShrunkTestCase =
                 Optional.<Tuple2<ImmutableList<Integer>,
@@ -89,7 +128,7 @@ class TestConsistencyOfJUnit5Integrations {
                 final ImmutableList<Integer> feedSequence = testCase._2();
 
                 try {
-                    sharedTestLogic(queryValues, feedSequence);
+                    sharedAuxiliaryTestLogic(queryValues, feedSequence);
                 } finally {
                     builder.add(testCase);
                 }
@@ -116,38 +155,9 @@ class TestConsistencyOfJUnit5Integrations {
                              .filters(TagFilter.includeTags(
                                      "parameterisedTest"))
                              .execute();
-        final var events = results.testEvents();
 
-        final var displayNames = events
-                .stream()
-                .filter(event -> EventType.FINISHED == event.getType())
-                .map(Event::getTestDescriptor)
-                .map(TestDescriptor::getDisplayName)
-                .toArray(String[]::new);
-
-        for (int index = 0; index < canonicalTestCases.size(); ++index) {
-            MatcherAssert.assertThat(displayNames[index],
-                                     StringContains.containsString(
-                                             canonicalTestCases
-                                                     .get(index)
-                                                     .toString()));
-        }
-
-        final Optional<Tuple2<ImmutableList<Integer>, ImmutableList<Integer>>>
-                cause = results
-                .containerEvents()
-                .filter(event -> EventType.FINISHED == event.getType())
-                .filter(event -> event.getTestDescriptor() instanceof TestTemplateTestDescriptor)
-                .findFirst()
-                .flatMap(Event::getPayload)
-                .flatMap(payload -> ((TestExecutionResult) payload)
-                        .getThrowable())
-                .map(throwable -> (Tuple2<ImmutableList<Integer>,
-                        ImmutableList<Integer>>) (((TrialsFactoring.TrialException) throwable).provokingCase()));
-
-        MatcherAssert.assertThat(cause,
-                                 Matchers.equalTo(
-                                         canonicalMaximallyShrunkTestCase));
+        sharedDriverTestLogic(results,
+                              event -> event.getTestDescriptor() instanceof TestTemplateTestDescriptor);
     }
 
     @Test
@@ -162,22 +172,9 @@ class TestConsistencyOfJUnit5Integrations {
                              .filters(TagFilter.includeTags(
                                      "dynamicTestFactory"))
                              .execute();
-        final var events = results.testEvents();
 
-        final var displayNames = events
-                .stream()
-                .filter(event -> EventType.FINISHED == event.getType())
-                .map(Event::getTestDescriptor)
-                .map(TestDescriptor::getDisplayName)
-                .toArray(String[]::new);
-
-        for (int index = 0; index < canonicalTestCases.size(); ++index) {
-            MatcherAssert.assertThat(displayNames[index],
-                                     StringContains.containsString(
-                                             canonicalTestCases
-                                                     .get(index)
-                                                     .toString()));
-        }
+        sharedDriverTestLogic(results,
+                              event -> event.getTestDescriptor() instanceof TestFactoryTestDescriptor);
     }
 
     // NOTE: IntelliJ complains that this nested class won't be discovered
@@ -239,7 +236,7 @@ class TestConsistencyOfJUnit5Integrations {
         @TrialsTest(trials = "testCases", casesLimit = 40)
         void parameterisedTest(ImmutableList<Integer> queryValues,
                                ImmutableList<Integer> feedSequence) {
-            sharedTestLogic(queryValues, feedSequence);
+            sharedAuxiliaryTestLogic(queryValues, feedSequence);
         }
 
         @Tag("dynamicTestFactory")
@@ -249,7 +246,7 @@ class TestConsistencyOfJUnit5Integrations {
                 final ImmutableList<Integer> queryValues = testCase._1();
                 final ImmutableList<Integer> feedSequence = testCase._2();
 
-                sharedTestLogic(queryValues, feedSequence);
+                sharedAuxiliaryTestLogic(queryValues, feedSequence);
             }));
         }
 
