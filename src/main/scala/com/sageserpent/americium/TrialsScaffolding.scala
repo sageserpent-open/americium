@@ -84,7 +84,8 @@ object TrialsScaffolding {
       * provoked the exception.
       *
       * @param consumer
-      *   An operation that consumes a {@code Case}, and may throw an       *   exception.
+      *   An operation that consumes a {@code Case}, and may throw an *
+      *   exception.
       */
     def supplyTo(consumer: Case => Unit): Unit
 
