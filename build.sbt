@@ -7,7 +7,7 @@ lazy val javaVersion = "17"
 
 lazy val scala2_13_Version = "2.13.17"
 
-lazy val scala3_Version = "3.3.6"
+lazy val scala3_Version = "3.3.7"
 
 ThisBuild / scalaVersion := scala2_13_Version
 
