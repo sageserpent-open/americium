@@ -123,7 +123,7 @@ lazy val settings = Seq(
     "org.junit.platform" % "junit-platform-suite-api" % JupiterKeys.junitPlatformVersion.value % Test
   ),
   libraryDependencies += "org.hamcrest"          % "hamcrest" % "3.0"    % Test,
-  libraryDependencies += "com.eed3si9n.expecty" %% "expecty"  % "0.17.0" % Test
+  libraryDependencies += "com.eed3si9n.expecty" %% "expecty"  % "0.17.1" % Test
 )
 
 lazy val americium = (project in file("."))
