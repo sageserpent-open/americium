@@ -1,4 +1,4 @@
-package com.sageserpent.americium.bugReports;
+package com.sageserpent.americium.java.bugReports;
 
 import com.sageserpent.americium.java.Trials;
 import com.sageserpent.americium.java.TrialsApi;
