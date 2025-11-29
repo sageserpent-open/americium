@@ -3,7 +3,11 @@ package com.sageserpent.americium.bugReports;
 import com.sageserpent.americium.java.Trials;
 import com.sageserpent.americium.java.TrialsApi;
 import com.sageserpent.americium.java.TrialsScaffolding;
-import com.sageserpent.americium.java.junit5.ConfiguredTrialsTest;
+import com.sageserpent.americium.java.junit5.JUnit5;
+import org.junit.jupiter.api.DynamicTest;
+import org.junit.jupiter.api.TestFactory;
+
+import java.util.Iterator;
 
 /**
  * Bug report from: https://github.com/sageserpent-open/americium/issues/255
@@ -40,18 +44,23 @@ final class PropertyTest {
             positiveIntegers =
             api.integers(1, 100).withLimit(50);
 
-    @ConfiguredTrialsTest("positiveIntegers")
-    void positiveIntegersShouldBeGreaterThanZero(Integer value) {
-        if (value == null || value <= 0) {
-            throw new AssertionError(
-                    "Expected positive integer but got: " + value);
-        }
+    @TestFactory
+    Iterator<DynamicTest> positiveIntegersShouldBeGreaterThanZero() {
+        return JUnit5.dynamicTests(positiveIntegers, (value -> {
+            if (value == null || value <= 0) {
+                throw new AssertionError(
+                        "Expected positive integer but got: " + value);
+            }
+        }));
     }
 
-    @ConfiguredTrialsTest("positiveIntegers")
-    void positiveIntegersShouldBeLessThan100(Integer value) {
-        if (value == null || value > 100) {
-            throw new AssertionError("Expected value <= 100 but got: " + value);
-        }
+    @TestFactory
+    Iterator<DynamicTest> positiveIntegersShouldBeLessThan100() {
+        return JUnit5.dynamicTests(positiveIntegers, (value -> {
+            if (value == null || value > 100) {
+                throw new AssertionError(
+                        "Expected value <= 100 but got: " + value);
+            }
+        }));
     }
 }
