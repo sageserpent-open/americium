@@ -37,6 +37,7 @@ import com.sageserpent.americium.{
 }
 import fs2.{Pull, Stream as Fs2Stream}
 import org.rocksdb.Cache as _
+
 import _root_.java.util.Iterator as JavaIterator
 import _root_.java.util.function.Consumer
 import scala.annotation.tailrec
@@ -71,8 +72,6 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
     Pull[SyncIO, TestIntegrationContext[Case], Unit]
   type ShrinkageIsImproving =
     Function[(DecisionStagesInReverseOrder, BigInt), Boolean]
-  val potentialDuplicates =
-    mutable.Set.empty[DecisionStagesInReverseOrder]
   val deflatedScaleCache = mutable.Map.empty[(BigDecimal, Int), BigDecimal]
 
   protected val casesLimitStrategyFactory: CaseSupplyCycle => CasesLimitStrategy
@@ -149,38 +148,13 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
       .get
   }
 
-  override def testIntegrationContexts()
-      : CrossApiIterator[TestIntegrationContext[Case]] =
-    CrossApiIterator.from(lazyListOfTestIntegrationContexts().iterator)
-
-  override def asIterator(): JavaIterator[Case] with ScalaIterator[Case] =
-    CrossApiIterator.from(
-      lazyListOfTestIntegrationContexts().map(_.caze).iterator
-    )
-
-  private def lazyListOfTestIntegrationContexts()
-      : LazyList[TestIntegrationContext[Case]] = {
-    LazyList.unfold(shrinkableCases()) { streamedCases =>
-      streamedCases.pull.uncons1
-        .flatMap {
-          case None              => Pull.done
-          case Some(headAndTail) => Pull.output1(headAndTail)
-        }
-        .stream
-        .head
-        .compile
-        .last
-        .attempt
-        .unsafeRunSync() match {
-        case Left(throwable) =>
-          throw throwable
-        case Right(cargo) =>
-          cargo
-      }
-    }
-  }
-
   private def shrinkableCases(): StreamedCases = {
+    // NOTE: don't hoist this into the overall class, as this would retain state
+    // between separate uses of a supply syntax: see:
+    // https://github.com/sageserpent-open/americium/issues/255.
+    val potentialDuplicates =
+      mutable.Set.empty[DecisionStagesInReverseOrder]
+
     var shrinkageCasesFromDownstream: Option[StreamedCases] = None
 
     def carryOnButSwitchToShrinkageApproachOnCaseFailure(
@@ -265,6 +239,7 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
             caseData.decisionStagesInReverseOrder.size
 
           val mainProcessing = cases(
+            potentialDuplicates,
             numberOfDecisionStages,
             randomBehaviour,
             scaleDeflationLevel = Some(scaleDeflationLevel),
@@ -358,6 +333,7 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
       }
 
       val businessAsUsualCases: StreamedCases = cases(
+        potentialDuplicates,
         complexityLimit,
         randomBehaviour,
         scaleDeflationLevel = None,
@@ -464,6 +440,7 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
   }
 
   private def cases(
+      potentialDuplicates: mutable.Set[DecisionStagesInReverseOrder],
       complexityLimit: Int,
       randomBehaviour: Random,
       scaleDeflationLevel: Option[Int],
@@ -894,6 +871,37 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
         })
 
       emitCases() -> inlinedCaseFiltration
+    }
+  }
+
+  override def testIntegrationContexts()
+      : CrossApiIterator[TestIntegrationContext[Case]] =
+    CrossApiIterator.from(lazyListOfTestIntegrationContexts().iterator)
+
+  override def asIterator(): JavaIterator[Case] with ScalaIterator[Case] =
+    CrossApiIterator.from(
+      lazyListOfTestIntegrationContexts().map(_.caze).iterator
+    )
+
+  private def lazyListOfTestIntegrationContexts()
+      : LazyList[TestIntegrationContext[Case]] = {
+    LazyList.unfold(shrinkableCases()) { streamedCases =>
+      streamedCases.pull.uncons1
+        .flatMap {
+          case None              => Pull.done
+          case Some(headAndTail) => Pull.output1(headAndTail)
+        }
+        .stream
+        .head
+        .compile
+        .last
+        .attempt
+        .unsafeRunSync() match {
+        case Left(throwable) =>
+          throw throwable
+        case Right(cargo) =>
+          cargo
+      }
     }
   }
 
