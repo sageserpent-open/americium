@@ -4,7 +4,9 @@ import com.eed3si9n.expecty.Expecty.assert
 import com.sageserpent.americium.Trials
 import com.sageserpent.americium.Trials.api as trialsApi
 import com.sageserpent.americium.bugReports.Issue255BugReproduction.HiddenTestSuite
+import com.sageserpent.americium.generation.JavaPropertyNames.nondeterminsticJavaProperty
 import com.sageserpent.americium.junit5.*
+import org.junit.jupiter.api.extension.ExtendWith
 import org.junit.jupiter.api.{Disabled, Test, TestFactory}
 import org.junit.jupiter.engine.descriptor.TestFactoryTestDescriptor
 import org.junit.platform.engine.TestExecutionResult
@@ -14,6 +16,8 @@ import org.junit.platform.testkit.engine.{
   EngineTestKit,
   EventType
 }
+import uk.org.webcompere.systemstubs.jupiter.{SystemStub, SystemStubsExtension}
+import uk.org.webcompere.systemstubs.properties.SystemProperties
 
 import scala.jdk.OptionConverters.*
 import scala.jdk.StreamConverters.*
@@ -39,7 +43,13 @@ object Issue255BugReproduction {
   }
 }
 
+@ExtendWith(Array(classOf[SystemStubsExtension]))
 class Issue255BugReproduction {
+  // Make sure that the trials are generated repeatably between tests.
+  @SystemStub
+  private val systemProperties =
+    new SystemProperties(nondeterminsticJavaProperty, "false")
+
   @Test
   def allTestsUsingASharedSyntaxSupplyShouldRun(): Unit = {
     val results: EngineExecutionResults = EngineTestKit
