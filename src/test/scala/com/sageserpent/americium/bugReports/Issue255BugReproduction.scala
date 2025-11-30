@@ -43,6 +43,7 @@ object Issue255BugReproduction {
   }
 }
 
+//Bug report from: https://github.com/sageserpent-open/americium/issues/255
 @ExtendWith(Array(classOf[SystemStubsExtension]))
 class Issue255BugReproduction {
   // Make sure that the trials are generated repeatably between tests.
