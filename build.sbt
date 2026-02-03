@@ -100,6 +100,7 @@ lazy val settings = Seq(
   libraryDependencies += "io.circe"      %% "circe-generic"         % "0.14.15",
   libraryDependencies += "io.circe"      %% "circe-parser"          % "0.14.15",
   libraryDependencies += "com.google.guava" % "guava"   % "33.5.0-jre",
+  libraryDependencies += "com.github.ben-manes.caffeine" % "caffeine" % "3.2.3",
   libraryDependencies += "com.oath.cyclops" % "cyclops" % "10.4.1",
   libraryDependencies ++= Seq(
     "org.junit.jupiter" % "junit-jupiter-params" % JupiterKeys.junitJupiterVersion.value,
