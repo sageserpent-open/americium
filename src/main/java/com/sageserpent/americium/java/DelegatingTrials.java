@@ -13,7 +13,7 @@ public class DelegatingTrials {
             cache = Caffeine.newBuilder().build();
 
     public interface StateForDelegation<Case> {
-        void delegateTo(Trials underlying);
+        void delegateTo(Trials<Case> underlying);
     }
 
     public static <Case, SpecialisedTrials extends Trials<Case>> SpecialisedTrials delegateTo(
