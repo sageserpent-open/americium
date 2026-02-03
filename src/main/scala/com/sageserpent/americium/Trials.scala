@@ -12,6 +12,9 @@ import scala.language.implicitConversions
 import scala.util.DynamicVariable
 
 object Trials {
+  private[americium] val throwInlineFilterRejection
+      : DynamicVariable[() => Unit] =
+    new DynamicVariable(() => {})
 
   /** Start here: this yields a [[TrialsApi]] instance that is the gateway to
     * creating various kinds of [[Trials]] instances via its factory methods.
@@ -24,10 +27,6 @@ object Trials {
     *   work by running test code.
     */
   def api: TrialsApi = TrialsApis.scalaApi
-
-  private[americium] val throwInlineFilterRejection
-      : DynamicVariable[() => Unit] =
-    new DynamicVariable(() => {})
 
   /** This is an alternative to calling [[Trials.filter]] - the idea here is to
     * embed calls to this method in the test itself as an enclosing guard
@@ -62,7 +61,8 @@ object Trials {
     throwInlineFilterRejection.value.apply()
   }
 
-  implicit class CharacterTrialsSyntax(val characterTrials: Trials[Char]) {
+  implicit class CharacterTrialsSyntax(val characterTrials: Trials[Char])
+      extends AnyVal {
     def strings: Trials[String] = characterTrials.several
 
     def stringsOfSize(size: Int): Trials[String] =

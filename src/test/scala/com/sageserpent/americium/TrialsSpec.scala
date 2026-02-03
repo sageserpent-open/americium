@@ -7,7 +7,6 @@ import com.sageserpent.americium.generation.JavaPropertyNames.{
   recipeJavaProperty
 }
 import com.sageserpent.americium.java.{
-  Builder,
   CaseSupplyCycle,
   CasesLimitStrategy,
   NoValidTrialsException,
@@ -343,7 +342,7 @@ class TrialsSpec
 
     javaApi
       .characters('a', 'z', 'p')
-      .collections(Builder.stringBuilder _)
+      .strings()
       .withLimit(limit)
       .supplyTo(println)
 
@@ -352,7 +351,7 @@ class TrialsSpec
       .flatMap(size =>
         javaApi
           .characters('a', 'z')
-          .collectionsOfSize(size, Builder.stringBuilder _)
+          .stringsOfSize(size)
       )
       .withLimit(limit)
       .supplyTo(println)

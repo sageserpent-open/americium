@@ -6,7 +6,7 @@ public interface Builder<Case, Collection> {
     Collection build();
 
     static Builder<Character, String> stringBuilder() {
-        return new Builder<Character, String>() {
+        return new Builder<>() {
             final StringBuffer
                     buffer =
                     new StringBuffer();

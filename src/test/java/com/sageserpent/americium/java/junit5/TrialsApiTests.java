@@ -396,9 +396,9 @@ public class TrialsApiTests {
                 combinationOfTrials = api.integers()
                                          .and(api.characters().strings())
                                          .and(api.booleans().immutableSets())
-                                         .and(api.characters()
-                                                 .collectionsOfSize(4,
-                                                                    Builder::stringBuilder));
+                                         .and(api
+                                                      .characters()
+                                                      .stringsOfSize(4));
 
         final Try<Void, TrialsFactoring.TrialException> shouldHarbourAnError =
                 Try.runWithCatch(() ->

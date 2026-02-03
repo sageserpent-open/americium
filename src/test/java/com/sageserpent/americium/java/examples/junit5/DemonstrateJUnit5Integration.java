@@ -3,7 +3,10 @@ package com.sageserpent.americium.java.examples.junit5;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterators;
-import com.sageserpent.americium.java.*;
+import com.sageserpent.americium.java.CasesLimitStrategy;
+import com.sageserpent.americium.java.Trials;
+import com.sageserpent.americium.java.TrialsApi;
+import com.sageserpent.americium.java.TrialsScaffolding;
 import com.sageserpent.americium.java.TrialsScaffolding.Tuple2Trials;
 import com.sageserpent.americium.java.TrialsScaffolding.Tuple3Trials;
 import com.sageserpent.americium.java.junit5.ConfiguredTrialsTest;
@@ -47,13 +50,13 @@ public class DemonstrateJUnit5Integration {
             api.integers(1, 10)
                .flatMap(size -> api
                        .characters('a', 'z', 'a')
-                       .collectionsOfSize(size, Builder::stringBuilder))
+                       .stringsOfSize(size))
                .filter(string -> string.endsWith("h"));
     private static final Trials<String> second =
             api.integers(0, 10)
                .flatMap(size -> api
                        .characters('0', '9', '0')
-                       .collectionsOfSize(size, Builder::stringBuilder))
+                       .stringsOfSize(size))
                .filter(string -> string.length() >= 1);
     private static final Tuple2Trials.SupplyToSyntaxTuple2<String, String>
             configuredStringPairs = first

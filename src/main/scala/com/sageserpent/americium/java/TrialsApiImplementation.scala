@@ -341,8 +341,8 @@ trait TrialsApiImplementation extends CommonApi with TrialsApiWart {
   ): TrialsImplementation[Instant] =
     scalaApi.instants(lowerBound, upperBound, shrinkageTarget)
 
-  override def strings(): TrialsImplementation[String] =
-    scalaApi.strings
+  override def strings(): JavaTrials[String] =
+    characters().strings
 
   override def indexPermutations(
       numberOfIndices: Int
