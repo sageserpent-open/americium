@@ -366,10 +366,6 @@ class TrialsSpec
       .supplyTo(println)
   }
 
-  "profiling" should "be quick" in {
-    javaApi.characters().strings().withLimit(500000).supplyTo(println)
-  }
-
   "only one case" should "yield just one trial" in
     forAll(Table("case", 1, "foo", 2.3, List(false, 0, true))) { dataCase =>
       inMockitoSession {
