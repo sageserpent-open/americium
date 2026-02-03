@@ -48,15 +48,86 @@ trait MockitoSessionSupport {
 }
 
 object TrialsSpec {
+  val api: TrialsApi                         = Trials.api
+  val javaApi: JavaTrialsApi                 = JavaTrials.api
+  val limit: Int                             = 350
+  val byteVectorTrials: Trials[Vector[Byte]] =
+    // FIXME: the need to do this shows that some kind of weighted distribution
+    // is a good idea.
+    api.alternateWithWeights(1 -> api.only(0.toByte), 10 -> api.bytes).several
+  val integerVectorTrials: Trials[Vector[Int]] =
+    // FIXME: the need to do this shows that some kind of weighted distribution
+    // is a good idea.
+    api.alternateWithWeights(1 -> api.only(0), 10 -> api.integers).several
+  val doubleVectorTrials: Trials[Vector[Double]] =
+    // FIXME: the need to do this shows that some kind of weighted distribution
+    // is a good idea.
+    api.alternateWithWeights(1 -> api.only(0.0), 10 -> api.doubles).several
+  val longVectorTrials: Trials[Vector[Long]] =
+    // FIXME: the need to do this shows that some kind of weighted distribution
+    // is a good idea.
+    api.alternateWithWeights(1 -> api.only(0L), 10 -> api.longs).several
+  val listTrials: Trials[List[Int]] =
+    // FIXME: the need to do this shows that some kind of weighted distribution
+    // is a good idea.
+    api.alternateWithWeights(3 -> api.only(0), 10 -> api.integers).several
+  val bushyTreeTrials: Trials[BushyTree] =
+    api.complexities.flatMap(complexity =>
+      api
+        .alternateWithWeights(
+          1 -> api
+            .choose(1 to 10)
+            .flatMap(positiveNumberOfBranches =>
+              bushyTreeTrials
+                .listsOfSize(positiveNumberOfBranches)
+                .map(Left.apply)
+            ),
+          (1 max complexity) -> api
+            // FIXME: the need to do this shows that some kind of weighted
+            // distribution is a good idea.
+            .alternateWithWeights(1 -> api.only(0), 10 -> api.integers)
+            .map(Right.apply)
+        )
+        .map(BushyTree.apply)
+    )
+  val BigZero     = BigInt(0)
+  val BigMinusOne = BigInt(-1)
+  val BigOne      = BigInt(1)
+
+  def binaryTreeTrials: Trials[BinaryTree] = api.alternate(
+    for {
+      leftSubtree  <- api.delay(binaryTreeTrials)
+      flag         <- api.booleans
+      rightSubtree <- binaryTreeTrials
+    } yield Branch(leftSubtree, flag, rightSubtree),
+    // FIXME: the need to do this shows that some kind of weighted
+    // distribution is a good idea.
+    api
+      .alternateWithWeights(3 -> api.only(0), 10 -> api.integers)
+      .map(Leaf.apply)
+  )
+
+  def recursiveUseOfComplexityForWeighting: Trials[List[Int]] = {
+    api.complexities.flatMap(complexity =>
+      api.alternateWithWeights(
+        complexity -> api.only(Nil),
+        50         -> (for {
+          id      <- api.integers(1, 10)
+          simpler <- recursiveUseOfComplexityForWeighting
+        } yield id :: simpler)
+      )
+    )
+  }
+
+  sealed trait BinaryTree {
+    def flatten: Vector[Int]
+  }
+
   case class JackInABox[Caze](caze: Caze)
 
   case class ExceptionWithCasePayload[Case](caze: Case) extends RuntimeException
 
   case class ChoicesAndCriterion[X](choices: Seq[X], criterion: X => Boolean)
-
-  sealed trait BinaryTree {
-    def flatten: Vector[Int]
-  }
 
   final case class Leaf(value: Int) extends BinaryTree {
     override def flatten: Vector[Int] = Vector(value)
@@ -79,85 +150,6 @@ object TrialsSpec {
       leafValue => Vector(leafValue)
     )
   }
-
-  val api: TrialsApi         = Trials.api
-  val javaApi: JavaTrialsApi = JavaTrials.api
-
-  val limit: Int = 350
-
-  val byteVectorTrials: Trials[Vector[Byte]] =
-    // FIXME: the need to do this shows that some kind of weighted distribution
-    // is a good idea.
-    api.alternateWithWeights(1 -> api.only(0.toByte), 10 -> api.bytes).several
-
-  val integerVectorTrials: Trials[Vector[Int]] =
-    // FIXME: the need to do this shows that some kind of weighted distribution
-    // is a good idea.
-    api.alternateWithWeights(1 -> api.only(0), 10 -> api.integers).several
-
-  val doubleVectorTrials: Trials[Vector[Double]] =
-    // FIXME: the need to do this shows that some kind of weighted distribution
-    // is a good idea.
-    api.alternateWithWeights(1 -> api.only(0.0), 10 -> api.doubles).several
-
-  val longVectorTrials: Trials[Vector[Long]] =
-    // FIXME: the need to do this shows that some kind of weighted distribution
-    // is a good idea.
-    api.alternateWithWeights(1 -> api.only(0L), 10 -> api.longs).several
-
-  val listTrials: Trials[List[Int]] =
-    // FIXME: the need to do this shows that some kind of weighted distribution
-    // is a good idea.
-    api.alternateWithWeights(3 -> api.only(0), 10 -> api.integers).several
-
-  def binaryTreeTrials: Trials[BinaryTree] = api.alternate(
-    for {
-      leftSubtree  <- api.delay(binaryTreeTrials)
-      flag         <- api.booleans
-      rightSubtree <- binaryTreeTrials
-    } yield Branch(leftSubtree, flag, rightSubtree),
-    // FIXME: the need to do this shows that some kind of weighted
-    // distribution is a good idea.
-    api
-      .alternateWithWeights(3 -> api.only(0), 10 -> api.integers)
-      .map(Leaf.apply)
-  )
-
-  val bushyTreeTrials: Trials[BushyTree] =
-    api.complexities.flatMap(complexity =>
-      api
-        .alternateWithWeights(
-          1 -> api
-            .choose(1 to 10)
-            .flatMap(positiveNumberOfBranches =>
-              bushyTreeTrials
-                .listsOfSize(positiveNumberOfBranches)
-                .map(Left.apply)
-            ),
-          (1 max complexity) -> api
-            // FIXME: the need to do this shows that some kind of weighted
-            // distribution is a good idea.
-            .alternateWithWeights(1 -> api.only(0), 10 -> api.integers)
-            .map(Right.apply)
-        )
-        .map(BushyTree.apply)
-    )
-
-  def recursiveUseOfComplexityForWeighting: Trials[List[Int]] = {
-    api.complexities.flatMap(complexity =>
-      api.alternateWithWeights(
-        complexity -> api.only(Nil),
-        50         -> (for {
-          id      <- api.integers(1, 10)
-          simpler <- recursiveUseOfComplexityForWeighting
-        } yield id :: simpler)
-      )
-    )
-  }
-
-  val BigZero     = BigInt(0)
-  val BigMinusOne = BigInt(-1)
-  val BigOne      = BigInt(1)
 }
 
 class TrialsSpec
@@ -343,7 +335,9 @@ class TrialsSpec
       .withLimit(limit)
       .supplyTo(println)
 
-    javaApi.strings
+    javaApi
+      .characters()
+      .strings()
       .withLimit(limit)
       .supplyTo(println)
 
@@ -374,7 +368,7 @@ class TrialsSpec
   }
 
   "profiling" should "be quick" in {
-    javaApi.strings().withLimit(500000).supplyTo(println)
+    javaApi.characters().strings().withLimit(500000).supplyTo(println)
   }
 
   "only one case" should "yield just one trial" in
@@ -1533,13 +1527,7 @@ class TrialsSpec
     exceptionRecreatedViaRecipe.recipe shouldBe exception.recipe
     exceptionRecreatedViaRecipe.recipeHash shouldBe exception.recipeHash
   }
-
-  case class DescriptionTrialsCriterionAndLimit[X](
-      description: String,
-      sut: Trials[Vector[X]],
-      exceptionCriterion: Vector[X] => Boolean,
-      limit: Int
-  )
+  private val oddHash = 1 == (_: Any).hashCode % 2
 
   it should "only produce additional shrunk cases after revisiting shrunk cases yielded with a lesser cases limit" in {
     val maximumPowerOfTwo = JavaInteger.bitCount(JavaInteger.MAX_VALUE)
@@ -2068,7 +2056,12 @@ class TrialsSpec
     Trials.whenever(guardPrecondition = true) {}
   }
 
-  private val oddHash = 1 == (_: Any).hashCode % 2
+  case class DescriptionTrialsCriterionAndLimit[X](
+      description: String,
+      sut: Trials[Vector[X]],
+      exceptionCriterion: Vector[X] => Boolean,
+      limit: Int
+  )
 
   it should "cover all the cases that would be covered by an explicit filtration over finite possibilities" in forAll(
     Table(

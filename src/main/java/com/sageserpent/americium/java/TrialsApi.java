@@ -284,12 +284,12 @@ public interface TrialsApi {
 
     Trials<Boolean> booleans();
 
-    Trials<Character> characters();
+    CharacterTrials characters();
 
-    Trials<Character> characters(char lowerBound, char upperBound);
+    CharacterTrials characters(char lowerBound, char upperBound);
 
-    Trials<Character> characters(char lowerBound, char upperBound,
-                                 char shrinkageTarget);
+    CharacterTrials characters(char lowerBound, char upperBound,
+                               char shrinkageTarget);
 
     Trials<Instant> instants();
 

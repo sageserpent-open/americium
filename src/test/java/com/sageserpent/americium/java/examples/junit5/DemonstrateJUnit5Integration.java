@@ -60,7 +60,7 @@ public class DemonstrateJUnit5Integration {
             .and(second)
             .withStrategy(TrialsApiTests::oneSecond);
     private static final Trials<String> potentialNulls =
-            api.alternate(api.strings(), api.only(null));
+            api.alternate(api.characters().strings(), api.only(null));
 
     private static final Tuple2Trials<String, Integer> pairs =
             potentialNulls.and(api.integers());
@@ -320,7 +320,7 @@ public class DemonstrateJUnit5Integration {
         final Tuple2Trials.SupplyToSyntaxTuple2<Integer, String> supplier =
                 api()
                         .integers()
-                        .and(api().strings())
+                        .and(api().characters().strings())
                         .withLimit(expectedNumberOfTestCases);
 
         final AtomicInteger trialsCount = new AtomicInteger();
@@ -352,7 +352,7 @@ public class DemonstrateJUnit5Integration {
                 api()
                         .integers()
                         .flatMap(anInteger -> api()
-                                .strings()
+                                .characters().strings()
                                 .flatMap(aString -> api()
                                         .booleans()
                                         .map(aBoolean -> Tuple.tuple(anInteger,

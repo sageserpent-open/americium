@@ -36,8 +36,8 @@ import static org.hamcrest.CoreMatchers.allOf;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.not;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.*;
@@ -47,13 +47,17 @@ public class TrialsApiTests {
     private final static TrialsApi api = Trials.api();
 
     static Iterator<ImmutableSet<String>> sets() {
-        return JUnit5Provider.of(30, api.strings().immutableSets());
+        return JUnit5Provider.of(30,
+                                 api.characters().strings().immutableSets());
     }
 
     static Iterator<Arguments> mixtures() {
         return JUnit5Provider.of(32,
                                  api.integers(),
-                                 api.strings().immutableMaps(api.booleans()));
+                                 api
+                                         .characters()
+                                         .strings()
+                                         .immutableMaps(api.booleans()));
     }
 
     public static CasesLimitStrategy oneSecond(CaseSupplyCycle unused) {
@@ -191,14 +195,15 @@ public class TrialsApiTests {
         Trials<Integer> integersTrialsWithVariety = api.choose(1, 2, 3);
 
         integersTrialsWithVariety
-                .immutableMaps(api.strings())
+                .immutableMaps(api.characters().strings())
                 .withLimit(limit)
                 .supplyTo(System.out::println);
 
         System.out.println("A sorted map of strings keyed by integers...");
 
         integersTrialsWithVariety
-                .immutableSortedMaps(Integer::compare, api.strings())
+                .immutableSortedMaps(Integer::compare,
+                                     api.characters().strings())
                 .withLimit(limit)
                 .supplyTo(System.out::println);
     }
@@ -372,7 +377,7 @@ public class TrialsApiTests {
     @Test
     void testDriveCombinationsOfTrials() {
         api.integers()
-           .and(api.strings())
+           .and(api.characters().strings())
            .and(api.booleans().immutableSets())
            .and(api.characters().immutableListsOfSize(4))
            .withLimit(100)
@@ -389,7 +394,7 @@ public class TrialsApiTests {
         final TrialsScaffolding.Tuple4Trials<Integer, String,
                 ImmutableSet<Boolean>, String>
                 combinationOfTrials = api.integers()
-                                         .and(api.strings())
+                                         .and(api.characters().strings())
                                          .and(api.booleans().immutableSets())
                                          .and(api.characters()
                                                  .collectionsOfSize(4,

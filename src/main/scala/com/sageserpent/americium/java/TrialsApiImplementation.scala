@@ -12,7 +12,6 @@ import com.sageserpent.americium.{
 import _root_.java.lang.{
   Boolean as JavaBoolean,
   Byte as JavaByte,
-  Character as JavaCharacter,
   Double as JavaDouble,
   Integer as JavaInteger,
   Iterable as JavaIterable,
@@ -160,6 +159,20 @@ trait TrialsApiImplementation extends CommonApi with TrialsApiWart {
   override def uniqueIds(): TrialsImplementation[JavaInteger] =
     scalaApi.uniqueIds.map(Int.box)
 
+  override def streamLegacy[Case](
+      factory: JavaFunction[JavaLong, Case]
+  ): TrialsImplementation[Case] = stream(
+    new CaseFactory[Case] {
+      override def apply(input: BigInteger): Case =
+        factory(input.longValue())
+      override val lowerBoundInput: BigInteger =
+        BigInteger.valueOf(Long.MinValue)
+      override val upperBoundInput: BigInteger =
+        BigInteger.valueOf(Long.MaxValue)
+      override val maximallyShrunkInput: BigInteger = BigInteger.ZERO
+    }
+  )
+
   def stream[Case](
       caseFactory: CaseFactory[Case]
   ): TrialsImplementation[Case] = new TrialsImplementation(
@@ -177,20 +190,6 @@ trait TrialsApiImplementation extends CommonApi with TrialsApiWart {
       override def maximallyShrunkInput: BigInt =
         caseFactory.maximallyShrunkInput
     })
-  )
-
-  override def streamLegacy[Case](
-      factory: JavaFunction[JavaLong, Case]
-  ): TrialsImplementation[Case] = stream(
-    new CaseFactory[Case] {
-      override def apply(input: BigInteger): Case =
-        factory(input.longValue())
-      override val lowerBoundInput: BigInteger =
-        BigInteger.valueOf(Long.MinValue)
-      override val upperBoundInput: BigInteger =
-        BigInteger.valueOf(Long.MaxValue)
-      override val maximallyShrunkInput: BigInteger = BigInteger.ZERO
-    }
   )
 
   override def bytes(): JavaTrials[JavaByte] =
@@ -301,21 +300,30 @@ trait TrialsApiImplementation extends CommonApi with TrialsApiWart {
   override def booleans(): TrialsImplementation[JavaBoolean] =
     scalaApi.booleans.map(Boolean.box)
 
-  override def characters(): TrialsImplementation[JavaCharacter] =
-    scalaApi.characters.map(Char.box)
+  override def characters(): CharacterTrials =
+    DelegatingTrials.delegateTo(
+      classOf[CharacterTrials],
+      scalaApi.characters.map(Char.box)
+    )
 
   override def characters(
       lowerBound: Char,
       upperBound: Char
-  ): TrialsImplementation[JavaCharacter] =
-    scalaApi.characters(lowerBound, upperBound).map(Char.box)
+  ): CharacterTrials =
+    DelegatingTrials.delegateTo(
+      classOf[CharacterTrials],
+      scalaApi.characters(lowerBound, upperBound).map(Char.box)
+    )
 
   override def characters(
       lowerBound: Char,
       upperBound: Char,
       shrinkageTarget: Char
-  ): TrialsImplementation[JavaCharacter] =
-    scalaApi.characters(lowerBound, upperBound, shrinkageTarget).map(Char.box)
+  ): CharacterTrials =
+    DelegatingTrials.delegateTo(
+      classOf[CharacterTrials],
+      scalaApi.characters(lowerBound, upperBound, shrinkageTarget).map(Char.box)
+    )
 
   override def instants(): TrialsImplementation[Instant] =
     scalaApi.instants
