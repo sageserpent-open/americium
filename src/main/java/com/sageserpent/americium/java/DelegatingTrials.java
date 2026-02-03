@@ -3,9 +3,12 @@ package com.sageserpent.americium.java;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import net.bytebuddy.ByteBuddy;
+import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.implementation.FieldAccessor;
 import net.bytebuddy.implementation.MethodCall;
 import net.bytebuddy.matcher.ElementMatchers;
+
+import java.lang.reflect.ParameterizedType;
 
 public class DelegatingTrials {
     private static final Cache<Class<? extends Trials<?>>, Class<?
@@ -23,13 +26,21 @@ public class DelegatingTrials {
 
 
         final var clazz = cache.get(specialisedTrialsClass, superClazz -> {
+            final var trialsSuperclassWithReifiedTypeParameter =
+                    specialisedTrialsClass.getGenericInterfaces()[0];
+            final var typeParameters =
+                    ((ParameterizedType) trialsSuperclassWithReifiedTypeParameter).getActualTypeArguments();
+
             final var byteBuddy = new ByteBuddy()
                     .subclass(specialisedTrialsClass)
                     .name(String.format("DelegatingImplementationFor%1s",
                                         specialisedTrialsClass.getSimpleName()))
                     .defineField("delegatedTo",
-                                 specialisedTrialsClass.getInterfaces()[0])
-                    .implement(StateForDelegation.class)
+                                 trialsSuperclassWithReifiedTypeParameter)
+                    .implement(TypeDescription.Generic.Builder
+                                       .parameterizedType(StateForDelegation.class,
+                                                          typeParameters)
+                                       .build())
                     .method(ElementMatchers
                                     .isPublic()
                                     .and(ElementMatchers.not(ElementMatchers.isDeclaredBy(
