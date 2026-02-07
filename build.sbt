@@ -107,7 +107,7 @@ lazy val settings = Seq(
     "org.junit.platform" % "junit-platform-launcher" % JupiterKeys.junitPlatformVersion.value
   ),
   libraryDependencies += "org.rocksdb"        % "rocksdbjni"        % "10.2.1",
-  libraryDependencies += "org.apache.commons" % "commons-text"      % "1.14.0",
+  libraryDependencies += "org.apache.commons" % "commons-text"      % "1.15.0",
   libraryDependencies += "com.lihaoyi"       %% "pprint"            % "0.9.6",
   libraryDependencies += "uk.org.webcompere"  % "system-stubs-core" % "2.1.8",
   libraryDependencies += "uk.org.webcompere" % "system-stubs-jupiter" % "2.1.8",
@@ -116,8 +116,8 @@ lazy val settings = Seq(
   libraryDependencies += "org.scalatest"  %% "scalatest"  % "3.2.19" % Test,
   libraryDependencies += "org.scalacheck" %% "scalacheck" % "1.19.0" % Test,
   libraryDependencies += "org.scalatestplus" %% "scalacheck-1-16" % "3.2.14.0" % Test,
-  libraryDependencies += "org.mockito" % "mockito-core" % "5.20.0" % Test,
-  libraryDependencies += "org.mockito" % "mockito-junit-jupiter" % "5.20.0" % Test,
+  libraryDependencies += "org.mockito" % "mockito-core" % "5.21.0" % Test,
+  libraryDependencies += "org.mockito" % "mockito-junit-jupiter" % "5.21.0" % Test,
   libraryDependencies += "com.github.seregamorph" % "hamcrest-more-matchers" % "1.0" % Test,
   libraryDependencies += "com.github.sbt.junit" % "jupiter-interface" % JupiterKeys.jupiterVersion.value % Test,
   libraryDependencies ++= Seq(
