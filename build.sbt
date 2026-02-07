@@ -99,7 +99,7 @@ lazy val settings = Seq(
   libraryDependencies += "io.circe"      %% "circe-core"            % "0.14.15",
   libraryDependencies += "io.circe"      %% "circe-generic"         % "0.14.15",
   libraryDependencies += "io.circe"      %% "circe-parser"          % "0.14.15",
-  libraryDependencies += "com.google.guava" % "guava"   % "33.5.0-jre",
+  libraryDependencies += "com.google.guava" % "guava" % "33.5.0-jre",
   libraryDependencies += "com.github.ben-manes.caffeine" % "caffeine" % "3.2.3",
   libraryDependencies += "com.oath.cyclops" % "cyclops" % "10.4.1",
   libraryDependencies ++= Seq(
@@ -122,7 +122,6 @@ lazy val settings = Seq(
   libraryDependencies += "com.github.sbt.junit" % "jupiter-interface" % JupiterKeys.jupiterVersion.value % Test,
   libraryDependencies ++= Seq(
     "org.junit.jupiter" % "junit-jupiter-engine" % JupiterKeys.junitJupiterVersion.value % Test,
-    "org.junit.platform" % "junit-platform-runner" % JupiterKeys.junitPlatformVersion.value % Test,
     "org.junit.platform" % "junit-platform-testkit" % JupiterKeys.junitPlatformVersion.value % Test,
     "org.junit.platform" % "junit-platform-suite-api" % JupiterKeys.junitPlatformVersion.value % Test
   ),
