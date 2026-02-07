@@ -393,8 +393,7 @@ class TrialsTestExtension extends TestTemplateInvocationContextProvider {
               val details =
                 if (1 == casesAvailableForReplayByUniqueId.size)
                   casesAvailableForReplayByUniqueId
-                    .get(casesAvailableForReplayByUniqueId.keys.head)
-                    .getOrElse("")
+                    .getOrElse(casesAvailableForReplayByUniqueId.keys.head, "")
                 else ""
 
               s"${super.getDisplayName(invocationIndex)} $details"
