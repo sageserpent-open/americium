@@ -15,6 +15,7 @@ import com.sageserpent.americium.generation.Decision.{
   parseDecisionIndices
 }
 import com.sageserpent.americium.generation.GenerationOperation.Generation
+import com.sageserpent.americium.generation.GenerationOperationCodecs
 import com.sageserpent.americium.java.TrialsDefaults.{
   defaultComplexityLimit,
   defaultShrinkageAttemptsLimit
@@ -206,9 +207,25 @@ case class TrialsImplementation[Case](
         // TODO: suppose this throws an exception? Probably best to
         // just log it and carry on, as the user wants to see a test
         // failure rather than an issue with the database.
-        rocksDbConnection.foreach(
-          _.recordRecipeHash(exception.recipeHash, exception.recipe)
-        )
+        rocksDbConnection.foreach { connection =>
+          // Compute generation structure metadata
+          val generationStructureHash =
+            GenerationOperationCodecs.computeStructureHash(
+              thisTrialsImplementation.generation
+            )
+          val generationStructureString =
+            GenerationOperationCodecs.toStructureString(
+              thisTrialsImplementation.generation
+            )
+
+          // Store recipe with generation metadata
+          connection.recordRecipeHashWithMetadata(
+            exception.recipeHash,
+            exception.recipe,
+            generationStructureHash,
+            generationStructureString
+          )
+        }
 
         Fs2Stream.raiseError[SyncIO](exception)
       }

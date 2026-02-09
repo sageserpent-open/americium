@@ -413,6 +413,55 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
         Fs2Stream
           .resource(readOnlyRocksDbConnectionResource())
           .flatMap { connection =>
+            // Check if the generation structure has changed
+            connection.generationMetadataFromRecipeHash(recipeHash) match {
+              case Some(metadata) =>
+                val currentGenerationHash =
+                  GenerationOperationCodecs.computeStructureHash(generation)
+
+                if (currentGenerationHash != metadata.generationStructureHash) {
+                  // Generation structure has changed - provide diagnostic
+                  val currentGenerationString =
+                    GenerationOperationCodecs.toStructureString(generation)
+
+                  val diagnostic = s"""
+                    |Recipe structure mismatch detected!
+                    |
+                    |The recipe you're trying to reproduce was created with a different
+                    |trial structure than the current code. This usually happens when:
+                    |  - You've modified how the trials instance is built
+                    |  - You've added/removed .map, .flatMap, or .filter calls
+                    |  - You've changed the parameters of the trial (e.g., different bounds)
+                    |
+                    |Your test structure changed - you may need to regenerate the recipe by
+                    |re-running the test without the reproduction property.
+                    |
+                    |Recipe Hash: $recipeHash
+                    |
+                    |Expected Generation Structure Hash: ${metadata.generationStructureHash}
+                    |Current Generation Structure Hash:  $currentGenerationHash
+                    |
+                    |Expected Generation Structure:
+                    |${metadata.generationStructureString}
+                    |
+                    |Current Generation Structure:
+                    |$currentGenerationString
+                    |""".stripMargin
+
+                  // Log the diagnostic but attempt to continue with
+                  // reproduction
+                  System.err.println(diagnostic)
+                }
+
+              case None =>
+                // No metadata found - this recipe was created before we added
+                // generation metadata tracking. Just note it and continue.
+                System.err.println(
+                  s"Warning: Recipe $recipeHash has no generation metadata. " +
+                    "It may have been created with an older version of Americium."
+                )
+            }
+
             val singleTestIntegrationContext = Fs2Stream
               .eval(SyncIO {
                 testIntegrationContextReproducing(
