@@ -413,6 +413,10 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
         Fs2Stream
           .resource(readOnlyRocksDbConnectionResource())
           .flatMap { connection =>
+            // First, try to get the recipe (this will throw if it doesn't
+            // exist).
+            val recipe = connection.recipeFromRecipeHash(recipeHash)
+
             // Check if the generation structure has changed
             connection.generationMetadataFromRecipeHash(recipeHash) match {
               case Some(metadata) =>
@@ -464,9 +468,7 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
 
             val singleTestIntegrationContext = Fs2Stream
               .eval(SyncIO {
-                testIntegrationContextReproducing(
-                  connection.recipeFromRecipeHash(recipeHash)
-                )
+                testIntegrationContextReproducing(recipe)
               })
             carryOnButSwitchToShrinkageApproachOnCaseFailure(
               singleTestIntegrationContext
