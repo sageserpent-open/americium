@@ -35,6 +35,7 @@ import com.sageserpent.americium.{
   Trials,
   TrialsScaffolding as ScalaTrialsScaffolding
 }
+import com.typesafe.scalalogging.StrictLogging
 import fs2.{Pull, Stream as Fs2Stream}
 import org.rocksdb.Cache as _
 
@@ -65,7 +66,8 @@ object SupplyToSyntaxSkeletalImplementation {
 
 trait SupplyToSyntaxSkeletalImplementation[Case]
     extends JavaTrialsScaffolding.SupplyToSyntax[Case]
-    with ScalaTrialsScaffolding.SupplyToSyntax[Case] {
+    with ScalaTrialsScaffolding.SupplyToSyntax[Case]
+    with StrictLogging {
   type StreamedCases =
     Fs2Stream[SyncIO, TestIntegrationContext[Case]]
   type PullOfCases =
@@ -151,6 +153,11 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
   override def testIntegrationContexts()
       : CrossApiIterator[TestIntegrationContext[Case]] =
     CrossApiIterator.from(lazyListOfTestIntegrationContexts().iterator)
+
+  override def asIterator(): JavaIterator[Case] with ScalaIterator[Case] =
+    CrossApiIterator.from(
+      lazyListOfTestIntegrationContexts().map(_.caze).iterator
+    )
 
   private def lazyListOfTestIntegrationContexts()
       : LazyList[TestIntegrationContext[Case]] = {
@@ -471,20 +478,19 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
                     |Current test's generation structure:
                     |${generation.structureOutline}
                     |
-                    |Carrying on as a best effort for now...
+                    |Carrying on as a best effort for now, but the generation may fault with an exception...
                     |""".stripMargin
 
-                  // Log the diagnostic but attempt to continue with
-                  // reproduction
-                  System.err.println(diagnostic)
+                  logger.warn(diagnostic)
                 }
 
               case None =>
                 // No metadata found - this recipe was created before we added
                 // generation metadata tracking. Just note it and continue.
-                System.err.println(
-                  s"Warning: Recipe $recipeHash has no generation metadata. " +
-                    "It may have been created with an older version of Americium."
+                logger.warn(
+                  s"""Recipe $recipeHash has no generation metadata. It may have been created with an older version of Americium.
+                     |Carrying on anyway...
+                     |""".stripMargin
                 )
             }
 
@@ -946,11 +952,6 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
       emitCases() -> inlinedCaseFiltration
     }
   }
-
-  override def asIterator(): JavaIterator[Case] with ScalaIterator[Case] =
-    CrossApiIterator.from(
-      lazyListOfTestIntegrationContexts().map(_.caze).iterator
-    )
 
   protected def reproduce(decisionStages: DecisionStages): Case
 
