@@ -152,11 +152,6 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
       : CrossApiIterator[TestIntegrationContext[Case]] =
     CrossApiIterator.from(lazyListOfTestIntegrationContexts().iterator)
 
-  override def asIterator(): JavaIterator[Case] with ScalaIterator[Case] =
-    CrossApiIterator.from(
-      lazyListOfTestIntegrationContexts().map(_.caze).iterator
-    )
-
   private def lazyListOfTestIntegrationContexts()
       : LazyList[TestIntegrationContext[Case]] = {
     LazyList.unfold(shrinkableCases()) { streamedCases =>
@@ -451,34 +446,32 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
             // Check if the generation structure has changed
             connection.generationMetadataFromRecipeHash(recipeHash) match {
               case Some(metadata) =>
-                val currentGenerationHash = generation.structureOutlineHash
 
-                if (currentGenerationHash != metadata.generationStructureHash) {
-                  // Generation structure has changed - provide diagnostic
-                  val currentGenerationString = generation.structureOutline
-
+                if (generation.structureOutlineHash != metadata.structureHash) {
                   val diagnostic = s"""
-                    |Recipe structure mismatch detected!
+                    |Obsolete recipe detected!
                     |
                     |The recipe you're trying to reproduce was created with a different
-                    |trial structure than the current code. This usually happens when:
+                    |generation structure than the current code. This usually happens when:
                     |  - You've modified how the trials instance is built
-                    |  - You've added/removed .map, .flatMap, or .filter calls
-                    |  - You've changed the parameters of the trial (e.g., different bounds)
+                    |  - You've added/removed `.map`, `.flatMap`, or `.filter` calls
+                    |  - You've changed the parameters of the trials (e.g. different bounds)
                     |
-                    |Your test structure changed - you may need to regenerate the recipe by
+                    |Your test cases have probably changed - you may need to regenerate the recipe by
                     |re-running the test without the reproduction property.
                     |
-                    |Recipe Hash: $recipeHash
+                    |Recipe hash: $recipeHash
                     |
-                    |Expected Generation Structure Hash: ${metadata.generationStructureHash}
-                    |Current Generation Structure Hash:  $currentGenerationHash
+                    |Expected generation structure hash: ${metadata.structureHash}
+                    |Current test's generation structure hash:  ${generation.structureOutlineHash}
                     |
-                    |Expected Generation Structure:
-                    |${metadata.generationStructureString}
+                    |Expected generation structure:
+                    |${metadata.structureString}
                     |
-                    |Current Generation Structure:
-                    |$currentGenerationString
+                    |Current test's generation structure:
+                    |${generation.structureOutline}
+                    |
+                    |Carrying on as a best effort for now...
                     |""".stripMargin
 
                   // Log the diagnostic but attempt to continue with
@@ -953,6 +946,11 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
       emitCases() -> inlinedCaseFiltration
     }
   }
+
+  override def asIterator(): JavaIterator[Case] with ScalaIterator[Case] =
+    CrossApiIterator.from(
+      lazyListOfTestIntegrationContexts().map(_.caze).iterator
+    )
 
   protected def reproduce(decisionStages: DecisionStages): Case
 

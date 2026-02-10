@@ -18,59 +18,40 @@ import java.nio.file.Path
 import scala.util.Using
 
 object RocksDBConnection {
-  /** Metadata about the generation structure that produced a recipe */
-  case class GenerationMetadata(
-      generationStructureHash: String,
-      generationStructureString: String
-  )
 
-  private def databasePath: Path =
-    Option(System.getProperty(temporaryDirectoryJavaProperty)) match {
-      case None =>
-        throw new RuntimeException(
-          s"No definition of Java property: `$temporaryDirectoryJavaProperty`"
-        )
-
-      case Some(directory) =>
-        val file = Option(
-          System.getProperty(runDatabaseJavaProperty)
-        ).getOrElse(runDatabaseDefault)
-
-        Path
-          .of(directory)
-          .resolve(file)
+  val evaluation: Eval[RocksDBConnection] =
+    Eval.later {
+      val result = connection(readOnly = false)
+      Runtime.getRuntime.addShutdownHook(new Thread(() => result.close()))
+      result
     }
-
   private val rocksDbOptions = new DBOptions()
     .optimizeForSmallDb()
     .setCreateIfMissing(true)
     .setCreateMissingColumnFamilies(true)
-
   private val columnFamilyOptions = new ColumnFamilyOptions()
     .setCompressionType(CompressionType.LZ4_COMPRESSION)
     .setBottommostCompressionType(CompressionType.ZSTD_COMPRESSION)
-
   private val defaultColumnFamilyDescriptor = new ColumnFamilyDescriptor(
     RocksDB.DEFAULT_COLUMN_FAMILY,
     columnFamilyOptions
   )
-
   private val columnFamilyDescriptorForRecipeHashes =
     new ColumnFamilyDescriptor(
       "RecipeHashKeyRecipeValue".getBytes(),
       columnFamilyOptions
     )
-
   private val columnFamilyDescriptorForTestCaseIds = new ColumnFamilyDescriptor(
     "TestCaseIdKeyRecipeValue".getBytes(),
     columnFamilyOptions
   )
-
   private val columnFamilyDescriptorForGenerationMetadata =
     new ColumnFamilyDescriptor(
       "RecipeHashKeyGenerationMetadata".getBytes(),
       columnFamilyOptions
     )
+
+  def readOnlyConnection(): RocksDBConnection = connection(readOnly = true)
 
   private def connection(readOnly: Boolean): RocksDBConnection = {
     val columnFamilyDescriptors =
@@ -107,14 +88,28 @@ object RocksDBConnection {
     )
   }
 
-  def readOnlyConnection(): RocksDBConnection = connection(readOnly = true)
+  private def databasePath: Path =
+    Option(System.getProperty(temporaryDirectoryJavaProperty)) match {
+      case None =>
+        throw new RuntimeException(
+          s"No definition of Java property: `$temporaryDirectoryJavaProperty`"
+        )
 
-  val evaluation: Eval[RocksDBConnection] =
-    Eval.later {
-      val result = connection(readOnly = false)
-      Runtime.getRuntime.addShutdownHook(new Thread(() => result.close()))
-      result
+      case Some(directory) =>
+        val file = Option(
+          System.getProperty(runDatabaseJavaProperty)
+        ).getOrElse(runDatabaseDefault)
+
+        Path
+          .of(directory)
+          .resolve(file)
     }
+
+  /** Metadata about the generation structure that produced a recipe */
+  case class GenerationMetadata(
+      structureHash: String,
+      structureString: String
+  )
 }
 
 // TODO: split the responsibilities into two databases? `SupplyToSyntaxSkeletalImplementation` cares about recipe
@@ -126,6 +121,12 @@ case class RocksDBConnection(
     columnFamilyHandleForGenerationMetadata: ColumnFamilyHandle
 ) {
   import RocksDBConnection.GenerationMetadata
+
+  def reset(): Unit = {
+    dropColumnFamilyEntries(columnFamilyHandleForRecipeHashes)
+    dropColumnFamilyEntries(columnFamilyHandleForTestCaseIds)
+    dropColumnFamilyEntries(columnFamilyHandleForGenerationMetadata)
+  }
 
   private def dropColumnFamilyEntries(
       columnFamilyHandle: ColumnFamilyHandle
@@ -151,20 +152,6 @@ case class RocksDBConnection(
 
     }
 
-  def reset(): Unit = {
-    dropColumnFamilyEntries(columnFamilyHandleForRecipeHashes)
-    dropColumnFamilyEntries(columnFamilyHandleForTestCaseIds)
-    dropColumnFamilyEntries(columnFamilyHandleForGenerationMetadata)
-  }
-
-  def recordRecipeHash(recipeHash: String, recipe: String): Unit = {
-    rocksDb.put(
-      columnFamilyHandleForRecipeHashes,
-      recipeHash.map(_.toByte).toArray,
-      recipe.map(_.toByte).toArray
-    )
-  }
-
   /** Record recipe hash along with generation metadata
     *
     * This is the preferred method for storing recipes, as it includes the
@@ -186,6 +173,14 @@ case class RocksDBConnection(
       columnFamilyHandleForGenerationMetadata,
       recipeHash.map(_.toByte).toArray,
       metadata.asJson.noSpaces.map(_.toByte).toArray
+    )
+  }
+
+  def recordRecipeHash(recipeHash: String, recipe: String): Unit = {
+    rocksDb.put(
+      columnFamilyHandleForRecipeHashes,
+      recipeHash.map(_.toByte).toArray,
+      recipe.map(_.toByte).toArray
     )
   }
 
