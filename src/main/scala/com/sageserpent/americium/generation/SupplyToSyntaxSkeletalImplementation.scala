@@ -148,6 +148,37 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
       .get
   }
 
+  override def testIntegrationContexts()
+      : CrossApiIterator[TestIntegrationContext[Case]] =
+    CrossApiIterator.from(lazyListOfTestIntegrationContexts().iterator)
+
+  override def asIterator(): JavaIterator[Case] with ScalaIterator[Case] =
+    CrossApiIterator.from(
+      lazyListOfTestIntegrationContexts().map(_.caze).iterator
+    )
+
+  private def lazyListOfTestIntegrationContexts()
+      : LazyList[TestIntegrationContext[Case]] = {
+    LazyList.unfold(shrinkableCases()) { streamedCases =>
+      streamedCases.pull.uncons1
+        .flatMap {
+          case None              => Pull.done
+          case Some(headAndTail) => Pull.output1(headAndTail)
+        }
+        .stream
+        .head
+        .compile
+        .last
+        .attempt
+        .unsafeRunSync() match {
+        case Left(throwable) =>
+          throw throwable
+        case Right(cargo) =>
+          cargo
+      }
+    }
+  }
+
   private def shrinkableCases(): StreamedCases = {
     // NOTE: don't hoist this into the overall class, as this would retain state
     // between separate uses of a supply syntax: see:
@@ -420,13 +451,11 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
             // Check if the generation structure has changed
             connection.generationMetadataFromRecipeHash(recipeHash) match {
               case Some(metadata) =>
-                val currentGenerationHash =
-                  GenerationOperationCodecs.computeStructureHash(generation)
+                val currentGenerationHash = generation.structureOutlineHash
 
                 if (currentGenerationHash != metadata.generationStructureHash) {
                   // Generation structure has changed - provide diagnostic
-                  val currentGenerationString =
-                    GenerationOperationCodecs.toStructureString(generation)
+                  val currentGenerationString = generation.structureOutline
 
                   val diagnostic = s"""
                     |Recipe structure mismatch detected!
@@ -922,37 +951,6 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
         })
 
       emitCases() -> inlinedCaseFiltration
-    }
-  }
-
-  override def testIntegrationContexts()
-      : CrossApiIterator[TestIntegrationContext[Case]] =
-    CrossApiIterator.from(lazyListOfTestIntegrationContexts().iterator)
-
-  override def asIterator(): JavaIterator[Case] with ScalaIterator[Case] =
-    CrossApiIterator.from(
-      lazyListOfTestIntegrationContexts().map(_.caze).iterator
-    )
-
-  private def lazyListOfTestIntegrationContexts()
-      : LazyList[TestIntegrationContext[Case]] = {
-    LazyList.unfold(shrinkableCases()) { streamedCases =>
-      streamedCases.pull.uncons1
-        .flatMap {
-          case None              => Pull.done
-          case Some(headAndTail) => Pull.output1(headAndTail)
-        }
-        .stream
-        .head
-        .compile
-        .last
-        .attempt
-        .unsafeRunSync() match {
-        case Left(throwable) =>
-          throw throwable
-        case Right(cargo) =>
-          cargo
-      }
     }
   }
 

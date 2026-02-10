@@ -6,7 +6,7 @@ import cats.free.Free.liftF
 import cats.implicits.*
 import cats.~>
 import com.google.common.collect.Ordering as _
-import com.google.common.hash
+import com.google.common.hash.Hashing as GuavaHashing
 import com.sageserpent.americium.TrialsApis.scalaApi
 import com.sageserpent.americium.TrialsScaffolding.{ShrinkageStop, noStopping}
 import com.sageserpent.americium.generation.*
@@ -15,7 +15,6 @@ import com.sageserpent.americium.generation.Decision.{
   parseDecisionIndices
 }
 import com.sageserpent.americium.generation.GenerationOperation.Generation
-import com.sageserpent.americium.generation.GenerationOperationCodecs
 import com.sageserpent.americium.java.TrialsDefaults.{
   defaultComplexityLimit,
   defaultShrinkageAttemptsLimit
@@ -210,13 +209,9 @@ case class TrialsImplementation[Case](
         rocksDbConnection.foreach { connection =>
           // Compute generation structure metadata
           val generationStructureHash =
-            GenerationOperationCodecs.computeStructureHash(
-              thisTrialsImplementation.generation
-            )
+            thisTrialsImplementation.generation.structureOutlineHash
           val generationStructureString =
-            GenerationOperationCodecs.toStructureString(
-              thisTrialsImplementation.generation
-            )
+            thisTrialsImplementation.generation.structureOutline
 
           // Store recipe with generation metadata
           connection.recordRecipeHashWithMetadata(
@@ -328,7 +323,7 @@ case class TrialsImplementation[Case](
     val json           = Decision.json(decisionStages)
     val compressedJson = Decision.compressedJson(decisionStages)
 
-    val jsonHashInHexadecimal = hash.Hashing
+    val jsonHashInHexadecimal = GuavaHashing
       .murmur3_128()
       .hashUnencodedChars(json)
       .toString
