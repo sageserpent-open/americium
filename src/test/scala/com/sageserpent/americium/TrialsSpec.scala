@@ -1,5 +1,6 @@
 package com.sageserpent.americium
 
+import com.github.valfirst.slf4jtest.TestLoggerFactory
 import com.sageserpent.americium.TrialsScaffolding.{noShrinking, noStopping}
 import com.sageserpent.americium.generation.JavaPropertyNames.{
   nondeterminsticJavaProperty,
@@ -22,6 +23,7 @@ import org.mockito.Mockito.{atMost as mockitoAtMost, *}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.prop.TableDrivenPropertyChecks
+import org.slf4j.event.Level
 
 import _root_.java.lang.Integer as JavaInteger
 import _root_.java.util.function.{Consumer, Predicate, Function as JavaFunction}
@@ -2633,6 +2635,60 @@ class TrialsSpecInQuarantineDueToUseOfRecipeSystemProperty
       exceptionRecreatedViaRecipe.recipeHash shouldBe exception.recipeHash
 
       verify(mockConsumer).apply(any())
+    }
+  }
+
+  "a failure" should "warn when reproduced by an obsolete recipe due to changed trials structure" in {
+
+    val initialTrials = api.integers(1, 100).filter(_ > 90)
+
+    inMockitoSession {
+      val surprisedConsumer: Int => Unit = { value =>
+        if (value > 95) throw new RuntimeException(s"Value too high: $value")
+      }
+
+      // Provoke a failure with the initial trials structure...
+      val exception = intercept[initialTrials.TrialException](
+        initialTrials.withLimit(limit).supplyTo(surprisedConsumer)
+      )
+
+      val recipeHash = exception.recipeHash
+
+      // ... modify the trials structure (change upper bound)...
+      val modifiedTrials = api.integers(1, 200).filter(_ > 90)
+
+      // ... try to reproduce with modified structure using old recipe hash...
+      val previousPropertyValue =
+        Option(System.setProperty(recipeHashJavaProperty, recipeHash))
+
+      TestLoggerFactory.clear()
+
+      try {
+        // ... This should warn about structure mismatch but still attempt
+        // reproduction.
+        intercept[modifiedTrials.TrialException](
+          modifiedTrials.withLimit(limit).supplyTo(surprisedConsumer)
+        )
+      } finally {
+        previousPropertyValue.fold(ifEmpty =
+          System.clearProperty(recipeHashJavaProperty)
+        )(System.setProperty(recipeHashJavaProperty, _))
+      }
+
+      // Verify the obsolescence warning was logged.
+      val warnings =
+        TestLoggerFactory.getLoggingEvents.asScala
+          .filter(_.getLevel == Level.WARN)
+
+      warnings should have size 1
+
+      val warningMessage = warnings.head.getMessage
+      warningMessage should include("Obsolete recipe detected")
+      warningMessage should include(recipeHash)
+      warningMessage should include("Expected generation structure hash")
+      warningMessage should include(
+        "Current test's generation structure hash"
+      )
     }
   }
 }
