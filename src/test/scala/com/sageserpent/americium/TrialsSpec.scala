@@ -25,6 +25,12 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatest.prop.TableDrivenPropertyChecks
 import org.slf4j.event.Level
 
+import _root_.java.io.{
+  ByteArrayInputStream,
+  ByteArrayOutputStream,
+  ObjectInputStream,
+  ObjectOutputStream
+}
 import _root_.java.lang.Integer as JavaInteger
 import _root_.java.util.function.{Consumer, Predicate, Function as JavaFunction}
 import _root_.java.util.stream.IntStream
@@ -32,7 +38,7 @@ import _root_.java.util.{Optional, UUID, LinkedList as JavaLinkedList}
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 import scala.jdk.CollectionConverters.*
-import scala.util.Try
+import scala.util.{Try, Using}
 
 trait MockitoSessionSupport {
   protected def inMockitoSession[X](
@@ -2411,6 +2417,25 @@ class TrialsSpec
   }
 }
 
+object copy {
+  def apply[X](original: X): X = {
+    Using.resource(new ByteArrayOutputStream()) { outputStream =>
+      Using.resource(new ObjectOutputStream(outputStream)) {
+        objectOutputStream =>
+          objectOutputStream.writeObject(original)
+
+          Using.resource(new ByteArrayInputStream(outputStream.toByteArray)) {
+            inputStream =>
+              Using.resource(new ObjectInputStream(inputStream)) {
+                objectInputStream =>
+                  objectInputStream.readObject().asInstanceOf[X]
+              }
+          }
+      }
+    }
+  }
+}
+
 class TrialsSpecInQuarantineDueToUseOfRecipeHashSystemProperty
     extends AnyFlatSpec
     with Matchers
@@ -2463,6 +2488,8 @@ class TrialsSpecInQuarantineDueToUseOfRecipeHashSystemProperty
       }
     )
   ) { sut =>
+    val sutAsIfInADifferentProcess = copy(sut)
+
     inMockitoSession {
       val surprisedConsumer: Any => Unit = {
         case JackInABox(caze) => throw ExceptionWithCasePayload(caze)
@@ -2487,9 +2514,11 @@ class TrialsSpecInQuarantineDueToUseOfRecipeHashSystemProperty
             System.setProperty(recipeHashJavaProperty, exception.recipeHash)
           )
 
+        TestLoggerFactory.clear()
+
         try {
-          intercept[sut.TrialException](
-            sut.withLimit(limit).supplyTo(mockConsumer)
+          intercept[sutAsIfInADifferentProcess.TrialException](
+            sutAsIfInADifferentProcess.withLimit(limit).supplyTo(mockConsumer)
           )
         } finally {
           previousPropertyValue.fold(ifEmpty =
@@ -2506,6 +2535,13 @@ class TrialsSpecInQuarantineDueToUseOfRecipeHashSystemProperty
       exceptionRecreatedViaRecipeHash.recipe shouldBe exception.recipe
       exceptionRecreatedViaRecipeHash.recipeHash shouldBe exception.recipeHash
 
+      // Verify the obsolescence warning was *not* logged.
+      val warnings =
+        TestLoggerFactory.getLoggingEvents.asScala
+          .filter(_.getLevel == Level.WARN)
+
+      warnings shouldBe empty
+
       // Tear down the storage of recipes...
       RocksDBConnection.evaluation.value.reset()
 
@@ -2519,7 +2555,7 @@ class TrialsSpecInQuarantineDueToUseOfRecipeHashSystemProperty
 
         try {
           intercept[RecipeIsNotPresentException](
-            sut.withLimit(limit).supplyTo(mockConsumer)
+            sutAsIfInADifferentProcess.withLimit(limit).supplyTo(mockConsumer)
           )
         } finally {
           previousPropertyValue.fold(ifEmpty =
@@ -2587,6 +2623,8 @@ class TrialsSpecInQuarantineDueToUseOfRecipeSystemProperty
       }
     )
   ) { sut =>
+    val sutAsIfInADifferentProcess = copy(sut)
+
     inMockitoSession {
       val surprisedConsumer: Any => Unit = {
         case JackInABox(caze) => throw ExceptionWithCasePayload(caze)
@@ -2617,12 +2655,11 @@ class TrialsSpecInQuarantineDueToUseOfRecipeSystemProperty
             )
           )
 
-        try {
-          // TODO: verify that no warnings are logged, as the recipe is clearly
-          // not obsolete.
+        TestLoggerFactory.clear()
 
-          intercept[sut.TrialException](
-            sut.withLimit(limit).supplyTo(mockConsumer)
+        try {
+          intercept[sutAsIfInADifferentProcess.TrialException](
+            sutAsIfInADifferentProcess.withLimit(limit).supplyTo(mockConsumer)
           )
         } finally {
           previousPropertyValue.fold(ifEmpty =
@@ -2638,6 +2675,13 @@ class TrialsSpecInQuarantineDueToUseOfRecipeSystemProperty
       exceptionRecreatedViaRecipe.recipeHash shouldBe exception.recipeHash
 
       verify(mockConsumer).apply(any())
+
+      // Verify the obsolescence warning was *not* logged.
+      val warnings =
+        TestLoggerFactory.getLoggingEvents.asScala
+          .filter(_.getLevel == Level.WARN)
+
+      warnings shouldBe empty
     }
   }
 
@@ -2755,7 +2799,7 @@ class TrialsSpecInQuarantineDueToUseOfRecipeSystemProperty
       } catch {
         // TODO: if reproduction does fault, there should be a sensible
         // exception and it should be checked here.
-        case exception: modifiedTrials.TrialException =>
+        case _: modifiedTrials.TrialException =>
         // We can't be certain that the modified trials *will* throw the same
         // exception, or even any exception at all.
       } finally {
