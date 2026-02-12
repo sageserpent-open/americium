@@ -2618,6 +2618,9 @@ class TrialsSpecInQuarantineDueToUseOfRecipeSystemProperty
           )
 
         try {
+          // TODO: verify that no warnings are logged, as the recipe is clearly
+          // not obsolete.
+
           intercept[sut.TrialException](
             sut.withLimit(limit).supplyTo(mockConsumer)
           )
@@ -2638,24 +2641,106 @@ class TrialsSpecInQuarantineDueToUseOfRecipeSystemProperty
     }
   }
 
-  "a failure" should "warn when reproduced by an obsolete recipe due to changed trials structure" in {
-
-    val initialTrials = api.integers(1, 100).filter(_ > 90)
+  "a failure" should "warn when reproduced by an obsolete recipe due to changed trials structure" in forAll(
+    Table(
+      ("originalTrials", "modifiedTrials"),
+      (api.only(JackInABox(1)), api.only(JackInABox(2))), // Change the value.
+      (
+        api.choose(1, false, JackInABox(99)),
+        api.choose(1, true, JackInABox(99))
+      ), // Change one of the choices.
+      (
+        api.choose(1, false, JackInABox(99)),
+        api.choose("Interloper", 1, true, JackInABox(99))
+      ), // Add an extra choice.
+      (
+        api.alternate(
+          api.only(true),
+          api.choose(0 until 10 map (_.toString) map JackInABox.apply),
+          api.choose(-10 until 0)
+        ),
+        api.alternate(
+          api.only(true),
+          api.choose(1 until 10 map (_.toString) map JackInABox.apply),
+          api.choose(-10 until 0)
+        )
+      ), // Increase a choice's lower bound inside an alternation.
+      (
+        api.alternate(
+          api.only(true),
+          api.choose(-10 until 0),
+          api.alternate(api.choose(-99 to -50), api.only(JackInABox(-2)))
+        ),
+        api.alternate(
+          api.only(true),
+          api.choose(-10 until -1),
+          api.alternate(api.choose(-99 to -50), api.only(JackInABox(-2)))
+        )
+      ), // Decrease a choice's upper bound inside an alternation.
+      (
+        api.alternate(
+          api.only(true),
+          api.alternate(
+            api.choose(-99 to -50),
+            api.choose("Red herring", false, JackInABox(-2))
+          ),
+          api.choose(-10 until 0)
+        ),
+        api.alternate(
+          api.only(true),
+          api.alternate(
+            api.choose(-99 to -50),
+            api.choose("Red herring", false, JackInABox(-2)),
+            api.only("Uninvited guest.")
+          ),
+          api.choose(-10 until 0)
+        )
+      ), // Add an extra possibility to an alternation inside an alternation.
+      (
+        implicitly[Factory[Option[Int]]].trials.map {
+          case None        => JackInABox(())
+          case Some(value) => value
+        },
+        implicitly[Factory[Option[Int]]].trials
+          .map {
+            case None        => JackInABox(())
+            case Some(value) => value
+          }
+          .flatMap {
+            case surprise @ JackInABox(_) => api.only(surprise)
+            case _                        => api.only(JackInABox(()))
+          }
+      ), // Add flat-mapping.
+      (
+        recursiveUseOfComplexityForWeighting.map {
+          case list if 0 == list.sum % 3 => JackInABox(list)
+          case list => list
+        },
+        recursiveUseOfComplexityForWeighting
+          .map {
+            case list if 0 == list.sum % 3 => JackInABox(list)
+            case list => list
+          }
+          .filter {
+            case Nil => false
+            case _   => true
+          }
+      ) // Add filtration.
+    )
+  ) { case (originalTrials, modifiedTrials) =>
 
     inMockitoSession {
-      val surprisedConsumer: Int => Unit = { value =>
-        if (value > 95) throw new RuntimeException(s"Value too high: $value")
+      val surprisedConsumer: Any => Unit = {
+        case JackInABox(caze) => throw ExceptionWithCasePayload(caze)
+        case _                =>
       }
 
-      // Provoke a failure with the initial trials structure...
-      val exception = intercept[initialTrials.TrialException](
-        initialTrials.withLimit(limit).supplyTo(surprisedConsumer)
+      // Provoke a failure with the original trials structure...
+      val exception = intercept[originalTrials.TrialException](
+        originalTrials.withLimit(limit).supplyTo(surprisedConsumer)
       )
 
       val recipeHash = exception.recipeHash
-
-      // ... modify the trials structure (change upper bound)...
-      val modifiedTrials = api.integers(1, 200).filter(_ > 90)
 
       // ... try to reproduce with modified structure using old recipe hash...
       val previousPropertyValue =
@@ -2666,9 +2751,13 @@ class TrialsSpecInQuarantineDueToUseOfRecipeSystemProperty
       try {
         // ... This should warn about structure mismatch but still attempt
         // reproduction.
-        intercept[modifiedTrials.TrialException](
-          modifiedTrials.withLimit(limit).supplyTo(surprisedConsumer)
-        )
+        modifiedTrials.withLimit(limit).supplyTo(surprisedConsumer)
+      } catch {
+        // TODO: if reproduction does fault, there should be a sensible
+        // exception and it should be checked here.
+        case exception: modifiedTrials.TrialException =>
+        // We can't be certain that the modified trials *will* throw the same
+        // exception, or even any exception at all.
       } finally {
         previousPropertyValue.fold(ifEmpty =
           System.clearProperty(recipeHashJavaProperty)
