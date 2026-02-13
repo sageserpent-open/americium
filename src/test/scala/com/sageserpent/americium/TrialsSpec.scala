@@ -2417,7 +2417,7 @@ class TrialsSpec
   }
 }
 
-object copy {
+object deepCopy {
   def apply[X](original: X): X = {
     Using.resource(new ByteArrayOutputStream()) { outputStream =>
       Using.resource(new ObjectOutputStream(outputStream)) {
@@ -2488,7 +2488,7 @@ class TrialsSpecInQuarantineDueToUseOfRecipeHashSystemProperty
       }
     )
   ) { sut =>
-    val sutAsIfInADifferentProcess = copy(sut)
+    val sutAsIfInADifferentProcess = deepCopy(sut)
 
     inMockitoSession {
       val surprisedConsumer: Any => Unit = {
@@ -2569,6 +2569,147 @@ class TrialsSpecInQuarantineDueToUseOfRecipeHashSystemProperty
       }
     }
   }
+
+  "a failure" should "warn when reproduced by an obsolete recipe hash due to changed trials structure" in forAll(
+    Table(
+      ("originalTrials", "modifiedTrials"),
+      (api.only(JackInABox(1)), api.only(JackInABox(2))), // Change the value.
+      (
+        api.choose(1, false, JackInABox(99)),
+        api.choose(1, true, JackInABox(99))
+      ), // Change one of the choices.
+      (
+        api.choose(1, false, JackInABox(99)),
+        api.choose("Interloper", 1, true, JackInABox(99))
+      ), // Add an extra choice.
+      (
+        api.alternate(
+          api.only(true),
+          api.choose(0 until 10 map (_.toString) map JackInABox.apply),
+          api.choose(-10 until 0)
+        ),
+        api.alternate(
+          api.only(true),
+          api.choose(1 until 10 map (_.toString) map JackInABox.apply),
+          api.choose(-10 until 0)
+        )
+      ), // Increase a choice's lower bound inside an alternation.
+      (
+        api.alternate(
+          api.only(true),
+          api.choose(-10 until 0),
+          api.alternate(api.choose(-99 to -50), api.only(JackInABox(-2)))
+        ),
+        api.alternate(
+          api.only(true),
+          api.choose(-10 until -1),
+          api.alternate(api.choose(-99 to -50), api.only(JackInABox(-2)))
+        )
+      ), // Decrease a choice's upper bound inside an alternation.
+      (
+        api.alternate(
+          api.only(true),
+          api.alternate(
+            api.choose(-99 to -50),
+            api.choose("Red herring", false, JackInABox(-2))
+          ),
+          api.choose(-10 until 0)
+        ),
+        api.alternate(
+          api.only(true),
+          api.alternate(
+            api.choose(-99 to -50),
+            api.choose("Red herring", false, JackInABox(-2)),
+            api.only("Uninvited guest.")
+          ),
+          api.choose(-10 until 0)
+        )
+      ), // Add an extra possibility to an alternation inside an alternation.
+      (
+        implicitly[Factory[Option[Int]]].trials.map {
+          case None        => JackInABox(())
+          case Some(value) => value
+        },
+        implicitly[Factory[Option[Int]]].trials
+          .map {
+            case None        => JackInABox(())
+            case Some(value) => value
+          }
+          .flatMap {
+            case surprise @ JackInABox(_) => api.only(surprise)
+            case _                        => api.only(JackInABox(()))
+          }
+      ), // Add flat-mapping.
+      (
+        recursiveUseOfComplexityForWeighting.map {
+          case list if 0 == list.sum % 3 => JackInABox(list)
+          case list => list
+        },
+        recursiveUseOfComplexityForWeighting
+          .map {
+            case list if 0 == list.sum % 3 => JackInABox(list)
+            case list => list
+          }
+          .filter {
+            case Nil => false
+            case _   => true
+          }
+      ) // Add filtration.
+    )
+  ) { case (originalTrials, modifiedTrials) =>
+
+    inMockitoSession {
+      val surprisedConsumer: Any => Unit = {
+        case JackInABox(caze) => throw ExceptionWithCasePayload(caze)
+        case _                =>
+      }
+
+      // Provoke a failure with the original trials structure...
+      val exception = intercept[originalTrials.TrialException](
+        originalTrials.withLimit(limit).supplyTo(surprisedConsumer)
+      )
+
+      val recipeHash = exception.recipeHash
+
+      // ... try to reproduce with modified structure using old recipe hash...
+      val previousPropertyValue =
+        Option(System.setProperty(recipeHashJavaProperty, recipeHash))
+
+      TestLoggerFactory.clear()
+
+      try {
+        // ... This should warn about structure mismatch but still attempt
+        // reproduction.
+        modifiedTrials.withLimit(limit).supplyTo(surprisedConsumer)
+      } catch {
+        // TODO: if reproduction does fault, there should be a sensible
+        // exception and it should be checked here.
+        case _: modifiedTrials.TrialException =>
+        // We can't be certain that the modified trials *will* throw the same
+        // exception, or even any exception at all.
+      } finally {
+        previousPropertyValue.fold(ifEmpty =
+          System.clearProperty(recipeHashJavaProperty)
+        )(System.setProperty(recipeHashJavaProperty, _))
+      }
+
+      // Verify the obsolescence warning was logged.
+      val warnings =
+        TestLoggerFactory.getLoggingEvents.asScala
+          .filter(_.getLevel == Level.WARN)
+
+      warnings should have size 1
+
+      val warningMessage = warnings.head.getMessage
+      warningMessage should include("Obsolete recipe detected")
+      warningMessage should include(recipeHash)
+      warningMessage should include("Expected generation structure hash")
+      warningMessage should include(
+        "Current test's generation structure hash"
+      )
+    }
+  }
+
 }
 
 class TrialsSpecInQuarantineDueToUseOfRecipeSystemProperty
@@ -2623,7 +2764,7 @@ class TrialsSpecInQuarantineDueToUseOfRecipeSystemProperty
       }
     )
   ) { sut =>
-    val sutAsIfInADifferentProcess = copy(sut)
+    val sutAsIfInADifferentProcess = deepCopy(sut)
 
     inMockitoSession {
       val surprisedConsumer: Any => Unit = {
@@ -2784,16 +2925,23 @@ class TrialsSpecInQuarantineDueToUseOfRecipeSystemProperty
         originalTrials.withLimit(limit).supplyTo(surprisedConsumer)
       )
 
-      val recipeHash = exception.recipeHash
+      // NOTE: simulate what a shell would do with the escaped recipe.
+      val whatWouldBePassedInFromAShell =
+        exception.escapedRecipe.translateEscapes()
 
-      // ... try to reproduce with modified structure using old recipe hash...
+      // ... try to reproduce with modified structure using old recipe ...
       val previousPropertyValue =
-        Option(System.setProperty(recipeHashJavaProperty, recipeHash))
+        Option(
+          System.setProperty(
+            recipeJavaProperty,
+            whatWouldBePassedInFromAShell
+          )
+        )
 
       TestLoggerFactory.clear()
 
       try {
-        // ... This should warn about structure mismatch but still attempt
+        // ... this should warn about structure mismatch but still attempt
         // reproduction.
         modifiedTrials.withLimit(limit).supplyTo(surprisedConsumer)
       } catch {
@@ -2804,8 +2952,8 @@ class TrialsSpecInQuarantineDueToUseOfRecipeSystemProperty
         // exception, or even any exception at all.
       } finally {
         previousPropertyValue.fold(ifEmpty =
-          System.clearProperty(recipeHashJavaProperty)
-        )(System.setProperty(recipeHashJavaProperty, _))
+          System.clearProperty(recipeJavaProperty)
+        )(System.setProperty(recipeJavaProperty, _))
       }
 
       // Verify the obsolescence warning was logged.
@@ -2817,7 +2965,7 @@ class TrialsSpecInQuarantineDueToUseOfRecipeSystemProperty
 
       val warningMessage = warnings.head.getMessage
       warningMessage should include("Obsolete recipe detected")
-      warningMessage should include(recipeHash)
+      warningMessage should include(exception.recipe)
       warningMessage should include("Expected generation structure hash")
       warningMessage should include(
         "Current test's generation structure hash"
