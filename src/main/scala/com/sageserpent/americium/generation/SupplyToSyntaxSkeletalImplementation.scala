@@ -8,7 +8,7 @@ import com.google.common.collect.{Ordering as _, *}
 import com.sageserpent.americium.TrialsScaffolding.ShrinkageStop
 import com.sageserpent.americium.generation.Decision.{
   DecisionStages,
-  parseDecisionIndices
+  parseRecipe
 }
 import com.sageserpent.americium.generation.GenerationOperation.Generation
 import com.sageserpent.americium.generation.JavaPropertyNames.*
@@ -416,7 +416,7 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
     def testIntegrationContextReproducing(
         recipe: String
     ): TestIntegrationContext[Case] = {
-      val decisionStages = parseDecisionIndices(recipe)
+      val decisionStages = parseRecipe(recipe)
       val caze           = reproduce(decisionStages)
 
       TestIntegrationContextImplementation[Case](
@@ -441,21 +441,14 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
       )
     }
 
-    Option(System.getProperty(recipeHashJavaProperty))
-      .map(recipeHash =>
-        Fs2Stream
-          .resource(readOnlyRocksDbConnectionResource())
-          .flatMap { connection =>
-            // First, try to get the recipe (this will throw if it doesn't
-            // exist).
-            val recipe = connection.recipeFromRecipeHash(recipeHash)
+    def checkRecipeForObsolescence(
+        connection: RocksDBConnection
+    )(recipeHash: String, recipe: String): Unit = {
+      connection.generationMetadataFromRecipeHash(recipeHash) match {
+        case Some(metadata) =>
 
-            // Check if the generation structure has changed
-            connection.generationMetadataFromRecipeHash(recipeHash) match {
-              case Some(metadata) =>
-
-                if (generation.structureOutlineHash != metadata.structureHash) {
-                  val diagnostic = s"""
+          if (generation.structureOutlineHash != metadata.structureHash) {
+            val diagnostic = s"""
                     |Obsolete recipe detected!
                     |
                     |The recipe you're trying to reproduce was created with a different
@@ -469,6 +462,10 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
                     |
                     |Recipe hash: $recipeHash
                     |
+                    |Recipe:
+                    |
+                    |$recipe
+                    |
                     |Expected generation structure hash: ${metadata.structureHash}
                     |Current test's generation structure hash:  ${generation.structureOutlineHash}
                     |
@@ -481,18 +478,34 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
                     |Carrying on as a best effort for now, but the generation may fault with an exception...
                     |""".stripMargin
 
-                  logger.warn(diagnostic)
-                }
+            logger.warn(diagnostic)
+          }
 
-              case None =>
-                // No metadata found - this recipe was created before we added
-                // generation metadata tracking. Just note it and continue.
-                logger.warn(
-                  s"""Recipe $recipeHash has no generation metadata. It may have been created with an older version of Americium.
+        case None =>
+          // No metadata found - this recipe was created before we added
+          // generation metadata tracking. Just note it and continue.
+          logger.warn(s"""
+                     |Recipe has no generation metadata. It may have been created with an older version of Americium.
+                     |
+                     |Recipe hash: $recipeHash
+                     |
+                     |Recipe:
+                     |
+                     |$recipe
+                     |
                      |Carrying on anyway...
-                     |""".stripMargin
-                )
-            }
+                     |""".stripMargin)
+      }
+    }
+
+    Option(System.getProperty(recipeHashJavaProperty))
+      .map(recipeHash =>
+        Fs2Stream
+          .resource(readOnlyRocksDbConnectionResource())
+          .flatMap { connection =>
+            val recipe = connection.recipeFromRecipeHash(recipeHash)
+
+            checkRecipeForObsolescence(connection)(recipeHash, recipe)
 
             val singleTestIntegrationContext = Fs2Stream
               .eval(SyncIO {
@@ -506,9 +519,17 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
       .orElse(
         Option(System.getProperty(recipeJavaProperty))
           .map(recipe =>
-            carryOnButSwitchToShrinkageApproachOnCaseFailure(
-              Fs2Stream.emit(testIntegrationContextReproducing(recipe))
-            ).stream
+            Fs2Stream
+              .resource(readOnlyRocksDbConnectionResource())
+              .flatMap { connection =>
+                val recipeHash =
+                  Decision.jsonHashInHexadecimal(Decision.parseRecipe(recipe))
+
+                checkRecipeForObsolescence(connection)(recipeHash, recipe)
+                carryOnButSwitchToShrinkageApproachOnCaseFailure(
+                  Fs2Stream.emit(testIntegrationContextReproducing(recipe))
+                ).stream
+              }
           )
       )
       .getOrElse(

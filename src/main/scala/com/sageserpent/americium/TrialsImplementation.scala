@@ -6,13 +6,12 @@ import cats.free.Free.liftF
 import cats.implicits.*
 import cats.~>
 import com.google.common.collect.Ordering as _
-import com.google.common.hash.Hashing as GuavaHashing
 import com.sageserpent.americium.TrialsApis.scalaApi
 import com.sageserpent.americium.TrialsScaffolding.{ShrinkageStop, noStopping}
 import com.sageserpent.americium.generation.*
 import com.sageserpent.americium.generation.Decision.{
   DecisionStages,
-  parseDecisionIndices
+  parseRecipe
 }
 import com.sageserpent.americium.generation.GenerationOperation.Generation
 import com.sageserpent.americium.java.TrialsDefaults.{
@@ -238,7 +237,7 @@ case class TrialsImplementation[Case](
 
   // Java and Scala API ...
   override def reproduce(recipe: String): Case =
-    reproduce(parseDecisionIndices(recipe))
+    reproduce(parseRecipe(recipe))
 
   private def reproduce(decisionStages: DecisionStages): Case = {
     case class Context(
@@ -323,11 +322,6 @@ case class TrialsImplementation[Case](
     val json           = Decision.json(decisionStages)
     val compressedJson = Decision.compressedJson(decisionStages)
 
-    val jsonHashInHexadecimal = GuavaHashing
-      .murmur3_128()
-      .hashUnencodedChars(json)
-      .toString
-
     val trialException = new TrialException(throwable) {
       override def provokingCase: Case = caze
 
@@ -336,7 +330,8 @@ case class TrialsImplementation[Case](
       override def escapedRecipe: String =
         StringEscapeUtils.escapeJava(compressedJson)
 
-      override def recipeHash: String = jsonHashInHexadecimal
+      override def recipeHash: String =
+        Decision.jsonHashInHexadecimal(decisionStages)
     }
     trialException
   }
@@ -414,14 +409,14 @@ case class TrialsImplementation[Case](
 
       override def asIterator(): JavaIterator[Case] with ScalaIterator[Case] =
         CrossApiIterator.from(Seq {
-          val decisionStages = parseDecisionIndices(recipe)
+          val decisionStages = parseRecipe(recipe)
           thisTrialsImplementation.reproduce(decisionStages)
         }.iterator)
 
       override def testIntegrationContexts()
           : CrossApiIterator[TestIntegrationContext[Case]] = {
         CrossApiIterator.from(Seq({
-          val decisionStages = parseDecisionIndices(recipe)
+          val decisionStages = parseRecipe(recipe)
           val caze = thisTrialsImplementation.reproduce(decisionStages)
 
           TestIntegrationContextImplementation[Case](
@@ -456,7 +451,7 @@ case class TrialsImplementation[Case](
       ] with ScalaTrialsScaffolding.SupplyToSyntax[Case] = this
 
       override def supplyTo(consumer: Case => Unit): Unit = {
-        val decisionStages = parseDecisionIndices(recipe)
+        val decisionStages = parseRecipe(recipe)
         val reproducedCase = thisTrialsImplementation.reproduce(decisionStages)
 
         try {
