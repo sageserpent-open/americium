@@ -504,7 +504,7 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
             val recipe = connection.recipeFromRecipeHash(recipeHash)
 
             checkRecipeForObsolescence(connection)(recipeHash, recipe)
-                
+
             carryOnButSwitchToShrinkageApproachOnCaseFailure(
               Fs2Stream.emit(testIntegrationContextReproducing(recipe))
             ).stream
@@ -603,7 +603,7 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
     val possibilitiesThatFollowSomeChoiceOfDecisionStages =
       mutable.Map.empty[DecisionStagesInReverseOrder, Possibilities]
 
-    def liftUnitIfTheComplexityIsNotTooLarge[Case](
+    def liftUnitIfTheComplexityIsNotTooLarge(
         state: State
     ): StateUpdating[Unit] = {
       // NOTE: this is called *prior* to the complexity being
@@ -617,12 +617,12 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
         )
     }
 
-    def interpretChoice[Case](
+    def interpretChoice[ArbitraryCase](
         choicesByCumulativeFrequency: SortedMap[
           Int,
-          Case
+          ArbitraryCase
         ]
-    ): StateUpdating[Case] = {
+    ): StateUpdating[ArbitraryCase] = {
       val numberOfChoices =
         choicesByCumulativeFrequency.keys.lastOption.getOrElse(0)
       if (0 < numberOfChoices)
@@ -704,9 +704,9 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
         }
       )
 
-    def interpretFactory[Case](
-        factory: CaseFactory[Case]
-    ): StateUpdating[Case] = {
+    def interpretFactory[ArbitraryCase](
+        factory: CaseFactory[ArbitraryCase]
+    ): StateUpdating[ArbitraryCase] = {
       StateT
         .get[Option, State]
         .flatMap(state =>
@@ -819,9 +819,9 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
     }
     def interpreter(): GenerationOperation ~> StateUpdating =
       new (GenerationOperation ~> StateUpdating) {
-        override def apply[Case](
-            generationOperation: GenerationOperation[Case]
-        ): StateUpdating[Case] =
+        override def apply[ArbitraryCase](
+            generationOperation: GenerationOperation[ArbitraryCase]
+        ): StateUpdating[ArbitraryCase] =
           generationOperation match {
             case Choice(choicesByCumulativeFrequency) =>
               interpretChoice(choicesByCumulativeFrequency)

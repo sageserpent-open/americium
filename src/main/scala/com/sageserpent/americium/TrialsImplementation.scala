@@ -256,9 +256,9 @@ case class TrialsImplementation[Case](
     // sane implementation.
     def interpreter: GenerationOperation ~> DecisionIndicesContext =
       new (GenerationOperation ~> DecisionIndicesContext) {
-        override def apply[Case](
-            generationOperation: GenerationOperation[Case]
-        ): DecisionIndicesContext[Case] = {
+        override def apply[ArbitraryCase](
+            generationOperation: GenerationOperation[ArbitraryCase]
+        ): DecisionIndicesContext[ArbitraryCase] = {
           generationOperation match {
             case Choice(choicesByCumulativeFrequency) =>
               for {
