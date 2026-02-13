@@ -319,19 +319,16 @@ case class TrialsImplementation[Case](
       caze: Case,
       decisionStages: DecisionStages
   ) = {
-    val json           = Decision.json(decisionStages)
-    val compressedJson = Decision.compressedJson(decisionStages)
-
     val trialException = new TrialException(throwable) {
       override def provokingCase: Case = caze
 
-      override def recipe: String = json
+      override def recipe: String = Decision.longhandRecipe(decisionStages)
 
       override def escapedRecipe: String =
-        StringEscapeUtils.escapeJava(compressedJson)
+        StringEscapeUtils.escapeJava(Decision.shorthandRecipe(decisionStages))
 
       override def recipeHash: String =
-        Decision.jsonHashInHexadecimal(decisionStages)
+        Decision.recipeHash(decisionStages)
     }
     trialException
   }

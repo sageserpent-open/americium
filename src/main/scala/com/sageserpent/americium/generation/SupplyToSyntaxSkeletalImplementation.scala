@@ -353,7 +353,7 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
                       },
                     inlinedCaseFiltration = inlinedCaseFiltration,
                     isPartOfShrinkage = true,
-                    recipe = Decision.json(
+                    recipe = Decision.longhandRecipe(
                       potentialShrunkCaseData.decisionStagesInReverseOrder.reverse
                     )
                   )
@@ -400,7 +400,7 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
               },
               inlinedCaseFiltration = inlinedCaseFiltration,
               isPartOfShrinkage = false,
-              recipe = Decision.json(
+              recipe = Decision.longhandRecipe(
                 caseData.decisionStagesInReverseOrder.reverse
               )
             )
@@ -523,7 +523,7 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
               .resource(readOnlyRocksDbConnectionResource())
               .flatMap { connection =>
                 val recipeHash =
-                  Decision.jsonHashInHexadecimal(Decision.parseRecipe(recipe))
+                  Decision.recipeHash(Decision.parseRecipe(recipe))
 
                 checkRecipeForObsolescence(connection)(recipeHash, recipe)
                 carryOnButSwitchToShrinkageApproachOnCaseFailure(

@@ -15,16 +15,17 @@ object Decision {
     ).toTry.get // Just throw the exception, the callers are written in Java style.
   }
 
-  def json(decisionStages: DecisionStages): String =
-    decisionStages.asJson.spaces4
-  def compressedJson(decisionStages: DecisionStages): String =
+  def shorthandRecipe(decisionStages: DecisionStages): String =
     decisionStages.asJson.noSpaces
 
-  def jsonHashInHexadecimal(decisionStages: DecisionStages): String =
+  def recipeHash(decisionStages: DecisionStages): String =
     GuavaHashing
       .murmur3_128()
-      .hashUnencodedChars(json(decisionStages))
+      .hashUnencodedChars(longhandRecipe(decisionStages))
       .toString
+
+  def longhandRecipe(decisionStages: DecisionStages): String =
+    decisionStages.asJson.spaces4
 }
 
 case class ChoiceOf(index: Int) extends Decision
