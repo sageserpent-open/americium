@@ -353,9 +353,8 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
                       },
                     inlinedCaseFiltration = inlinedCaseFiltration,
                     isPartOfShrinkage = true,
-                    recipe = Decision.longhandRecipe(
-                      potentialShrunkCaseData.decisionStagesInReverseOrder.reverse
-                    )
+                    recipe =
+                      potentialShrunkCaseData.decisionStagesInReverseOrder.reverse.longhandRecipe
                   )
                 )
               }
@@ -400,9 +399,8 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
               },
               inlinedCaseFiltration = inlinedCaseFiltration,
               isPartOfShrinkage = false,
-              recipe = Decision.longhandRecipe(
-                caseData.decisionStagesInReverseOrder.reverse
-              )
+              recipe =
+                caseData.decisionStagesInReverseOrder.reverse.longhandRecipe
             )
           }
       }
@@ -506,13 +504,9 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
             val recipe = connection.recipeFromRecipeHash(recipeHash)
 
             checkRecipeForObsolescence(connection)(recipeHash, recipe)
-
-            val singleTestIntegrationContext = Fs2Stream
-              .eval(SyncIO {
-                testIntegrationContextReproducing(recipe)
-              })
+                
             carryOnButSwitchToShrinkageApproachOnCaseFailure(
-              singleTestIntegrationContext
+              Fs2Stream.emit(testIntegrationContextReproducing(recipe))
             ).stream
           }
       )
@@ -522,10 +516,10 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
             Fs2Stream
               .resource(readOnlyRocksDbConnectionResource())
               .flatMap { connection =>
-                val recipeHash =
-                  Decision.recipeHash(Decision.parseRecipe(recipe))
+                val recipeHash = Decision.parseRecipe(recipe).recipeHash
 
                 checkRecipeForObsolescence(connection)(recipeHash, recipe)
+
                 carryOnButSwitchToShrinkageApproachOnCaseFailure(
                   Fs2Stream.emit(testIntegrationContextReproducing(recipe))
                 ).stream

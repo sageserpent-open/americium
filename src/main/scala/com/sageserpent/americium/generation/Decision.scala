@@ -15,17 +15,19 @@ object Decision {
     ).toTry.get // Just throw the exception, the callers are written in Java style.
   }
 
-  def shorthandRecipe(decisionStages: DecisionStages): String =
-    decisionStages.asJson.noSpaces
+  implicit class DecisionStagesSyntax(val decisionStages: DecisionStages) {
+    def shorthandRecipe: String =
+      decisionStages.asJson.noSpaces
 
-  def recipeHash(decisionStages: DecisionStages): String =
-    GuavaHashing
-      .murmur3_128()
-      .hashUnencodedChars(longhandRecipe(decisionStages))
-      .toString
+    def recipeHash: String =
+      GuavaHashing
+        .murmur3_128()
+        .hashUnencodedChars(decisionStages.longhandRecipe)
+        .toString
 
-  def longhandRecipe(decisionStages: DecisionStages): String =
-    decisionStages.asJson.spaces4
+    def longhandRecipe: String =
+      decisionStages.asJson.spaces4
+  }
 }
 
 case class ChoiceOf(index: Int) extends Decision

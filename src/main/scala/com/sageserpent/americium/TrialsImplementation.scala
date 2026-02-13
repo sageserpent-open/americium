@@ -322,13 +322,13 @@ case class TrialsImplementation[Case](
     val trialException = new TrialException(throwable) {
       override def provokingCase: Case = caze
 
-      override def recipe: String = Decision.longhandRecipe(decisionStages)
+      override def recipe: String = decisionStages.longhandRecipe
 
       override def escapedRecipe: String =
-        StringEscapeUtils.escapeJava(Decision.shorthandRecipe(decisionStages))
+        StringEscapeUtils.escapeJava(decisionStages.shorthandRecipe)
 
       override def recipeHash: String =
-        Decision.recipeHash(decisionStages)
+        decisionStages.recipeHash
     }
     trialException
   }
