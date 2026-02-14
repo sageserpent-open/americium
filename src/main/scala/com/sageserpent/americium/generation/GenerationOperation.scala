@@ -2,6 +2,8 @@ package com.sageserpent.americium.generation
 import cats.free.Free
 import com.google.common.hash.Hashing as GuavaHashing
 import com.sageserpent.americium.CaseFactory
+import com.sageserpent.americium.generation.GenerationOperation.Syntax.prettyPrinter
+import pprint.PPrinter
 
 import scala.collection.immutable.SortedMap
 
@@ -9,6 +11,36 @@ sealed trait GenerationOperation[Case]
 
 object GenerationOperation {
   type Generation[Case] = Free[GenerationOperation, Case]
+
+  object Syntax {
+    private val prettyPrinter: PPrinter = {
+      val treeify = prettyPrinter.treeify(
+        _,
+        prettyPrinter.defaultEscapeUnicode,
+        prettyPrinter.defaultShowFieldNames
+      )
+
+      pprint.copy(additionalHandlers = {
+        case _: Function[?, ?] =>
+          pprint.Tree.Literal("Function")
+        case caseFactory: CaseFactory[?] =>
+          pprint.Tree.Apply(
+            "CaseFactory",
+            Iterator(
+              treeify(caseFactory.lowerBoundInput),
+              treeify(caseFactory.maximallyShrunkInput),
+              treeify(caseFactory.upperBoundInput)
+            )
+          )
+
+        case choice: Choice[?] =>
+          pprint.Tree.Apply(
+            "Choice",
+            choice.choicesByCumulativeFrequency.iterator.map(treeify)
+          )
+      })
+    }
+  }
 
   /** Utilities for generating structural representations and hashes of
     * [[Generation]] instances.
@@ -42,14 +74,14 @@ object GenerationOperation {
       * representation. Changes to the composition (added/removed operations,
       * changed parameters) will result in different strings.
       *
-      * Limitations: - Lambda implementations are shown as <function> - Doesn't
+      * Limitations: - Lambda implementations are shown as "Function" - Doesn't
       * capture changes to lambda logic - Does capture structural changes (map,
       * flatMap, filter added/removed) - Does capture parameter changes (bounds,
       * number of choices, etc.)
       */
     def structureOutline: String = {
       // Use pprint for a readable, deterministic representation
-      pprint.apply(generation, height = Int.MaxValue).plainText
+      prettyPrinter.apply(generation, height = Int.MaxValue).plainText
     }
   }
 
