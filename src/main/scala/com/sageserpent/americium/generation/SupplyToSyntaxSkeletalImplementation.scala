@@ -8,7 +8,7 @@ import com.google.common.collect.{Ordering as _, *}
 import com.sageserpent.americium.TrialsScaffolding.ShrinkageStop
 import com.sageserpent.americium.generation.Decision.{
   DecisionStages,
-  parseDecisionIndices
+  parseRecipe
 }
 import com.sageserpent.americium.generation.GenerationOperation.Generation
 import com.sageserpent.americium.generation.JavaPropertyNames.*
@@ -353,9 +353,8 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
                       },
                     inlinedCaseFiltration = inlinedCaseFiltration,
                     isPartOfShrinkage = true,
-                    recipe = Decision.json(
-                      potentialShrunkCaseData.decisionStagesInReverseOrder.reverse
-                    )
+                    recipe =
+                      potentialShrunkCaseData.decisionStagesInReverseOrder.reverse.longhandRecipe
                   )
                 )
               }
@@ -400,9 +399,8 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
               },
               inlinedCaseFiltration = inlinedCaseFiltration,
               isPartOfShrinkage = false,
-              recipe = Decision.json(
-                caseData.decisionStagesInReverseOrder.reverse
-              )
+              recipe =
+                caseData.decisionStagesInReverseOrder.reverse.longhandRecipe
             )
           }
       }
@@ -416,7 +414,7 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
     def testIntegrationContextReproducing(
         recipe: String
     ): TestIntegrationContext[Case] = {
-      val decisionStages = parseDecisionIndices(recipe)
+      val decisionStages = parseRecipe(recipe)
       val caze           = reproduce(decisionStages)
 
       TestIntegrationContextImplementation[Case](
@@ -441,21 +439,14 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
       )
     }
 
-    Option(System.getProperty(recipeHashJavaProperty))
-      .map(recipeHash =>
-        Fs2Stream
-          .resource(readOnlyRocksDbConnectionResource())
-          .flatMap { connection =>
-            // First, try to get the recipe (this will throw if it doesn't
-            // exist).
-            val recipe = connection.recipeFromRecipeHash(recipeHash)
+    def checkRecipeForObsolescence(
+        connection: RocksDBConnection
+    )(recipeHash: String, recipe: String): Unit = {
+      connection.generationMetadataFromRecipeHash(recipeHash) match {
+        case Some(metadata) =>
 
-            // Check if the generation structure has changed
-            connection.generationMetadataFromRecipeHash(recipeHash) match {
-              case Some(metadata) =>
-
-                if (generation.structureOutlineHash != metadata.structureHash) {
-                  val diagnostic = s"""
+          if (generation.structureOutlineHash != metadata.structureHash) {
+            val diagnostic = s"""
                     |Obsolete recipe detected!
                     |
                     |The recipe you're trying to reproduce was created with a different
@@ -469,6 +460,10 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
                     |
                     |Recipe hash: $recipeHash
                     |
+                    |Recipe:
+                    |
+                    |$recipe
+                    |
                     |Expected generation structure hash: ${metadata.structureHash}
                     |Current test's generation structure hash:  ${generation.structureOutlineHash}
                     |
@@ -481,34 +476,54 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
                     |Carrying on as a best effort for now, but the generation may fault with an exception...
                     |""".stripMargin
 
-                  logger.warn(diagnostic)
-                }
+            logger.warn(diagnostic)
+          }
 
-              case None =>
-                // No metadata found - this recipe was created before we added
-                // generation metadata tracking. Just note it and continue.
-                logger.warn(
-                  s"""Recipe $recipeHash has no generation metadata. It may have been created with an older version of Americium.
+        case None =>
+          // No metadata found - this recipe was created before we added
+          // generation metadata tracking. Just note it and continue.
+          logger.warn(s"""
+                     |Recipe has no generation metadata. It may have been created with an older version of Americium.
+                     |
+                     |Recipe hash: $recipeHash
+                     |
+                     |Recipe:
+                     |
+                     |$recipe
+                     |
                      |Carrying on anyway...
-                     |""".stripMargin
-                )
-            }
+                     |""".stripMargin)
+      }
+    }
 
-            val singleTestIntegrationContext = Fs2Stream
-              .eval(SyncIO {
-                testIntegrationContextReproducing(recipe)
-              })
+    Option(System.getProperty(recipeHashJavaProperty))
+      .map(recipeHash =>
+        Fs2Stream
+          .resource(readOnlyRocksDbConnectionResource())
+          .flatMap { connection =>
+            val recipe = connection.recipeFromRecipeHash(recipeHash)
+
+            checkRecipeForObsolescence(connection)(recipeHash, recipe)
+
             carryOnButSwitchToShrinkageApproachOnCaseFailure(
-              singleTestIntegrationContext
+              Fs2Stream.emit(testIntegrationContextReproducing(recipe))
             ).stream
           }
       )
       .orElse(
         Option(System.getProperty(recipeJavaProperty))
           .map(recipe =>
-            carryOnButSwitchToShrinkageApproachOnCaseFailure(
-              Fs2Stream.emit(testIntegrationContextReproducing(recipe))
-            ).stream
+            Fs2Stream
+              .resource(readOnlyRocksDbConnectionResource())
+              .flatMap { connection =>
+                val recipeHash = Decision.parseRecipe(recipe).recipeHash
+
+                checkRecipeForObsolescence(connection)(recipeHash, recipe)
+
+                carryOnButSwitchToShrinkageApproachOnCaseFailure(
+                  Fs2Stream.emit(testIntegrationContextReproducing(recipe))
+                ).stream
+              }
           )
       )
       .getOrElse(
@@ -588,7 +603,7 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
     val possibilitiesThatFollowSomeChoiceOfDecisionStages =
       mutable.Map.empty[DecisionStagesInReverseOrder, Possibilities]
 
-    def liftUnitIfTheComplexityIsNotTooLarge[Case](
+    def liftUnitIfTheComplexityIsNotTooLarge(
         state: State
     ): StateUpdating[Unit] = {
       // NOTE: this is called *prior* to the complexity being
@@ -602,12 +617,12 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
         )
     }
 
-    def interpretChoice[Case](
+    def interpretChoice[ArbitraryCase](
         choicesByCumulativeFrequency: SortedMap[
           Int,
-          Case
+          ArbitraryCase
         ]
-    ): StateUpdating[Case] = {
+    ): StateUpdating[ArbitraryCase] = {
       val numberOfChoices =
         choicesByCumulativeFrequency.keys.lastOption.getOrElse(0)
       if (0 < numberOfChoices)
@@ -689,9 +704,9 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
         }
       )
 
-    def interpretFactory[Case](
-        factory: CaseFactory[Case]
-    ): StateUpdating[Case] = {
+    def interpretFactory[ArbitraryCase](
+        factory: CaseFactory[ArbitraryCase]
+    ): StateUpdating[ArbitraryCase] = {
       StateT
         .get[Option, State]
         .flatMap(state =>
@@ -804,9 +819,9 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
     }
     def interpreter(): GenerationOperation ~> StateUpdating =
       new (GenerationOperation ~> StateUpdating) {
-        override def apply[Case](
-            generationOperation: GenerationOperation[Case]
-        ): StateUpdating[Case] =
+        override def apply[ArbitraryCase](
+            generationOperation: GenerationOperation[ArbitraryCase]
+        ): StateUpdating[ArbitraryCase] =
           generationOperation match {
             case Choice(choicesByCumulativeFrequency) =>
               interpretChoice(choicesByCumulativeFrequency)

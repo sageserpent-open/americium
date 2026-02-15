@@ -1,4 +1,5 @@
 package com.sageserpent.americium.generation
+import com.google.common.hash.Hashing as GuavaHashing
 import io.circe.generic.auto.*
 import io.circe.parser.decode
 import io.circe.syntax.*
@@ -8,15 +9,25 @@ sealed trait Decision
 object Decision {
   type DecisionStages = List[Decision]
 
-  def parseDecisionIndices(recipe: String): DecisionStages = {
+  def parseRecipe(recipe: String): DecisionStages = {
     decode[DecisionStages](
       recipe
     ).toTry.get // Just throw the exception, the callers are written in Java style.
   }
 
-  def json(decisionStages: DecisionStages) = decisionStages.asJson.spaces4
-  def compressedJson(decisionStages: DecisionStages) =
-    decisionStages.asJson.noSpaces
+  implicit class DecisionStagesSyntax(val decisionStages: DecisionStages) {
+    def shorthandRecipe: String =
+      decisionStages.asJson.noSpaces
+
+    def recipeHash: String =
+      GuavaHashing
+        .murmur3_128()
+        .hashUnencodedChars(decisionStages.longhandRecipe)
+        .toString
+
+    def longhandRecipe: String =
+      decisionStages.asJson.spaces4
+  }
 }
 
 case class ChoiceOf(index: Int) extends Decision
