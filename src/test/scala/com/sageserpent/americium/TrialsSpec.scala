@@ -25,12 +25,6 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatest.prop.TableDrivenPropertyChecks
 import org.slf4j.event.Level
 
-import _root_.java.io.{
-  ByteArrayInputStream,
-  ByteArrayOutputStream,
-  ObjectInputStream,
-  ObjectOutputStream
-}
 import _root_.java.lang.Integer as JavaInteger
 import _root_.java.util.function.{Consumer, Predicate, Function as JavaFunction}
 import _root_.java.util.stream.IntStream
@@ -38,7 +32,7 @@ import _root_.java.util.{Optional, UUID, LinkedList as JavaLinkedList}
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 import scala.jdk.CollectionConverters.*
-import scala.util.{Try, Using}
+import scala.util.Try
 
 trait MockitoSessionSupport {
   protected def inMockitoSession[X](
@@ -2417,25 +2411,6 @@ class TrialsSpec
   }
 }
 
-object deepCopy {
-  def apply[X](original: X): X = {
-    Using.resource(new ByteArrayOutputStream()) { outputStream =>
-      Using.resource(new ObjectOutputStream(outputStream)) {
-        objectOutputStream =>
-          objectOutputStream.writeObject(original)
-
-          Using.resource(new ByteArrayInputStream(outputStream.toByteArray)) {
-            inputStream =>
-              Using.resource(new ObjectInputStream(inputStream)) {
-                objectInputStream =>
-                  objectInputStream.readObject().asInstanceOf[X]
-              }
-          }
-      }
-    }
-  }
-}
-
 class TrialsSpecInQuarantineDueToUseOfRecipeHashSystemProperty
     extends AnyFlatSpec
     with Matchers
@@ -2446,49 +2421,57 @@ class TrialsSpecInQuarantineDueToUseOfRecipeHashSystemProperty
   "a failure" should "be reproduced by its recipe hash" in forAll(
     Table(
       "trials",
-      api.only(JackInABox(1)),
-      api.choose(1, false, JackInABox(99)),
-      api.alternate(
-        api.only(true),
-        api.choose(0 until 10 map (_.toString) map JackInABox.apply),
-        api.choose(-10 until 0)
-      ),
-      api.alternate(
-        api.only(true),
-        api.choose(-10 until 0),
-        api.alternate(api.choose(-99 to -50), api.only(JackInABox(-2)))
-      ),
-      api.alternate(
-        api.only(true),
+      () => api.only(JackInABox(1)),
+      () => api.choose(1, false, JackInABox(99)),
+      () =>
         api.alternate(
-          api.choose(-99 to -50),
-          api.choose("Red herring", false, JackInABox(-2))
+          api.only(true),
+          api.choose(0 until 10 map (_.toString) map JackInABox.apply),
+          api.choose(-10 until 0)
         ),
-        api.choose(-10 until 0)
-      ),
-      api.streamLegacy({
-        case value if 0 == value % 3 => JackInABox(value)
-        case value => value
-      }),
-      api.alternate(
-        api.only(true),
+      () =>
+        api.alternate(
+          api.only(true),
+          api.choose(-10 until 0),
+          api.alternate(api.choose(-99 to -50), api.only(JackInABox(-2)))
+        ),
+      () =>
+        api.alternate(
+          api.only(true),
+          api.alternate(
+            api.choose(-99 to -50),
+            api.choose("Red herring", false, JackInABox(-2))
+          ),
+          api.choose(-10 until 0)
+        ),
+      () =>
         api.streamLegacy({
           case value if 0 == value % 3 => JackInABox(value)
           case value => value
         }),
-        api.choose(-10 until 0)
-      ),
-      implicitly[Factory[Option[Int]]].trials.map {
-        case None        => JackInABox(())
-        case Some(value) => value
-      },
-      recursiveUseOfComplexityForWeighting.map {
-        case list if 0 == list.sum % 3 => JackInABox(list)
-        case list => list
-      }
+      () =>
+        api.alternate(
+          api.only(true),
+          api.streamLegacy({
+            case value if 0 == value % 3 => JackInABox(value)
+            case value => value
+          }),
+          api.choose(-10 until 0)
+        ),
+      () =>
+        implicitly[Factory[Option[Int]]].trials.map {
+          case None        => JackInABox(())
+          case Some(value) => value
+        },
+      () =>
+        recursiveUseOfComplexityForWeighting.map {
+          case list if 0 == list.sum % 3 => JackInABox(list)
+          case list => list
+        }
     )
-  ) { sut =>
-    val sutAsIfInADifferentProcess = deepCopy(sut)
+  ) { sutFactory =>
+    val sut                        = sutFactory()
+    val sutAsIfInADifferentProcess = sutFactory()
 
     inMockitoSession {
       val surprisedConsumer: Any => Unit = {
@@ -2722,49 +2705,57 @@ class TrialsSpecInQuarantineDueToUseOfRecipeSystemProperty
   "a failure" should "be reproduced by its recipe" in forAll(
     Table(
       "trials",
-      api.only(JackInABox(1)),
-      api.choose(1, false, JackInABox(99)),
-      api.alternate(
-        api.only(true),
-        api.choose(0 until 10 map (_.toString) map JackInABox.apply),
-        api.choose(-10 until 0)
-      ),
-      api.alternate(
-        api.only(true),
-        api.choose(-10 until 0),
-        api.alternate(api.choose(-99 to -50), api.only(JackInABox(-2)))
-      ),
-      api.alternate(
-        api.only(true),
+      () => api.only(JackInABox(1)),
+      () => api.choose(1, false, JackInABox(99)),
+      () =>
         api.alternate(
-          api.choose(-99 to -50),
-          api.choose("Red herring", false, JackInABox(-2))
+          api.only(true),
+          api.choose(0 until 10 map (_.toString) map JackInABox.apply),
+          api.choose(-10 until 0)
         ),
-        api.choose(-10 until 0)
-      ),
-      api.streamLegacy({
-        case value if 0 == value % 3 => JackInABox(value)
-        case value => value
-      }),
-      api.alternate(
-        api.only(true),
+      () =>
+        api.alternate(
+          api.only(true),
+          api.choose(-10 until 0),
+          api.alternate(api.choose(-99 to -50), api.only(JackInABox(-2)))
+        ),
+      () =>
+        api.alternate(
+          api.only(true),
+          api.alternate(
+            api.choose(-99 to -50),
+            api.choose("Red herring", false, JackInABox(-2))
+          ),
+          api.choose(-10 until 0)
+        ),
+      () =>
         api.streamLegacy({
           case value if 0 == value % 3 => JackInABox(value)
           case value => value
         }),
-        api.choose(-10 until 0)
-      ),
-      implicitly[Factory[Option[Int]]].trials.map {
-        case None        => JackInABox(())
-        case Some(value) => value
-      },
-      recursiveUseOfComplexityForWeighting.map {
-        case list if 0 == list.sum % 3 => JackInABox(list)
-        case list => list
-      }
+      () =>
+        api.alternate(
+          api.only(true),
+          api.streamLegacy({
+            case value if 0 == value % 3 => JackInABox(value)
+            case value => value
+          }),
+          api.choose(-10 until 0)
+        ),
+      () =>
+        implicitly[Factory[Option[Int]]].trials.map {
+          case None        => JackInABox(())
+          case Some(value) => value
+        },
+      () =>
+        recursiveUseOfComplexityForWeighting.map {
+          case list if 0 == list.sum % 3 => JackInABox(list)
+          case list => list
+        }
     )
-  ) { sut =>
-    val sutAsIfInADifferentProcess = deepCopy(sut)
+  ) { sutFactory =>
+    val sut                        = sutFactory()
+    val sutAsIfInADifferentProcess = sutFactory()
 
     inMockitoSession {
       val surprisedConsumer: Any => Unit = {
