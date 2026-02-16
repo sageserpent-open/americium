@@ -70,11 +70,12 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
     with StrictLogging {
   type StreamedCases =
     Fs2Stream[SyncIO, TestIntegrationContext[Case]]
-  type PullOfCases =
+  private type PullOfCases =
     Pull[SyncIO, TestIntegrationContext[Case], Unit]
-  type ShrinkageIsImproving =
+  private type ShrinkageIsImproving =
     Function[(DecisionStagesInReverseOrder, BigInt), Boolean]
-  val deflatedScaleCache = mutable.Map.empty[(BigDecimal, Int), BigDecimal]
+  private val deflatedScaleCache =
+    mutable.Map.empty[(BigDecimal, Int), BigDecimal]
 
   protected val casesLimitStrategyFactory: CaseSupplyCycle => CasesLimitStrategy
   protected val complexityLimit: Int
