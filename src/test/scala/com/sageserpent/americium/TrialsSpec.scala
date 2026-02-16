@@ -11,6 +11,7 @@ import com.sageserpent.americium.java.{
   CaseSupplyCycle,
   CasesLimitStrategy,
   NoValidTrialsException,
+  RecipeCouldNotBeReproducedException,
   RecipeIsNotPresentException,
   Trials as JavaTrials,
   TrialsApi as JavaTrialsApi
@@ -2569,6 +2570,22 @@ class TrialsSpecInQuarantineDueToUseOfRecipeHashSystemProperty
       ("originalTrials", "modifiedTrials"),
       (api.only(JackInABox(1)), api.only(JackInABox(2))), // Change the value.
       (
+        api.integers(1, 10).map(JackInABox.apply),
+        api.integers(0, 10).map(JackInABox.apply)
+      ), // Change the lower bound.
+      (
+        api.integers(1, 10).map(JackInABox.apply),
+        api.integers(1, 11).map(JackInABox.apply)
+      ), // Change the upper bound.
+      (
+        api.integers(1, 10).map(JackInABox.apply),
+        api.integers(1, 10, 7).map(JackInABox.apply)
+      ), // Change the shrinkage target.
+      (
+        api.choose(1, false, JackInABox(99)),
+        api.choose(false, JackInABox(99))
+      ), // Remove one of the choices.
+      (
         api.choose(1, false, JackInABox(99)),
         api.choose(1, true, JackInABox(99))
       ), // Change one of the choices.
@@ -2676,11 +2693,13 @@ class TrialsSpecInQuarantineDueToUseOfRecipeHashSystemProperty
         // reproduction.
         modifiedTrials.withLimit(limit).supplyTo(surprisedConsumer)
       } catch {
-        // TODO: if reproduction does fault, there should be a sensible
-        // exception and it should be checked here.
+        case exception: RecipeCouldNotBeReproducedException =>
+          // We can't be certain that the modified trials *won't* fail to
+          // reproduce some exception...
+          println(exception)
         case _: modifiedTrials.TrialException =>
-        // We can't be certain that the modified trials *will* throw the same
-        // exception, or even any exception at all.
+        // ... However, we also can't be certain that the modified trials *will*
+        // throw the same exception, or even any exception at all.
       } finally {
         previousPropertyValue.fold(ifEmpty =
           System.clearProperty(recipeHashJavaProperty)
@@ -2857,6 +2876,10 @@ class TrialsSpecInQuarantineDueToUseOfRecipeSystemProperty
       ), // Change the shrinkage target.
       (
         api.choose(1, false, JackInABox(99)),
+        api.choose(false, JackInABox(99))
+      ), // Remove one of the choices.
+      (
+        api.choose(1, false, JackInABox(99)),
         api.choose(1, true, JackInABox(99))
       ), // Change one of the choices.
       (
@@ -2970,11 +2993,13 @@ class TrialsSpecInQuarantineDueToUseOfRecipeSystemProperty
         // reproduction.
         modifiedTrials.withLimit(limit).supplyTo(surprisedConsumer)
       } catch {
-        // TODO: if reproduction does fault, there should be a sensible
-        // exception and it should be checked here.
+        case exception: RecipeCouldNotBeReproducedException =>
+          // We can't be certain that the modified trials *won't* fail to
+          // reproduce some exception...
+          println(exception)
         case _: modifiedTrials.TrialException =>
-        // We can't be certain that the modified trials *will* throw the same
-        // exception, or even any exception at all.
+        // ... However, we also can't be certain that the modified trials *will*
+        // throw the same exception, or even any exception at all.
       } finally {
         previousPropertyValue.fold(ifEmpty =
           System.clearProperty(recipeJavaProperty)
