@@ -38,6 +38,18 @@ object GenerationOperation {
             "Choice",
             choice.choicesByCumulativeFrequency.iterator.map(treeify)
           )
+
+        case usingDefaultToString
+            if usingDefaultToString.getClass
+              .getMethod("toString")
+              .getDeclaringClass == classOf[Object] =>
+          val clazz = usingDefaultToString.getClass
+          pprint.Tree.Literal(
+            if (clazz.isSynthetic) "Synthetic Class"
+            else if (clazz.isAnonymousClass)
+              clazz.getSuperclass.getCanonicalName
+            else clazz.getCanonicalName
+          )
       })
     }
   }
