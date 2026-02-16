@@ -176,7 +176,7 @@ case class RocksDBConnection(
     )
   }
 
-  def recordRecipeHash(recipeHash: String, recipe: String): Unit = {
+  private def recordRecipeHash(recipeHash: String, recipe: String): Unit = {
     rocksDb.put(
       columnFamilyHandleForRecipeHashes,
       recipeHash.map(_.toByte).toArray,
