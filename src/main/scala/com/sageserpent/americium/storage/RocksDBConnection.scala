@@ -164,7 +164,11 @@ case class RocksDBConnection(
       generationStructureString: String
   ): Unit = {
     // Store the recipe
-    recordRecipeHash(recipeHash, recipe)
+    rocksDb.put(
+      columnFamilyHandleForRecipeHashes,
+      recipeHash.map(_.toByte).toArray,
+      recipe.map(_.toByte).toArray
+    )
 
     // Store the generation metadata
     val metadata =
@@ -173,14 +177,6 @@ case class RocksDBConnection(
       columnFamilyHandleForGenerationMetadata,
       recipeHash.map(_.toByte).toArray,
       metadata.asJson.noSpaces.map(_.toByte).toArray
-    )
-  }
-
-  private def recordRecipeHash(recipeHash: String, recipe: String): Unit = {
-    rocksDb.put(
-      columnFamilyHandleForRecipeHashes,
-      recipeHash.map(_.toByte).toArray,
-      recipe.map(_.toByte).toArray
     )
   }
 
