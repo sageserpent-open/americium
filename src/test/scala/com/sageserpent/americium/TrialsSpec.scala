@@ -2422,7 +2422,15 @@ class TrialsSpecInQuarantineDueToUseOfRecipeHashSystemProperty
     Table(
       "trials",
       () => api.only(JackInABox(1)),
-      () => api.choose(1, false, JackInABox(99)),
+      () =>
+        api.choose(
+          1,
+          false,
+          JackInABox(99),
+          new AnyRef {
+            override def equals(obj: Any): Boolean = true
+          }
+        ),
       () =>
         api.alternate(
           api.only(true),
@@ -2706,7 +2714,15 @@ class TrialsSpecInQuarantineDueToUseOfRecipeSystemProperty
     Table(
       "trials",
       () => api.only(JackInABox(1)),
-      () => api.choose(1, false, JackInABox(99)),
+      () =>
+        api.choose(
+          1,
+          false,
+          JackInABox(99),
+          new AnyRef {
+            override def equals(obj: Any): Boolean = true
+          }
+        ),
       () =>
         api.alternate(
           api.only(true),
@@ -2821,6 +2837,18 @@ class TrialsSpecInQuarantineDueToUseOfRecipeSystemProperty
     Table(
       ("originalTrials", "modifiedTrials"),
       (api.only(JackInABox(1)), api.only(JackInABox(2))), // Change the value.
+      (
+        api.integers(1, 10).map(JackInABox.apply),
+        api.integers(0, 10).map(JackInABox.apply)
+      ), // Change the lower bound.
+      (
+        api.integers(1, 10).map(JackInABox.apply),
+        api.integers(1, 11).map(JackInABox.apply)
+      ), // Change the upper bound.
+      (
+        api.integers(1, 10).map(JackInABox.apply),
+        api.integers(1, 10, 7).map(JackInABox.apply)
+      ), // Change the shrinkage target.
       (
         api.choose(1, false, JackInABox(99)),
         api.choose(1, true, JackInABox(99))
