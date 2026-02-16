@@ -45,7 +45,8 @@ object GenerationOperation {
               .getDeclaringClass == classOf[Object] =>
           val clazz = usingDefaultToString.getClass
           pprint.Tree.Literal(
-            if (clazz.isSynthetic) "Synthetic Class"
+            if (clazz.isSynthetic)
+              "Synthetic Class"
             else if (clazz.isAnonymousClass)
               clazz.getSuperclass.getCanonicalName
             else clazz.getCanonicalName

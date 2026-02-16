@@ -2429,7 +2429,10 @@ class TrialsSpecInQuarantineDueToUseOfRecipeHashSystemProperty
           JackInABox(99),
           new AnyRef {
             override def equals(obj: Any): Boolean = true
-          }
+
+            override def hashCode(): Int = 1
+          },
+          new AnyRef
         ),
       () =>
         api.alternate(
@@ -2721,7 +2724,10 @@ class TrialsSpecInQuarantineDueToUseOfRecipeSystemProperty
           JackInABox(99),
           new AnyRef {
             override def equals(obj: Any): Boolean = true
-          }
+
+            override def hashCode(): Int = 1
+          },
+          new AnyRef
         ),
       () =>
         api.alternate(
