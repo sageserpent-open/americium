@@ -8,9 +8,6 @@ import com.sageserpent.americium.generation.JavaPropertyNames.{
 import com.sageserpent.americium.generation.SupplyToSyntaxSkeletalImplementation.runDatabaseDefault
 import com.sageserpent.americium.java.RecipeIsNotPresentException
 import com.sageserpent.americium.storage.RocksDBConnection.databasePath
-import io.circe.generic.auto.*
-import io.circe.parser.decode
-import io.circe.syntax.*
 import org.rocksdb.*
 
 import _root_.java.util.ArrayList as JavaArrayList
@@ -104,12 +101,6 @@ object RocksDBConnection {
           .of(directory)
           .resolve(file)
     }
-
-  /** Metadata about the generation structure that produced a recipe */
-  case class GenerationMetadata(
-      structureHash: String,
-      structureString: String
-  )
 }
 
 // TODO: split the responsibilities into two databases? `SupplyToSyntaxSkeletalImplementation` cares about recipe
@@ -120,8 +111,6 @@ case class RocksDBConnection(
     columnFamilyHandleForTestCaseIds: ColumnFamilyHandle,
     columnFamilyHandleForGenerationMetadata: ColumnFamilyHandle
 ) {
-  import RocksDBConnection.GenerationMetadata
-
   def reset(): Unit = {
     dropColumnFamilyEntries(columnFamilyHandleForRecipeHashes)
     dropColumnFamilyEntries(columnFamilyHandleForTestCaseIds)
@@ -152,31 +141,23 @@ case class RocksDBConnection(
 
     }
 
-  /** Record recipe hash along with generation metadata
-    *
-    * This is the preferred method for storing recipes, as it includes the
-    * generation structure information needed for detecting obsolete recipes.
-    */
-  def recordRecipeHashWithMetadata(
+  def recordRecipeHash(
       recipeHash: String,
       recipe: String,
-      generationStructureHash: String,
-      generationStructureString: String
+      structureOutline: String
   ): Unit = {
-    // Store the recipe
+    // Store the recipe.
     rocksDb.put(
       columnFamilyHandleForRecipeHashes,
       recipeHash.map(_.toByte).toArray,
       recipe.map(_.toByte).toArray
     )
 
-    // Store the generation metadata
-    val metadata =
-      GenerationMetadata(generationStructureHash, generationStructureString)
+    // Store the structural outline.
     rocksDb.put(
       columnFamilyHandleForGenerationMetadata,
       recipeHash.map(_.toByte).toArray,
-      metadata.asJson.noSpaces.map(_.toByte).toArray
+      structureOutline.map(_.toByte).toArray
     )
   }
 
@@ -191,23 +172,15 @@ case class RocksDBConnection(
     case None => throw new RecipeIsNotPresentException(recipeHash, databasePath)
   }
 
-  /** Retrieve generation metadata for a recipe hash
-    *
-    * Returns None if the metadata is not present (e.g., recipe was stored
-    * before this feature was added).
-    */
-  def generationMetadataFromRecipeHash(
+  def structureOutlineFromRecipeHash(
       recipeHash: String
-  ): Option[GenerationMetadata] = {
+  ): Option[String] = {
     Option(
       rocksDb.get(
         columnFamilyHandleForGenerationMetadata,
         recipeHash.map(_.toByte).toArray
       )
-    ).flatMap { bytes =>
-      val json = bytes.map(_.toChar).mkString
-      decode[GenerationMetadata](json).toOption
-    }
+    ).map(_.map(_.toChar).mkString)
   }
 
   // TODO: shouldn't `uniqueId` be typed as `UniqueId`!

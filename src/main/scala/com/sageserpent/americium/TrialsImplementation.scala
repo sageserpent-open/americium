@@ -225,18 +225,10 @@ case class TrialsImplementation[Case](
         // just log it and carry on, as the user wants to see a test
         // failure rather than an issue with the database.
         rocksDbConnection.foreach { connection =>
-          // Compute generation structure metadata
-          val generationStructureHash =
-            thisTrialsImplementation.generation.structureOutlineHash
-          val generationStructureString =
-            thisTrialsImplementation.generation.structureOutline
-
-          // Store recipe with generation metadata
-          connection.recordRecipeHashWithMetadata(
+          connection.recordRecipeHash(
             exception.recipeHash,
             exception.recipe,
-            generationStructureHash,
-            generationStructureString
+            thisTrialsImplementation.generation.structureOutline
           )
         }
 
@@ -252,6 +244,115 @@ case class TrialsImplementation[Case](
       shrinkageStop = shrinkageStop,
       validTrialsCheckEnabled = true
     )
+  }
+
+  // Java and Scala API ...
+  override def reproduce(recipe: String): Case =
+    reproduce(parseRecipe(recipe))
+
+  private def reproduce(decisionStages: DecisionStages): Case = {
+    case class Context(
+        decisionStages: DecisionStages,
+        complexity: Int,
+        nextUniqueId: Int
+    ) {
+      def uniqueId(): (Context, Int) =
+        copy(nextUniqueId = 1 + nextUniqueId) -> nextUniqueId
+    }
+
+    type DecisionIndicesContext[Caze] = State[Context, Caze]
+
+    // NOTE: unlike the companion interpreter over in
+    // `SupplyToSyntaxSkeletalImplementation.cases`, this one has a relatively
+    // sane implementation.
+    def interpreter: GenerationOperation ~> DecisionIndicesContext =
+      new (GenerationOperation ~> DecisionIndicesContext) {
+        override def apply[ArbitraryCase](
+            generationOperation: GenerationOperation[ArbitraryCase]
+        ): DecisionIndicesContext[ArbitraryCase] = {
+          generationOperation match {
+            case Choice(choicesByCumulativeFrequency) =>
+              for {
+                context <- State.get[Context]
+                Context(
+                  ChoiceOf(decisionIndex) :: remainingDecisionStages,
+                  complexity,
+                  nextUniqueId
+                ) =
+                  context: @unchecked
+                _ <- State.set(
+                  Context(remainingDecisionStages, 1 + complexity, nextUniqueId)
+                )
+              } yield {
+                val cumulativeFrequencyToMatchOrExceed = 1 + decisionIndex
+
+                choicesByCumulativeFrequency
+                  .minAfter(cumulativeFrequencyToMatchOrExceed)
+                  .getOrElse(
+                    throw new RecipeCouldNotBeReproducedException(
+                      context.decisionStages,
+                      choicesByCumulativeFrequency,
+                      cumulativeFrequencyToMatchOrExceed,
+                      generation
+                    )
+                  )
+                  ._2
+              }
+
+            case Factory(factory) =>
+              for {
+                context <- State.get[Context]
+                Context(
+                  FactoryInputOf(input) :: remainingDecisionStages,
+                  complexity,
+                  nextUniqueId
+                ) =
+                  context: @unchecked
+                _ <- State.set(
+                  Context(remainingDecisionStages, 1 + complexity, nextUniqueId)
+                )
+              } yield factory(input)
+
+            // NOTE: pattern-match only on `Some`, as we are reproducing a case
+            // that by dint of being reproduced, must have passed filtration the
+            // first time around.
+            case FiltrationResult(Some(result)) =>
+              result.pure[DecisionIndicesContext]
+
+            case NoteComplexity =>
+              State.get[Context].map(_.complexity)
+
+            case ResetComplexity(_) =>
+              ().pure[DecisionIndicesContext]
+
+            case UniqueId => State(_.uniqueId())
+          }
+        }
+      }
+
+    generation
+      .foldMap(interpreter)
+      .runA(Context(decisionStages, complexity = 0, nextUniqueId = 0))
+      .value
+  }
+
+  private def trialException(
+      throwable: Throwable,
+      caze: Case,
+      decisionStages: DecisionStages
+  ) = {
+    val trialException = new TrialException(throwable) {
+      override def provokingCase: Case = caze
+
+      override def recipe: String = decisionStages.longhandRecipe
+
+      override def escapedRecipe: String =
+        StringEscapeUtils.escapeJava(decisionStages.shorthandRecipe)
+
+      override def recipeHash: String =
+        decisionStages.recipeHash
+    }
+    trialException
   }
 
   def this(
@@ -362,115 +463,6 @@ case class TrialsImplementation[Case](
         }
       }
     }
-
-  // Java and Scala API ...
-  override def reproduce(recipe: String): Case =
-    reproduce(parseRecipe(recipe))
-
-  private def reproduce(decisionStages: DecisionStages): Case = {
-    case class Context(
-        decisionStages: DecisionStages,
-        complexity: Int,
-        nextUniqueId: Int
-    ) {
-      def uniqueId(): (Context, Int) =
-        copy(nextUniqueId = 1 + nextUniqueId) -> nextUniqueId
-    }
-
-    type DecisionIndicesContext[Caze] = State[Context, Caze]
-
-    // NOTE: unlike the companion interpreter over in
-    // `SupplyToSyntaxSkeletalImplementation.cases`, this one has a relatively
-    // sane implementation.
-    def interpreter: GenerationOperation ~> DecisionIndicesContext =
-      new (GenerationOperation ~> DecisionIndicesContext) {
-        override def apply[ArbitraryCase](
-            generationOperation: GenerationOperation[ArbitraryCase]
-        ): DecisionIndicesContext[ArbitraryCase] = {
-          generationOperation match {
-            case Choice(choicesByCumulativeFrequency) =>
-              for {
-                context <- State.get[Context]
-                Context(
-                  ChoiceOf(decisionIndex) :: remainingDecisionStages,
-                  complexity,
-                  nextUniqueId
-                ) =
-                  context: @unchecked
-                _ <- State.set(
-                  Context(remainingDecisionStages, 1 + complexity, nextUniqueId)
-                )
-              } yield {
-                val index = 1 + decisionIndex
-
-                choicesByCumulativeFrequency
-                  .minAfter(index)
-                  .getOrElse(
-                    throw new RecipeCouldNotBeReproducedException(
-                      context.decisionStages,
-                      choicesByCumulativeFrequency,
-                      index,
-                      generation
-                    )
-                  )
-                  ._2
-              }
-
-            case Factory(factory) =>
-              for {
-                context <- State.get[Context]
-                Context(
-                  FactoryInputOf(input) :: remainingDecisionStages,
-                  complexity,
-                  nextUniqueId
-                ) =
-                  context: @unchecked
-                _ <- State.set(
-                  Context(remainingDecisionStages, 1 + complexity, nextUniqueId)
-                )
-              } yield factory(input)
-
-            // NOTE: pattern-match only on `Some`, as we are reproducing a case
-            // that by dint of being reproduced, must have passed filtration the
-            // first time around.
-            case FiltrationResult(Some(result)) =>
-              result.pure[DecisionIndicesContext]
-
-            case NoteComplexity =>
-              State.get[Context].map(_.complexity)
-
-            case ResetComplexity(_) =>
-              ().pure[DecisionIndicesContext]
-
-            case UniqueId => State(_.uniqueId())
-          }
-        }
-      }
-
-    generation
-      .foldMap(interpreter)
-      .runA(Context(decisionStages, complexity = 0, nextUniqueId = 0))
-      .value
-  }
-
-  private def trialException(
-      throwable: Throwable,
-      caze: Case,
-      decisionStages: DecisionStages
-  ) = {
-    val trialException = new TrialException(throwable) {
-      override def provokingCase: Case = caze
-
-      override def recipe: String = decisionStages.longhandRecipe
-
-      override def escapedRecipe: String =
-        StringEscapeUtils.escapeJava(decisionStages.shorthandRecipe)
-
-      override def recipeHash: String =
-        decisionStages.recipeHash
-    }
-    trialException
-  }
 
   override def several[Collection](implicit
       factory: scala.collection.Factory[Case, Collection]

@@ -1,6 +1,5 @@
 package com.sageserpent.americium.generation
 import cats.free.Free
-import com.google.common.hash.Hashing as GuavaHashing
 import com.sageserpent.americium.CaseFactory
 import com.sageserpent.americium.generation.GenerationOperation.Syntax.prettyPrinter
 import pprint.PPrinter
@@ -66,19 +65,6 @@ object GenerationOperation {
     * behaviour, only the types and parameters of operations.
     */
   implicit class Syntax[Case](val generation: Generation[Case]) extends AnyVal {
-
-    /** Compute a hash of the Generation structure
-      *
-      * Uses Guava's Murmur3 hash (same as used for recipe hashing) for
-      * consistency.
-      *
-      * This hash will be the same for structurally identical trials, even
-      * across JVM restarts, as long as the trials composition hasn't changed.
-      */
-    def structureOutlineHash: String = GuavaHashing
-      .murmur3_128()
-      .hashUnencodedChars(generation.structureOutline)
-      .toString
 
     /** Generate a string representation of a Generation for structural
       * comparison

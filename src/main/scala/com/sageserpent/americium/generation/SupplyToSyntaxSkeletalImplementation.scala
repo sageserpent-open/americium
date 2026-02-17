@@ -74,9 +74,6 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
     Pull[SyncIO, TestIntegrationContext[Case], Unit]
   private type ShrinkageIsImproving =
     Function[(DecisionStagesInReverseOrder, BigInt), Boolean]
-  private val deflatedScaleCache =
-    mutable.Map.empty[(BigDecimal, Int), BigDecimal]
-
   protected val casesLimitStrategyFactory: CaseSupplyCycle => CasesLimitStrategy
   protected val complexityLimit: Int
   protected val shrinkageAttemptsLimit: Int
@@ -84,6 +81,8 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
   protected val shrinkageStop: ShrinkageStop[Case]
   protected val validTrialsCheckEnabled: Boolean
   protected val generation: Generation[_ <: Case]
+  private val deflatedScaleCache =
+    mutable.Map.empty[(BigDecimal, Int), BigDecimal]
   // NOTE: this cache is maintained at the instance-level rather than in the
   // companion object. Hoisting it into, say the companion object would cause
   // failures of SBT when it tries to run multiple tests in parallel using
@@ -443,18 +442,18 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
     def checkRecipeForObsolescence(
         connection: RocksDBConnection
     )(recipeHash: String, recipe: String): Unit = {
-      connection.generationMetadataFromRecipeHash(recipeHash) match {
-        case Some(metadata) =>
+      connection.structureOutlineFromRecipeHash(recipeHash) match {
+        case Some(structureOutline) =>
 
-          if (generation.structureOutlineHash != metadata.structureHash) {
+          if (generation.structureOutline != structureOutline) {
             val diagnostic = s"""
                     |Obsolete recipe detected!
                     |
                     |The recipe you're trying to reproduce was created with a different
                     |generation structure than the current code. This usually happens when:
-                    |  - You've modified how the trials instance is built
-                    |  - You've added/removed `.map`, `.flatMap`, or `.filter` calls
-                    |  - You've changed the parameters of the trials (e.g. different bounds)
+                    |  - You've modified how the trials instance is built.
+                    |  - You've added, removed or modified `.map`, `.flatMap` or `.filter` calls.
+                    |  - You've changed the parameters of the trials (e.g. different bounds).
                     |
                     |Your test cases have probably changed - you may need to regenerate the recipe by
                     |re-running the test without the reproduction property.
@@ -465,11 +464,8 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
                     |
                     |$recipe
                     |
-                    |Expected generation structure hash: ${metadata.structureHash}
-                    |Current test's generation structure hash:  ${generation.structureOutlineHash}
-                    |
                     |Expected generation structure:
-                    |${metadata.structureString}
+                    |$structureOutline
                     |
                     |Current test's generation structure:
                     |${generation.structureOutline}
@@ -481,10 +477,11 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
           }
 
         case None =>
-          // No metadata found - this recipe was created before we added
+          // No structure outline found - this recipe was created before we
+          // added
           // generation metadata tracking. Just note it and continue.
           logger.warn(s"""
-                     |Recipe has no generation metadata. It may have been created with an older version of Americium.
+                     |Recipe has no generation structure. It may have been created with an older version of Americium.
                      |
                      |Recipe hash: $recipeHash
                      |
