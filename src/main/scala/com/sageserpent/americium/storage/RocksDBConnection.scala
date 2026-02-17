@@ -110,7 +110,7 @@ case class RocksDBConnection(
     columnFamilyHandleForRecipeHashes: ColumnFamilyHandle,
     columnFamilyHandleForTestCaseIds: ColumnFamilyHandle,
     columnFamilyHandleForGenerationMetadata: ColumnFamilyHandle
-) {
+) extends AutoCloseable {
   def reset(): Unit = {
     dropColumnFamilyEntries(columnFamilyHandleForRecipeHashes)
     dropColumnFamilyEntries(columnFamilyHandleForTestCaseIds)

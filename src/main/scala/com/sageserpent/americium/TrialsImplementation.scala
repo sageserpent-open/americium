@@ -40,6 +40,7 @@ import org.apache.commons.text.StringEscapeUtils
 import _root_.java.util.Iterator as JavaIterator
 import _root_.java.util.function.{Consumer, Function as JavaFunction}
 import scala.collection.Iterator as ScalaIterator
+import scala.util.Using
 
 object TrialsImplementation {
 
@@ -289,12 +290,16 @@ case class TrialsImplementation[Case](
                 choicesByCumulativeFrequency
                   .minAfter(cumulativeFrequencyToMatchOrExceed)
                   .getOrElse(
-                    throw new RecipeCouldNotBeReproducedException(
-                      context.decisionStages,
-                      choicesByCumulativeFrequency,
-                      cumulativeFrequencyToMatchOrExceed,
-                      generation
-                    )
+                    Using.resource(RocksDBConnection.readOnlyConnection()) {
+                      connection =>
+                        throw new RecipeCouldNotBeReproducedException(
+                          context.decisionStages,
+                          choicesByCumulativeFrequency,
+                          cumulativeFrequencyToMatchOrExceed,
+                          generation,
+                          connection
+                        )
+                    }
                   )
                   ._2
               }
