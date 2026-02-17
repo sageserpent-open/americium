@@ -514,12 +514,18 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
             Fs2Stream
               .resource(readOnlyRocksDbConnectionResource())
               .flatMap { connection =>
-                val recipeHash = Decision.parseRecipe(recipe).recipeHash
+                val decisionStages = Decision.parseRecipe(recipe)
+                val recipeHash     = decisionStages.recipeHash
+                val longhandRecipe = decisionStages.longhandRecipe
 
-                checkRecipeForObsolescence(connection)(recipeHash, recipe)
+                checkRecipeForObsolescence(connection)(
+                  recipeHash,
+                  longhandRecipe
+                )
 
                 carryOnButSwitchToShrinkageApproachOnCaseFailure(
-                  Fs2Stream.emit(testIntegrationContextReproducing(recipe))
+                  Fs2Stream
+                    .emit(testIntegrationContextReproducing(longhandRecipe))
                 ).stream
               }
           )

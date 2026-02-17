@@ -3013,7 +3013,7 @@ class TrialsSpecInQuarantineDueToUseOfRecipeSystemProperty
 
       val warningMessage = warnings.head.getMessage
       warningMessage should include("Obsolete recipe detected")
-      warningMessage should include(whatWouldBePassedInFromAShell)
+      warningMessage should include(exception.recipe)
       warningMessage should include("Expected generation structure")
       warningMessage should include("Current test's generation structure")
     }
