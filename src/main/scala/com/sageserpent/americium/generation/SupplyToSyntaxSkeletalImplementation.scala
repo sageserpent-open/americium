@@ -8,7 +8,7 @@ import com.google.common.collect.{Ordering as _, *}
 import com.sageserpent.americium.TrialsScaffolding.ShrinkageStop
 import com.sageserpent.americium.generation.Decision.{
   DecisionStages,
-  parseDecisionIndices
+  parseRecipe
 }
 import com.sageserpent.americium.generation.GenerationOperation.Generation
 import com.sageserpent.americium.generation.JavaPropertyNames.*
@@ -35,6 +35,7 @@ import com.sageserpent.americium.{
   Trials,
   TrialsScaffolding as ScalaTrialsScaffolding
 }
+import com.typesafe.scalalogging.StrictLogging
 import fs2.{Pull, Stream as Fs2Stream}
 import org.rocksdb.Cache as _
 
@@ -65,15 +66,14 @@ object SupplyToSyntaxSkeletalImplementation {
 
 trait SupplyToSyntaxSkeletalImplementation[Case]
     extends JavaTrialsScaffolding.SupplyToSyntax[Case]
-    with ScalaTrialsScaffolding.SupplyToSyntax[Case] {
+    with ScalaTrialsScaffolding.SupplyToSyntax[Case]
+    with StrictLogging {
   type StreamedCases =
     Fs2Stream[SyncIO, TestIntegrationContext[Case]]
-  type PullOfCases =
+  private type PullOfCases =
     Pull[SyncIO, TestIntegrationContext[Case], Unit]
-  type ShrinkageIsImproving =
+  private type ShrinkageIsImproving =
     Function[(DecisionStagesInReverseOrder, BigInt), Boolean]
-  val deflatedScaleCache = mutable.Map.empty[(BigDecimal, Int), BigDecimal]
-
   protected val casesLimitStrategyFactory: CaseSupplyCycle => CasesLimitStrategy
   protected val complexityLimit: Int
   protected val shrinkageAttemptsLimit: Int
@@ -81,6 +81,8 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
   protected val shrinkageStop: ShrinkageStop[Case]
   protected val validTrialsCheckEnabled: Boolean
   protected val generation: Generation[_ <: Case]
+  private val deflatedScaleCache =
+    mutable.Map.empty[(BigDecimal, Int), BigDecimal]
   // NOTE: this cache is maintained at the instance-level rather than in the
   // companion object. Hoisting it into, say the companion object would cause
   // failures of SBT when it tries to run multiple tests in parallel using
@@ -146,6 +148,37 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
       .unsafeRunSync()
       .toTry
       .get
+  }
+
+  override def testIntegrationContexts()
+      : CrossApiIterator[TestIntegrationContext[Case]] =
+    CrossApiIterator.from(lazyListOfTestIntegrationContexts().iterator)
+
+  override def asIterator(): JavaIterator[Case] with ScalaIterator[Case] =
+    CrossApiIterator.from(
+      lazyListOfTestIntegrationContexts().map(_.caze).iterator
+    )
+
+  private def lazyListOfTestIntegrationContexts()
+      : LazyList[TestIntegrationContext[Case]] = {
+    LazyList.unfold(shrinkableCases()) { streamedCases =>
+      streamedCases.pull.uncons1
+        .flatMap {
+          case None              => Pull.done
+          case Some(headAndTail) => Pull.output1(headAndTail)
+        }
+        .stream
+        .head
+        .compile
+        .last
+        .attempt
+        .unsafeRunSync() match {
+        case Left(throwable) =>
+          throw throwable
+        case Right(cargo) =>
+          cargo
+      }
+    }
   }
 
   private def shrinkableCases(): StreamedCases = {
@@ -320,9 +353,8 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
                       },
                     inlinedCaseFiltration = inlinedCaseFiltration,
                     isPartOfShrinkage = true,
-                    recipe = Decision.json(
-                      potentialShrunkCaseData.decisionStagesInReverseOrder.reverse
-                    )
+                    recipe =
+                      potentialShrunkCaseData.decisionStagesInReverseOrder.reverse.longhandRecipe
                   )
                 )
               }
@@ -367,9 +399,8 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
               },
               inlinedCaseFiltration = inlinedCaseFiltration,
               isPartOfShrinkage = false,
-              recipe = Decision.json(
-                caseData.decisionStagesInReverseOrder.reverse
-              )
+              recipe =
+                caseData.decisionStagesInReverseOrder.reverse.longhandRecipe
             )
           }
       }
@@ -383,7 +414,7 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
     def testIntegrationContextReproducing(
         recipe: String
     ): TestIntegrationContext[Case] = {
-      val decisionStages = parseDecisionIndices(recipe)
+      val decisionStages = parseRecipe(recipe)
       val caze           = reproduce(decisionStages)
 
       TestIntegrationContextImplementation[Case](
@@ -408,28 +439,95 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
       )
     }
 
+    def checkRecipeForObsolescence(
+        connection: RocksDBConnection
+    )(recipeHash: String, recipe: String): Unit = {
+      connection.structureOutlineFromRecipeHash(recipeHash) match {
+        case Some(structureOutline) =>
+
+          if (generation.structureOutline != structureOutline) {
+            val diagnostic = s"""
+                    |Obsolete recipe detected!
+                    |
+                    |The recipe you're trying to reproduce was created with a different
+                    |generation structure than the current code. This usually happens when:
+                    |  - You've modified how the trials instance is built.
+                    |  - You've added, removed or modified `.map`, `.flatMap` or `.filter` calls.
+                    |  - You've changed the parameters of the trials (e.g. different bounds).
+                    |
+                    |Your test cases have probably changed - you may need to regenerate the recipe by
+                    |re-running the test without the reproduction property.
+                    |
+                    |Recipe hash: $recipeHash
+                    |
+                    |Recipe:
+                    |
+                    |$recipe
+                    |
+                    |Expected generation structure:
+                    |$structureOutline
+                    |
+                    |Current test's generation structure:
+                    |${generation.structureOutline}
+                    |
+                    |Carrying on as a best effort for now, but the generation may fault with an exception...
+                    |""".stripMargin
+
+            logger.warn(diagnostic)
+          }
+
+        case None =>
+          // No structure outline found - this recipe was created before we
+          // added
+          // generation metadata tracking. Just note it and continue.
+          logger.warn(s"""
+                     |Recipe has no generation structure. It may have been created with an older version of Americium.
+                     |
+                     |Recipe hash: $recipeHash
+                     |
+                     |Recipe:
+                     |
+                     |$recipe
+                     |
+                     |Carrying on anyway...
+                     |""".stripMargin)
+      }
+    }
+
     Option(System.getProperty(recipeHashJavaProperty))
       .map(recipeHash =>
         Fs2Stream
           .resource(readOnlyRocksDbConnectionResource())
           .flatMap { connection =>
-            val singleTestIntegrationContext = Fs2Stream
-              .eval(SyncIO {
-                testIntegrationContextReproducing(
-                  connection.recipeFromRecipeHash(recipeHash)
-                )
-              })
+            val recipe = connection.recipeFromRecipeHash(recipeHash)
+
+            checkRecipeForObsolescence(connection)(recipeHash, recipe)
+
             carryOnButSwitchToShrinkageApproachOnCaseFailure(
-              singleTestIntegrationContext
+              Fs2Stream.emit(testIntegrationContextReproducing(recipe))
             ).stream
           }
       )
       .orElse(
         Option(System.getProperty(recipeJavaProperty))
           .map(recipe =>
-            carryOnButSwitchToShrinkageApproachOnCaseFailure(
-              Fs2Stream.emit(testIntegrationContextReproducing(recipe))
-            ).stream
+            Fs2Stream
+              .resource(readOnlyRocksDbConnectionResource())
+              .flatMap { connection =>
+                val decisionStages = Decision.parseRecipe(recipe)
+                val recipeHash     = decisionStages.recipeHash
+                val longhandRecipe = decisionStages.longhandRecipe
+
+                checkRecipeForObsolescence(connection)(
+                  recipeHash,
+                  longhandRecipe
+                )
+
+                carryOnButSwitchToShrinkageApproachOnCaseFailure(
+                  Fs2Stream
+                    .emit(testIntegrationContextReproducing(longhandRecipe))
+                ).stream
+              }
           )
       )
       .getOrElse(
@@ -509,7 +607,7 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
     val possibilitiesThatFollowSomeChoiceOfDecisionStages =
       mutable.Map.empty[DecisionStagesInReverseOrder, Possibilities]
 
-    def liftUnitIfTheComplexityIsNotTooLarge[Case](
+    def liftUnitIfTheComplexityIsNotTooLarge(
         state: State
     ): StateUpdating[Unit] = {
       // NOTE: this is called *prior* to the complexity being
@@ -523,12 +621,12 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
         )
     }
 
-    def interpretChoice[Case](
+    def interpretChoice[ArbitraryCase](
         choicesByCumulativeFrequency: SortedMap[
           Int,
-          Case
+          ArbitraryCase
         ]
-    ): StateUpdating[Case] = {
+    ): StateUpdating[ArbitraryCase] = {
       val numberOfChoices =
         choicesByCumulativeFrequency.keys.lastOption.getOrElse(0)
       if (0 < numberOfChoices)
@@ -610,9 +708,9 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
         }
       )
 
-    def interpretFactory[Case](
-        factory: CaseFactory[Case]
-    ): StateUpdating[Case] = {
+    def interpretFactory[ArbitraryCase](
+        factory: CaseFactory[ArbitraryCase]
+    ): StateUpdating[ArbitraryCase] = {
       StateT
         .get[Option, State]
         .flatMap(state =>
@@ -725,9 +823,9 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
     }
     def interpreter(): GenerationOperation ~> StateUpdating =
       new (GenerationOperation ~> StateUpdating) {
-        override def apply[Case](
-            generationOperation: GenerationOperation[Case]
-        ): StateUpdating[Case] =
+        override def apply[ArbitraryCase](
+            generationOperation: GenerationOperation[ArbitraryCase]
+        ): StateUpdating[ArbitraryCase] =
           generationOperation match {
             case Choice(choicesByCumulativeFrequency) =>
               interpretChoice(choicesByCumulativeFrequency)
@@ -871,37 +969,6 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
         })
 
       emitCases() -> inlinedCaseFiltration
-    }
-  }
-
-  override def testIntegrationContexts()
-      : CrossApiIterator[TestIntegrationContext[Case]] =
-    CrossApiIterator.from(lazyListOfTestIntegrationContexts().iterator)
-
-  override def asIterator(): JavaIterator[Case] with ScalaIterator[Case] =
-    CrossApiIterator.from(
-      lazyListOfTestIntegrationContexts().map(_.caze).iterator
-    )
-
-  private def lazyListOfTestIntegrationContexts()
-      : LazyList[TestIntegrationContext[Case]] = {
-    LazyList.unfold(shrinkableCases()) { streamedCases =>
-      streamedCases.pull.uncons1
-        .flatMap {
-          case None              => Pull.done
-          case Some(headAndTail) => Pull.output1(headAndTail)
-        }
-        .stream
-        .head
-        .compile
-        .last
-        .attempt
-        .unsafeRunSync() match {
-        case Left(throwable) =>
-          throw throwable
-        case Right(cargo) =>
-          cargo
-      }
     }
   }
 

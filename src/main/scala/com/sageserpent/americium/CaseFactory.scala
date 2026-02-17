@@ -1,6 +1,6 @@
 package com.sageserpent.americium
 
-trait CaseFactory[+Case] {
+trait CaseFactory[+Case] extends Serializable {
   def apply(input: BigInt): Case
 
   def lowerBoundInput: BigInt

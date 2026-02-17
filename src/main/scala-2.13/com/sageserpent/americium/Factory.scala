@@ -4,7 +4,7 @@ import magnolia1.{CaseClass, Magnolia, Monadic, SealedTrait}
 
 import scala.language.experimental.macros
 
-trait Factory[Case] {
+trait Factory[Case] extends Serializable {
   def trials: Trials[Case]
 }
 
@@ -23,12 +23,8 @@ object Factory {
   implicit val longFactory: Factory[Long]       = lift(Trials.api.longs)
   implicit val booleanFactory: Factory[Boolean] = lift(Trials.api.booleans)
 
-  def split[Case](
-      sealedTrait: SealedTrait[Typeclass, Case]
-  ): Typeclass[Case] = {
-    val subtypeGenerators: Seq[Trials[Case]] =
-      sealedTrait.subtypes.map(_.typeclass.trials)
-    lift(Trials.api.alternate(subtypeGenerators))
+  def lift[Case](unlifted: Trials[Case]): Factory[Case] = new Factory[Case] {
+    override def trials: Trials[Case] = unlifted
   }
 
   // HACK: had to write an explicit implicit implementation
@@ -44,8 +40,12 @@ object Factory {
       from.map(fn)
   }
 
-  def lift[Case](unlifted: Trials[Case]): Factory[Case] = new Factory[Case] {
-    override def trials: Trials[Case] = unlifted
+  def split[Case](
+      sealedTrait: SealedTrait[Typeclass, Case]
+  ): Typeclass[Case] = {
+    val subtypeGenerators: Seq[Trials[Case]] =
+      sealedTrait.subtypes.map(_.typeclass.trials)
+    lift(Trials.api.alternate(subtypeGenerators))
   }
 
   implicit def gen[Case]: Typeclass[Case] = macro Magnolia.gen[Case]
