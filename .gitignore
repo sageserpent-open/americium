@@ -10,3 +10,7 @@ target/
 /.project
 /.bsp
 /project/.bloop/
+
+# macOS resource forks and metadata
+__MACOSX/
+._*
