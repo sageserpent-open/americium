@@ -35,7 +35,7 @@ object JUnit5ReplayDatabase {
     columnFamilyOptions
   )
 
-  private val columnFamilyDescriptorForTestCaseIds = new ColumnFamilyDescriptor(
+  private val columnFamilyDescriptorForRecipes = new ColumnFamilyDescriptor(
     "TestCaseIdKeyRecipeValue".getBytes(),
     columnFamilyOptions
   )
@@ -46,7 +46,7 @@ object JUnit5ReplayDatabase {
     val columnFamilyDescriptors =
       ImmutableList.of(
         defaultColumnFamilyDescriptor,
-        columnFamilyDescriptorForTestCaseIds
+        columnFamilyDescriptorForRecipes
       )
 
     val columnFamilyHandles = new JavaArrayList[ColumnFamilyHandle]()
@@ -69,7 +69,7 @@ object JUnit5ReplayDatabase {
 
     JUnit5ReplayDatabase(
       rocksDB,
-      columnFamilyHandleForTestCaseIds = columnFamilyHandles.get(1)
+      columnFamilyHandleForRecipes = columnFamilyHandles.get(1)
     )
   }
 
@@ -93,10 +93,10 @@ object JUnit5ReplayDatabase {
 
 case class JUnit5ReplayDatabase(
     rocksDb: RocksDB,
-    columnFamilyHandleForTestCaseIds: ColumnFamilyHandle
+    columnFamilyHandleForRecipes: ColumnFamilyHandle
 ) extends AutoCloseable {
   def reset(): Unit = {
-    dropColumnFamilyEntries(columnFamilyHandleForTestCaseIds)
+    dropColumnFamilyEntries(columnFamilyHandleForRecipes)
   }
 
   private def dropColumnFamilyEntries(
@@ -125,7 +125,7 @@ case class JUnit5ReplayDatabase(
 
   def recordUniqueId(uniqueId: String, recipe: String): Unit = {
     rocksDb.put(
-      columnFamilyHandleForTestCaseIds,
+      columnFamilyHandleForRecipes,
       uniqueId.map(_.toByte).toArray,
       recipe.map(_.toByte).toArray
     )
@@ -134,13 +134,13 @@ case class JUnit5ReplayDatabase(
   def recipeFromUniqueId(uniqueId: String): Option[String] = Option(
     rocksDb
       .get(
-        columnFamilyHandleForTestCaseIds,
+        columnFamilyHandleForRecipes,
         uniqueId.map(_.toByte).toArray
       )
   ).map(_.map(_.toChar).mkString)
 
   def close(): Unit = {
-    columnFamilyHandleForTestCaseIds.close()
+    columnFamilyHandleForRecipes.close()
     rocksDb.close()
   }
 }

@@ -36,28 +36,27 @@ object TrialsReproductionDatabase {
     columnFamilyOptions
   )
 
-  private val columnFamilyDescriptorForRecipeHashes =
+  private val columnFamilyDescriptorForRecipes =
     new ColumnFamilyDescriptor(
       "RecipeHashKeyRecipeValue".getBytes(),
       columnFamilyOptions
     )
 
-  private val columnFamilyDescriptorForGenerationMetadata =
+  private val columnFamilyDescriptorForStructuralOutlines =
     new ColumnFamilyDescriptor(
       "RecipeHashKeyGenerationMetadata".getBytes(),
       columnFamilyOptions
     )
 
-  def readOnlyConnection(): TrialsReproductionDatabase = connection(readOnly =
-    true
-  )
+  def readOnlyConnection(): TrialsReproductionDatabase =
+    connection(readOnly = true)
 
   private def connection(readOnly: Boolean): TrialsReproductionDatabase = {
     val columnFamilyDescriptors =
       ImmutableList.of(
         defaultColumnFamilyDescriptor,
-        columnFamilyDescriptorForRecipeHashes,
-        columnFamilyDescriptorForGenerationMetadata
+        columnFamilyDescriptorForRecipes,
+        columnFamilyDescriptorForStructuralOutlines
       )
 
     val columnFamilyHandles = new JavaArrayList[ColumnFamilyHandle]()
@@ -80,8 +79,8 @@ object TrialsReproductionDatabase {
 
     TrialsReproductionDatabase(
       rocksDB,
-      columnFamilyHandleForRecipeHashes = columnFamilyHandles.get(1),
-      columnFamilyHandleForGenerationMetadata = columnFamilyHandles.get(2)
+      columnFamilyHandleForRecipes = columnFamilyHandles.get(1),
+      columnFamilyHandleForStructuralOutlines = columnFamilyHandles.get(2)
     )
   }
 
@@ -105,12 +104,12 @@ object TrialsReproductionDatabase {
 
 case class TrialsReproductionDatabase(
     rocksDb: RocksDB,
-    columnFamilyHandleForRecipeHashes: ColumnFamilyHandle,
-    columnFamilyHandleForGenerationMetadata: ColumnFamilyHandle
+    columnFamilyHandleForRecipes: ColumnFamilyHandle,
+    columnFamilyHandleForStructuralOutlines: ColumnFamilyHandle
 ) extends AutoCloseable {
   def reset(): Unit = {
-    dropColumnFamilyEntries(columnFamilyHandleForRecipeHashes)
-    dropColumnFamilyEntries(columnFamilyHandleForGenerationMetadata)
+    dropColumnFamilyEntries(columnFamilyHandleForRecipes)
+    dropColumnFamilyEntries(columnFamilyHandleForStructuralOutlines)
   }
 
   private def dropColumnFamilyEntries(
@@ -144,14 +143,14 @@ case class TrialsReproductionDatabase(
   ): Unit = {
     // Store the recipe.
     rocksDb.put(
-      columnFamilyHandleForRecipeHashes,
+      columnFamilyHandleForRecipes,
       recipeHash.map(_.toByte).toArray,
       recipe.map(_.toByte).toArray
     )
 
     // Store the structural outline.
     rocksDb.put(
-      columnFamilyHandleForGenerationMetadata,
+      columnFamilyHandleForStructuralOutlines,
       recipeHash.map(_.toByte).toArray,
       structureOutline.map(_.toByte).toArray
     )
@@ -160,12 +159,12 @@ case class TrialsReproductionDatabase(
   def recipeFromRecipeHash(recipeHash: String): String = Option(
     rocksDb
       .get(
-        columnFamilyHandleForRecipeHashes,
+        columnFamilyHandleForRecipes,
         recipeHash.map(_.toByte).toArray
       )
   ) match {
     case Some(value) => value.map(_.toChar).mkString
-    case None =>
+    case None        =>
       throw new RecipeIsNotPresentException(
         recipeHash,
         TrialsReproductionDatabase.databasePath
@@ -177,15 +176,15 @@ case class TrialsReproductionDatabase(
   ): Option[String] = {
     Option(
       rocksDb.get(
-        columnFamilyHandleForGenerationMetadata,
+        columnFamilyHandleForStructuralOutlines,
         recipeHash.map(_.toByte).toArray
       )
     ).map(_.map(_.toChar).mkString)
   }
 
   def close(): Unit = {
-    columnFamilyHandleForRecipeHashes.close()
-    columnFamilyHandleForGenerationMetadata.close()
+    columnFamilyHandleForRecipes.close()
+    columnFamilyHandleForStructuralOutlines.close()
     rocksDb.close()
   }
 }
