@@ -28,7 +28,7 @@ import com.sageserpent.americium.java.{
   TrialsScaffolding as JavaTrialsScaffolding
 }
 import com.sageserpent.americium.randomEnrichment.RichRandom
-import com.sageserpent.americium.storage.RocksDBConnection
+import com.sageserpent.americium.storage.TrialsReproductionDatabase
 import com.sageserpent.americium.{
   CaseFactory,
   TestIntegrationContextImplementation,
@@ -55,8 +55,10 @@ object SupplyToSyntaxSkeletalImplementation {
   val maximumScaleDeflationLevel = 50
 
   def readOnlyRocksDbConnectionResource(
-  ): Resource[SyncIO, RocksDBConnection] =
-    Resource.make(acquire = SyncIO { RocksDBConnection.readOnlyConnection() })(
+  ): Resource[SyncIO, TrialsReproductionDatabase] =
+    Resource.make(acquire =
+      SyncIO { TrialsReproductionDatabase.readOnlyConnection() }
+    )(
       release = connection =>
         SyncIO {
           connection.close()
@@ -229,7 +231,7 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
       )
 
     def streamedCasesWithShrinkageOnFailure(
-        rocksDBConnection: RocksDBConnection
+        rocksDBConnection: TrialsReproductionDatabase
     ): StreamedCases = {
       def raiseTrialException(
           throwable: Throwable,
@@ -440,7 +442,7 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
     }
 
     def checkRecipeForObsolescence(
-        connection: RocksDBConnection
+        connection: TrialsReproductionDatabase
     )(recipeHash: String, recipe: String): Unit = {
       connection.structureOutlineFromRecipeHash(recipeHash) match {
         case Some(structureOutline) =>
@@ -532,7 +534,7 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
       )
       .getOrElse(
         streamedCasesWithShrinkageOnFailure(
-          RocksDBConnection.evaluation.value
+          TrialsReproductionDatabase.evaluation.value
         )
       )
   }
@@ -975,7 +977,7 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
   protected def reproduce(decisionStages: DecisionStages): Case
 
   protected def raiseTrialException(
-      rocksDbConnection: Option[RocksDBConnection],
+      rocksDbConnection: Option[TrialsReproductionDatabase],
       throwable: Throwable,
       caze: Case,
       decisionStages: DecisionStages

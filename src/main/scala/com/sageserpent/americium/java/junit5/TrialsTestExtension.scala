@@ -7,7 +7,7 @@ import com.sageserpent.americium.java.{
   TestIntegrationContext,
   TrialsScaffolding
 }
-import com.sageserpent.americium.storage.RocksDBConnection
+import com.sageserpent.americium.storage.JUnit5ReplayDatabase
 import cyclops.companion.Streams
 import cyclops.data.tuple.{
   Tuple2 as JavaTuple2,
@@ -309,7 +309,7 @@ class TrialsTestExtension extends TestTemplateInvocationContextProvider {
       adaptedParameters.toArray
     }
 
-    val rocksDBConnection = RocksDBConnection.evaluation.value
+    val rocksDBConnection = JUnit5ReplayDatabase.evaluation.value
 
     val replayedUniqueIds =
       LauncherDiscoveryListenerCapturingReplayedUniqueIds

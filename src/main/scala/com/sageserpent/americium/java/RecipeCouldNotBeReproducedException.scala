@@ -1,7 +1,7 @@
 package com.sageserpent.americium.java
 import com.sageserpent.americium.generation.Decision.DecisionStages
 import com.sageserpent.americium.generation.GenerationOperation.Generation
-import com.sageserpent.americium.storage.RocksDBConnection
+import com.sageserpent.americium.storage.TrialsReproductionDatabase
 
 import scala.collection.immutable.SortedMap
 
@@ -10,7 +10,7 @@ class RecipeCouldNotBeReproducedException(
     choicesByCumulativeFrequency: SortedMap[Int, ?],
     index: Int,
     generation: Generation[?],
-    connection: RocksDBConnection
+    connection: TrialsReproductionDatabase
 ) extends RuntimeException({
       val recipeHash: String = decisionStages.recipeHash
 

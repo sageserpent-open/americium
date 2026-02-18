@@ -8,7 +8,7 @@ import com.sageserpent.americium.java.{
   InlinedCaseFiltration,
   TestIntegrationContext
 }
-import com.sageserpent.americium.storage.RocksDBConnection
+import com.sageserpent.americium.storage.JUnit5ReplayDatabase
 import org.junit.jupiter.api.DynamicTest
 import org.junit.jupiter.api.DynamicTest.dynamicTest
 import org.junit.platform.engine.UniqueId
@@ -128,7 +128,7 @@ package object junit5 {
       reproduceFromRecipe: String => Case,
       parameterisedTest: Case => Unit
   ): DynamicTests = {
-    val rocksDBConnection = RocksDBConnection.evaluation.value
+    val rocksDBConnection = JUnit5ReplayDatabase.evaluation.value
 
     val replayedUniqueIds =
       LauncherDiscoveryListenerCapturingReplayedUniqueIds
