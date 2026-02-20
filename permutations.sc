@@ -1,7 +1,5 @@
 import com.sageserpent.americium.Trials.api
-import com.sageserpent.americium.{RangeOfSlots, Trials}
-
-import scala.collection.immutable.{SortedMap, SortedSet}
+import com.sageserpent.americium.Trials
 
 def permutationIndices3(size: Int): Trials[Vector[Int]] = {
   require(0 <= size)
