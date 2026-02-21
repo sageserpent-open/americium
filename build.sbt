@@ -151,7 +151,7 @@ lazy val americium: Project = (project in file("core"))
     description := "Generation of test data for parameterised testing",
     libraryDependencies ++= coreDependencies.value,
     libraryDependencies ++= scalaVersionDependencies.value,
-    libraryDependencies ++= coreTestDependencies.value,
+    libraryDependencies ++= coreTestDependencies.value
   )
   .disablePlugins(plugins.JUnitXmlReportPlugin)
 
