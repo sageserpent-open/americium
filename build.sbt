@@ -20,25 +20,6 @@ lazy val commonSettings = Seq(
   licenses += ("MIT", url("https://opensource.org/licenses/MIT")),
   organization     := "com.sageserpent",
   organizationName := "sageserpent",
-  releaseCrossBuild := false, // Don't use the support for cross-building provided by `sbt-release`....
-  releaseProcess := Seq[ReleaseStep](
-    checkSnapshotDependencies,
-    inquireVersions,
-    releaseStepCommandAndRemaining(
-      "+clean"
-    ), // ... instead, cross-build the clean step using SBT's own mechanism ...
-    releaseStepCommandAndRemaining(
-      "+test"
-    ), // ... and the testing step using SBT's own mechanism ...
-    setReleaseVersion,
-    commitReleaseVersion,
-    tagRelease,
-    // *DO NOT* run `+publishSigned`, `sonatypeBundleRelease` and `pushChanges`
-    // - the equivalent is done on GitHub by
-    // `gha-scala-library-release-workflow`.
-    setNextVersion,
-    commitNextVersion
-  ),
   scalacOptions ++= (CrossVersion.partialVersion(
     scalaVersion.value
   ) match {
@@ -167,17 +148,25 @@ lazy val `americium-junit5`: Project = (project in file("junit5"))
 lazy val root: Project = (project in file("."))
   .aggregate(americium, `americium-junit5`)
   .settings(
-    name              := "americium-root",
-    publish / skip    := true,
-    releaseCrossBuild := false,
-    releaseProcess    := Seq[ReleaseStep](
+    name           := "americium-root",
+    publish / skip := true,
+    releaseCrossBuild := false, // Don't use the support for cross-building provided by `sbt-release`....
+    releaseProcess := Seq[ReleaseStep](
       checkSnapshotDependencies,
       inquireVersions,
-      releaseStepCommandAndRemaining("+clean"),
-      releaseStepCommandAndRemaining("+test"),
+      releaseStepCommandAndRemaining(
+        "+clean"
+      ), // ... instead, cross-build the clean step using SBT's own mechanism ...
+      releaseStepCommandAndRemaining(
+        "+test"
+      ), // ... and the testing step using SBT's own mechanism ...
       setReleaseVersion,
       commitReleaseVersion,
       tagRelease,
+      // *DO NOT* run `+publishSigned`, `sonatypeBundleRelease` and
+      // `pushChanges`
+      // - the equivalent is done on GitHub by
+      // `gha-scala-library-release-workflow`.
       setNextVersion,
       commitNextVersion
     )
