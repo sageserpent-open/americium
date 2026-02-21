@@ -9,11 +9,10 @@ lazy val scala2_13_Version = "2.13.18"
 
 lazy val scala3_Version = "3.3.7"
 
-ThisBuild / scalaVersion     := scala2_13_Version
-ThisBuild / organization     := "com.sageserpent"
-ThisBuild / organizationName := "sageserpent"
+ThisBuild / scalaVersion := scala2_13_Version
 
-// Common settings for all modules
+// Common settings for all modules: not all of these work when
+// scoped to `ThisBuild`, so go with this brute-force approach.
 lazy val commonSettings = Seq(
   crossScalaVersions   := Seq(scala2_13_Version, scala3_Version),
   pomIncludeRepository := { _ => false },
