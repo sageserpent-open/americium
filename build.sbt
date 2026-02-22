@@ -116,7 +116,7 @@ lazy val coreTestDependencies = Def.setting {
   )
 }
 
-lazy val americium: Project = (project in file("core"))
+lazy val americium: Project = (project in file("core-library"))
   .settings(commonSettings)
   .settings(
     name        := "americium",
@@ -127,7 +127,7 @@ lazy val americium: Project = (project in file("core"))
   )
   .disablePlugins(plugins.JUnitXmlReportPlugin)
 
-lazy val `americium-junit5`: Project = (project in file("junit5"))
+lazy val `americium-junit5`: Project = (project in file("junit5-integration"))
   .dependsOn(americium % "test->test;compile->compile")
   .settings(commonSettings)
   .settings(
