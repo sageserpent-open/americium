@@ -136,7 +136,7 @@ lazy val `americium-junit5`: Project = (project in file("junit5-integration"))
     // Pin the JUnit dependencies to align with JUnit5 rather than picking up
     // the version from `JupiterKeys`.
     libraryDependencies += "org.junit.jupiter" % "junit-jupiter-params" % "5.14.3",
-    libraryDependencies += "org.junit.platform" % "junit-platform-launcher" % "1.14.3",
+    libraryDependencies += "org.junit.platform" % "junit-platform-launcher" % "6.0.3",
     libraryDependencies += "uk.org.webcompere" % "system-stubs-jupiter" % "2.1.8" % Test
   )
   .disablePlugins(plugins.JUnitXmlReportPlugin)
