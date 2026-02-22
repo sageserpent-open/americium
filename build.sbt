@@ -79,7 +79,6 @@ lazy val coreDependencies = Def.setting {
     "org.rocksdb"                   % "rocksdbjni"            % "10.2.1",
     "org.apache.commons"            % "commons-text"          % "1.15.0",
     "com.lihaoyi"                  %% "pprint"                % "0.9.6",
-    "uk.org.webcompere"             % "system-stubs-core"     % "2.1.8",
     "net.bytebuddy"                 % "byte-buddy"            % "1.18.5"
   )
 }
@@ -109,18 +108,11 @@ lazy val coreTestDependencies = Def.setting {
     "org.hamcrest"           % "hamcrest"               % "3.0"      % Test,
     "com.eed3si9n.expecty"  %% "expecty"                % "0.17.1"   % Test,
     "org.mockito"            % "mockito-junit-jupiter"  % "5.21.0"   % Test,
-    "org.junit.jupiter" % "junit-jupiter-params" % JupiterKeys.junitJupiterVersion.value,
+    "org.junit.jupiter" % "junit-jupiter-params" % JupiterKeys.junitJupiterVersion.value % Test,
     "com.github.sbt.junit" % "jupiter-interface" % JupiterKeys.jupiterVersion.value % Test,
     "org.junit.jupiter" % "junit-jupiter-engine" % JupiterKeys.junitJupiterVersion.value % Test,
     "org.junit.platform" % "junit-platform-testkit" % JupiterKeys.junitPlatformVersion.value % Test,
     "org.junit.platform" % "junit-platform-suite-api" % JupiterKeys.junitPlatformVersion.value % Test
-  )
-}
-
-lazy val junit5Dependencies = Def.setting {
-  Seq(
-    "org.junit.platform" % "junit-platform-launcher" % JupiterKeys.junitPlatformVersion.value,
-    "uk.org.webcompere" % "system-stubs-jupiter" % "2.1.8"
   )
 }
 
@@ -141,7 +133,11 @@ lazy val `americium-junit5`: Project = (project in file("junit5"))
   .settings(
     name        := "americium-junit5",
     description := "JUnit5 integration for Americium property-based testing",
-    libraryDependencies ++= junit5Dependencies.value
+    // Pin the JUnit dependencies to align with JUnit5 rather than picking up
+    // the version from `JupiterKeys`.
+    libraryDependencies += "org.junit.jupiter" % "junit-jupiter-params" % "5.14.3",
+    libraryDependencies += "org.junit.platform" % "junit-platform-launcher" % "1.14.3",
+    libraryDependencies += "uk.org.webcompere" % "system-stubs-jupiter" % "2.1.8" % Test
   )
   .disablePlugins(plugins.JUnitXmlReportPlugin)
 
