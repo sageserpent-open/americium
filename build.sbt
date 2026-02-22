@@ -65,7 +65,7 @@ lazy val commonSettings = Seq(
 lazy val coreDependencies = Def.setting {
   Seq(
     "com.typesafe.scala-logging"   %% "scala-logging"         % "3.9.6",
-    "ch.qos.logback"                % "logback-core"          % "1.5.29",
+    "ch.qos.logback"                % "logback-core"          % "1.5.32",
     "org.typelevel"                %% "cats-core"             % "2.13.0",
     "org.typelevel"                %% "cats-free"             % "2.13.0",
     "org.typelevel"                %% "cats-collections-core" % "0.9.10",
