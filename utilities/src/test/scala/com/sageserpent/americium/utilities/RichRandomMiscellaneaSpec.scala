@@ -1,6 +1,5 @@
-package com.sageserpent.amercium.utilities
+package com.sageserpent.americium.utilities
 
-import com.sageserpent.americium.utilities.BargainBasement
 import com.sageserpent.americium.utilities.randomEnrichment.*
 import org.scalatest.Assertion
 import org.scalatest.flatspec.AnyFlatSpec
