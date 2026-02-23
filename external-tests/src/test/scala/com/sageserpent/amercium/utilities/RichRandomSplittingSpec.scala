@@ -1,8 +1,9 @@
-package com.sageserpent.americium
+package com.sageserpent.amercium.utilities
 
-import com.sageserpent.americium.randomEnrichment._
+import com.sageserpent.americium.utilities.randomEnrichment.*
+import com.sageserpent.americium.{Trials, TrialsApi}
 import org.scalatest.Inspectors
-import org.scalatest.enablers.Aggregating._
+import org.scalatest.enablers.Aggregating.*
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.prop.TableDrivenPropertyChecks.whenever

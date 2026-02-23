@@ -96,7 +96,7 @@ lazy val scalaVersionDependencies = Def.setting {
   }
 }
 
-lazy val coreTestDependencies = Def.setting {
+lazy val commonTestDependencies = Def.setting {
   Seq(
     "com.github.valfirst"    % "slf4j-test"             % "3.0.3"    % Test,
     "org.typelevel"         %% "cats-laws"              % "2.13.0"   % Test,
@@ -116,19 +116,42 @@ lazy val coreTestDependencies = Def.setting {
   )
 }
 
+lazy val `americium-utilities`: Project =
+  (project in file("utilities"))
+    .settings(commonSettings)
+    .settings(
+      name := "americium-utilities",
+      description := "Utilities used internally by Americium that are of use to other projects",
+      libraryDependencies ++= commonTestDependencies.value
+    )
+
+lazy val `external-tests`: Project = (project in file("external-tests"))
+  .dependsOn(
+    `americium-utilities` % "test->compile;test->test",
+    americium             % "test->compile"
+  )
+  .settings(commonSettings)
+  .settings(
+    name := "external-tests",
+    description := "Tests in their own project to break pseudo-cyclic dependencies",
+    publish / skip := true,
+    libraryDependencies ++= commonTestDependencies.value
+  )
+
 lazy val americium: Project = (project in file("core-library"))
+  .dependsOn(`americium-utilities` % "compile->compile;test->test")
   .settings(commonSettings)
   .settings(
     name        := "americium",
     description := "Generation of test data for parameterised testing",
     libraryDependencies ++= coreDependencies.value,
     libraryDependencies ++= scalaVersionDependencies.value,
-    libraryDependencies ++= coreTestDependencies.value
+    libraryDependencies ++= commonTestDependencies.value
   )
   .disablePlugins(plugins.JUnitXmlReportPlugin)
 
 lazy val `americium-junit5`: Project = (project in file("junit5-integration"))
-  .dependsOn(americium % "test->test;compile->compile")
+  .dependsOn(americium)
   .settings(commonSettings)
   .settings(
     name        := "americium-junit5",
@@ -137,12 +160,18 @@ lazy val `americium-junit5`: Project = (project in file("junit5-integration"))
     // the version from `JupiterKeys`.
     libraryDependencies += "org.junit.jupiter" % "junit-jupiter-params" % "5.14.3",
     libraryDependencies += "org.junit.platform" % "junit-platform-launcher" % "1.14.3",
-    libraryDependencies += "uk.org.webcompere" % "system-stubs-jupiter" % "2.1.8" % Test
+    libraryDependencies += "uk.org.webcompere" % "system-stubs-jupiter" % "2.1.8" % Test,
+    libraryDependencies ++= commonTestDependencies.value
   )
   .disablePlugins(plugins.JUnitXmlReportPlugin)
 
 lazy val root: Project = (project in file("."))
-  .aggregate(americium, `americium-junit5`)
+  .aggregate(
+    `americium-utilities`,
+    americium,
+    `americium-junit5`,
+    `external-tests`
+  )
   .settings(
     name           := "americium-root",
     publish / skip := true,

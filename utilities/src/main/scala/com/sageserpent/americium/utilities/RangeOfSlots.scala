@@ -1,4 +1,4 @@
-package com.sageserpent.americium
+package com.sageserpent.americium.utilities
 
 /** Represents a range of slots, where each slot is either vacant or occupied by
   * an integer whose value corresponds to the slot position, taken

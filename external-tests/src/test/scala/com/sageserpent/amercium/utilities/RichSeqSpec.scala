@@ -1,8 +1,9 @@
-package com.sageserpent.americium
+package com.sageserpent.amercium.utilities
 
-import com.sageserpent.americium.seqEnrichment._
-import org.scalatest.LoneElement._
-import org.scalatest.enablers.Collecting._
+import com.sageserpent.americium.Trials
+import com.sageserpent.americium.utilities.seqEnrichment.*
+import org.scalatest.LoneElement.*
+import org.scalatest.enablers.Collecting.*
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 

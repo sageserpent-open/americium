@@ -3,6 +3,7 @@ import cats.Traverse
 import cats.free.Free
 import cats.implicits.*
 import com.sageserpent.americium.generation.*
+import com.sageserpent.americium.utilities.RangeOfSlots
 import com.sageserpent.americium.{
   Trials as ScalaTrials,
   TrialsApi as ScalaTrialsApi

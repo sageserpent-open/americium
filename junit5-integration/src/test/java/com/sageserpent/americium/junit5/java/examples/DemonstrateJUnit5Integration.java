@@ -14,6 +14,7 @@ import cyclops.data.tuple.Tuple2;
 import cyclops.data.tuple.Tuple3;
 import org.junit.jupiter.api.*;
 
+import java.time.Duration;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -25,8 +26,11 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
-
 public class DemonstrateJUnit5Integration {
+    private static CasesLimitStrategy oneSecond(CaseSupplyCycle unused) {
+        return CasesLimitStrategy.timed(Duration.ofSeconds(1));
+    }
+
     private static final TrialsApi api = api();
     private static final Trials<ImmutableList<Integer>> uniqueIdLists =
             api.uniqueIds().immutableLists();
@@ -57,17 +61,18 @@ public class DemonstrateJUnit5Integration {
     private static final Tuple2Trials.SupplyToSyntaxTuple2<String, String>
             configuredStringPairs = first
             .and(second)
-            .withStrategy(TrialsApiTests::oneSecond);
+            .withStrategy(DemonstrateJUnit5Integration::oneSecond);
     private static final Trials<String> potentialNulls =
             api.alternate(api.characters().strings(), api.only(null));
 
     private static final Tuple2Trials<String, Integer> pairs =
             potentialNulls.and(api.integers());
     private static final Tuple2Trials.SupplyToSyntaxTuple2<String, Integer>
-            configuredPairs = pairs.withStrategy(TrialsApiTests::oneSecond);
+            configuredPairs =
+            pairs.withStrategy(DemonstrateJUnit5Integration::oneSecond);
     private static final TrialsScaffolding.SupplyToSyntax<String>
             configuredPotentialNulls =
-            potentialNulls.withStrategy(TrialsApiTests::oneSecond);
+            potentialNulls.withStrategy(DemonstrateJUnit5Integration::oneSecond);
     private static final Tuple3Trials<Integer, Boolean, ImmutableSet<Double>>
             triples = api
             .choose(-326734, 8484)
@@ -80,10 +85,11 @@ public class DemonstrateJUnit5Integration {
     private static final TrialsScaffolding.SupplyToSyntax<Tuple3<Integer,
             Boolean, ImmutableSet<Double>>>
             configuredNullableTriples =
-            nullableTriples.withStrategy(TrialsApiTests::oneSecond);
+            nullableTriples.withStrategy(DemonstrateJUnit5Integration::oneSecond);
     private static final Tuple3Trials.SupplyToSyntaxTuple3<Integer, Boolean,
             ImmutableSet<Double>>
-            configuredTriples = triples.withStrategy(TrialsApiTests::oneSecond);
+            configuredTriples =
+            triples.withStrategy(DemonstrateJUnit5Integration::oneSecond);
 
     @BeforeEach
     void beforeEach() {

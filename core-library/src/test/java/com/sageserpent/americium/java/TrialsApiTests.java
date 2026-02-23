@@ -5,7 +5,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Streams;
 import com.google.common.hash.Hashing;
-import com.sageserpent.americium.BargainBasement;
+import com.sageserpent.americium.utilities.BargainBasement;
 import cyclops.control.Try;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -43,7 +43,7 @@ import static org.mockito.Mockito.*;
 public class TrialsApiTests {
     private final static TrialsApi api = Trials.api();
 
-    public static CasesLimitStrategy oneSecond(CaseSupplyCycle unused) {
+    private static CasesLimitStrategy oneSecond(CaseSupplyCycle unused) {
         return CasesLimitStrategy.timed(Duration.ofSeconds(1));
     }
 

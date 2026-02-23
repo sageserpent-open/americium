@@ -1,12 +1,12 @@
-package com.sageserpent.americium
+package com.sageserpent.amercium.utilities
 
-import com.sageserpent.americium.randomEnrichment.*
+import com.sageserpent.americium.utilities.BargainBasement
+import com.sageserpent.americium.utilities.randomEnrichment.*
 import org.scalatest.Assertion
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
 import scala.collection.immutable
-import scala.collection.immutable.Set
 import scala.collection.mutable.Map
 import scala.language.postfixOps
 import scala.util.Random
@@ -32,67 +32,46 @@ class RichRandomMiscellaneaSpec extends AnyFlatSpec with Matchers {
     }
   }
 
-  private def sampleDistributions(
-      upperBound: Int,
-      sampleSize: Int,
-      buildRandomSequenceOfDistinctIntegersOfSize: Int => Seq[Int]
+  def commonTestStructureForTestingOfChoosingSeveralItems(
+      testOnSuperSetAndItemsChosenFromIt: (
+          scala.collection.immutable.Set[Int],
+          Seq[Int],
+          Int
+      ) => Unit
   ): Unit = {
+    val random = new Random(1)
 
-    val numberOfTrials =
-      BargainBasement.numberOfCombinations(upperBound, sampleSize) * 1000
-
-    println(
-      "Number of trials: %d, upperBound: %d, sampleSize: %d"
-        .format(numberOfTrials, upperBound, sampleSize)
-    )
-
-    val sampleToCountMap = Map.empty[Set[Int], Int].withDefaultValue(0)
-
-    val itemToCountAndSumOfPositionsMap =
-      Map.empty[Int, (Int, Double)].withDefaultValue(0 -> 0.0)
-
-    for {
-      _ <- 1 to numberOfTrials
-    } {
-      val sample = buildRandomSequenceOfDistinctIntegersOfSize(
-        sampleSize
-      ).toList
-
-      val sampleAsSet = sample.toSet
-
-      sampleToCountMap(sampleAsSet) = 1 + sampleToCountMap(sampleAsSet)
-
-      for { (item, position) <- sample.zipWithIndex } {
-        val (count, sumOfPositions) = itemToCountAndSumOfPositionsMap(item)
-        itemToCountAndSumOfPositionsMap(item) =
-          1 + count -> (position + sumOfPositions)
-      }
+    for (numberOfConsecutiveItems <- 1 to 105) {
+      val superSet   = 0 until numberOfConsecutiveItems toSet
+      val chosenItem =
+        random.chooseAnyNumberFromZeroToOneLessThan(numberOfConsecutiveItems)
+      testOnSuperSetAndItemsChosenFromIt(superSet, List(chosenItem), 1)
     }
 
-    val numberOfDistinctSamplesObtained = sampleToCountMap.size
+    for (inclusiveLowerBound <- 58 to 98)
+      for (numberOfConsecutiveItems <- 1 to 50) {
+        val superSet =
+          (inclusiveLowerBound until inclusiveLowerBound + numberOfConsecutiveItems).toSet
+        val chosenItem = random.chooseOneOf(superSet)
+        testOnSuperSetAndItemsChosenFromIt(superSet, List(chosenItem), 1)
+        for (subsetSize <- 1 to numberOfConsecutiveItems)
+          for (_ <- 1 to 10) {
+            val chosenItems = random.chooseSeveralOf(superSet, subsetSize)
+            testOnSuperSetAndItemsChosenFromIt(
+              superSet,
+              chosenItems,
+              subsetSize
+            )
 
-    assert(sampleToCountMap.values.count { count =>
-      val expectedCount = 1.0 * numberOfTrials / numberOfDistinctSamplesObtained
-      val tolerance     = 1e-1
-      Math.abs(count - expectedCount) <= tolerance * expectedCount
-    } >= 9e-1 * sampleToCountMap.size)
-
-    assert(upperBound == itemToCountAndSumOfPositionsMap.size)
-
-    assert(itemToCountAndSumOfPositionsMap.keys.forall({ item =>
-      {
-        0 <= item && upperBound > item
+            val anotherBunchOfChosenItems =
+              anotherWayOfChoosingSeveralOf(random, superSet, subsetSize)
+            testOnSuperSetAndItemsChosenFromIt(
+              superSet,
+              anotherBunchOfChosenItems,
+              subsetSize
+            )
+          }
       }
-    }))
-
-    assert(itemToCountAndSumOfPositionsMap.values.count {
-      case (count, sumOfPositions) =>
-        val meanPosition         = sumOfPositions / count
-        val expectedMeanPosition = (sampleSize - 1) / 2.0
-        val difference           = Math.abs(meanPosition - expectedMeanPosition)
-        val tolerance            = 1e-1
-        difference <= tolerance * expectedMeanPosition
-    } >= 9e-1 * itemToCountAndSumOfPositionsMap.size)
   }
 
   it should "uniformly distribute items chosen from a sequence" in {
@@ -161,46 +140,29 @@ class RichRandomMiscellaneaSpec extends AnyFlatSpec with Matchers {
       yield candidatesWithRandomAccess(index)
   }
 
-  def commonTestStructureForTestingOfChoosingSeveralItems(
-      testOnSuperSetAndItemsChosenFromIt: (
-          scala.collection.immutable.Set[Int],
-          Seq[Int],
-          Int
-      ) => Unit
+  def commonTestStructureForTestingAlternatePickingFromSequences(
+      testOnSequences: Seq[Seq[Int]] => Unit
   ): Unit = {
-    val random = new Random(1)
+    val randomBehaviour =
+      new Random(232)
+    for (numberOfSequences <- 0 until 50) {
+      val maximumPossibleNumberOfItemsInASequence =
+        100
+      val sequenceSizes =
+        List.tabulate(numberOfSequences) { _ =>
+          randomBehaviour.chooseAnyNumberFromZeroToOneLessThan(
+            maximumPossibleNumberOfItemsInASequence
+          )
+        }
 
-    for (numberOfConsecutiveItems <- 1 to 105) {
-      val superSet   = 0 until numberOfConsecutiveItems toSet
-      val chosenItem =
-        random.chooseAnyNumberFromZeroToOneLessThan(numberOfConsecutiveItems)
-      testOnSuperSetAndItemsChosenFromIt(superSet, List(chosenItem), 1)
-    }
-
-    for (inclusiveLowerBound <- 58 to 98)
-      for (numberOfConsecutiveItems <- 1 to 50) {
-        val superSet =
-          (inclusiveLowerBound until inclusiveLowerBound + numberOfConsecutiveItems).toSet
-        val chosenItem = random.chooseOneOf(superSet)
-        testOnSuperSetAndItemsChosenFromIt(superSet, List(chosenItem), 1)
-        for (subsetSize <- 1 to numberOfConsecutiveItems)
-          for (_ <- 1 to 10) {
-            val chosenItems = random.chooseSeveralOf(superSet, subsetSize)
-            testOnSuperSetAndItemsChosenFromIt(
-              superSet,
-              chosenItems,
-              subsetSize
-            )
-
-            val anotherBunchOfChosenItems =
-              anotherWayOfChoosingSeveralOf(random, superSet, subsetSize)
-            testOnSuperSetAndItemsChosenFromIt(
-              superSet,
-              anotherBunchOfChosenItems,
-              subsetSize
-            )
+      val sequences =
+        (sequenceSizes zipWithIndex) map { case (sequenceSize, sequenceIndex) =>
+          Seq.tabulate(sequenceSize) { (itemIndex: Int) =>
+            sequenceIndex + numberOfSequences * itemIndex
           }
-      }
+        }
+      testOnSequences(sequences)
+    }
   }
 
   it should "only yield items from the sequence chosen from" in {
@@ -298,29 +260,67 @@ class RichRandomMiscellaneaSpec extends AnyFlatSpec with Matchers {
     }
   }
 
-  def commonTestStructureForTestingAlternatePickingFromSequences(
-      testOnSequences: Seq[Seq[Int]] => Unit
+  private def sampleDistributions(
+      upperBound: Int,
+      sampleSize: Int,
+      buildRandomSequenceOfDistinctIntegersOfSize: Int => Seq[Int]
   ): Unit = {
-    val randomBehaviour =
-      new Random(232)
-    for (numberOfSequences <- 0 until 50) {
-      val maximumPossibleNumberOfItemsInASequence =
-        100
-      val sequenceSizes =
-        List.tabulate(numberOfSequences) { _ =>
-          randomBehaviour.chooseAnyNumberFromZeroToOneLessThan(
-            maximumPossibleNumberOfItemsInASequence
-          )
-        }
 
-      val sequences =
-        (sequenceSizes zipWithIndex) map { case (sequenceSize, sequenceIndex) =>
-          Seq.tabulate(sequenceSize) { (itemIndex: Int) =>
-            sequenceIndex + numberOfSequences * itemIndex
-          }
-        }
-      testOnSequences(sequences)
+    val numberOfTrials =
+      BargainBasement.numberOfCombinations(upperBound, sampleSize) * 1000
+
+    println(
+      "Number of trials: %d, upperBound: %d, sampleSize: %d"
+        .format(numberOfTrials, upperBound, sampleSize)
+    )
+
+    val sampleToCountMap = Map.empty[Set[Int], Int].withDefaultValue(0)
+
+    val itemToCountAndSumOfPositionsMap =
+      Map.empty[Int, (Int, Double)].withDefaultValue(0 -> 0.0)
+
+    for {
+      _ <- 1 to numberOfTrials
+    } {
+      val sample = buildRandomSequenceOfDistinctIntegersOfSize(
+        sampleSize
+      ).toList
+
+      val sampleAsSet = sample.toSet
+
+      sampleToCountMap(sampleAsSet) = 1 + sampleToCountMap(sampleAsSet)
+
+      for { (item, position) <- sample.zipWithIndex } {
+        val (count, sumOfPositions) = itemToCountAndSumOfPositionsMap(item)
+        itemToCountAndSumOfPositionsMap(item) =
+          1 + count -> (position + sumOfPositions)
+      }
     }
+
+    val numberOfDistinctSamplesObtained = sampleToCountMap.size
+
+    assert(sampleToCountMap.values.count { count =>
+      val expectedCount = 1.0 * numberOfTrials / numberOfDistinctSamplesObtained
+      val tolerance     = 1e-1
+      Math.abs(count - expectedCount) <= tolerance * expectedCount
+    } >= 9e-1 * sampleToCountMap.size)
+
+    assert(upperBound == itemToCountAndSumOfPositionsMap.size)
+
+    assert(itemToCountAndSumOfPositionsMap.keys.forall({ item =>
+      {
+        0 <= item && upperBound > item
+      }
+    }))
+
+    assert(itemToCountAndSumOfPositionsMap.values.count {
+      case (count, sumOfPositions) =>
+        val meanPosition         = sumOfPositions / count
+        val expectedMeanPosition = (sampleSize - 1) / 2.0
+        val difference           = Math.abs(meanPosition - expectedMeanPosition)
+        val tolerance            = 1e-1
+        difference <= tolerance * expectedMeanPosition
+    } >= 9e-1 * itemToCountAndSumOfPositionsMap.size)
   }
 
   it should "yield the items in each sequence when picking alternately from several sequences" in {

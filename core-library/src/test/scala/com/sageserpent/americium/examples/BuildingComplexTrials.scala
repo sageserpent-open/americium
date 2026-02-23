@@ -18,7 +18,7 @@ class BuildingComplexTrials extends AnyFlatSpec with Matchers {
   private def vainAttemptToDisproveHavingMoreThanTwoAdjacentDuplicates(
       list: List[Int]
   ) = {
-    import com.sageserpent.americium.seqEnrichment.*
+    import com.sageserpent.americium.utilities.seqEnrichment.*
 
     val groupsOfAdjacentDuplicates = list.groupWhile(_ == _)
 

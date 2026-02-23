@@ -27,8 +27,8 @@ import com.sageserpent.americium.java.{
   TestIntegrationContext,
   TrialsScaffolding as JavaTrialsScaffolding
 }
-import com.sageserpent.americium.randomEnrichment.RichRandom
 import com.sageserpent.americium.storage.TrialsReproductionDatabase
+import com.sageserpent.americium.utilities.randomEnrichment.RichRandom
 import com.sageserpent.americium.{
   CaseFactory,
   TestIntegrationContextImplementation,

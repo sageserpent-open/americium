@@ -1,5 +1,7 @@
-package com.sageserpent.americium
-import com.sageserpent.americium.randomEnrichment.*
+package com.sageserpent.amercium.utilities
+
+import com.sageserpent.americium.utilities.RangeOfSlots
+import com.sageserpent.americium.utilities.randomEnrichment.*
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
