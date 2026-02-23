@@ -29,7 +29,7 @@ class TrialsLaws extends AnyFlatSpec with Checkers {
         captures.toList
       }
 
-      capturesOf(first) == capturesOf(second)
+      Eq[List[X]].eqv(capturesOf(first), capturesOf(second))
     }
 
   implicit def arbitraryTrials[X: Arbitrary]: Arbitrary[Trials[X]] = {
