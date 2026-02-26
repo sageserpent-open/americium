@@ -54,8 +54,14 @@ class JUnit5ReplayStorage(baseDir: os.Path) extends RecipeStorage {
 
   /** Atomically write content to a file using temp file + rename. */
   private def atomicWrite(path: os.Path, content: String): Unit = {
-    val tempPath = path / os.up / s".${path.last}.tmp"
+    // Write to temp file in same directory (ensures same filesystem)
+
+    val threadSpecificNameToAvoidContention =
+      s".${path.last}.${Thread.currentThread().getId}.tmp"
+    val tempPath = replayDir / threadSpecificNameToAvoidContention
+
     os.write.over(tempPath, content, createFolders = true)
+    // Atomic move (rename is atomic on same filesystem)
     os.move(tempPath, path, replaceExisting = true)
   }
 

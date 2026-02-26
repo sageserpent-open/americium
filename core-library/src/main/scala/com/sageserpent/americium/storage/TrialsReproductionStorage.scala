@@ -70,6 +70,21 @@ class TrialsReproductionStorage(baseDir: os.Path) extends RecipeStorage {
     atomicWrite(recipesDir / filenameFor(recipeHash), json)
   }
 
+  /** Atomically write content to a file using temp file + rename.
+    *
+    * This ensures that readers never see partial writes.
+    */
+  private def atomicWrite(path: os.Path, content: String): Unit = {
+    // Write to temp file in same directory (ensures same filesystem)
+    val threadSpecificNameToAvoidContention =
+      s".${path.last}.${Thread.currentThread().getId}.tmp"
+    val tempPath = recipesDir / threadSpecificNameToAvoidContention
+
+    os.write.over(tempPath, content, createFolders = true)
+    // Atomic move (rename is atomic on same filesystem)
+    os.move(tempPath, path, replaceExisting = true)
+  }
+
   def recipeFromRecipeHash(recipeHash: String): String = {
     val filePath = recipesDir / filenameFor(recipeHash)
 
@@ -97,29 +112,6 @@ class TrialsReproductionStorage(baseDir: os.Path) extends RecipeStorage {
     }
   }
 
-  override def reset(): Unit = {
-    os.remove.all(recipesDir)
-  }
-
-  override def close(): Unit = {
-    // File-based storage doesn't need explicit cleanup
-    // OS will handle file handles
-  }
-
-  /** Atomically write content to a file using temp file + rename.
-    *
-    * This ensures that readers never see partial writes.
-    */
-  private def atomicWrite(path: os.Path, content: String): Unit = {
-    // Write to temp file in same directory (ensures same filesystem)
-    val tempPath = path / os.up / s".${path.last}.tmp"
-
-    os.write.over(tempPath, content, createFolders = true)
-
-    // Atomic move (rename is atomic on same filesystem)
-    os.move(tempPath, path, replaceExisting = true)
-  }
-
   private def parseRecipeData(json: String, recipeHash: String): RecipeData = {
     parse(json).flatMap(_.as[RecipeData]) match {
       case Right(data) => data
@@ -128,5 +120,14 @@ class TrialsReproductionStorage(baseDir: os.Path) extends RecipeStorage {
           s"Failed to parse recipe data for hash $recipeHash: ${error.getMessage}"
         )
     }
+  }
+
+  override def reset(): Unit = {
+    os.remove.all(recipesDir)
+  }
+
+  override def close(): Unit = {
+    // File-based storage doesn't need explicit cleanup
+    // OS will handle file handles
   }
 }
