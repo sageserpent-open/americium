@@ -87,7 +87,7 @@ lazy val scalaVersionDependencies = Def.setting {
   CrossVersion.partialVersion(scalaVersion.value) match {
     case Some((2, _)) =>
       Seq(
-        "com.softwaremill.magnolia1_2" %% "magnolia"      % "1.1.10",
+        "com.softwaremill.magnolia1_2" %% "magnolia"      % "1.1.12",
         "org.scala-lang"                % "scala-reflect" % scalaVersion.value
       )
     case Some((3, _)) =>
