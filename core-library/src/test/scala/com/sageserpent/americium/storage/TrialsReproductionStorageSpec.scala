@@ -13,7 +13,7 @@ class TrialsReproductionStorageSpec extends AnyFlatSpec with Matchers {
       os.temp.dir(prefix = "americium-test-")
     )
 
-    val threads = (1 to 10).map { i =>
+    val threads = (1 to 20).map { i =>
       new Thread(() => {
         storage.recordRecipeHash(
           s"hash$i",
@@ -40,26 +40,28 @@ class TrialsReproductionStorageSpec extends AnyFlatSpec with Matchers {
       os.temp.dir(prefix = "americium-test-")
     )
 
-    val threads = (1 to 10).map { i =>
-      new Thread(() => {
-        storage.recordRecipeHash(
-          "same-hash",
-          s"recipe-$i",
-          s"outline-$i"
-        )
-      })
-    }
+    for (_ <- 0 until 20) {
+      val threads = (1 to 20).map { i =>
+        new Thread(() => {
+          storage.recordRecipeHash(
+            "same-hash",
+            s"recipe-$i",
+            s"outline-$i"
+          )
+        })
+      }
 
-    threads.foreach(_.start())
-    threads.foreach(_.join())
+      threads.foreach(_.start())
+      threads.foreach(_.join())
 
-    // Last writer wins - verify one valid recipe present
-    val recipe = storage.recipeFromRecipeHash("same-hash")
-    recipe should startWith("recipe-")
+      // Last writer wins - verify one valid recipe present
+      val recipe = storage.recipeFromRecipeHash("same-hash")
+      recipe should startWith("recipe-")
 
-    // Verify file is well-formed (not corrupted)
-    noException should be thrownBy {
-      storage.structureOutlineFromRecipeHash("same-hash")
+      // Verify file is well-formed (not corrupted)
+      noException should be thrownBy {
+        storage.structureOutlineFromRecipeHash("same-hash")
+      }
     }
   }
 
