@@ -1,6 +1,7 @@
 package com.sageserpent.americium.storage
 
 import com.sageserpent.americium.java.RecipeIsNotPresentException
+import org.scalatest.exceptions.TestFailedException
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
@@ -73,8 +74,8 @@ class TrialsReproductionStorageSpec extends AnyFlatSpec with Matchers {
     // Pre-populate with initial recipe
     storage.recordRecipeHash("test-hash", "initial", "initial-outline")
 
-    @volatile var keepRunning        = true
-    @volatile var corruptionDetected = false
+    @volatile var keepRunning: Boolean           = true
+    @volatile var testFailure: Option[Throwable] = None
 
     // Writer thread - continuously updates
     val writer = new Thread(() => {
@@ -86,7 +87,6 @@ class TrialsReproductionStorageSpec extends AnyFlatSpec with Matchers {
           s"outline-$counter"
         )
         counter += 1
-        Thread.sleep(1)
       }
     })
 
@@ -101,14 +101,12 @@ class TrialsReproductionStorageSpec extends AnyFlatSpec with Matchers {
           if (recipe.startsWith("recipe-")) {
             val num             = recipe.stripPrefix("recipe-")
             val expectedOutline = s"outline-$num"
-            if (!outline.contains(expectedOutline)) {
-              corruptionDetected = true
-            }
+
+            outline should be(Some(expectedOutline))
           }
         } catch {
-          case _: Exception => corruptionDetected = true
+          case throwable: Throwable => testFailure = Some(throwable)
         }
-        Thread.sleep(1)
       }
     })
 
@@ -121,7 +119,10 @@ class TrialsReproductionStorageSpec extends AnyFlatSpec with Matchers {
     writer.join()
     reader.join()
 
-    corruptionDetected shouldBe false
+    testFailure.foreach {
+      case passThrough: TestFailedException => throw passThrough
+      case throwable                        => fail(throwable)
+    }
   }
 
   behavior of "TrialsReproductionStorage with file operations"
