@@ -10,7 +10,7 @@ import com.sageserpent.americium.junit5.java.{
   TestExecutionListenerCapturingUniqueIds,
   TrialsTest
 }
-import com.sageserpent.americium.junit5.storage.JUnit5ReplayDatabase
+import com.sageserpent.americium.junit5.storage.JUnit5ReplayStorage
 import org.junit.jupiter.api.DynamicTest
 import org.junit.jupiter.api.DynamicTest.dynamicTest
 import org.junit.platform.engine.UniqueId
@@ -129,7 +129,7 @@ package object junit5 {
       reproduceFromRecipe: String => Case,
       parameterisedTest: Case => Unit
   ): DynamicTests = {
-    val rocksDBConnection = JUnit5ReplayDatabase.evaluation.value
+    val rocksDBConnection = JUnit5ReplayStorage.evaluation.value
 
     val replayedUniqueIds =
       LauncherDiscoveryListenerCapturingReplayedUniqueIds

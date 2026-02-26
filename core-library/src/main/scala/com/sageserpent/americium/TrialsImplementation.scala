@@ -28,7 +28,7 @@ import com.sageserpent.americium.java.{
   TrialsScaffolding as JavaTrialsScaffolding,
   TrialsSkeletalImplementation as JavaTrialsSkeletalImplementation
 }
-import com.sageserpent.americium.storage.TrialsReproductionDatabase
+import com.sageserpent.americium.storage.TrialsReproductionStorage
 import com.sageserpent.americium.{
   Trials as ScalaTrials,
   TrialsScaffolding as ScalaTrialsScaffolding,
@@ -214,7 +214,7 @@ case class TrialsImplementation[Case](
       ): Case = thisTrialsImplementation.reproduce(decisionStages)
 
       protected override def raiseTrialException(
-          rocksDbConnection: Option[TrialsReproductionDatabase],
+          rocksDbConnection: Option[TrialsReproductionStorage],
           throwable: Throwable,
           caze: Case,
           decisionStages: DecisionStages
@@ -291,7 +291,7 @@ case class TrialsImplementation[Case](
                   .minAfter(cumulativeFrequencyToMatchOrExceed)
                   .getOrElse(
                     Using.resource(
-                      TrialsReproductionDatabase.readOnlyConnection()
+                      TrialsReproductionStorage.readOnlyConnection()
                     ) { connection =>
                       throw new RecipeCouldNotBeReproducedException(
                         context.decisionStages,

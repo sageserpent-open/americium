@@ -16,7 +16,7 @@ import com.sageserpent.americium.java.{
   Trials as JavaTrials,
   TrialsApi as JavaTrialsApi
 }
-import com.sageserpent.americium.storage.TrialsReproductionDatabase
+import com.sageserpent.americium.storage.TrialsReproductionStorage
 import cyclops.control.Either as JavaEither
 import org.mockito.ArgumentMatchers.{any, argThat}
 import org.mockito.Mockito
@@ -2538,7 +2538,7 @@ class TrialsSpecInQuarantineDueToUseOfRecipeHashSystemProperty
       warnings shouldBe empty
 
       // Tear down the storage of recipes...
-      TrialsReproductionDatabase.evaluation.value.reset()
+      TrialsReproductionStorage.evaluation.value.reset()
 
       {
         val mockConsumer: Any => Unit = mock(classOf[Any => Unit])

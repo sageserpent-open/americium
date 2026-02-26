@@ -27,7 +27,7 @@ import com.sageserpent.americium.java.{
   TestIntegrationContext,
   TrialsScaffolding as JavaTrialsScaffolding
 }
-import com.sageserpent.americium.storage.TrialsReproductionDatabase
+import com.sageserpent.americium.storage.TrialsReproductionStorage
 import com.sageserpent.americium.utilities.randomEnrichment.RichRandom
 import com.sageserpent.americium.{
   CaseFactory,
@@ -37,7 +37,6 @@ import com.sageserpent.americium.{
 }
 import com.typesafe.scalalogging.StrictLogging
 import fs2.{Pull, Stream as Fs2Stream}
-import org.rocksdb.Cache as _
 
 import _root_.java.util.Iterator as JavaIterator
 import _root_.java.util.function.Consumer
@@ -55,9 +54,9 @@ object SupplyToSyntaxSkeletalImplementation {
   val maximumScaleDeflationLevel = 50
 
   def readOnlyRocksDbConnectionResource(
-  ): Resource[SyncIO, TrialsReproductionDatabase] =
+  ): Resource[SyncIO, TrialsReproductionStorage] =
     Resource.make(acquire = SyncIO {
-      TrialsReproductionDatabase.readOnlyConnection()
+      TrialsReproductionStorage.readOnlyConnection()
     })(
       release = connection =>
         SyncIO {
@@ -156,11 +155,6 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
       : CrossApiIterator[TestIntegrationContext[Case]] =
     CrossApiIterator.from(lazyListOfTestIntegrationContexts().iterator)
 
-  override def asIterator(): JavaIterator[Case] with ScalaIterator[Case] =
-    CrossApiIterator.from(
-      lazyListOfTestIntegrationContexts().map(_.caze).iterator
-    )
-
   private def lazyListOfTestIntegrationContexts()
       : LazyList[TestIntegrationContext[Case]] = {
     LazyList.unfold(shrinkableCases()) { streamedCases =>
@@ -231,7 +225,7 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
       )
 
     def streamedCasesWithShrinkageOnFailure(
-        rocksDBConnection: TrialsReproductionDatabase
+        rocksDBConnection: TrialsReproductionStorage
     ): StreamedCases = {
       def raiseTrialException(
           throwable: Throwable,
@@ -442,7 +436,7 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
     }
 
     def checkRecipeForObsolescence(
-        connection: TrialsReproductionDatabase
+        connection: TrialsReproductionStorage
     )(recipeHash: String, recipe: String): Unit = {
       connection.structureOutlineFromRecipeHash(recipeHash) match {
         case Some(structureOutline) =>
@@ -534,7 +528,7 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
       )
       .getOrElse(
         streamedCasesWithShrinkageOnFailure(
-          TrialsReproductionDatabase.evaluation.value
+          TrialsReproductionStorage.evaluation.value
         )
       )
   }
@@ -974,10 +968,15 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
     }
   }
 
+  override def asIterator(): JavaIterator[Case] with ScalaIterator[Case] =
+    CrossApiIterator.from(
+      lazyListOfTestIntegrationContexts().map(_.caze).iterator
+    )
+
   protected def reproduce(decisionStages: DecisionStages): Case
 
   protected def raiseTrialException(
-      rocksDbConnection: Option[TrialsReproductionDatabase],
+      rocksDbConnection: Option[TrialsReproductionStorage],
       throwable: Throwable,
       caze: Case,
       decisionStages: DecisionStages
