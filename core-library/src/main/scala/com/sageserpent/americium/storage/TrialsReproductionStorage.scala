@@ -7,9 +7,9 @@ import com.sageserpent.americium.generation.JavaPropertyNames.{
 }
 import com.sageserpent.americium.generation.SupplyToSyntaxSkeletalImplementation.runDatabaseDefault
 import com.sageserpent.americium.java.RecipeIsNotPresentException
+import io.circe.generic.auto.*
 import io.circe.parser.parse
 import io.circe.syntax.*
-import io.circe.{Decoder, Encoder}
 
 object TrialsReproductionStorage {
   val evaluation: Eval[TrialsReproductionStorage] =
@@ -45,13 +45,6 @@ object TrialsReproductionStorage {
       recipe: String,
       structureOutline: String
   )
-
-  private[storage] object RecipeData {
-    implicit val encoder: Encoder[RecipeData] =
-      io.circe.generic.semiauto.deriveEncoder
-    implicit val decoder: Decoder[RecipeData] =
-      io.circe.generic.semiauto.deriveDecoder
-  }
 }
 
 class TrialsReproductionStorage(baseDir: os.Path) extends RecipeStorage {
