@@ -72,7 +72,7 @@ class TrialsReproductionStorage(baseDir: os.Path) extends RecipeStorage {
 
     os.write.over(tempPath, content, createFolders = true)
     // Atomic move (rename is atomic on same filesystem)
-    os.move(tempPath, path, replaceExisting = true)
+    os.move(tempPath, path, replaceExisting = true, atomicMove = true)
   }
 
   def recipeDataFromRecipeHash(recipeHash: String): RecipeData = {
