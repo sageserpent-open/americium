@@ -40,8 +40,7 @@ object TrialsReproductionStorage {
     s"recipe-data-for-recipe-hash-$recipeHash.json"
   }
 
-  // Case class for JSON serialization
-  private[storage] case class RecipeData(
+  case class RecipeData(
       recipe: String,
       structureOutline: String
   )
@@ -54,11 +53,9 @@ class TrialsReproductionStorage(baseDir: os.Path) extends RecipeStorage {
 
   def recordRecipeHash(
       recipeHash: String,
-      recipe: String,
-      structureOutline: String
+      recipeData: RecipeData
   ): Unit = {
-    val data = RecipeData(recipe, structureOutline)
-    val json = data.asJson.noSpaces
+    val json = recipeData.asJson.noSpaces
 
     atomicWrite(recipesDir / filenameFor(recipeHash), json)
   }
@@ -78,34 +75,15 @@ class TrialsReproductionStorage(baseDir: os.Path) extends RecipeStorage {
     os.move(tempPath, path, replaceExisting = true)
   }
 
-  def recipeFromRecipeHash(recipeHash: String): String = {
+  def recipeDataFromRecipeHash(recipeHash: String): RecipeData = {
     val filePath = recipesDir / filenameFor(recipeHash)
 
     if (!os.exists(filePath)) {
-      throw new RecipeIsNotPresentException(
-        recipeHash,
-        baseDir.toNIO
-      )
+      throw new RecipeIsNotPresentException(recipeHash, recipesDir)
     }
 
     val json = os.read(filePath)
-    parseRecipeData(json, recipeHash).recipe
-  }
 
-  def structureOutlineFromRecipeHash(
-      recipeHash: String
-  ): Option[String] = {
-    val filePath = recipesDir / filenameFor(recipeHash)
-
-    if (!os.exists(filePath)) {
-      None
-    } else {
-      val json = os.read(filePath)
-      Some(parseRecipeData(json, recipeHash).structureOutline)
-    }
-  }
-
-  private def parseRecipeData(json: String, recipeHash: String): RecipeData = {
     parse(json).flatMap(_.as[RecipeData]) match {
       case Right(data) => data
       case Left(error) =>

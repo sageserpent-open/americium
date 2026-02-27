@@ -1,8 +1,7 @@
 package com.sageserpent.americium.java
+import os.Path
 
-import java.nio.file.Path
-
-class RecipeIsNotPresentException(recipeHash: String, recipeDirectory: Path)
+class RecipeIsNotPresentException(recipeHash: String, val recipeDirectory: Path)
     extends RuntimeException(
       s"""No recipe found for recipe hash: $recipeHash.
           |Has the directory $recipeDirectory containing the recipes been deleted, changed to a different location or been regenerated?

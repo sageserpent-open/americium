@@ -1,6 +1,7 @@
 package com.sageserpent.americium.storage
 
 import com.sageserpent.americium.java.RecipeIsNotPresentException
+import com.sageserpent.americium.storage.TrialsReproductionStorage.RecipeData
 import org.scalatest.exceptions.TestFailedException
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -18,8 +19,7 @@ class TrialsReproductionStorageSpec extends AnyFlatSpec with Matchers {
       new Thread(() => {
         storage.recordRecipeHash(
           s"hash$i",
-          s"recipe$i",
-          s"outline$i"
+          RecipeData(s"recipe$i", s"outline$i")
         )
       })
     }
@@ -29,10 +29,10 @@ class TrialsReproductionStorageSpec extends AnyFlatSpec with Matchers {
 
     // Verify all 10 recipes present
     (1 to 10).foreach { i =>
-      storage.recipeFromRecipeHash(s"hash$i") shouldBe s"recipe$i"
-      storage.structureOutlineFromRecipeHash(s"hash$i") shouldBe Some(
-        s"outline$i"
-      )
+      val RecipeData(recipe, structureOutline) =
+        storage.recipeDataFromRecipeHash(s"hash$i")
+      recipe shouldBe s"recipe$i"
+      structureOutline shouldBe s"outline$i"
     }
   }
 
@@ -46,8 +46,7 @@ class TrialsReproductionStorageSpec extends AnyFlatSpec with Matchers {
         new Thread(() => {
           storage.recordRecipeHash(
             "same-hash",
-            s"recipe-$i",
-            s"outline-$i"
+            RecipeData(s"recipe-$i", s"outline-$i")
           )
         })
       }
@@ -56,13 +55,8 @@ class TrialsReproductionStorageSpec extends AnyFlatSpec with Matchers {
       threads.foreach(_.join())
 
       // Last writer wins - verify one valid recipe present
-      val recipe = storage.recipeFromRecipeHash("same-hash")
+      val RecipeData(recipe, _) = storage.recipeDataFromRecipeHash("same-hash")
       recipe should startWith("recipe-")
-
-      // Verify file is well-formed (not corrupted)
-      noException should be thrownBy {
-        storage.structureOutlineFromRecipeHash("same-hash")
-      }
     }
   }
 
@@ -72,7 +66,10 @@ class TrialsReproductionStorageSpec extends AnyFlatSpec with Matchers {
     )
 
     // Pre-populate with initial recipe
-    storage.recordRecipeHash("test-hash", "initial", "initial-outline")
+    storage.recordRecipeHash(
+      "test-hash",
+      RecipeData("initial", "initial-outline")
+    )
 
     @volatile var keepRunning: Boolean           = true
     @volatile var testFailure: Option[Throwable] = None
@@ -83,8 +80,7 @@ class TrialsReproductionStorageSpec extends AnyFlatSpec with Matchers {
       while (keepRunning) {
         storage.recordRecipeHash(
           "test-hash",
-          s"recipe-$counter",
-          s"outline-$counter"
+          RecipeData(s"recipe-$counter", s"outline-$counter")
         )
         counter += 1
       }
@@ -94,15 +90,15 @@ class TrialsReproductionStorageSpec extends AnyFlatSpec with Matchers {
     val reader = new Thread(() => {
       while (keepRunning) {
         try {
-          val recipe  = storage.recipeFromRecipeHash("test-hash")
-          val outline = storage.structureOutlineFromRecipeHash("test-hash")
+          val RecipeData(recipe, structureOutline) =
+            storage.recipeDataFromRecipeHash("test-hash")
 
           // Verify consistency: recipe and outline should match
           if (recipe.startsWith("recipe-")) {
             val num             = recipe.stripPrefix("recipe-")
             val expectedOutline = s"outline-$num"
 
-            outline should be(Some(expectedOutline))
+            structureOutline should be(expectedOutline)
           }
         } catch {
           case throwable: Throwable => testFailure = Some(throwable)
@@ -132,7 +128,7 @@ class TrialsReproductionStorageSpec extends AnyFlatSpec with Matchers {
     os.remove.all(baseDir) // Ensure it doesn't exist
 
     val storage = new TrialsReproductionStorage(baseDir)
-    storage.recordRecipeHash("hash", "recipe", "outline")
+    storage.recordRecipeHash("hash", RecipeData("recipe", "outline"))
 
     os.exists(baseDir / "recipes") shouldBe true
   }
@@ -144,9 +140,9 @@ class TrialsReproductionStorageSpec extends AnyFlatSpec with Matchers {
 
     // Recipe hashes are typically hex, but test robustness
     val hash = "abc123-def456_xyz789"
-    storage.recordRecipeHash(hash, "recipe", "outline")
+    storage.recordRecipeHash(hash, RecipeData("recipe", "outline"))
 
-    storage.recipeFromRecipeHash(hash) shouldBe "recipe"
+    storage.recipeDataFromRecipeHash(hash).recipe shouldBe "recipe"
   }
 
   it should "throw RecipeIsNotPresentException for missing recipes" in {
@@ -155,16 +151,8 @@ class TrialsReproductionStorageSpec extends AnyFlatSpec with Matchers {
     )
 
     an[RecipeIsNotPresentException] should be thrownBy {
-      storage.recipeFromRecipeHash("nonexistent")
+      storage.recipeDataFromRecipeHash("nonexistent")
     }
-  }
-
-  it should "return None for missing structure outlines" in {
-    val storage = new TrialsReproductionStorage(
-      os.temp.dir(prefix = "americium-test-")
-    )
-
-    storage.structureOutlineFromRecipeHash("nonexistent") shouldBe None
   }
 
   it should "reset storage by clearing all recipes" in {
@@ -173,18 +161,18 @@ class TrialsReproductionStorageSpec extends AnyFlatSpec with Matchers {
     )
 
     // Add some recipes
-    storage.recordRecipeHash("hash1", "recipe1", "outline1")
-    storage.recordRecipeHash("hash2", "recipe2", "outline2")
+    storage.recordRecipeHash("hash1", RecipeData("recipe1", "outline1"))
+    storage.recordRecipeHash("hash2", RecipeData("recipe2", "outline2"))
 
     // Reset
     storage.reset()
 
     // Verify all recipes are gone
     an[RecipeIsNotPresentException] should be thrownBy {
-      storage.recipeFromRecipeHash("hash1")
+      storage.recipeDataFromRecipeHash("hash1")
     }
     an[RecipeIsNotPresentException] should be thrownBy {
-      storage.recipeFromRecipeHash("hash2")
+      storage.recipeDataFromRecipeHash("hash2")
     }
   }
 
@@ -195,8 +183,13 @@ class TrialsReproductionStorageSpec extends AnyFlatSpec with Matchers {
 
     val recipeWithSpecialChars =
       """{"key":"value with \"quotes\" and \n newlines"}"""
-    storage.recordRecipeHash("hash", recipeWithSpecialChars, "outline")
+    storage.recordRecipeHash(
+      "hash",
+      RecipeData(recipeWithSpecialChars, "outline")
+    )
 
-    storage.recipeFromRecipeHash("hash") shouldBe recipeWithSpecialChars
+    storage
+      .recipeDataFromRecipeHash("hash")
+      .recipe shouldBe recipeWithSpecialChars
   }
 }

@@ -35,7 +35,7 @@ class RecipeCouldNotBeReproducedException(
      |${decisionStages.longhandRecipe}
      |
      |Expected generation structure:
-     |${connection.structureOutlineFromRecipeHash(recipeHash)}
+     |${connection.recipeDataFromRecipeHash(recipeHash).structureOutline}
      |
      |Current test's generation structure:
      |${generation.structureOutline}

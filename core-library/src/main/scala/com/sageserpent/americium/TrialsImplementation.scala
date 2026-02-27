@@ -29,6 +29,7 @@ import com.sageserpent.americium.java.{
   TrialsSkeletalImplementation as JavaTrialsSkeletalImplementation
 }
 import com.sageserpent.americium.storage.TrialsReproductionStorage
+import com.sageserpent.americium.storage.TrialsReproductionStorage.RecipeData
 import com.sageserpent.americium.{
   Trials as ScalaTrials,
   TrialsScaffolding as ScalaTrialsScaffolding,
@@ -228,8 +229,10 @@ case class TrialsImplementation[Case](
         rocksDbConnection.foreach { connection =>
           connection.recordRecipeHash(
             exception.recipeHash,
-            exception.recipe,
-            thisTrialsImplementation.generation.structureOutline
+            RecipeData(
+              exception.recipe,
+              thisTrialsImplementation.generation.structureOutline
+            )
           )
         }
 

@@ -24,6 +24,7 @@ import com.sageserpent.americium.java.{
   CrossApiIterator,
   InlinedCaseFiltration,
   NoValidTrialsException,
+  RecipeIsNotPresentException,
   TestIntegrationContext,
   TrialsScaffolding as JavaTrialsScaffolding
 }
@@ -154,6 +155,11 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
   override def testIntegrationContexts()
       : CrossApiIterator[TestIntegrationContext[Case]] =
     CrossApiIterator.from(lazyListOfTestIntegrationContexts().iterator)
+
+  override def asIterator(): JavaIterator[Case] with ScalaIterator[Case] =
+    CrossApiIterator.from(
+      lazyListOfTestIntegrationContexts().map(_.caze).iterator
+    )
 
   private def lazyListOfTestIntegrationContexts()
       : LazyList[TestIntegrationContext[Case]] = {
@@ -435,59 +441,43 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
       )
     }
 
-    def checkRecipeForObsolescence(
+    def retrieveValidatedRecipe(
         connection: TrialsReproductionStorage
-    )(recipeHash: String, recipe: String): Unit = {
-      connection.structureOutlineFromRecipeHash(recipeHash) match {
-        case Some(structureOutline) =>
+    )(recipeHash: String): String = {
+      val recipeData = connection.recipeDataFromRecipeHash(recipeHash)
 
-          if (generation.structureOutline != structureOutline) {
-            val diagnostic = s"""
-                    |Obsolete recipe detected!
-                    |
-                    |The recipe you're trying to reproduce was created with a different
-                    |generation structure than the current code. This usually happens when:
-                    |  - You've modified how the trials instance is built.
-                    |  - You've added, removed or modified `.map`, `.flatMap` or `.filter` calls.
-                    |  - You've changed the parameters of the trials (e.g. different bounds).
-                    |
-                    |Your test cases have probably changed - you may need to regenerate the recipe by
-                    |re-running the test without the reproduction property.
-                    |
-                    |Recipe hash: $recipeHash
-                    |
-                    |Recipe:
-                    |
-                    |$recipe
-                    |
-                    |Expected generation structure:
-                    |$structureOutline
-                    |
-                    |Current test's generation structure:
-                    |${generation.structureOutline}
-                    |
-                    |Carrying on as a best effort for now, but the generation may fault with an exception...
-                    |""".stripMargin
+      if (generation.structureOutline != recipeData.structureOutline) {
+        val diagnostic = s"""
+                |Obsolete recipe detected!
+                |
+                |The recipe you're trying to reproduce was created with a different
+                |generation structure than the current code. This usually happens when:
+                |  - You've modified how the trials instance is built.
+                |  - You've added, removed or modified `.map`, `.flatMap` or `.filter` calls.
+                |  - You've changed the parameters of the trials (e.g. different bounds).
+                |
+                |Your test cases have probably changed - you may need to regenerate the recipe by
+                |re-running the test without the reproduction property.
+                |
+                |Recipe hash: $recipeHash
+                |
+                |Recipe:
+                |
+                |${recipeData.recipe}
+                |
+                |Expected generation structure:
+                |${recipeData.structureOutline}
+                |
+                |Current test's generation structure:
+                |${generation.structureOutline}
+                |
+                |Carrying on as a best effort for now, but the generation may fault with an exception...
+                |""".stripMargin
 
-            logger.warn(diagnostic)
-          }
-
-        case None =>
-          // No structure outline found - this recipe was created before we
-          // added
-          // generation metadata tracking. Just note it and continue.
-          logger.warn(s"""
-                     |Recipe has no generation structure. It may have been created with an older version of Americium.
-                     |
-                     |Recipe hash: $recipeHash
-                     |
-                     |Recipe:
-                     |
-                     |$recipe
-                     |
-                     |Carrying on anyway...
-                     |""".stripMargin)
+        logger.warn(diagnostic)
       }
+
+      recipeData.recipe
     }
 
     Option(System.getProperty(recipeHashJavaProperty))
@@ -495,9 +485,7 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
         Fs2Stream
           .resource(readOnlyRocksDbConnectionResource())
           .flatMap { connection =>
-            val recipe = connection.recipeFromRecipeHash(recipeHash)
-
-            checkRecipeForObsolescence(connection)(recipeHash, recipe)
+            val recipe = retrieveValidatedRecipe(connection)(recipeHash)
 
             carryOnButSwitchToShrinkageApproachOnCaseFailure(
               Fs2Stream.emit(testIntegrationContextReproducing(recipe))
@@ -512,12 +500,25 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
               .flatMap { connection =>
                 val decisionStages = Decision.parseRecipe(recipe)
                 val recipeHash     = decisionStages.recipeHash
-                val longhandRecipe = decisionStages.longhandRecipe
+                val longhandRecipe = try {
+                  retrieveValidatedRecipe(connection)(recipeHash)
+                } catch {
+                  case exception: RecipeIsNotPresentException =>
+                    logger.warn(s"""
+                                   |Recipe is not already stored, so can't validate it against its generation structure.
+                                   |Has the directory ${exception.recipeDirectory} containing the recipes been deleted, changed to a different location or been regenerated?
+                                   |
+                                   |Recipe hash: $recipeHash
+                                   |
+                                   |Recipe:
+                                   |
+                                   |$recipe
+                                   |
+                                   |Carrying on anyway...
+                                   |""".stripMargin)
 
-                checkRecipeForObsolescence(connection)(
-                  recipeHash,
-                  longhandRecipe
-                )
+                    decisionStages.longhandRecipe
+                }
 
                 carryOnButSwitchToShrinkageApproachOnCaseFailure(
                   Fs2Stream
@@ -967,11 +968,6 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
       emitCases() -> inlinedCaseFiltration
     }
   }
-
-  override def asIterator(): JavaIterator[Case] with ScalaIterator[Case] =
-    CrossApiIterator.from(
-      lazyListOfTestIntegrationContexts().map(_.caze).iterator
-    )
 
   protected def reproduce(decisionStages: DecisionStages): Case
 
