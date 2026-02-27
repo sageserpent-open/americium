@@ -42,12 +42,18 @@ class TrialsReproductionStorageSpec extends AnyFlatSpec with Matchers {
     )
 
     for (_ <- 0 until 20) {
+      @volatile var testFailure: Option[Throwable] = None
+
       val threads = (1 to 20).map { i =>
         new Thread(() => {
-          storage.recordRecipeHash(
-            "same-hash",
-            RecipeData(s"recipe-$i", s"outline-$i")
-          )
+          try {
+            storage.recordRecipeHash(
+              "same-hash",
+              RecipeData(s"recipe-$i", s"outline-$i")
+            )
+          } catch {
+            case throwable: Throwable => testFailure = Some(throwable)
+          }
         })
       }
 
@@ -57,6 +63,11 @@ class TrialsReproductionStorageSpec extends AnyFlatSpec with Matchers {
       // Last writer wins - verify one valid recipe present
       val RecipeData(recipe, _) = storage.recipeDataFromRecipeHash("same-hash")
       recipe should startWith("recipe-")
+
+      testFailure.foreach {
+        case passThrough: TestFailedException => throw passThrough
+        case throwable                        => fail(throwable)
+      }
     }
   }
 
