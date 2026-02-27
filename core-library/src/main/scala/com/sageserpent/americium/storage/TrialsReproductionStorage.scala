@@ -78,18 +78,21 @@ class TrialsReproductionStorage(baseDir: os.Path) extends RecipeStorage {
   def recipeDataFromRecipeHash(recipeHash: String): RecipeData = {
     val filePath = recipesDir / filenameFor(recipeHash)
 
-    if (!os.exists(filePath)) {
-      throw new RecipeIsNotPresentException(recipeHash, recipesDir)
-    }
+    try {
+      // Read file directly - no exists() check to avoid TOCTOU race
+      val json = os.read(filePath)
 
-    val json = os.read(filePath)
-
-    parse(json).flatMap(_.as[RecipeData]) match {
-      case Right(data) => data
-      case Left(error) =>
-        throw new RuntimeException(
-          s"Failed to parse recipe data for hash $recipeHash: ${error.getMessage}"
-        )
+      parse(json).flatMap(_.as[RecipeData]) match {
+        case Right(data) => data
+        case Left(error) =>
+          throw new RuntimeException(
+            s"Failed to parse recipe data for hash $recipeHash: ${error.getMessage}"
+          )
+      }
+    } catch {
+      // Convert file-not-found to RecipeIsNotPresentException
+      case _: java.nio.file.NoSuchFileException =>
+        throw new RecipeIsNotPresentException(recipeHash, recipesDir)
     }
   }
 
