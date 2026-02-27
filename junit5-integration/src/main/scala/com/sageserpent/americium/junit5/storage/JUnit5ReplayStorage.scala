@@ -52,35 +52,34 @@ class JUnit5ReplayStorage(baseDir: os.Path) extends RecipeStorage {
     atomicWrite(replayDir / filenameFor(uniqueId), recipe)
   }
 
-  /** Atomically write content to a file using temp file + rename. */
+  /** Atomically write content to a file using temp file + rename.
+    *
+    * This ensures that readers never see partial writes.
+    */
   private def atomicWrite(path: os.Path, content: String): Unit = {
     // Write to temp file in same directory (ensures same filesystem)
-
     val threadSpecificNameToAvoidContention =
       s".${path.last}.${Thread.currentThread().getId}.tmp"
     val tempPath = replayDir / threadSpecificNameToAvoidContention
 
     os.write.over(tempPath, content, createFolders = true)
     // Atomic move (rename is atomic on same filesystem)
-    os.move(tempPath, path, replaceExisting = true)
+    os.move(tempPath, path, replaceExisting = true, atomicMove = true)
   }
 
   def recipeFromUniqueId(uniqueId: String): Option[String] = {
     val filePath = replayDir / filenameFor(uniqueId)
 
-    if (os.exists(filePath)) {
+    try {
+      // Read file directly - no exists() check to avoid TOCTOU race
       Some(os.read(filePath))
-    } else {
-      None
+    } catch {
+      case _: java.nio.file.NoSuchFileException => None
     }
   }
 
   override def reset(): Unit = {
-    if (os.exists(replayDir)) {
-      os.list(replayDir)
-        .filter(_.ext == "txt")
-        .foreach(os.remove)
-    }
+    os.remove.all(replayDir)
   }
 
   override def close(): Unit = {
