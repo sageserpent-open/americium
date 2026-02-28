@@ -46,41 +46,24 @@ object TrialsReproductionStorage {
   )
 }
 
-class TrialsReproductionStorage(baseDir: os.Path) extends RecipeStorage {
+class TrialsReproductionStorage(baseDir: os.Path) extends FileBasedStorage {
   import TrialsReproductionStorage.*
 
-  private val recipesDir = baseDir / "recipes"
+  override protected val storageDirectory: os.Path = baseDir / "recipes"
 
   def recordRecipeHash(
       recipeHash: String,
       recipeData: RecipeData
   ): Unit = {
     val json = recipeData.asJson.noSpaces
-
-    atomicWrite(recipesDir / filenameFor(recipeHash), json)
-  }
-
-  /** Atomically write content to a file using temp file + rename.
-    *
-    * This ensures that readers never see partial writes.
-    */
-  private def atomicWrite(path: os.Path, content: String): Unit = {
-    // Write to temp file in same directory (ensures same filesystem)
-    val threadSpecificNameToAvoidContention =
-      s".${path.last}.${Thread.currentThread().getId}.tmp"
-    val tempPath = recipesDir / threadSpecificNameToAvoidContention
-
-    os.write.over(tempPath, content, createFolders = true)
-    // Atomic move (rename is atomic on same filesystem)
-    os.move(tempPath, path, replaceExisting = true, atomicMove = true)
+    atomicWrite(storageDirectory / filenameFor(recipeHash), json)
   }
 
   def recipeDataFromRecipeHash(recipeHash: String): RecipeData = {
-    val filePath = recipesDir / filenameFor(recipeHash)
+    val filePath = storageDirectory / filenameFor(recipeHash)
 
     try {
-      // Read file directly - no exists() check to avoid TOCTOU race
-      val json = os.read(filePath)
+      val json = atomicRead(filePath)
 
       parse(json).flatMap(_.as[RecipeData]) match {
         case Right(data) => data
@@ -90,18 +73,8 @@ class TrialsReproductionStorage(baseDir: os.Path) extends RecipeStorage {
           )
       }
     } catch {
-      // Convert file-not-found to RecipeIsNotPresentException
       case _: java.nio.file.NoSuchFileException =>
-        throw new RecipeIsNotPresentException(recipeHash, recipesDir)
+        throw new RecipeIsNotPresentException(recipeHash, storageDirectory)
     }
-  }
-
-  override def reset(): Unit = {
-    os.remove.all(recipesDir)
-  }
-
-  override def close(): Unit = {
-    // File-based storage doesn't need explicit cleanup
-    // OS will handle file handles
   }
 }

@@ -7,8 +7,7 @@ import com.sageserpent.americium.generation.JavaPropertyNames.{
   temporaryDirectoryJavaProperty
 }
 import com.sageserpent.americium.generation.SupplyToSyntaxSkeletalImplementation.runDatabaseDefault
-import com.sageserpent.americium.junit5.storage.JUnit5ReplayStorage.filenameFor
-import com.sageserpent.americium.storage.RecipeStorage
+import com.sageserpent.americium.storage.FileBasedStorage
 
 object JUnit5ReplayStorage {
   val evaluation: Eval[JUnit5ReplayStorage] =
@@ -44,45 +43,17 @@ object JUnit5ReplayStorage {
   }
 }
 
-class JUnit5ReplayStorage(baseDir: os.Path) extends RecipeStorage {
+class JUnit5ReplayStorage(baseDir: os.Path) extends FileBasedStorage {
+  import JUnit5ReplayStorage.*
 
-  private val replayDir = baseDir / "junit5-replay"
+  override protected val storageDirectory: os.Path = baseDir / "junit5-replay"
 
   def recordUniqueId(uniqueId: String, recipe: String): Unit = {
-    atomicWrite(replayDir / filenameFor(uniqueId), recipe)
-  }
-
-  /** Atomically write content to a file using temp file + rename.
-    *
-    * This ensures that readers never see partial writes.
-    */
-  private def atomicWrite(path: os.Path, content: String): Unit = {
-    // Write to temp file in same directory (ensures same filesystem)
-    val threadSpecificNameToAvoidContention =
-      s".${path.last}.${Thread.currentThread().getId}.tmp"
-    val tempPath = replayDir / threadSpecificNameToAvoidContention
-
-    os.write.over(tempPath, content, createFolders = true)
-    // Atomic move (rename is atomic on same filesystem)
-    os.move(tempPath, path, replaceExisting = true, atomicMove = true)
+    atomicWrite(storageDirectory / filenameFor(uniqueId), recipe)
   }
 
   def recipeFromUniqueId(uniqueId: String): Option[String] = {
-    val filePath = replayDir / filenameFor(uniqueId)
-
-    try {
-      // Read file directly - no exists() check to avoid TOCTOU race
-      Some(os.read(filePath))
-    } catch {
-      case _: java.nio.file.NoSuchFileException => None
-    }
-  }
-
-  override def reset(): Unit = {
-    os.remove.all(replayDir)
-  }
-
-  override def close(): Unit = {
-    // File-based storage doesn't need explicit cleanup
+    val filePath = storageDirectory / filenameFor(uniqueId)
+    atomicReadOption(filePath)
   }
 }
