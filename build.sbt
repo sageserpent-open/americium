@@ -41,6 +41,14 @@ lazy val commonSettings = Seq(
     tests
       .groupBy(_.name)
       .map { case (groupName, group) =>
+        val trialsRunDatabaseName =
+          if (
+            groupName.contains(
+              "TrialsSpecInQuarantineDueToUseOfRecipeHashSystemProperty"
+            )
+          ) s"trialsRunDatabaseIsolatedForTestGroup$groupName"
+          else "trialsRunDatabaseSharedAcrossTestGroups"
+
         new Group(
           groupName,
           group,
@@ -48,7 +56,7 @@ lazy val commonSettings = Seq(
             (Test / forkOptions).value
               .withRunJVMOptions(
                 Vector(
-                  s"-Dtrials.runDatabase=trialsRunDatabaseForGroup$groupName"
+                  s"-Dtrials.runDatabase=$trialsRunDatabaseName"
                 )
               )
               .withOutputStrategy(
