@@ -6,6 +6,10 @@ package com.sageserpent.americium.storage
   * storage, ensuring thread-safe concurrent access.
   */
 trait FileBasedStorage extends RecipeStorage {
+  type Key
+
+  /** The directory where files are stored. Subclasses must provide this. */
+  protected val storageDirectory: os.Path
 
   override def reset(): Unit = {
     // Remove entire storage directory
@@ -18,8 +22,7 @@ trait FileBasedStorage extends RecipeStorage {
     // OS will handle file handles
   }
 
-  /** The directory where files are stored. Subclasses must provide this. */
-  protected val storageDirectory: os.Path
+  protected def filenameFor(recipeHash: Key): String
 
   /** Atomically write content to a file using temp file + atomic rename.
     *
@@ -27,12 +30,14 @@ trait FileBasedStorage extends RecipeStorage {
     * concurrency. Uses thread-unique temp filenames to avoid collisions between
     * concurrent writers.
     *
-    * @param path
-    *   The target file path to write to
+    * @param key
+    *   key identifying the file.
     * @param content
     *   The content to write
     */
-  protected def atomicWrite(path: os.Path, content: String): Unit = {
+  protected def atomicWrite(key: Key, content: String): Unit = {
+    val path = storageDirectory / filenameFor(key)
+
     val threadSpecificNameToAvoidContention =
       s".${path.last}.${Thread.currentThread().getId}.tmp"
     val tempPath = path / os.up / threadSpecificNameToAvoidContention
@@ -46,34 +51,21 @@ trait FileBasedStorage extends RecipeStorage {
     os.move(tempPath, path, replaceExisting = true, atomicMove = true)
   }
 
-  /** Read a file, returning None if it doesn't exist.
-    *
-    * @param path
-    *   The file path to read from
-    * @return
-    *   Some(contents) if file exists, None otherwise
-    */
-  protected def atomicReadOption(path: os.Path): Option[String] = {
-    try {
-      Some(atomicRead(path))
-    } catch {
-      case _: java.nio.file.NoSuchFileException => None
-    }
-  }
-
   /** Read a file without TOCTOU race conditions.
     *
     * Directly attempts to read the file without checking existence first, which
     * avoids time-of-check-to-time-of-use races.
     *
-    * @param path
-    *   The file path to read from
+    * @param key
+    *   key identifying the file.
     * @return
     *   The file contents as a string
     * @throws java.nio.file.NoSuchFileException
     *   if the file doesn't exist
     */
-  protected def atomicRead(path: os.Path): String = {
+  protected def atomicRead(key: Key): String = {
+    val path = storageDirectory / filenameFor(key)
+
     // Read file directly - no exists() check to avoid TOCTOU race
     // If file doesn't exist, NoSuchFileException is thrown
     os.read(path)

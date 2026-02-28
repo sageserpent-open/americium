@@ -30,8 +30,27 @@ object JUnit5ReplayStorage {
 
     os.Path(tempDir) / s"$databaseName-junit5"
   }
+}
 
-  private def filenameFor(uniqueId: String): String = {
+class JUnit5ReplayStorage(baseDir: os.Path) extends FileBasedStorage {
+
+  type Key = String
+
+  override protected val storageDirectory: os.Path = baseDir / "junit5-replay"
+
+  def recordUniqueId(uniqueId: Key, recipe: String): Unit = {
+    atomicWrite(uniqueId, recipe)
+  }
+
+  def recipeFromUniqueId(uniqueId: Key): Option[String] = {
+    try {
+      Some(atomicRead(uniqueId))
+    } catch {
+      case _: java.nio.file.NoSuchFileException => None
+    }
+  }
+
+  def filenameFor(uniqueId: Key): String = {
     // Use a hash, because unique ids are full of interesting characters that
     // can't belong to filenames and also get far too long for OS limits.
     val hash = GuavaHashing
@@ -40,20 +59,5 @@ object JUnit5ReplayStorage {
       .toString
 
     s"recipe-for-unique-id-hash-$hash.txt"
-  }
-}
-
-class JUnit5ReplayStorage(baseDir: os.Path) extends FileBasedStorage {
-  import JUnit5ReplayStorage.*
-
-  override protected val storageDirectory: os.Path = baseDir / "junit5-replay"
-
-  def recordUniqueId(uniqueId: String, recipe: String): Unit = {
-    atomicWrite(storageDirectory / filenameFor(uniqueId), recipe)
-  }
-
-  def recipeFromUniqueId(uniqueId: String): Option[String] = {
-    val filePath = storageDirectory / filenameFor(uniqueId)
-    atomicReadOption(filePath)
   }
 }
