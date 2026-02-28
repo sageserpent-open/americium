@@ -309,8 +309,6 @@ class TrialsTestExtension extends TestTemplateInvocationContextProvider {
       adaptedParameters.toArray
     }
 
-    val rocksDBConnection = JUnit5ReplayStorage.evaluation.value
-
     val replayedUniqueIds =
       LauncherDiscoveryListenerCapturingReplayedUniqueIds
         .replayedUniqueIds()
@@ -322,7 +320,7 @@ class TrialsTestExtension extends TestTemplateInvocationContextProvider {
       mutable.Map.from(
         replayedUniqueIds
           .flatMap(uniqueId =>
-            rocksDBConnection
+            JUnit5ReplayStorage.jUnit5ReplayStorage
               .recipeFromUniqueId(uniqueId.toString)
               .map(uniqueId -> supply.reproduce(_).asInstanceOf[AnyRef])
           )
@@ -471,7 +469,7 @@ class TrialsTestExtension extends TestTemplateInvocationContextProvider {
                   // `TestExecutionListenerCapturingUniqueIds.uniqueId`, but we
                   // finally have the full unique id from `extensionContext`
                   // courtesy of JUnit5, so let's use it as intended.
-                  rocksDBConnection.recordUniqueId(
+                  JUnit5ReplayStorage.jUnit5ReplayStorage.recordUniqueId(
                     extensionContext.getUniqueId,
                     testIntegrationContext.recipe
                   )

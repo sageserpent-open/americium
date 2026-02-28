@@ -1,6 +1,5 @@
 package com.sageserpent.americium.storage
 
-import cats.Eval
 import com.sageserpent.americium.generation.JavaPropertyNames.{
   runDatabaseJavaProperty,
   temporaryDirectoryJavaProperty
@@ -13,14 +12,7 @@ import io.circe.parser.parse
 import io.circe.syntax.*
 
 object TrialsReproductionStorage {
-  val evaluation: Eval[TrialsReproductionStorage] =
-    Eval.later {
-      val result = new TrialsReproductionStorage(storagePath)
-      Runtime.getRuntime.addShutdownHook(new Thread(() => result.close()))
-      result
-    }
-
-  def readOnlyConnection(): TrialsReproductionStorage =
+  val trialsReproductionStorage: TrialsReproductionStorage =
     new TrialsReproductionStorage(storagePath)
 
   private[storage] def storagePath: os.Path = {

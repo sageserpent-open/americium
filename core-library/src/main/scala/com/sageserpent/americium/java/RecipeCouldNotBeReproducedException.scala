@@ -10,7 +10,7 @@ class RecipeCouldNotBeReproducedException(
     choicesByCumulativeFrequency: SortedMap[Int, ?],
     index: Int,
     generation: Generation[?],
-    connection: TrialsReproductionStorage
+    trialsReproductionStorage: TrialsReproductionStorage
 ) extends RuntimeException({
       val recipeHash: String = decisionStages.recipeHash
 
@@ -35,7 +35,9 @@ class RecipeCouldNotBeReproducedException(
      |${decisionStages.longhandRecipe}
      |
      |Expected generation structure:
-     |${connection.recipeDataFromRecipeHash(recipeHash).structureOutline}
+     |${trialsReproductionStorage
+          .recipeDataFromRecipeHash(recipeHash)
+          .structureOutline}
      |
      |Current test's generation structure:
      |${generation.structureOutline}

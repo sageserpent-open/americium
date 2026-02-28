@@ -129,8 +129,6 @@ package object junit5 {
       reproduceFromRecipe: String => Case,
       parameterisedTest: Case => Unit
   ): DynamicTests = {
-    val rocksDBConnection = JUnit5ReplayStorage.evaluation.value
-
     val replayedUniqueIds =
       LauncherDiscoveryListenerCapturingReplayedUniqueIds
         .replayedUniqueIds()
@@ -140,7 +138,7 @@ package object junit5 {
       mutable.Map.from(
         replayedUniqueIds
           .flatMap(uniqueId =>
-            rocksDBConnection
+            JUnit5ReplayStorage.jUnit5ReplayStorage
               .recipeFromUniqueId(uniqueId.toString)
               .map(uniqueId -> reproduceFromRecipe(_))
           )
@@ -234,7 +232,7 @@ package object junit5 {
           { () =>
             TestExecutionListenerCapturingUniqueIds.uniqueId.ifPresent(
               uniqueId =>
-                rocksDBConnection.recordUniqueId(
+                JUnit5ReplayStorage.jUnit5ReplayStorage.recordUniqueId(
                   uniqueId.toString,
                   recipe
                 )

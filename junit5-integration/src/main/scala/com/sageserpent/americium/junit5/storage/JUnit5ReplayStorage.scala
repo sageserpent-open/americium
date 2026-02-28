@@ -1,6 +1,5 @@
 package com.sageserpent.americium.junit5.storage
 
-import cats.Eval
 import com.google.common.hash.Hashing as GuavaHashing
 import com.sageserpent.americium.generation.JavaPropertyNames.{
   runDatabaseJavaProperty,
@@ -10,12 +9,9 @@ import com.sageserpent.americium.generation.SupplyToSyntaxSkeletalImplementation
 import com.sageserpent.americium.storage.FileBasedStorage
 
 object JUnit5ReplayStorage {
-  val evaluation: Eval[JUnit5ReplayStorage] =
-    Eval.later {
-      val result = new JUnit5ReplayStorage(storagePath)
-      Runtime.getRuntime.addShutdownHook(new Thread(() => result.close()))
-      result
-    }
+  val jUnit5ReplayStorage: JUnit5ReplayStorage = new JUnit5ReplayStorage(
+    storagePath
+  )
 
   private[storage] def storagePath: os.Path = {
     val tempDir = Option(System.getProperty(temporaryDirectoryJavaProperty))

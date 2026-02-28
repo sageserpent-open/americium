@@ -41,7 +41,6 @@ import org.apache.commons.text.StringEscapeUtils
 import _root_.java.util.Iterator as JavaIterator
 import _root_.java.util.function.{Consumer, Function as JavaFunction}
 import scala.collection.Iterator as ScalaIterator
-import scala.util.Using
 
 object TrialsImplementation {
 
@@ -121,24 +120,6 @@ case class TrialsImplementation[Case](
   }
 
   override def withStrategy(
-      casesLimitStrategyFactory: JavaFunction[
-        CaseSupplyCycle,
-        CasesLimitStrategy
-      ]
-  ): JavaTrialsScaffolding.SupplyToSyntax[Case]
-    with ScalaTrialsScaffolding.SupplyToSyntax[Case] =
-    withStrategy(
-      casesLimitStrategyFactory = casesLimitStrategyFactory.apply,
-      // This is hokey: although the Scala compiler refuses to allow a call to
-      // the Scala-API overload of `.withStrategy` using a raw Java function
-      // value, without providing an additional argument it regards the call as
-      // ambiguous between the Java API and Scala API overloads. Ho-hum.
-      defaultComplexityLimit,
-      defaultShrinkageAttemptsLimit,
-      noStopping
-    )
-
-  override def withStrategy(
       casesLimitStrategyFactory: CaseSupplyCycle => CasesLimitStrategy,
       complexityLimit: Int,
       shrinkageAttemptsLimit: Int,
@@ -215,7 +196,7 @@ case class TrialsImplementation[Case](
       ): Case = thisTrialsImplementation.reproduce(decisionStages)
 
       protected override def raiseTrialException(
-          rocksDbConnection: Option[TrialsReproductionStorage],
+          trialsReproductionStorage: Option[TrialsReproductionStorage],
           throwable: Throwable,
           caze: Case,
           decisionStages: DecisionStages
@@ -226,14 +207,15 @@ case class TrialsImplementation[Case](
         // TODO: suppose this throws an exception? Probably best to
         // just log it and carry on, as the user wants to see a test
         // failure rather than an issue with the database.
-        rocksDbConnection.foreach { connection =>
-          connection.recordRecipeHash(
-            exception.recipeHash,
-            RecipeData(
-              exception.recipe,
-              thisTrialsImplementation.generation.structureOutline
+        trialsReproductionStorage.foreach { trialsReproductionStorage =>
+          trialsReproductionStorage
+            .recordRecipeHash(
+              exception.recipeHash,
+              RecipeData(
+                exception.recipe,
+                thisTrialsImplementation.generation.structureOutline
+              )
             )
-          )
         }
 
         Fs2Stream.raiseError[SyncIO](exception)
@@ -292,19 +274,15 @@ case class TrialsImplementation[Case](
 
                 choicesByCumulativeFrequency
                   .minAfter(cumulativeFrequencyToMatchOrExceed)
-                  .getOrElse(
-                    Using.resource(
-                      TrialsReproductionStorage.readOnlyConnection()
-                    ) { connection =>
-                      throw new RecipeCouldNotBeReproducedException(
-                        context.decisionStages,
-                        choicesByCumulativeFrequency,
-                        cumulativeFrequencyToMatchOrExceed,
-                        generation,
-                        connection
-                      )
-                    }
-                  )
+                  .getOrElse {
+                    throw new RecipeCouldNotBeReproducedException(
+                      context.decisionStages,
+                      choicesByCumulativeFrequency,
+                      cumulativeFrequencyToMatchOrExceed,
+                      generation,
+                      TrialsReproductionStorage.trialsReproductionStorage
+                    )
+                  }
                   ._2
               }
 
@@ -363,6 +341,24 @@ case class TrialsImplementation[Case](
     }
     trialException
   }
+
+  override def withStrategy(
+      casesLimitStrategyFactory: JavaFunction[
+        CaseSupplyCycle,
+        CasesLimitStrategy
+      ]
+  ): JavaTrialsScaffolding.SupplyToSyntax[Case]
+    with ScalaTrialsScaffolding.SupplyToSyntax[Case] =
+    withStrategy(
+      casesLimitStrategyFactory = casesLimitStrategyFactory.apply,
+      // This is hokey: although the Scala compiler refuses to allow a call to
+      // the Scala-API overload of `.withStrategy` using a raw Java function
+      // value, without providing an additional argument it regards the call as
+      // ambiguous between the Java API and Scala API overloads. Ho-hum.
+      defaultComplexityLimit,
+      defaultShrinkageAttemptsLimit,
+      noStopping
+    )
 
   def this(
       generationOperation: GenerationOperation[Case]

@@ -2538,7 +2538,7 @@ class TrialsSpecInQuarantineDueToUseOfRecipeHashSystemProperty
       warnings shouldBe empty
 
       // Tear down the storage of recipes...
-      TrialsReproductionStorage.evaluation.value.reset()
+      TrialsReproductionStorage.trialsReproductionStorage.reset()
 
       {
         val mockConsumer: Any => Unit = mock(classOf[Any => Unit])

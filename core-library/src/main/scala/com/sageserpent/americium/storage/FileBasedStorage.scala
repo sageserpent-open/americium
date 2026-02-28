@@ -5,21 +5,16 @@ package com.sageserpent.americium.storage
   * Provides shared atomic write and TOCTOU-free read patterns for file-based
   * storage, ensuring thread-safe concurrent access.
   */
-trait FileBasedStorage extends RecipeStorage {
+trait FileBasedStorage {
   type Key
 
   /** The directory where files are stored. Subclasses must provide this. */
   protected val storageDirectory: os.Path
 
-  override def reset(): Unit = {
+  def reset(): Unit = {
     // Remove entire storage directory
     // os-lib's remove.all handles "directory doesn't exist" gracefully
     os.remove.all(storageDirectory)
-  }
-
-  override def close(): Unit = {
-    // File-based storage doesn't need explicit cleanup
-    // OS will handle file handles
   }
 
   protected def filenameFor(recipeHash: Key): String

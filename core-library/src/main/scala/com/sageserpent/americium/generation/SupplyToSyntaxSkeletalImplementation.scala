@@ -2,7 +2,6 @@ package com.sageserpent.americium.generation
 
 import cats.data.StateT
 import cats.effect.SyncIO
-import cats.effect.kernel.Resource
 import cats.~>
 import com.google.common.collect.{Ordering as _, *}
 import com.sageserpent.americium.TrialsScaffolding.ShrinkageStop
@@ -14,8 +13,7 @@ import com.sageserpent.americium.generation.GenerationOperation.Generation
 import com.sageserpent.americium.generation.JavaPropertyNames.*
 import com.sageserpent.americium.generation.SupplyToSyntaxSkeletalImplementation.{
   maximumScaleDeflationLevel,
-  minimumScaleDeflationLevel,
-  readOnlyRocksDbConnectionResource
+  minimumScaleDeflationLevel
 }
 import com.sageserpent.americium.java.{
   CaseFailureReporting,
@@ -53,17 +51,6 @@ object SupplyToSyntaxSkeletalImplementation {
   val minimumScaleDeflationLevel = 0
 
   val maximumScaleDeflationLevel = 50
-
-  def readOnlyRocksDbConnectionResource(
-  ): Resource[SyncIO, TrialsReproductionStorage] =
-    Resource.make(acquire = SyncIO {
-      TrialsReproductionStorage.readOnlyConnection()
-    })(
-      release = connection =>
-        SyncIO {
-          connection.close()
-        }
-    )
 }
 
 trait SupplyToSyntaxSkeletalImplementation[Case]
@@ -231,13 +218,13 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
       )
 
     def streamedCasesWithShrinkageOnFailure(
-        rocksDBConnection: TrialsReproductionStorage
+        trialsReproductionStorage: TrialsReproductionStorage
     ): StreamedCases = {
       def raiseTrialException(
           throwable: Throwable,
           caseData: CaseData
       ): StreamedCases = this.raiseTrialException(
-        Some(rocksDBConnection),
+        Some(trialsReproductionStorage),
         throwable,
         caseData.caze,
         caseData.decisionStagesInReverseOrder.reverse
@@ -442,9 +429,10 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
     }
 
     def retrieveValidatedRecipe(
-        connection: TrialsReproductionStorage
+        trialsReproductionStorage: TrialsReproductionStorage
     )(recipeHash: String): String = {
-      val recipeData = connection.recipeDataFromRecipeHash(recipeHash)
+      val recipeData =
+        trialsReproductionStorage.recipeDataFromRecipeHash(recipeHash)
 
       if (generation.structureOutline != recipeData.structureOutline) {
         val diagnostic = s"""
@@ -481,30 +469,28 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
     }
 
     Option(System.getProperty(recipeHashJavaProperty))
-      .map(recipeHash =>
-        Fs2Stream
-          .resource(readOnlyRocksDbConnectionResource())
-          .flatMap { connection =>
-            val recipe = retrieveValidatedRecipe(connection)(recipeHash)
+      .map { recipeHash =>
+        val recipe =
+          retrieveValidatedRecipe(
+            TrialsReproductionStorage.trialsReproductionStorage
+          )(recipeHash)
 
-            carryOnButSwitchToShrinkageApproachOnCaseFailure(
-              Fs2Stream.emit(testIntegrationContextReproducing(recipe))
-            ).stream
-          }
-      )
+        carryOnButSwitchToShrinkageApproachOnCaseFailure(
+          Fs2Stream.emit(testIntegrationContextReproducing(recipe))
+        ).stream
+      }
       .orElse(
         Option(System.getProperty(recipeJavaProperty))
-          .map(recipe =>
-            Fs2Stream
-              .resource(readOnlyRocksDbConnectionResource())
-              .flatMap { connection =>
-                val decisionStages = Decision.parseRecipe(recipe)
-                val recipeHash     = decisionStages.recipeHash
-                val longhandRecipe = try {
-                  retrieveValidatedRecipe(connection)(recipeHash)
-                } catch {
-                  case exception: RecipeIsNotPresentException =>
-                    logger.warn(s"""
+          .map { recipe =>
+            val decisionStages = Decision.parseRecipe(recipe)
+            val recipeHash     = decisionStages.recipeHash
+            val longhandRecipe = try {
+              retrieveValidatedRecipe(
+                TrialsReproductionStorage.trialsReproductionStorage
+              )(recipeHash)
+            } catch {
+              case exception: RecipeIsNotPresentException =>
+                logger.warn(s"""
                                    |Recipe is not already stored, so can't validate it against its generation structure.
                                    |Has the directory ${exception.recipeDirectory} containing the recipes been deleted, changed to a different location or been regenerated?
                                    |
@@ -517,19 +503,18 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
                                    |Carrying on anyway...
                                    |""".stripMargin)
 
-                    decisionStages.longhandRecipe
-                }
+                decisionStages.longhandRecipe
+            }
 
-                carryOnButSwitchToShrinkageApproachOnCaseFailure(
-                  Fs2Stream
-                    .emit(testIntegrationContextReproducing(longhandRecipe))
-                ).stream
-              }
-          )
+            carryOnButSwitchToShrinkageApproachOnCaseFailure(
+              Fs2Stream
+                .emit(testIntegrationContextReproducing(longhandRecipe))
+            ).stream
+          }
       )
       .getOrElse(
         streamedCasesWithShrinkageOnFailure(
-          TrialsReproductionStorage.evaluation.value
+          TrialsReproductionStorage.trialsReproductionStorage
         )
       )
   }
@@ -972,7 +957,7 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
   protected def reproduce(decisionStages: DecisionStages): Case
 
   protected def raiseTrialException(
-      rocksDbConnection: Option[TrialsReproductionStorage],
+      trialsReproductionStorage: Option[TrialsReproductionStorage],
       throwable: Throwable,
       caze: Case,
       decisionStages: DecisionStages
