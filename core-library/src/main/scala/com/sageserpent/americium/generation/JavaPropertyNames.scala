@@ -5,5 +5,5 @@ object JavaPropertyNames {
   val runDatabaseJavaProperty        = "trials.runDatabase"
   val recipeJavaProperty             = "trials.recipe"
   val recipeHashJavaProperty         = "trials.recipeHash"
-  val nondeterminsticJavaProperty    = "trials.nondeterministic"
+  val nondeterministicJavaProperty   = "trials.nondeterministic"
 }

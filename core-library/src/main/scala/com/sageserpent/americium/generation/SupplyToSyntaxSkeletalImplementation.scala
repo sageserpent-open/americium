@@ -244,7 +244,7 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
       )
 
       val nonDeterministic = Option(
-        System.getProperty(nondeterminsticJavaProperty)
+        System.getProperty(nondeterministicJavaProperty)
       ).fold(ifEmpty = false)(_.toBoolean)
 
       val randomBehaviour =

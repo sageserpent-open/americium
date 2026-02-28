@@ -3,7 +3,7 @@ package com.sageserpent.americium.junit5.bugReports
 import com.eed3si9n.expecty.Expecty.assert
 import com.sageserpent.americium.Trials
 import com.sageserpent.americium.Trials.api as trialsApi
-import com.sageserpent.americium.generation.JavaPropertyNames.nondeterminsticJavaProperty
+import com.sageserpent.americium.generation.JavaPropertyNames.nondeterministicJavaProperty
 import com.sageserpent.americium.junit5.*
 import com.sageserpent.americium.junit5.bugReports.Issue255BugReproduction.HiddenTestSuite
 import org.junit.jupiter.api.extension.ExtendWith
@@ -49,7 +49,7 @@ class Issue255BugReproduction {
   // Make sure that the trials are generated repeatably between tests.
   @SystemStub
   private val systemProperties =
-    new SystemProperties(nondeterminsticJavaProperty, "false")
+    new SystemProperties(nondeterministicJavaProperty, "false")
 
   @Test
   def allTestsUsingASharedSyntaxSupplyShouldRun(): Unit = {

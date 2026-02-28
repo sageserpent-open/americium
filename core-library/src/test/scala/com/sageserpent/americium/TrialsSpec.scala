@@ -3,7 +3,7 @@ package com.sageserpent.americium
 import com.github.valfirst.slf4jtest.TestLoggerFactory
 import com.sageserpent.americium.TrialsScaffolding.{noShrinking, noStopping}
 import com.sageserpent.americium.generation.JavaPropertyNames.{
-  nondeterminsticJavaProperty,
+  nondeterministicJavaProperty,
   recipeHashJavaProperty,
   recipeJavaProperty
 }
@@ -3030,7 +3030,7 @@ class TrialsSpecInQuarantineDueToUseOfNondeterministicSystemProperty
   "successive runs" should "yield different results if nondeterminism is specified" in {
     val previousPropertyValue =
       Option(
-        System.setProperty(nondeterminsticJavaProperty, "true")
+        System.setProperty(nondeterministicJavaProperty, "true")
       )
 
     try {
@@ -3053,9 +3053,9 @@ class TrialsSpecInQuarantineDueToUseOfNondeterministicSystemProperty
       testCasesFromSecondRun should not equal testCasesFromFirstRun
     } finally {
       previousPropertyValue.fold(ifEmpty =
-        System.clearProperty(nondeterminsticJavaProperty)
+        System.clearProperty(nondeterministicJavaProperty)
       )(
-        System.setProperty(nondeterminsticJavaProperty, _)
+        System.setProperty(nondeterministicJavaProperty, _)
       )
     }
   }
