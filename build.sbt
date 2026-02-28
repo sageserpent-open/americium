@@ -87,7 +87,7 @@ lazy val coreDependencies = Def.setting {
     "com.lihaoyi"                  %% "os-lib"                % "0.11.3",
     "org.apache.commons"            % "commons-text"          % "1.15.0",
     "com.lihaoyi"                  %% "pprint"                % "0.9.6",
-    "net.bytebuddy"                 % "byte-buddy"            % "1.18.5"
+    "net.bytebuddy" % "byte-buddy" % "1.18.6-jdk6-jdk5"
   )
 }
 
