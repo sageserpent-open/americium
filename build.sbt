@@ -34,7 +34,6 @@ lazy val commonSettings = Seq(
   Test / testForkedParallel := false,
   Test / test / logLevel    := Level.Error,
   Test / testOptions += Tests.Argument(jupiterTestFramework, "-q"),
-  // Test grouping for isolated databases
   Test / testGrouping := {
     val tests = (Test / definedTests).value
 
@@ -46,11 +45,6 @@ lazy val commonSettings = Seq(
           group,
           SubProcess(
             (Test / forkOptions).value
-              .withRunJVMOptions(
-                Vector(
-                  s"-Dtrials.runDatabase=trialsRunDatabaseForGroup$groupName"
-                )
-              )
               .withOutputStrategy(
                 OutputStrategy.CustomOutput(OutputStream.nullOutputStream)
               )
