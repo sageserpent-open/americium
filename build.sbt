@@ -84,7 +84,7 @@ lazy val coreDependencies = Def.setting {
     "com.google.guava"              % "guava"                 % "33.5.0-jre",
     "com.github.ben-manes.caffeine" % "caffeine"              % "3.2.3",
     "com.oath.cyclops"              % "cyclops"               % "10.4.1",
-    "com.lihaoyi"                  %% "os-lib"                % "0.11.3",
+    "com.lihaoyi"                  %% "os-lib"                % "0.11.8",
     "org.apache.commons"            % "commons-text"          % "1.15.0",
     "com.lihaoyi"                  %% "pprint"                % "0.9.6",
     "net.bytebuddy"                 % "byte-buddy"            % "1.18.5"
