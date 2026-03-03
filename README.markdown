@@ -6,7 +6,7 @@
 
 **Requires JRE 17 LTS or later since release 1.19.6.**
 
-Take the tour: [Americium Site](https://sageserpent-open.github.io/americium)
+Take the tour: [Americium Site](https://sageserpent-open.github.io/americium).
 
 ## Example
 
@@ -110,6 +110,10 @@ the Java collections work that way? Maybe the test expectations should have been
 - Suitable for Java and Scala - there are two APIs, each optimised for the choice of language.
 - Shrinkage is automatic and respects test case invariants. You don't write shrinkage code and your shrunk test cases
   conform to how you want them built.
+
+## You said something about a tour?
+
+I certainly did; get your ticket here: [Americium Site](https://sageserpent-open.github.io/americium).
 
 
 
