@@ -15,7 +15,7 @@ Handling preconditions with `Trials.reject()` and `Trials.whenever()`
 {: .no_toc .text-delta }
 
 1. TOC
-   {:toc}
+{:toc}
 
 ---
 

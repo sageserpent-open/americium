@@ -15,7 +15,7 @@ Collections, mapping, filtering, flat-mapping and recursion
 {: .no_toc .text-delta }
 
 1. TOC
-   {:toc}
+{:toc}
 
 ---
 

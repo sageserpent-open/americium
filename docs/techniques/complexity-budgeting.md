@@ -15,7 +15,7 @@ Controlling recursive structure generation with complexity awareness
 {: .no_toc .text-delta }
 
 1. TOC
-   {:toc}
+{:toc}
 
 ---
 

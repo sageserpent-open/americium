@@ -15,7 +15,7 @@ Trials, supplying test cases to tests, shrinkage in action
 {: .no_toc .text-delta }
 
 1. TOC
-   {:toc}
+{:toc}
 
 ---
 

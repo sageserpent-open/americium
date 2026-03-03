@@ -15,7 +15,7 @@ Testing order-dependent behavior with index permutations
 {: .no_toc .text-delta }
 
 1. TOC
-   {:toc}
+{:toc}
 
 ---
 

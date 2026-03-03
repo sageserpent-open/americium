@@ -15,7 +15,7 @@ Choices, alternation, special cases
 {: .no_toc .text-delta }
 
 1. TOC
-   {:toc}
+{:toc}
 
 ---
 

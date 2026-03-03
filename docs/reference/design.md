@@ -15,7 +15,7 @@ Yes, do pay attention to the man behind the curtain
 {: .no_toc .text-delta }
 
 1. TOC
-   {:toc}
+{:toc}
 
 ---
 

@@ -15,7 +15,7 @@ Distance shrinkage, complexity shrinkage, and how they work together
 {: .no_toc .text-delta }
 
 1. TOC
-   {:toc}
+{:toc}
 
 ---
 

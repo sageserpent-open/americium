@@ -15,7 +15,7 @@ Merging sequences while preserving element order
 {: .no_toc .text-delta }
 
 1. TOC
-   {:toc}
+{:toc}
 
 ---
 

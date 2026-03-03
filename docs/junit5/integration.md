@@ -21,7 +21,7 @@ Using `@TrialsTest` for simple, declarative property tests
 {: .no_toc .text-delta }
 
 1. TOC
-   {:toc}
+{:toc}
 
 ---
 

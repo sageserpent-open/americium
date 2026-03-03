@@ -15,7 +15,7 @@ Using `.and()` to supply multiple independent test case streams
 {: .no_toc .text-delta }
 
 1. TOC
-   {:toc}
+{:toc}
 
 ---
 

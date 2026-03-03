@@ -21,7 +21,7 @@ Using `@TestFactory` and `dynamicTests` for compile-time type safety
 {: .no_toc .text-delta }
 
 1. TOC
-   {:toc}
+{:toc}
 
 ---
 

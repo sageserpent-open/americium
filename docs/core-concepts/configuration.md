@@ -15,7 +15,7 @@ Case limits, seeding, complexity limits, and shrinkage control
 {: .no_toc .text-delta }
 
 1. TOC
-   {:toc}
+{:toc}
 
 ---
 

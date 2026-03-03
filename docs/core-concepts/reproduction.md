@@ -15,7 +15,7 @@ Recipe hashes, JSON recipes, and the run database
 {: .no_toc .text-delta }
 
 1. TOC
-   {:toc}
+{:toc}
 
 ---
 

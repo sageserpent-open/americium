@@ -15,7 +15,7 @@ Welcome to Americium - learn the local language
 {: .no_toc .text-delta }
 
 1. TOC
-   {:toc}
+{:toc}
 
 ---
 

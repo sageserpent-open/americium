@@ -15,7 +15,7 @@ Creating readable, unique identifiers that shrink well
 {: .no_toc .text-delta }
 
 1. TOC
-   {:toc}
+{:toc}
 
 ---
 
