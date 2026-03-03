@@ -10,3 +10,6 @@
 /.idea/
 /sageserpent.github.io.iml
 /Gemfile.lock
+_site
+.sass-cache
+.jekyll-metadata
