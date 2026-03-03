@@ -1,0 +1,89 @@
+# Americium Documentation Site
+title: Americium
+description: >-
+  Property-based testing for Scala and Java with integrated shrinkage.
+  No need to write special-case shrinkers - Americium does it for you.
+
+# GitHub Pages settings
+baseurl: "/americium"
+url: "https://sageserpent-open.github.io"
+
+# Repository
+repository: sageserpent-open/americium
+
+# Theme
+# Use local theme when available, fall back to remote on GitHub Pages
+theme: just-the-docs
+remote_theme: just-the-docs/just-the-docs
+color_scheme: light
+
+# Search
+search_enabled: true
+search:
+  heading_level: 2
+  previews: 3
+  preview_words_before: 5
+  preview_words_after: 10
+  tokenizer_separator: /[\s/]+/
+  rel_url: true
+  button: true
+
+# Navigation
+nav_sort: order
+
+# Features
+heading_anchors: true
+back_to_top: true
+back_to_top_text: "↑ Back to top"
+
+# Aux links (top right)
+aux_links:
+  "Americium on GitHub":
+    - "https://github.com/sageserpent-open/americium"
+  "Sonatype":
+    - "https://central.sonatype.com/artifact/com.sageserpent/americium"
+
+# Footer
+footer_content: >-
+  Copyright &copy; 2024 Gerard Murphy. Distributed under the MIT License.
+
+# Code highlighting
+kramdown:
+  syntax_highlighter: rouge
+  syntax_highlighter_opts:
+    block:
+      line_numbers: false
+
+# Plugins
+plugins:
+  - jekyll-seo-tag
+  - jekyll-github-metadata
+  - jekyll-include-cache
+
+# Callouts
+callouts:
+  highlight:
+    color: yellow
+  note:
+    color: blue
+    title: Note
+  warning:
+    color: red
+    title: Warning
+  important:
+    color: purple
+    title: Important
+  artifact:
+    color: purple
+    title: Artifact Required
+  tip:
+    color: green
+    title: Tip
+
+# Exclude
+exclude:
+  - README.md
+  - Gemfile
+  - Gemfile.lock
+  - node_modules
+  - vendor
