@@ -139,10 +139,10 @@ lazy val americium: Project = (project in file("core-library"))
     libraryDependencies += "org.scalatest"  %% "scalatest"  % "3.2.19" % Test,
     libraryDependencies += "org.scalacheck" %% "scalacheck" % "1.19.0" % Test,
     libraryDependencies += "org.scalatestplus" %% "scalacheck-1-16" % "3.2.14.0" % Test,
-    libraryDependencies += "org.mockito" % "mockito-core" % "5.21.0" % Test,
+    libraryDependencies += "org.mockito" % "mockito-core" % "5.22.0" % Test,
     libraryDependencies += "com.github.seregamorph" % "hamcrest-more-matchers" % "1.0" % Test,
     libraryDependencies += "org.hamcrest" % "hamcrest" % "3.0" % Test,
-    libraryDependencies += "org.mockito" % "mockito-junit-jupiter" % "5.21.0" % Test,
+    libraryDependencies += "org.mockito" % "mockito-junit-jupiter" % "5.22.0" % Test,
     libraryDependencies += "org.junit.jupiter" % "junit-jupiter-params" % JupiterKeys.junitJupiterVersion.value % Test,
     libraryDependencies += "com.github.sbt.junit" % "jupiter-interface" % JupiterKeys.jupiterVersion.value % Test
   )
