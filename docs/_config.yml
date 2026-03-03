@@ -12,9 +12,7 @@ url: "https://sageserpent-open.github.io"
 repository: sageserpent-open/americium
 
 # Theme
-# Use local theme when available, fall back to remote on GitHub Pages
 theme: just-the-docs
-remote_theme: just-the-docs/just-the-docs
 color_scheme: light
 
 # Search
