@@ -6,7 +6,7 @@
 
 **Requires JRE 17 LTS or later since release 1.19.6.**
 
-[Microsite](https://sageserpent-open.github.io/americium)
+Take the tour: [Americium Site](https://sageserpent-open.github.io/americium)
 
 ## Example
 
