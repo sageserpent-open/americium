@@ -7,9 +7,11 @@ permalink: /docs/getting-started
 ---
 
 # Getting Started with Americium
+
 {: .no_toc }
 
-Welcome to Americium! This section will guide you through the fundamentals of property-based testing with integrated shrinkage.
+Welcome to Americium! This section will guide you through the fundamentals of property-based testing with integrated
+shrinkage.
 {: .fs-6 .fw-300 }
 
 ## What You'll Learn
@@ -19,7 +21,6 @@ In this section, you'll discover:
 - **Introducing Americium** - The `Trials` API, supplying test cases, and shrinkage in action
 - **Variations** - Choices, alternation, weights, and special cases
 - **Building Test Cases** - Collections, mapping, filtering, flat-mapping, and recursion
-- **Multi-parameter Tests** - Supplying independently varying test cases with `.and()`
 
 ---
 
@@ -31,7 +32,8 @@ Americium's API is built around the `Trials<Case>` generic interface. Think of i
 2. Automatically shrinks failing cases to minimal reproducers
 3. Records recipes so you can reproduce any test case exactly
 
-Unlike traditional example-based testing where you write specific test cases by hand, with Americium you describe **what kind of data** you want, and Americium generates hundreds or thousands of varied test cases for you.
+Unlike traditional example-based testing where you write specific test cases by hand, with Americium you describe **what
+kind of data** you want, and Americium generates hundreds or thousands of varied test cases for you.
 
 ---
 
@@ -78,10 +80,11 @@ trials.withLimit(1000).supplyTo(x -> {
 
 This test **will fail** due to integer overflow. But watch what Americium does:
 ```
-Initial failure: x = 797772800  (huge number!)
+Initial failure:
+    x = 797772800  (huge number!)
 
 After shrinkage:
-x = -46367  (much easier to debug!)
+    x = -46367  (much easier to debug!)
 ```
 
 Americium automatically found the smallest failing case. No extra work needed!

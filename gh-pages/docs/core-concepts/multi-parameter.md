@@ -106,35 +106,36 @@ Even though we used the same `longs` trials instance twice, **the values are dif
 
 ---
 
-## Tuple Support
-
-The ganged trials also support **unpacking of tuples**. If you have a trials that produces tuples, you can unpack them into separate parameters:
-```java
-import com.sageserpent.americium.Tuple2;
-
-final Trials<Tuple2<Integer, String>> pairs = 
-    api().integers().flatMap(i -> 
-        api().strings().map(s -> 
-            Tuple2.of(i, s)));
-
-final Trials<Boolean> booleans = api().booleans();
-
-pairs
-    .and(booleans)
-    .withLimit(3)
-    .supplyTo((Integer number, String text, Boolean flag) -> {
-        System.out.format("Number: %d, Text: %s, Flag: %s\n",
-                         number, text, flag);
-    });
-```
-
-The `Tuple2` from `pairs` is automatically unpacked into the first two parameters!
-
----
-
 ## Practical Example: Set Membership Test
 
+### System Under Test
+
 Here's a real-world example testing a (deliberately buggy) set membership predicate:
+
+```java
+class PoorQualitySetMembershipPredicate<Element extends Comparable<Element>> implements Predicate<Element> {
+    private final Comparable[] elements;
+
+    public PoorQualitySetMembershipPredicate(Collection<Element> elements) {
+        this.elements = elements.toArray(Comparable[]::new);
+    }
+
+    @Override
+    public boolean test(Element element) {
+        return 0 <= Arrays.binarySearch(elements, element);
+    }
+}
+```
+
+### Test Approach
+
+This test builds a list from three **independently varying** parts:
+1. A left-hand list
+2. A specific long we'll search for
+3. A right-hand list
+
+Then it verifies that the combined list contains the middle element. The bug in `PoorQualitySetMembershipPredicate` will cause failures that Americium will shrink nicely.
+
 ```java
 final Trials<ImmutableList<Long>> lists = api().longs().immutableLists();
 final Trials<Long> longs = api().longs();
@@ -160,12 +161,35 @@ lists
     });
 ```
 
-This test builds a list from three **independently varying** parts:
-1. A left-hand list
-2. A specific long we'll search for
-3. A right-hand list
+### Test Verdict
 
-Then it verifies that the combined list contains the middle element. The bug in `PoorQualitySetMembershipPredicate` will cause failures that Americium will shrink nicely.
+```
+Exception in thread "main" Trial exception with underlying cause:
+java.lang.AssertionError: 
+Expected: is <true>
+     but: was <false>
+Provoked by test case:
+[[1],0,[]]
+```
+
+Ah, yes - we didn't sort the contents of the array PoorQualitySetMembershipPredicate.elements in the constructor; the subsequent binary search will only work if the elements are already sorted. Let's fix it:
+
+```java
+class AwesomeSetMembershipPredicate<Element extends Comparable<Element>> implements Predicate<Element> {
+    private final Comparable[] elements;
+
+    public AwesomeSetMembershipPredicate(Collection<Element> elements) {
+        this.elements = elements.toArray(Comparable[]::new);
+
+        Arrays.sort(this.elements, Comparator.naturalOrder()); /* <<----- FIX */
+    }
+
+    @Override
+    public boolean test(Element element) {
+        return 0 <= Arrays.binarySearch(elements, element);
+    }
+}
+```
 
 ---
 
@@ -176,8 +200,6 @@ Americium supports ganging together **up to 4 elementary trials** before unpacki
 trials1.and(trials2).and(trials3).and(trials4).supplyTo(...)
 ```
 
-With tuple unpacking, you can supply even more parameters, though readability may suffer!
-
 ---
 
 {: .note-title }
@@ -186,6 +208,5 @@ With tuple unpacking, you can supply even more parameters, though readability ma
 > - **`.and()`** gangs multiple trials to supply independent test case streams
 > - Using the same trials instance multiple times creates **independent streams**, not identical values
 > - Supports **up to 4 elementary trials** in a gang
-> - **Tuples are automatically unpacked** into separate parameters
 > - Each parameter varies independently according to its trials specification
 > - Perfect for tests that need multiple unrelated inputs

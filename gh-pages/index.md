@@ -7,9 +7,11 @@ permalink: /
 ---
 
 # Americium
+
 {: .fs-9 }
 
-Property-based testing for Scala and Java with integrated shrinkage. No need to write special-case shrinkers - Americium does it for you.
+Property-based testing for Scala and Java with integrated shrinkage. No need to write special-case shrinkers - Americium
+does it for you.
 {: .fs-6 .fw-300 }
 
 [Get started now](#getting-started){: .btn .btn-primary .fs-5 .mb-4 .mb-md-0 .mr-2 }
@@ -19,7 +21,9 @@ Property-based testing for Scala and Java with integrated shrinkage. No need to 
 
 ## What is Americium?
 
-Americium is a property-based testing library that automatically generates test cases and shrinks failing cases down to minimal reproducers. Unlike other property testing libraries, **shrinkage is integrated** - you don't need to write separate shrinkers for your custom types.
+Americium is a property-based testing library that automatically generates test cases and shrinks failing cases down to
+minimal reproducers. Unlike other property testing libraries, **shrinkage is integrated** - you don't need to write
+separate shrinkers for your custom types.
 
 ### Key Features
 
@@ -28,7 +32,6 @@ Americium is a property-based testing library that automatically generates test 
 - **JUnit5 Integration** - Deep integration with replay support
 - **Powerful DSL** - Build complex test cases with map, flatMap, filter
 - **Recipe Reproduction** - Reproduce any test case via recipe hash or JSON
-- **Cross-platform** - Targets JVM and Scala Native
 
 ---
 
@@ -102,7 +105,9 @@ trials.withLimit(1000).supplyTo { x =>
 
 ## Philosophy
 
-Americium believes that **property-based testing should be accessible**. You shouldn't need a PhD in functional programming to write effective property tests, and you definitely shouldn't need to write custom shrinkers for every type you test.
+Americium believes that **property-based testing should be accessible**. You shouldn't need a PhD in functional
+programming to write effective property tests, and you definitely shouldn't need to write custom shrinkers for every
+type you test.
 
 That's why Americium:
 - Provides a straightforward, composable API
@@ -116,10 +121,10 @@ That's why Americium:
 
 - **GitHub**: [sageserpent-open/americium](https://github.com/sageserpent-open/americium)
 - **Issues**: [Report bugs or request features](https://github.com/sageserpent-open/americium/issues)
-- **Releases**: [View on Sonatype](https://central.sonatype.com/artifact/com.sageserpent/americium)
+- **Releases**: [View on Sonatype](https://central.sonatype.com/search?q=americium)
 
 ---
 
 ## License
 
-Americium is distributed under the [MIT License](https://github.com/sageserpent-open/americium/blob/master/LICENSE).
+Americium is distributed under the [MIT License](https://github.com/sageserpent-open/americium/blob/master/LICENSE.md).

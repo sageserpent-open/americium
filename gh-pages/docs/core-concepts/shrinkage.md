@@ -51,8 +51,10 @@ integers.withLimit(100).supplyTo(x -> {
 
 When this fails, you might see:
 ```
-Initial failure: x = 847
-After shrinkage: x = 10
+Initial failure:
+    x = 847
+After shrinkage:
+    x = 10
 ```
 
 The value **shrinks toward zero** because that's the default target. Both 10 and -10 would fail, but Americium found 10 first.
@@ -87,7 +89,7 @@ characters.withLimit(100).supplyTo(c -> {
 });
 ```
 
-Failures will shrink toward 'm', then downward to find the minimal failing case.
+Failures will shrink toward 'm'.
 
 ---
 
@@ -132,20 +134,38 @@ The second aspect of shrinkage is **structural simplification** - reducing the c
 
 ### Example: String Shrinkage
 ```java
-final Trials<String> strings = api().characters('a', 'z').several();
+final String suffix = "are";
 
-strings.withLimit(100).supplyTo(s -> {
-    assertThat(s, not(containsString("rare")));
+final int suffixLength = suffix.length();
+
+final Trials<String> strings = api()
+        .characters('a', 'z')
+        .strings()
+        .filter(caze -> caze.length() >
+                        suffixLength);
+
+
+strings.withLimit(20000).supplyTo(input -> {
+    try {
+        assertThat(input, not(endsWith(suffix)));
+    } catch (Throwable throwable) {
+        System.out.println(input);
+        throw throwable;
+    }
 });
 ```
 
+We're looking for 'words' that end in the suffix "are" but must be longer than the suffix itself.
+
 When this fails:
 ```
-Initial failure: "qzqiare"  (7 characters)
-After shrinkage: "rare"     (4 characters)
+Initial failure:
+    "qzqiare"  (7 characters)
+After shrinkage:
+    "rare"     (4 characters)
 ```
 
-The string got **shorter** - that's complexity shrinkage. But notice it also found the **minimal substring** that still fails the test.
+The string got **shorter** - that's complexity shrinkage. But notice it also found a **minimal substring** that still fails the test.
 
 ---
 
@@ -154,9 +174,9 @@ The string got **shorter** - that's complexity shrinkage. But notice it also fou
 Complexity in Americium is measured by **degrees of freedom** - the number of independent decisions made to construct a test case.
 
 Consider building a list:
-- **Empty list**: 0 degrees of freedom (no decisions)
-- **1-element list**: 1 decision (what element?) + complexity of element
-- **5-element list**: 5 decisions + complexity of all elements
+- **Empty list**: 1 degree of freedom (decide not to include any elements)
+- **1-element list**: 3 degrees of freedom (decide to include an element, decide which element to choose, decide not to include any more elements)
+
 
 When shrinking, Americium tries to **reduce degrees of freedom**:
 ```java
@@ -164,7 +184,7 @@ final Trials<ImmutableList<Integer>> lists =
     api().integers(1, 100).immutableLists();
 
 lists.withLimit(100).supplyTo(list -> {
-    int sum = list.stream().mapToInt(x -> x).sum();
+    int sum = list.stream().reduce(0, Integer::sum);
     assertThat(sum, lessThan(50));
 });
 ```
@@ -187,18 +207,18 @@ Both aspects working together: shorter list (complexity) + smaller value (distan
 
 Americium doesn't just look at the final test case - it tracks **how the test case was built**:
 ```java
-// These produce the same list [1, 2, 3]
+// These can produce the same list [1, 2, 3] at some point
 // But with different complexity!
 
-// Low complexity: predetermined list
+// Zero complexity: predetermined list
 api().only(ImmutableList.of(1, 2, 3))
 
-// Medium complexity: each element chosen independently  
-api().choose(1).and(api().choose(2)).and(api().choose(3))
+// Low complexity: each element chosen independently  
+api().choose(-1, 1).and(api().choose(-2, 2)).and(api().choose(-3, 3))
     .map((a, b, c) -> ImmutableList.of(a, b, c))
 
-// High complexity: generated from range
-api().integers(1, 3).immutableListsOfSize(3)
+// High complexity: list built up.
+api().integers(1, 3).immutableLists(3)
 ```
 
 The same final value can have different complexity depending on **how it was constructed**.
@@ -304,7 +324,6 @@ Just the simplest expression that still fails the test!
 Americium makes **no guarantee** that the shrunk test case is the **absolute minimum**. It aims for "maximally shrunk" not "globally minimal":
 
 - Shrinkage is **heuristic** - it searches for simpler failing cases
-- Different runs might find different (but similarly simple) cases
 - Higher limits generally produce better shrinkage
 
 {: .tip }
@@ -327,23 +346,23 @@ Shrinkage stops when:
 Let's emphasize this critical point with a concrete example:
 ```java
 final Trials<Integer> positives = 
-    api().integers(1, 1000);  // Shrinks toward 0
+    api().integers(1, 1000, 2);  // Shrinks toward 2
 
 final Trials<Integer> negatives = 
     positives.map(x -> -x);   // Maps to negative
 ```
 
 When `negatives` shrinks, it actually shrinks **the source**:
-- Source: 500 → 250 → 125 → ... → 1
-- After mapping: -500 → -250 → -125 → ... → **-1**
+- Source: 500 → 250 → 125 → ... → 2
+- After mapping: -500 → -250 → -125 → ... → **-2**
 
-The shrinkage target is still **0 in the source domain**. The mapping just transforms whatever shrunk value we get.
+The shrinkage target is still **2 in the source domain**. The mapping just transforms whatever shrunk value we get.
 
-If you want to shrink toward a different negative value:
+If you want to shrink directly toward a negative value:
 ```java
-// This shrinks toward -500 directly
+// This shrinks toward -2 directly
 final Trials<Integer> negatives = 
-    api().integers(-1000, -1, -500);
+    api().integers(-1000, -1, -2);
 ```
 
 ---

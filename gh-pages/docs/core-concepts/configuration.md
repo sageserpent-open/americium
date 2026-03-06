@@ -55,16 +55,28 @@ This is useful for:
 
 ### Count-Based Limits with Starvation Tolerance
 
-The `.withLimit()` method is actually shorthand for a count-based strategy:
+First, what do we mean by 'starvation'? When Americium supplies a test case to a trial, this doesn't always result in the trial being run.
+
+Reasons include:
+- A call to `filter` blocking the synthesis of a test case prior to it being supplied.
+- Duplicates of test cases already supplied are suppressed.
+- The test case is too complex. (We'll cover this later in the Complexity Budgeting section under Advanced Techniques).
+- Rejection of a trial by the test itself.
+
+This blocking of supply is what we mean by starvation; we need to heed this because we don't want Americium to keep fruitlessly retrying the supply in an infinite loop.
+
+Fortunately, the `withLimit()` method is actually shorthand for a built-in strategy that handles starvation automatically. If you write a trials instance that keeps starving its test, this built-in strategy will eventually decide to terminate the trials.
+
+We can exert finer control though...
 ```java
-// These are equivalent:
+// When starvation doesn't happen, these are equivalent.
 trials.withLimit(100)
 
 trials.withStrategy(cycle -> 
     CasesLimitStrategy.counted(100, 0.0))
 ```
 
-The **starvation ratio** parameter is interesting. It controls how much filtering/rejection is acceptable:
+The second parameter of `withStrategy` is the **starvation ratio**. It controls how much filtering/rejection is acceptable:
 ```java
 trials.withStrategy(cycle -> 
     CasesLimitStrategy.counted(
@@ -72,7 +84,7 @@ trials.withStrategy(cycle ->
         0.2))   // Allow 20% rejection rate
 ```
 
-If more than 20% of attempted test cases are filtered out (via `.filter()` or `Trials.reject()`), Americium will report starvation.
+If more than 20% of attempted test cases cause starvation, the trials are terminated.
 
 {: .warning }
 > **High rejection rates** suggest your trial specification is inefficient. Consider redesigning to generate valid cases directly rather than filtering.
@@ -91,11 +103,11 @@ When you see `cycle -> CasesLimitStrategy...`, what's that about?
 You can configure **different limits for each cycle**:
 ```java
 trials.withStrategy(cycle -> {
-    if (cycle == 0) {
-        // Exploration: try many cases
-        return CasesLimitStrategy.counted(1000, 0.1);
+    if (cycle.isInitial) {
+        // Exploration: try many cases, accept a large degree of starvation.
+        return CasesLimitStrategy.counted(1000, 1);
     } else {
-        // Shrinkage: be more patient
+        // Shrinkage: don't try too hard, further shrinkage is just a 'nice to have'.
         return CasesLimitStrategy.counted(500, 0.2);
     }
 });
@@ -104,10 +116,12 @@ trials.withStrategy(cycle -> {
 Or use time budgets that vary:
 ```java
 trials.withStrategy(cycle -> {
-    if (cycle == 0) {
-        return CasesLimitStrategy.timed(Duration.ofSeconds(10));
+    if (cycle.isInitial) {
+        // Exploration: want a quick test and don't want to look at everything.
+        return CasesLimitStrategy.timed(Duration.ofSeconds(2));
     } else {
-        return CasesLimitStrategy.timed(Duration.ofSeconds(5));
+        // Shrinkage: if we do see a failed test case, work hard to shrink it down.
+        return CasesLimitStrategy.timed(Duration.ofSeconds(10));
     }
 });
 ```
@@ -155,9 +169,13 @@ For **CI/CD**, you might want **different cases on each run** to explore the inp
 
 Now each test run uses a **random seed**, generating different test cases:
 ```java
-// Run 1: Tests cases A, B, C, D, E
-// Run 2: Tests cases F, G, H, I, J  
-// Run 3: Tests cases K, L, M, N, O
+final Trials<Integer> trials = api().integers(1, 40);
+      
+trials.withLimit(5).supplyTo(System.out::println);
+
+// Run 1: test cases 2, 14, 12, 4, 5
+// Run 2: test cases 8, 18, 26, 21, 30
+// Run 3: test cases 23, 29, 28, 7, 2
 ```
 
 Over many CI runs, you'll cover much more of the input space!
@@ -192,7 +210,8 @@ Here's an important detail - **fixed-size collections are exempt** from complexi
 ```java
 api().integers()
     .immutableListsOfSize(100)  // Always 100 elements!
-    .withComplexityLimit(50)    // Doesn't affect list size
+    .withLimit(10)
+    .withComplexityLimit(1)    // Doesn't affect list size
     .supplyTo(list -> {
         assert list.size() == 100;  // ✓ Always true
     });
@@ -203,12 +222,25 @@ Why? You **explicitly requested** 100 elements. Americium respects your specific
 But **varying-size** collections respect the limit:
 ```java
 api().integers()
-    .immutableLists()           // Varying size
-    .withComplexityLimit(50)    // Limits maximum size
-    .supplyTo(list -> {
-        assert list.size() <= 50;  // ✓ Approximately true
-    });
+     .immutableLists() // Varying size
+     .withLimit(10)
+     .withComplexityLimit(5) // Restricts maximum size
+     .supplyTo(System.out::println);
+
+// [-1975667456, -54163312]
+// []
+// [1610305737]
+// [1987104774, 1272878179]
+// [1327605531, 633033882]
+// [-685852310, -2071825701]
+// [-1545019583]
+// [-1589526881]
+// [637450267]
+// [499196904, -440688866]
 ```
+
+{: .note }
+> The complexity limit does not directly count the number of items in the list. Think of it as being a **guide heuristic**; the smaller the limit, the shorter the lists in this example.
 
 ---
 
@@ -250,12 +282,13 @@ import com.sageserpent.americium.generation.ShrinkageStop;
 trials
     .withLimit(100)
     .withShrinkageStop(new ShrinkageStop() {
+        private int trialsCount = 0;
+        
         @Override
-        public boolean shouldStop(int shrinkageAttempts, 
-                                  int consecutiveFailures) {
-            // Custom logic here
-            return shrinkageAttempts > 20 || 
-                   consecutiveFailures > 5;
+        public boolean test(int testCase) {
+            // Custom logic here: regardless of cycle,
+            // give up after doing 150 trials overall.
+            return 150 == trialsCount++;
         }
     })
     .supplyTo(testCase -> {
@@ -271,37 +304,6 @@ This allows sophisticated strategies like:
 - "Stop if no improvement in last 10 attempts"
 - "Stop if we've been shrinking for 30 seconds"
 - "Stop if the test case is 'simple enough'"
-
----
-
-## Fixing the Tiers Bug
-
-Remember our **cliffhanger** from the Reproduction section? The injected bug:
-```java
-if (0 >= index) {  // Bug: should be 0 > index
-    throw new IllegalArgumentException();
-}
-```
-
-With 30 trials, we didn't catch it. Let's fix that with **better configuration**:
-```java
-testCases
-    .withStrategy(cycle -> {
-        if (cycle == 0) {
-            // Exploration: try lots of cases
-            return CasesLimitStrategy.counted(100, 0.1);
-        } else {
-            // Shrinkage: be patient
-            return CasesLimitStrategy.counted(50, 0.2);
-        }
-    })
-    .withComplexityLimit(100)
-    .supplyTo(testCase -> {
-        // Now catches the bug!
-    });
-```
-
-With more exploration (100 cases) and higher complexity (100), Americium finds the edge case where `index == 0`.
 
 ---
 

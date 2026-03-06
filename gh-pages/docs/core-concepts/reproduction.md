@@ -23,7 +23,7 @@ Recipe hashes, JSON recipes, and the run database
 
 When a property test fails and shrinks down to a minimal case, you need to be able to **reproduce that exact failure** reliably. This is crucial for:
 
-- **Debugging** - Run the failing case repeatedly while stepping through code
+- **Debugging** - Run the failing case again in a debugging session
 - **Verification** - Confirm your fix actually resolves the issue
 - **CI/CD** - Ensure the same failure reproduces in continuous integration
 - **Collaboration** - Share exact failing cases with teammates
@@ -34,7 +34,62 @@ Americium provides two complementary mechanisms for reproduction.
 
 ## Example: Testing Tiers
 
+### System Under Test
+
 Let's use a complex example to demonstrate reproduction - testing a `Tiers` data structure:
+```java
+class Tiers<Element extends Comparable<Element>> {
+    final int worstTier;
+
+    final List<Element> storage;
+
+    public Tiers(int worstTier) {
+        this.worstTier = worstTier;
+        storage = new ArrayList<>(worstTier) {
+            @Override
+            public void add(int index, Element element) {
+                if (size() < worstTier) {
+                    super.add(index, element);
+                } else {
+                    for (int shiftDestination = 0;
+                         shiftDestination < index; ++shiftDestination) {
+                        super.set(shiftDestination,
+                                  super.get(1 + shiftDestination));
+                    }
+
+                    super.set(index, element);
+                }
+            }
+        };
+    }
+
+    void add(Element element) {
+        final int index = Collections.binarySearch(storage, element);
+
+        if (0 > index) {
+            storage.add(-(index + 1), element);
+        } else {
+            storage.add(index, element);
+        }
+    }
+
+    Optional<Element> at(int tier) {
+        return 0 < tier && tier <= storage.size()
+               ? Optional.of(storage.get(storage.size() - tier))
+               :
+               Optional.empty();
+    }
+}
+```
+
+The purpose of Tiers is to take a series of elements, and arrange the elements by tier, where tier 1 is the highest element, tier 2 is the next highest and so on down to a fixed worst tier. Elements that don't make the grade (or are surpassed later) are summarily ejected.
+
+### Test Approach
+
+This is a realistic property-based test. The gist of it is to start with a list of query values that we expect the tiers instance to end up with, then present them in a feed sequence to the tiers instance, surrounding each query value with a run of background values that are constructed to be less than all of the query values.
+
+Those background values should all be ejected once the feed sequence is completed.
+
 ```java
 import static com.sageserpent.americium.java.Trials.api;
 
@@ -89,10 +144,45 @@ testCases.withLimit(30).supplyTo(testCase -> {
 
     feedSequence.forEach(tiers::add);
 
-    // Test implementation...
-    // (This will fail due to an injected bug)
+    final ImmutableList.Builder<Integer> builder =
+            ImmutableList.<Integer>builder();
+    
+    int tier = worstTier;
+    
+    int previousTierOccupant = Integer.MIN_VALUE;
+    
+    do {
+        final Integer tierOccupant = tiers.at(tier).get();
+        
+        assertThat(tierOccupant, greaterThanOrEqualTo(previousTierOccupant));
+        
+        builder.add(tierOccupant);
+        
+        previousTierOccupant = tierOccupant;
+    } while (1 < tier--);
+    
+    final ImmutableList<Integer> arrangedByRank = builder.build();
+    
+    assertThat(arrangedByRank, containsInAnyOrder(queryValues.toArray()));
 });
 ```
+
+### Test Verdict
+
+We won't be surprised to find that it doesn't work:
+
+```
+Trial exception with underlying cause:
+java.lang.IndexOutOfBoundsException: Index 1 out of bounds for length 1
+Case:
+[[0],[-1, 0]]
+Reproduce via Java property:
+trials.recipeHash=b91fa06969da28bd58ca711b7b50ff75
+Reproduce via Java property:
+trials.recipe="[{\"ChoiceOf\":{\"index\":1}},{\"FactoryInputOf\":{\"input\":0}},{\"ChoiceOf\":{\"index\":0}},{\"ChoiceOf\":{\"index\":1}},{\"FactoryInputOf\":{\"input\":-1}},{\"ChoiceOf\":{\"index\":0}},{\"ChoiceOf\":{\"index\":0}}]"
+```
+
+How do we work on this bug?
 
 ---
 
@@ -100,7 +190,8 @@ testCases.withLimit(30).supplyTo(testCase -> {
 
 When a test fails, Americium prints a **recipe hash**:
 ```
-Recipe hash for reproduction: b91fa06969da28bd58ca711b7b50ff75
+Reproduce via Java property:
+trials.recipeHash=b91fa06969da28bd58ca711b7b50ff75
 ```
 
 To reproduce this exact failure, run with:
@@ -125,13 +216,13 @@ The recipe hash is stored in a **local database** (in your system's temp directo
 
 For **reproducibility across machines** (especially CI), use the JSON recipe:
 ```
-Recipe JSON for reproduction:
-[{"ChoiceOf":{"index":1}},{"ChoiceOf":{"index":0}}, ...]
+Reproduce via Java property:
+trials.recipe="[{\"ChoiceOf\":{\"index\":1}},{\"FactoryInputOf\":{\"input\":0}}, ...]
 ```
 
 To reproduce, run with:
 ```bash
--Dtrials.recipe='[{"ChoiceOf":{"index":1}},{"ChoiceOf":{"index":0}}, ...]'
+-Dtrials.recipe='[{\"ChoiceOf\":{\"index\":1}},{\"FactoryInputOf\":{\"input\":0}}, ...]'
 ```
 
 ### How It Works
@@ -154,12 +245,12 @@ By replaying these decisions, Americium reconstructs the exact same test case on
 
 Recipes are stored in a database located at:
 ```
-{temp-dir}/{database-name}/
+{temp-dir}/{database-name}-trials/
 ```
 
 Where:
 - **`temp-dir`** - Java system property `java.io.tmpdir`
-- **`database-name`** - Java property `trials.runDatabase` (default: `runDatabase`)
+- **`database-name`** - Java property `trials.runDatabase` (default: `trialsRunDatabase`)
 
 ### Customizing the Location
 ```bash
@@ -185,18 +276,51 @@ The database stores:
 
 ---
 
-## Cliffhanger: Injected Fault
+## The Fix
 
-In our `Tiers` example, we injected a subtle bug:
+Where did we go wrong? Ah, yes - sometimes an element just drops immediately off the lowest tier as it is added; our element shifting logic is off-by-one, as well the actual pseudo-insertion when all tiers are filled. The fixed version tweaks the storage class logic:
+
 ```java
-if (0 >= index) {  // Bug: should be 0 > index
-    throw new IllegalArgumentException();
+    public Tiers(int worstTier) {
+        this.worstTier = worstTier;
+        storage = new ArrayList<>(worstTier) {
+            @Override
+            public void add(int index, Element element) {
+                if (size() < worstTier) {
+                    super.add(index, element);
+                } else if (0 < index) /* <<----- FIX */ {
+                    for (int shiftDestination = 0;
+                         shiftDestination < index - 1; /* <<----- FIX */ ++shiftDestination) {
+                        super.set(shiftDestination,
+                                  super.get(1 + shiftDestination));
+                    }
+
+                    super.set(index - 1, element); /* <<----- FIX */
+                }
+            }
+        };
+    }
+```
+---
+
+## The Cliffhanger
+
+However, there is still something amiss - take a look at the code below, taken from the fixed implementation of Tiers but with a fault injected into it to 'test the testing':
+```java
+    void add(Element element) {
+    final int index = Collections.binarySearch(storage, element);
+
+    if (0 >= index) /* <<----- INJECTED FAULT */ {
+        storage.add(-(index + 1), element);
+    } else {
+        storage.add(index, element);
+    }
 }
 ```
 
-This allows index 0 through, causing the assertion to fail. But when we run the test with 30 trials, **it doesn't catch the bug**!
+This allows index 0 through, causing the assertion to fail. But when we run the test again, **it doesn't catch the bug**!
 
-Why? The configuration isn't quite right. We'll fix this in the Configuration topic coming up...
+Why? The configuration isn't quite right. We'll fix this in the Forcing Duplicates topic under Advanced Techniques...
 
 ---
 

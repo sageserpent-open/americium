@@ -64,34 +64,6 @@ Since you're choosing `n` items from a pool of only `n` values, **duplicates are
 
 ---
 
-## Concrete Example
-
-Let's test the `Tiers` data structure, which had a bug that only appeared with duplicate values:
-```java
-import static com.sageserpent.americium.java.Trials.api;
-
-// Without forcing duplicates - inefficient
-final Trials<ImmutableList<Integer>> inefficientApproach = 
-    api().integers(-1000, 1000).immutableLists();
-
-// Took ~11,000 trials to find the bug!
-
-// With forcing duplicates - efficient  
-final Trials<ImmutableList<Integer>> efficientApproach =
-    api().integers(1, 10).flatMap(n ->
-        api().integers(-1000, 1000)
-            .immutableListsOfSize(n)
-            .flatMap(choices ->
-                api().choose(choices)
-                    .immutableListsOfSize(n)));
-
-// Only ~30 trials to find the bug!
-```
-
-That's a **99.7% reduction** in trials needed!
-
----
-
 ## Understanding the Pattern
 
 Let's break down what's happening step by step:
@@ -189,39 +161,67 @@ Smaller pool = more duplicates
 
 ---
 
-## Real-World Application: Testing Tiers
+## Fixing the Tiers Bug
 
-The `Tiers` data structure maintains a ranking where equal values should be at the same tier. The bug: when duplicate values were added, the tier structure became inconsistent.
-
-**Test without forced duplicates:**
+Remember our **cliffhanger** from the Reproduction section? The injected bug:
 ```java
-api().integers(-1000, 1000)
-    .immutableLists()
-    .withLimit(11000)  // Needed 11,000 trials!
-    .supplyTo(values -> {
-        Tiers<Integer> tiers = new Tiers<>(10);
-        values.forEach(tiers::add);
-        // Verify tier consistency...
-    });
+    void add(Element element) {
+    final int index = Collections.binarySearch(storage, element);
+
+    if (0 >= index) /* <<----- INJECTED FAULT */ {
+        storage.add(-(index + 1), element);
+    } else {
+        storage.add(index, element);
+    }
+}
 ```
 
-**Test with forced duplicates:**
+With 30 trials, we didn't catch it. Let's try to fix that with by turning the dials right up:
 ```java
-api().integers(1, 10).flatMap(n ->
-    api().integers(-1000, 1000)
-        .immutableListsOfSize(n)
-        .flatMap(choices ->
-            api().choose(choices)
-                .immutableListsOfSize(n)))
-    .withLimit(30)  // Only needed 30 trials!
-    .supplyTo(values -> {
-        Tiers<Integer> tiers = new Tiers<>(10);
-        values.forEach(tiers::add);
-        // Verify tier consistency...
-    });
+testCases.withLimit(11000) /* <<----- BIG BUDGET! */.supplyTo(testCase -> {
+final ImmutableList<Integer> queryValues = testCase._1();
+final ImmutableList<Integer> feedSequence = testCase._2();
+
+// The rest of the test body ...
+```
+This chugs through **89489** trials in total, and eventually we get the final shrunk test case:
+
+```
+Exception in thread "main" Trial exception with underlying cause:
+java.lang.IndexOutOfBoundsException: Index: -1, Size: 1
+Provoked by test case:
+[[0, 0],[0, 0]]
 ```
 
-The forced duplicates made the **specific failure case** much more likely to appear!
+We can see the problem now: this is something to do with adjacent duplicates being presented to the tiers instance; the thing is, we allow the query values to vary all over the place:
+
+```java
+final Trials<ImmutableList<Integer>> queryValueLists = api()
+        .integers(-1000, 1000)
+        .immutableLists()
+        .filter(list -> !list.isEmpty());
+```
+
+So yes, Americium will eventually generate duplicates, but we need to be patient. Very patient.
+
+Now we can apply our trick to force duplicates...
+
+```java
+// Efficient with forced duplicates...  
+final Trials<ImmutableList<Integer>> queryValueLists = api()
+        .integers(1, 10)
+        .flatMap(numberOfChoices -> api()
+                .integers(-1000, 1000)
+                .immutableListsOfSize(
+                        numberOfChoices)
+                .flatMap(choices -> api()
+                        .choose(choices)
+                        .immutableListsOfSize(
+                                numberOfChoices)));
+```
+This time, it takes **68** trials to get that shrunk test case.
+
+That's a **99.9% reduction** in trials needed!
 
 ---
 
