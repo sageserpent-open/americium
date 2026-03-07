@@ -29,7 +29,7 @@ separate shrinkers for your custom types.
 
 - **Integrated Shrinkage** - Automatic test case minimization with no extra code
 - **Multi-language** - APIs for both Scala and Java
-- **JUnit5 Integration** - Deep integration with replay support
+- **Optional JUnit5 Integration** - Deep integration with replay support
 - **Powerful DSL** - Build complex test cases with map, flatMap, filter
 - **Recipe Reproduction** - Reproduce any test case via recipe hash or JSON
 
@@ -105,14 +105,12 @@ trials.withLimit(1000).supplyTo { x =>
 
 ## Philosophy
 
-Americium believes that **property-based testing should be accessible**. You shouldn't need a PhD in functional
-programming to write effective property tests, and you definitely shouldn't need to write custom shrinkers for every
-type you test.
+Americium believes that **property-based testing should be accessible**.
 
 That's why Americium:
 - Provides a straightforward, composable API
 - Handles shrinkage automatically
-- Works with your existing test framework
+- Works with your *existing test framework*
 - Gives you helpful reproduction recipes when tests fail
 
 ---
