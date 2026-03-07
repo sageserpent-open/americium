@@ -254,7 +254,7 @@ Where:
 
 The database uses a recipe hash as a key to look up a recipe, i.e. the full decision sequence for reproduction.
 
-Alongside the associated recipe, there is a **structure outline** - a summary of the trials that supplied the original test case; this is used to check that an old recipe is still valid in case the trials formulation has changed in the meantime.
+Alongside the associated recipe, there is a **structure outline** - a simplified form of the trials instance formulation that supplied the original test case; this is used to check that an old recipe is still valid in case the trials formulation has changed in the meantime.
 
 
 ### Customizing the Location
