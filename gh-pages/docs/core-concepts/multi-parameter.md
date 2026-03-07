@@ -172,7 +172,7 @@ Provoked by test case:
 [[1],0,[]]
 ```
 
-Ah, yes - we didn't sort the contents of the array PoorQualitySetMembershipPredicate.elements in the constructor; the subsequent binary search will only work if the elements are already sorted. Let's fix it:
+Ah, yes - we didn't sort the contents of the array `PoorQualitySetMembershipPredicate.elements` in the constructor; the subsequent binary search will only work if the elements are already sorted. Let's fix it:
 
 ```java
 class AwesomeSetMembershipPredicate<Element extends Comparable<Element>> implements Predicate<Element> {
