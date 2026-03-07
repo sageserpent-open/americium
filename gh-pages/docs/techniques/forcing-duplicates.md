@@ -184,7 +184,7 @@ final ImmutableList<Integer> feedSequence = testCase._2();
 
 // The rest of the test body ...
 ```
-This chugs through **89489** trials in total, and eventually we get the final shrunk test case:
+This chugs through **89489** trials through the discovery and shrinkage cycles, and eventually we get the final shrunk test case:
 
 ```
 Exception in thread "main" Trial exception with underlying cause:
@@ -193,7 +193,9 @@ Provoked by test case:
 [[0, 0],[0, 0]]
 ```
 
-We can see the problem now: this is something to do with adjacent duplicates being presented to the tiers instance; the thing is, we allow the query values to vary all over the place:
+We can see the problem now: the feed sequence has just one duplicated value that we expect not to be ejected (because the minimised test case omits any other values); that triggers the off-by-one array bounds error.
+
+The thing is, we allow the query values to vary all over the place:
 
 ```java
 final Trials<ImmutableList<Integer>> queryValueLists = api()
@@ -202,7 +204,7 @@ final Trials<ImmutableList<Integer>> queryValueLists = api()
         .filter(list -> !list.isEmpty());
 ```
 
-So yes, Americium will eventually generate duplicates, but we need to be patient. Very patient.
+So yes, Americium will eventually generate duplicates, and hopefully this will include a duplicated first-tier value, but we need to be patient. Very patient.
 
 Now we can apply our trick to force duplicates...
 

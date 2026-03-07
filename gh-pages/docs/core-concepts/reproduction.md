@@ -252,6 +252,11 @@ Where:
 - **`temp-dir`** - Java system property `java.io.tmpdir`
 - **`database-name`** - Java property `trials.runDatabase` (default: `trialsRunDatabase`)
 
+The database uses a recipe hash as a key to look up a recipe, i.e. the full decision sequence for reproduction.
+
+Alongside the associated recipe, there is a **structure outline** - a summary of the trials that supplied the original test case; this is used to check that an old recipe is still valid in case the trials formulation has changed in the meantime.
+
+
 ### Customizing the Location
 ```bash
 # Change the database name
@@ -260,12 +265,6 @@ Where:
 # Or override the temp directory
 -Djava.io.tmpdir=/my/custom/temp
 ```
-
-### Structure
-
-The database stores:
-- **Recipe hash → Recipe mapping** - Full decision sequence for reproduction
-- **Recipe outline** - Structural summary of the test case
 
 ### Lifecycle
 
@@ -318,7 +317,7 @@ However, there is still something amiss - take a look at the code below, taken f
 }
 ```
 
-This allows index 0 through, causing the assertion to fail. But when we run the test again, **it doesn't catch the bug**!
+This will cause an off-by-one array bounds error when an existing first-tier element is replaced. But when we run the test again, **it doesn't catch the bug**!
 
 Why? The configuration isn't quite right. We'll fix this in the Forcing Duplicates topic under Advanced Techniques...
 
