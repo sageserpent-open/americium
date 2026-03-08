@@ -4,8 +4,8 @@ Complete Jekyll documentation site for Americium with Just the Docs theme.
 
 ## Quick Start
 ```bash
-# Clone or navigate to the repository
-cd americium
+# Clone or navigate to the repository's Jekyll sources.
+cd americium/gh-pages
 
 # Install dependencies
 bundle install
@@ -19,31 +19,30 @@ open http://localhost:4000/americium
 
 ## What's Included
 
-- ✅ **31 pages** of comprehensive documentation
-- ✅ **6 major sections** with hierarchical navigation
 - ✅ **Full-text search** powered by Just the Docs
 - ✅ **Responsive design** for mobile and desktop
 - ✅ **Syntax highlighting** for Java, Scala, and more
-- ✅ **Updated package references** for Americium 1.26.0+
+
 
 ## Site Structure
 ```
 docs/
-├── getting-started/     # 4 pages - Fundamentals
-├── core-concepts/       # 6 pages - Advanced features
-├── junit5/              # 3 pages - JUnit5 integration
-├── techniques/          # 6 pages - Advanced patterns
-└── reference/           # 4 pages - Deep dives & migration
+├── getting-started/
+├── core-concepts/ 
+├── junit5/
+├── techniques/
+└── reference/
 ```
 
 ## Deployment
 
-### GitHub Pages (Recommended)
+### GitHub Pages
 
 1. Push to GitHub
 2. Settings → Pages → Enable
-3. Source: `main` branch, `/` (root)
-4. Done! Site live at `https://your-username.github.io/americium`
+3. Source: `GitHub Actions`
+4. Ensure that `Enforce HTTPS` is enabled.
+5. Done! Site live at `https://your-username.github.io/americium`
 
 ### Custom Domain
 
