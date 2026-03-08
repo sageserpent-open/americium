@@ -348,16 +348,6 @@ When you run this in your IDE, you'll see:
 3. **Shrinkage attempts** shown in IDE (grayed out or marked differently)
 4. **Final shrunk case** shown with clear failure message
 
-### Important Shrinkage Quirk
-
-{: .important }
-> **IDE Replay Limitation:** Right-clicking a shrinkage trial (not the initial failure) won't successfully re-run it - this is a quirk of how JUnit5 works.
->
-> **You can replay:**
-> - Trials up to and including the **first failure**
->
-> **Since release 1.18.0:** You can now directly replay shrinkage trials too!
-
 ---
 
 ## Recipe Reproduction
@@ -379,6 +369,18 @@ Use these to reproduce failures:
 
 This works **exactly the same** with JUnit5 integration as with standalone `.supplyTo()`.
 
+---
+
+## The Run Database (Again)
+
+Similarly to recipes, replay information is stored in an additional database located at:
+```
+{temp-dir}/{database-name}-junit5/
+```
+
+Where:
+- **`temp-dir`** - Java system property `java.io.tmpdir`
+- **`database-name`** - Java property `trials.runDatabase` (default: `trialsRunDatabase`)
 ---
 
 ## `@ConfiguredTrialsTest`
