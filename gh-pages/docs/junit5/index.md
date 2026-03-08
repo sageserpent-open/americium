@@ -31,7 +31,7 @@ In this section, you'll discover two approaches to integrating Americium with JU
 
 Americium takes a lean approach - it provides test case generation and shrinkage, but doesn't dictate your testing framework. However, JUnit5 is ubiquitous in the Java/Scala ecosystem, and your IDE probably has excellent support for it.
 
-JUnit5's `@ParameterizedTest` lets you run the same test multiple times with different arguments - sound familiar? Americium takes this further with:
+JUnit5's `@ParameterizedTest` lets you run the same test multiple times with different arguments - sound familiar? Americium matches this and goes further:
 
 - **Automatic test case generation** (no need to manually list test cases)
 - **Integrated shrinkage** (minimal failing cases)
@@ -69,6 +69,7 @@ public class MyTest {
 
 **Type-safe** - Compile-time verification:
 ```java
+// Java...
 import org.junit.jupiter.api.TestFactory;
 import org.junit.jupiter.api.DynamicTest;
 import com.sageserpent.americium.junit5.java.JUnit5;
@@ -89,25 +90,42 @@ public class MyTest {
 }
 ```
 
+```scala
+// Scala...
+import com.sageserpent.americium.junit5.*
+import org.junit.jupiter.api.TestFactory
+
+class MyTest {
+  @TestFactory
+  def testSomething(): DynamicTests = {
+    val integers = Trials.api.integers(-10, 10);
+
+    integers.withLimit(20).dynamicTests { value =>
+      // Test code here
+    }
+  }
+}
+```
+
 **Pros:** Type-safe, refactoring-friendly, works in Scala too  
-**Cons:** Slightly more verbose
+**Cons:** Slightly more verbose in Java
 
 ---
 
 ## Package Structure
 
-Since version 1.26.0, JUnit5 integration lives in separate packages:
+Since version 2.0.0, JUnit5 integration lives in separate packages:
 
 **Java:**
 ```java
-import com.sageserpent.americium.junit5.TrialsTest;           // Annotations
-import com.sageserpent.americium.junit5.ConfiguredTrialsTest; // Annotations
-import com.sageserpent.americium.junit5.java.JUnit5;          // Static methods
+import com.sageserpent.americium.junit5.TrialsTest;           // Annotation `@TrialsTest`
+import com.sageserpent.americium.junit5.ConfiguredTrialsTest; // Annotation `@ConfiguredTrialsTest`
+import com.sageserpent.americium.junit5.java.JUnit5;          // `dynamicTests` in module class
 ```
 
 **Scala:**
 ```scala
-import com.sageserpent.americium.junit5.*  // Annotations, extension methods, type aliases
+import com.sageserpent.americium.junit5.*  // `dynamicTests` extension methods
 ```
 
 ---
@@ -128,15 +146,13 @@ Regardless of which approach you choose, you get:
 ## Which Approach Should I Use?
 
 ### Use `@TrialsTest` when:
-- You want simplicity and conciseness
-- You're comfortable with string-based references
-- You're primarily working in Java
+- You like the reflection approach prevalent in Java.
 - Your team is familiar with `@ParameterizedTest`
+- You're comfortable with string-based references
 
 ### Use `@TestFactory` when:
 - Type safety is important
 - You're refactoring frequently
-- You're working in Scala
 - You want IDE autocomplete and type hints
 
 ---
