@@ -3,6 +3,7 @@ layout: default
 title: Variations in Making Trials
 parent: Getting Started
 nav_order: 2
+reviewed: true
 ---
 
 # Variations in Making a Trials Instance

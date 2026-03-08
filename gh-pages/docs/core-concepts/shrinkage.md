@@ -3,6 +3,7 @@ layout: default
 title: All About Shrinkage
 parent: Core Concepts
 nav_order: 3
+reviewed: true
 ---
 
 # All About Shrinkage

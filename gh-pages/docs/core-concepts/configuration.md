@@ -3,6 +3,7 @@ layout: default
 title: Configuration Options
 parent: Core Concepts
 nav_order: 4
+reviewed: true
 ---
 
 # Configuration Options
