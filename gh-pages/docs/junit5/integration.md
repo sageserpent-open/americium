@@ -381,6 +381,7 @@ Similarly to recipes, replay information is stored in an additional database loc
 Where:
 - **`temp-dir`** - Java system property `java.io.tmpdir`
 - **`database-name`** - Java property `trials.runDatabase` (default: `trialsRunDatabase`)
+
 ---
 
 ## `@ConfiguredTrialsTest`
