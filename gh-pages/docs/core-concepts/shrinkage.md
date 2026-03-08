@@ -198,7 +198,7 @@ You might see:
 Initial failure:
     [89, 45, 23, 67, 91] (sum = 315)
 After shrinkage:
-    [50]                  (sum = 50)
+    [50]                 (sum = 50)
 ```
 
 Both aspects working together: shorter list (complexity) + smaller value (distance).
