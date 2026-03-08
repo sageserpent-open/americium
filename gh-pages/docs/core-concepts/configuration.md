@@ -17,6 +17,8 @@ Case limits, seeding, complexity limits, and shrinkage control
 1. TOC
 {:toc}
 
+{% include disclaimer.html %}
+
 ---
 
 ## Beyond Simple Limits

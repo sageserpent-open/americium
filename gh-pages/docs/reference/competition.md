@@ -17,6 +17,8 @@ Americium in the property-based testing ecosystem
 1. TOC
 {:toc}
 
+{% include disclaimer.html %}
+
 ---
 
 ## Oh, That Bunch?

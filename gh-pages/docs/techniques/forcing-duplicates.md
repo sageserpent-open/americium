@@ -17,6 +17,8 @@ Generating test cases guaranteed to contain duplicate values
 1. TOC
 {:toc}
 
+{% include disclaimer.html %}
+
 ---
 
 ## The Problem

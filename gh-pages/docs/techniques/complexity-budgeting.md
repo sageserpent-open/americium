@@ -17,6 +17,8 @@ Controlling recursive structure generation with complexity awareness
 1. TOC
 {:toc}
 
+{% include disclaimer.html %}
+
 ---
 
 ## The Problem

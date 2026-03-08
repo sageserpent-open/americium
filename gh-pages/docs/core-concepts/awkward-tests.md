@@ -17,6 +17,8 @@ Handling preconditions with `Trials.reject()` and `Trials.whenever()`
 1. TOC
 {:toc}
 
+{% include disclaimer.html %}
+
 ---
 
 ## The Problem: Stateful Systems

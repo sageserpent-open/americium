@@ -17,6 +17,8 @@ Welcome to Americium - learn the local language
 1. TOC
 {:toc}
 
+{% include disclaimer.html %}
+
 ---
 
 ## Come On In

@@ -23,6 +23,8 @@ Using `@TestFactory` and `dynamicTests` for compile-time type safety
 1. TOC
 {:toc}
 
+{% include disclaimer.html %}
+
 ---
 
 ## The Problem with String-Based Configuration

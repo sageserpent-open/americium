@@ -17,6 +17,8 @@ Collections, mapping, filtering, flat-mapping and recursion
 1. TOC
 {:toc}
 
+{% include disclaimer.html %}
+
 ---
 
 ## Beyond Simple Types

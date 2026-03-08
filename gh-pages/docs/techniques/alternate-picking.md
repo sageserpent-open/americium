@@ -17,6 +17,8 @@ Merging sequences while preserving element order
 1. TOC
 {:toc}
 
+{% include disclaimer.html %}
+
 ---
 
 ## The Problem

@@ -17,6 +17,8 @@ Testing order-dependent behavior with index permutations
 1. TOC
 {:toc}
 
+{% include disclaimer.html %}
+
 ---
 
 ## The Problem

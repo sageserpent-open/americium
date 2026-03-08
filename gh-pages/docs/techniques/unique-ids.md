@@ -17,6 +17,8 @@ Creating readable, unique identifiers that shrink well
 1. TOC
 {:toc}
 
+{% include disclaimer.html %}
+
 ---
 
 ## The Problem

@@ -17,6 +17,8 @@ Yes, do pay attention to the man behind the curtain
 1. TOC
 {:toc}
 
+{% include disclaimer.html %}
+
 ---
 
 ## Congratulations!

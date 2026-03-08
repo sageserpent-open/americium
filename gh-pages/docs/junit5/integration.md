@@ -23,6 +23,8 @@ Using `@TrialsTest` for simple, declarative property tests
 1. TOC
 {:toc}
 
+{% include disclaimer.html %}
+
 ---
 
 ## Philosophy

@@ -17,6 +17,8 @@ Recipe hashes, JSON recipes, and the run database
 1. TOC
 {:toc}
 
+{% include disclaimer.html %}
+
 ---
 
 ## Why Reproduction Matters
