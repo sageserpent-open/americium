@@ -122,7 +122,7 @@ import com.sageserpent.americium.junit5.*
 // Brings in the DynamicTests type alias (note the plural!)
 ```
 
-Behind the scenes, this is just `java.util.stream.Stream[org.junit.jupiter.api.DynamicTest]`, but you don't have to care about that!
+Behind the scenes, this is just `java.util.Iterator[org.junit.jupiter.api.DynamicTest]`, but you don't have to care about that!
 
 ---
 

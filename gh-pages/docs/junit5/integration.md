@@ -184,7 +184,7 @@ final ImmutableList<Integer> queryValues = testCase._1();
 final ImmutableList<Integer> feedSequence = testCase._2();
 ```
 
-Americium can **automatically unpack tuples** into separate parameters:
+Americium's JUnit5 integration can **automatically unpack tuples** into separate parameters:
 ```java
 @TrialsTest(trials = "testCases", casesLimit = 10)
 void tiersShouldRetainTheLargestElements(
