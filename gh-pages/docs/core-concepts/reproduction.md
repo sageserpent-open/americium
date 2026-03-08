@@ -182,7 +182,7 @@ Reproduce via Java property:
 trials.recipe="[{\"ChoiceOf\":{\"index\":1}},{\"FactoryInputOf\":{\"input\":0}},{\"ChoiceOf\":{\"index\":0}},{\"ChoiceOf\":{\"index\":1}},{\"FactoryInputOf\":{\"input\":-1}},{\"ChoiceOf\":{\"index\":0}},{\"ChoiceOf\":{\"index\":0}}]"
 ```
 
-How do we work on this bug?
+How do we focus on this bug?
 
 ---
 
