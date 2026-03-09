@@ -314,7 +314,7 @@ Now the test class is instantiated **once** and reused for all test methods.
 ## Shrinkage in Action
 
 Let's see shrinkage at work, we'll run `SetMembershipPredicateTest`:
-![](https://github.com/sageserpent-open/americium/blob/4ced3f413c91ffee5e5587f48f137593cae03d93/screenshots/SetMembershipPredicateTest.png)
+![]({% link https://github.com/sageserpent-open/americium/blob/4ced3f413c91ffee5e5587f48f137593cae03d93/screenshots/SetMembershipPredicateTest.png %})
 
 When you run this in your IDE, you'll see:
 
