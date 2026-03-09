@@ -79,7 +79,7 @@ public class Scratch {
         }
     }
 
-    public static void main(String[] args) {
+    public static void main2(String[] args) {
         final Instant startTime = Instant.now();
 
         try {
@@ -124,13 +124,21 @@ public class Scratch {
 
     }
 
-    public static void main2(String... args) {
+    public static void main(String... args) {
 
 
+        // Efficient with forced duplicates...
         final Trials<ImmutableList<Integer>> queryValueLists = api()
-                .integers(-1000, 1000)
-                .immutableLists()
-                .filter(list -> !list.isEmpty());
+                .integers(1, 10)
+                .flatMap(numberOfChoices -> api()
+                        .integers(-1000, 1000)
+                        .immutableListsOfSize(
+                                numberOfChoices)
+                        .flatMap(choices -> api()
+                                .choose(choices)
+                                .immutableListsOfSize(
+                                        numberOfChoices)));
+
 
         final Trials<Tuple2<ImmutableList<Integer>, ImmutableList<Integer>>>
                 testCases =
@@ -179,7 +187,7 @@ public class Scratch {
         AtomicInteger count = new AtomicInteger();
 
         try {
-            testCases.withLimit(11000).supplyTo(testCase -> {
+            testCases.withLimit(30).supplyTo(testCase -> {
                 count.incrementAndGet();
 
                 final ImmutableList<Integer> queryValues = testCase._1();

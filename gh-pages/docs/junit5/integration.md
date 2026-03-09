@@ -33,7 +33,7 @@ Americium takes a **lean and mean approach** - it supplies test cases and shrink
 
 However, JUnit5 is ubiquitous in Java development, and your IDE likely has excellent support for it. The `@ParameterizedTest` annotation lets you run tests multiple times with different arguments - sounds familiar, right?
 
-JUnit5's built-in parameterized testing is rudimentary - you supply test cases manually or generate them in ad-hoc ways. There's no shrinkage, and the IDE integration is basic.
+JUnit5's built-in parameterized testing is rudimentary - you supply test cases manually or generate them in ad-hoc ways; shrinkage is not supported, let alone replay of shrunk failing test cases.
 
 **Americium's JUnit5 integration** gives you the best of both worlds: property-based testing with shrinkage, plus IDE integration that shows individual trial runs, shrinkage attempts, and lets you replay specific cases.
 
@@ -54,7 +54,7 @@ import com.sageserpent.americium.junit5.*
 
 ---
 
-## `@TrialsTest` - Your First Test
+## `@TrialsTest` - The Tiers Test Revisited
 
 Let's integrate the `Tiers` example from earlier with JUnit5:
 ```java
@@ -99,7 +99,7 @@ public class TiersTest {
                 Tuple.tuple(queryValues, feedSequence));
         });
 
-    @TrialsTest(trials = "testCases", casesLimit = 10)
+    @TrialsTest(trials = "testCases", casesLimit = 30)
     void tiersShouldRetainTheLargestElements(
             Tuple2<ImmutableList<Integer>, ImmutableList<Integer>> testCase) {
         
@@ -144,7 +144,7 @@ We've defined trials instances as **`final static` fields** in the test class - 
 
 The test method is annotated with **`@TrialsTest`** instead of JUnit5's usual `@Test`:
 ```java
-@TrialsTest(trials = "testCases", casesLimit = 10)
+@TrialsTest(trials = "testCases", casesLimit = 30)
 void tiersShouldRetainTheLargestElements(
     Tuple2<ImmutableList<Integer>, ImmutableList<Integer>> testCase) {
     // ...
@@ -313,33 +313,8 @@ Now the test class is instantiated **once** and reused for all test methods.
 
 ## Shrinkage in Action
 
-Let's see shrinkage at work:
-```java
-public class SetMembershipPredicateTest {
-    private static final Trials<ImmutableList<Long>> lists =
-        Trials.api().longs().immutableLists();
-
-    private static final Trials<Long> longs = 
-        Trials.api().longs();
-
-    @TrialsTest(trials = {"lists", "longs", "lists"}, casesLimit = 10)
-    void setMembershipShouldBeRecognised(
-            ImmutableList<Long> leftHandList,
-            Long additionalLongToSearchFor,
-            ImmutableList<Long> rightHandList) {
-        
-        final Predicate<Long> systemUnderTest =
-            new PoorQualitySetMembershipPredicate(
-                ImmutableList.builder()
-                    .addAll(leftHandList)
-                    .add(additionalLongToSearchFor)
-                    .addAll(rightHandList)
-                    .build());
-
-        assertThat(systemUnderTest.test(additionalLongToSearchFor), is(true));
-    }
-}
-```
+Let's see shrinkage at work, we'll run `SetMembershipPredicateTest`:
+![](https://github.com/sageserpent-open/americium/blob/4ced3f413c91ffee5e5587f48f137593cae03d93/screenshots/SetMembershipPredicateTest.png)
 
 When you run this in your IDE, you'll see:
 
@@ -382,6 +357,10 @@ Where:
 - **`temp-dir`** - Java system property `java.io.tmpdir`
 - **`database-name`** - Java property `trials.runDatabase` (default: `trialsRunDatabase`)
 
+{: .tip }
+> If you're running tests from an IDE, you can directly replay the maximally shrunk test case; you may prefer this over using a recipe.
+> 
+
 ---
 
 ## `@ConfiguredTrialsTest`
@@ -392,16 +371,16 @@ public class MyTest {
     private static final SupplyToSyntax<TestCase> configuredTrials =
         Trials.api()
             .integers()
-            .flatMap(n -> /* complex trials */)
+            .immutableLists()
             .withStrategy(cycle -> 
-                cycle == 0 
+                cycle.isInitial
                     ? CasesLimitStrategy.timed(Duration.ofSeconds(10))
                     : CasesLimitStrategy.counted(50, 0.2))
             .withComplexityLimit(75)
             .withShrinkageAttemptsLimit(30);
 
     @ConfiguredTrialsTest(trials = "configuredTrials")
-    void testSomething(TestCase testCase) {
+    void testSomething(ImmutableList<Integer> testCase) {
         // ...
     }
 }

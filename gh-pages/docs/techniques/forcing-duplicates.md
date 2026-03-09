@@ -223,7 +223,18 @@ final Trials<ImmutableList<Integer>> queryValueLists = api()
                         .immutableListsOfSize(
                                 numberOfChoices)));
 ```
-This time, it takes **68** trials to get that shrunk test case.
+
+Don't forget to go back to just 30 trials:
+
+```java
+testCases.withLimit(30) /* <<----- LOW BUDGET REINSTATED! */.supplyTo(testCase -> {
+final ImmutableList<Integer> queryValues = testCase._1();
+final ImmutableList<Integer> feedSequence = testCase._2();
+
+// The rest of the test body ...
+```
+
+We discover the bug, only this time, it takes **68** trials to get that shrunk test case.
 
 That's a **99.9% reduction** in trials needed!
 
