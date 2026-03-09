@@ -3,6 +3,7 @@ layout: default
 title: Annotation-Based Integration
 parent: JUnit5 Integration
 nav_order: 1
+reviewed: true
 ---
 
 # Annotation-Based Integration
@@ -164,7 +165,7 @@ If you've used `@ParameterizedTest` before, this should feel familiar - but **si
 
 ## IDE Integration
 
-When you run this test in IntelliJ (or your favorite IDE), you'll see:
+When you run this test in IntelliJ (or any other IDE that integrates with JUnit5), you'll see:
 
 - ✅ Each trial run listed individually
 - ✅ Test case values for each trial
@@ -317,7 +318,7 @@ Let's see shrinkage at work, we'll run `SetMembershipPredicateTest`:
 
 ![]({% link /assets/images/SetMembershipPredicateTest.png %})
 
-When you run this in your IDE, you'll see:
+When you run this in your IDE (the screenshot above is from IntelliJ), you'll see:
 
 1. **Trial 1** passes
 2. **Trial 2** fails ← Initial failure detected
