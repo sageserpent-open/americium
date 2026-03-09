@@ -39,7 +39,7 @@ Jqwik is a powerful property-based testing library designed specifically for JUn
 **Key Features:**
 - ✅ **Integrated shrinking** (free, like Americium!)
 - ✅ **Comprehensive documentation**
-- ✅ Uses JUnit5's own engine (not Jupiter)
+- ✅ Integrates with JUnit5 via its own custom engine (not Jupiter)
 - ✅ Heavy use of annotations
 - ✅ In "The Shrinking Challenge"
 
