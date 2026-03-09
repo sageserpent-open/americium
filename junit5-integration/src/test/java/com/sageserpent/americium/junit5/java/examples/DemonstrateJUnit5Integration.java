@@ -431,4 +431,25 @@ public class DemonstrateJUnit5Integration {
                                                   not(equalTo((secondUniqueId))));
                                    });
     }
+
+    @TestFactory
+    Iterator<DynamicTest> tupleTest() {
+        final Trials<Tuple2<Integer, String>> pairs =
+                Trials.api().integers().flatMap(
+                        i ->
+                                Trials.api().strings().map(
+                                        s ->
+                                                Tuple.tuple(i, s)));
+
+        return JUnit5.dynamicTests(pairs.withLimit(10),
+                                   (Integer number, String text) -> {
+                                       // Tuple unpacked!
+                                       System.out.format(
+                                               "Number: %d, Text: %s\n",
+                                               number,
+                                               text);
+                                   }
+        );
+    }
+
 }

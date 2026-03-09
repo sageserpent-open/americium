@@ -3,6 +3,7 @@ layout: default
 title: Strongly-Typed Integration
 parent: JUnit5 Integration
 nav_order: 2
+reviewed: true
 ---
 
 # Strongly-Typed Integration
@@ -52,7 +53,7 @@ Whether you're writing in **Java** or **Scala**, you can integrate with JUnit5 u
 
 ## Scala Example with `dynamicTests`
 
-Let's convert the permutations example to use type-safe integration:
+Here's a test to verify sorting works, only it has a fault in the test itself:
 ```scala
 // JUnit5 annotation
 import org.junit.jupiter.api.TestFactory
@@ -63,39 +64,36 @@ import com.sageserpent.americium.junit5.*
 // Expecty assertions (optional - use your favorite assertion library)
 import com.eed3si9n.expecty.Expecty.assert
 
-class DemonstrateJUnit5Integration {
-  @TestFactory
-  def thingsShouldBeInOrder(): DynamicTests = {
-    val permutations: Trials[SortedMap[Int, Int]] =
-      api.only(15).flatMap { size =>
-        val sourceCollection = 0 until size
+@TestFactory
+def sortingPutsThingsInOrder(): DynamicTests = {
+  val testCases = for {
+    nonNegativeIncrements <- api.integers(0, 10).lists
+    minimum               <- api.integers(-20, 20)
+    ascendingSequence = nonNegativeIncrements.scanLeft(minimum)(_ + _)
+    permutation <- api.indexPermutations(ascendingSequence.size)
+  } yield ascendingSequence -> permutation.map(ascendingSequence.apply)
 
-        api
-          .indexPermutations(size)
-          .map(indices => {
-            val permutation = SortedMap.from(indices.zip(sourceCollection))
+  testCases.withLimit(10).dynamicTests {
+    (ascendingSequence: Seq[Int], permutedSequence: Seq[Int]) =>
+      val sortedSequence =
+        permutedSequence /* FORGOT TO SORT IT! ----->> */ // .sorted
 
-            assume(permutation.size == size)
-
-            assume(SortedSet.from(permutation.values).toSeq == sourceCollection)
-
-            permutation
-          })
-      }
-
-    permutations
-      .withLimit(15)
-      .dynamicTests { permuted =>
-        Trials.whenever(permuted.nonEmpty) {
-          assert(permuted.values zip permuted.values.tail forall {
-            case (left, right) =>
-              left <= right
-          })
-        }
-      }
+      assert(ascendingSequence == sortedSequence)
   }
 }
 ```
+Americium picks up the assertion failure and shrinks down to:
+
+```
+java.lang.AssertionError: assertion failed
+
+assert(ascendingSequence == sortedSequence)
+       |                 |  |
+       List(0, 1)        |  Vector(1, 0)
+                         false
+```
+
+Note the helpful pretty-printed labels on the failing assertion - these come from Expecty.
 
 ---
 
@@ -104,7 +102,7 @@ class DemonstrateJUnit5Integration {
 ### 1. `@TestFactory` Instead of `@TrialsTest`
 ```scala
 @TestFactory
-def thingsShouldBeInOrder(): DynamicTests = {
+def sortingPutsThingsInOrder(): DynamicTests = {
   // ...
 }
 ```
@@ -115,7 +113,7 @@ JUnit5's **`@TestFactory`** annotation expects a method that returns some kind o
 
 ### 2. `DynamicTests` Type Alias
 
-To avoid polluting your nice Scala code with coarse Java types, Americium provides a **type alias**:
+To avoid polluting your nice Scala code with coarse and ill-mannered Java types, Americium provides a **type alias**:
 ```scala
 import com.sageserpent.americium.junit5.*
 
@@ -128,9 +126,8 @@ Behind the scenes, this is just `java.util.Iterator[org.junit.jupiter.api.Dynami
 
 ### 3. `.dynamicTests` Instead of `.supplyTo`
 ```scala
-permutations
-  .withLimit(15)
-  .dynamicTests { permuted =>  // ← Type-checked!
+  testCases.withLimit(10).dynamicTests {
+  (ascendingSequence: Seq[Int], permutedSequence: Seq[Int]) =>  // ← Type-checked!
     // Test code
   }
 ```
@@ -138,6 +135,9 @@ permutations
 The **`.dynamicTests`** method (pulled in via the import) packages up your test and supply into something JUnit5 can use.
 
 **The key:** This is a **type-checked call** - the compiler verifies that the lambda's parameter type matches the trials instance's type parameter!
+
+{: .tip }
+> As Scala performs type inference, you could just write the arguments without the type declarations; the test body will be type-checked anyway. See which way you prefer.
 
 ---
 
@@ -168,7 +168,6 @@ import com.sageserpent.americium.junit5.*
 The **`.*`** import brings in:
 - **`dynamicTests`** extension method
 - **`DynamicTests`** type alias
-- Other JUnit5 integration utilities
 
 ---
 
@@ -213,7 +212,7 @@ The **`JUnit5`** class provides static methods for creating type-safe dynamic te
 
 ## No Type Alias in Java
 
-In Java, you have to see the full JUnit5 type in its glory:
+In Java, you have to see the full Java type in its glory:
 ```java
 Iterator<DynamicTest> dynamicTestsExample() {
     // ...
@@ -276,7 +275,7 @@ Iterator<DynamicTest> tupleTest() {
     final Trials<Tuple2<Integer, String>> pairs =
         Trials.api().integers().flatMap(i ->
             Trials.api().strings().map(s ->
-                Tuple.of(i, s)));
+                Tuple.tuple(i, s)));
     
     return JUnit5.dynamicTests(
         pairs.withLimit(10),
@@ -408,61 +407,6 @@ assertThat(actual, equalTo(expected));
 import static org.assertj.core.api.Assertions.*;
 assertThat(actual).isEqualTo(expected);
 ```
-
----
-
-## Practical Example: Complex Test
-
-Here's a realistic example combining multiple features:
-```scala
-import org.junit.jupiter.api.{TestFactory, BeforeEach}
-import com.sageserpent.americium.junit5.*
-import com.eed3si9n.expecty.Expecty.assert
-
-class StackTest {
-  var stack: Stack[Int] = _
-  
-  @BeforeEach
-  def setUp(): Unit = {
-    stack = new Stack[Int]()  // Fresh stack per trial
-  }
-  
-  @TestFactory
-  def pushAndPopMaintainsOrder(): DynamicTests = {
-    val items: Trials[List[Int]] = 
-      api.integers(1, 100).immutableLists()
-    
-    items
-      .withLimit(50)
-      .withComplexityLimit(20)
-      .dynamicTests { itemsToPush =>
-        // Push all items
-        itemsToPush.foreach(stack.push)
-        
-        // Pop all items
-        val poppedItems = (1 to itemsToPush.size).map(_ => stack.pop())
-        
-        // Should be in reverse order
-        assert(poppedItems == itemsToPush.reverse)
-      }
-  }
-  
-  @TestFactory
-  def popEmptyStackThrows(): DynamicTests = {
-    api.only(()).withLimit(1).dynamicTests { _ =>
-      assertThrows[NoSuchElementException] {
-        stack.pop()
-      }
-    }
-  }
-}
-```
-
-Notice:
-- **`@BeforeEach`** gives each trial a fresh stack
-- **Configuration** is explicit in code (`.withLimit(50).withComplexityLimit(20)`)
-- **Multiple test factories** in the same class
-- **Type safety** - compiler knows `itemsToPush` is `List[Int]`
 
 ---
 

@@ -124,4 +124,23 @@ class DemonstrateJUnit5Integration {
 
     })
   }
+
+  @Disabled
+  @TestFactory
+  def sortingPutsThingsInOrder(): DynamicTests = {
+    val testCases = for {
+      nonNegativeIncrements <- api.integers(0, 10).lists
+      minimum               <- api.integers(-20, 20)
+      ascendingSequence = nonNegativeIncrements.scanLeft(minimum)(_ + _)
+      permutation <- api.indexPermutations(ascendingSequence.size)
+    } yield ascendingSequence -> permutation.map(ascendingSequence.apply)
+
+    testCases.withLimit(10).dynamicTests {
+      (ascendingSequence, permutedSequence) =>
+        val sortedSequence =
+          permutedSequence /* FORGOT TO SORT IT! ----->> */ // .sorted
+
+        assert(ascendingSequence == sortedSequence)
+    }
+  }
 }

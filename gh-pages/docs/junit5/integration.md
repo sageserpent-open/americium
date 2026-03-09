@@ -361,7 +361,6 @@ Where:
 
 {: .tip }
 > If you're running tests from an IDE, you can directly replay the maximally shrunk test case; you may prefer this over using a recipe.
-> 
 
 ---
 
