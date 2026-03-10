@@ -960,14 +960,16 @@ class TrialsSpec
 
         val sut: Trials[List[Any]] =
           (input match {
-            case sequence: Seq[_]       => api.choose(sequence)
-            case factory: (Long => Any) =>
-              api.streamLegacy(factory)
-            case singleton => api.only(singleton)
+            case sequence: Seq[_] => api.choose(sequence)
+            case singleton        => api.only(singleton)
           }).several[List[_]]
             .filter(cartesianProductSizeLimitation)
 
         val mockConsumer: Any => Unit = mock(classOf[Any => Unit])
+
+        doAnswer(invocation => println(invocation.getArgument(0)))
+          .when(mockConsumer)
+          .apply(any())
 
         val elements = input match {
           case sequence: Seq[Any] =>
@@ -990,6 +992,8 @@ class TrialsSpec
         } else Set(Nil)
 
         val limit = 1500
+
+        println("------------------------------")
 
         sut.withLimit(limit).supplyTo(mockConsumer)
 
