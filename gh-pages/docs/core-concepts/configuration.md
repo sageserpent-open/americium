@@ -119,13 +119,11 @@ trials.withStrategy(cycle -> {
 Or use time budgets that vary:
 ```java
 trials.withStrategy(cycle -> {
-    if (cycle.isInitial) {
-        // Exploration: want a quick test and don't want to look at everything.
-        return CasesLimitStrategy.timed(Duration.ofSeconds(2));
-    } else {
-        // Shrinkage: if we do see a failed test case, work hard to shrink it down.
-        return CasesLimitStrategy.timed(Duration.ofSeconds(10));
-    }
+    // Exploration: want a quick test and don't want to look at everything.
+    // Shrinkage: if we do see a failed test case, work hard to shrink it down.
+    final Duration timeBudget = Duration.ofSeconds(cycle.isInitial ? 2 : 10)
+
+    return CasesLimitStrategy.timed(timeBudget);
 });
 ```
 
