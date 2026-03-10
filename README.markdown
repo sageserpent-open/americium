@@ -115,7 +115,7 @@ the Java collections work that way? Maybe the test expectations should have been
 
 I certainly did; get your ticket here: [Americium Site](https://sageserpent-open.github.io/americium).
 
-If you'd prefer me to get my slide projector out and watch the holiday snaps from yesteryear: [Americium Wiki](https://github.com/sageserpent-open/americium/wiki).
+If you'd prefer me to get my slide projector out and show the holiday snaps from yesteryear: [Americium Wiki](https://github.com/sageserpent-open/americium/wiki).
 
 
 
