@@ -100,8 +100,8 @@ When you see `cycle -> CasesLimitStrategy...`, what's that about?
 
 **Cycles** represent phases of the testing process:
 
-- **Cycle 0** - Initial exploration (finding a failing case)
-- **Cycle 1+** - Shrinkage attempts (finding simpler failing cases)
+- **Initial exploration**: finding a failing case
+- **Subsequent shrinkage attempts**: finding simpler failing cases
 
 You can configure **different limits for each cycle**:
 ```java
