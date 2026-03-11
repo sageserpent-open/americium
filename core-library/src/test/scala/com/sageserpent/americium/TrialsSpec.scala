@@ -453,7 +453,7 @@ class TrialsSpec
         val mockConsumer: Any => Unit = mock(classOf[Any => Unit])
 
         sut
-          .withLimit(limit)
+          .withLimit(possibleChoices.size)
           .withValidTrialsCheck(enabled = false)
           .supplyTo(mockConsumer)
 
