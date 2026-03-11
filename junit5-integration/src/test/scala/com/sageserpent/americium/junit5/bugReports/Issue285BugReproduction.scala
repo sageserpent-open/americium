@@ -11,26 +11,31 @@ class Issue285BugReproduction {
   @TestFactory
   def combiningTrialsViaSequenceYieldsTheCartesianProductOfTheirElements()
       : DynamicTests = {
-    def nElements(n: Int): Trials[Int] = api.integers(1, n)
+    // Outer trials instance - this is for the *test*.
+    val elementMaximaTrials = api.integers(1, 5).several[List[Int]]
 
-    val elementRangesTrials = api.integers(1, 5).several[List[Int]]
+    elementMaximaTrials.withLimit(20).dynamicTests { elementMaxima =>
+      def inRangeFromOneToMaximum(maximum: Int): Trials[Int] =
+        api.choose(1 to maximum)
 
-    elementRangesTrials.withLimit(20).dynamicTests { elementRanges =>
-      val trialsSequence = elementRanges.map(nElements)
+      val trialsSequence = elementMaxima.map(inRangeFromOneToMaximum)
 
+      // Inner trials instance - this is the *SUT* itself; we rely on
+      // `Trials.supplyTo` being re-entrant.
       val cartesianProduct = api.sequences(trialsSequence)
 
-      val cartesianProductSize = elementRanges.product
+      val cartesianProductSize = elementMaxima.product
 
       val results = mutable.Set.empty[List[Int]]
 
       println("---------------------------------")
 
-      cartesianProduct.withLimit(cartesianProductSize).supplyTo {
-        productMember =>
+      cartesianProduct
+        .withLimit(cartesianProductSize)
+        .supplyTo { productMember =>
           println(productMember)
           results += productMember
-      }
+        }
 
       assert(cartesianProductSize == results.size)
     }
