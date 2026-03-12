@@ -29,7 +29,12 @@ import org.slf4j.event.Level
 import _root_.java.lang.Integer as JavaInteger
 import _root_.java.util.function.{Consumer, Predicate, Function as JavaFunction}
 import _root_.java.util.stream.IntStream
-import _root_.java.util.{Optional, UUID, LinkedList as JavaLinkedList}
+import _root_.java.util.{
+  Optional,
+  UUID,
+  LinkedList as JavaLinkedList,
+  List as JavaList
+}
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 import scala.jdk.CollectionConverters.*
@@ -2412,6 +2417,68 @@ class TrialsSpec
       uniqueIds.zip(uniqueIds.tail).foreach { case (predecessor, successor) =>
         successor should be(1 + predecessor)
       }
+    }
+  }
+
+  "combining Scala trials via `sequence`" should "yield the Cartesian product of the elements" in {
+    // Outer trials instance - this is for the *test*.
+    val elementMaximaTrials = api.integers(1, 5).several[List[Int]]
+
+    elementMaximaTrials.withLimit(20).supplyTo { elementMaxima =>
+      def inRangeFromOneToMaximum(maximum: Int): Trials[Int] =
+        api.choose(1 to maximum)
+
+      val trialsSequence = elementMaxima.map(inRangeFromOneToMaximum)
+
+      // Inner trials instance - this is the *SUT* itself; we rely on
+      // `Trials.supplyTo` being re-entrant.
+      val cartesianProduct = api.sequences(trialsSequence)
+
+      val cartesianProductSize = elementMaxima.product
+
+      val results = mutable.Set.empty[List[Int]]
+
+      println("---------------------------------")
+
+      cartesianProduct
+        .withLimit(cartesianProductSize)
+        .supplyTo { productMember =>
+          println(productMember)
+          results += productMember
+        }
+
+      results should have size cartesianProductSize
+    }
+  }
+
+  "combining Java trials via `sequence`" should "yield the Cartesian product of the elements" in {
+    // Outer trials instance - this is for the *test*.
+    val elementMaximaTrials = api.integers(1, 5).several[List[Int]]
+
+    elementMaximaTrials.withLimit(20).supplyTo { elementMaxima =>
+      def inRangeFromOneToMaximum(maximum: Int): JavaTrials[Int] =
+        javaApi.choose((1 to maximum).asJava)
+
+      val trialsSequence = elementMaxima.map(inRangeFromOneToMaximum).asJava
+
+      // Inner trials instance - this is the *SUT* itself; we rely on
+      // `Trials.supplyTo` being re-entrant.
+      val cartesianProduct = javaApi.immutableLists(trialsSequence)
+
+      val cartesianProductSize = elementMaxima.product
+
+      val results = mutable.Set.empty[JavaList[Int]]
+
+      println("---------------------------------")
+
+      cartesianProduct
+        .withLimit(cartesianProductSize)
+        .supplyTo { productMember =>
+          println(productMember)
+          results += productMember
+        }
+
+      results should have size cartesianProductSize
     }
   }
 }
