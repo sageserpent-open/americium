@@ -69,16 +69,20 @@ Anyway, we called `Trials.immutableLists` on our `Trials<Integer>` and got a `Tr
 
 ### Available Collection Methods
 
-There are other such methods available:
-- `.immutableSets`
-- `.immutableSortedSets`
-- `.immutableMaps`
-- `.immutableSortedMaps`
-- `.collections` (for the ultimate in custom collections)
+There are several such methods available:
+
+| Collection                    | Java                   | Scala         |
+|:------------------------------|:-----------------------|:--------------|
+| **List**                      | `.immutableLists`      | `.lists`      |
+| **Set**                       | `.immutableSets`       | `.sets`       |
+| **Set** *(sorted by element)* | `.immutableSortedSets` | `.sortedSets` |
+| **Map**                       | `.immutableMaps`       | `.maps`       |
+| **Map** *(sorted by key)*     | `.immutableSortedMaps` | `.sortedMaps` |
+| **Custom Collection**         | `.collections`         | `.several`    |
 
 ### Cartesian Product Collections
 
-There is also a nice method `TrialsApi.immutableLists`:
+In the Java API, there is also a nice method `TrialsApi.immutableLists`:
 ```java
 final Trials<ImmutableList<Integer>> lists = api().immutableLists(List.of(
     api().choose(0, 1, 2),
@@ -98,7 +102,10 @@ You'll get the idea:
 [2, -2, 99]
 ```
 
-Observe how Americium works its way through the **Cartesian product** of the various contributions from the underlying trials. Again, there is a `TrialsApi.collections` for those who need customised collections.
+Observe how Americium works its way through the **Cartesian product** of the various contributions from the underlying trials. Again, there is a `TrialsApi.collections` in the Java API for those who need other collections.
+
+{: .note }
+> In the Scala API, `TrialsApi.sequences` does the same job.
 
 ---
 
