@@ -267,7 +267,7 @@ This is the clever part: Americium doesn't just see the final value. It records 
 ```java
 api().integers(1, 10)              // Decision: pick an integer
     .flatMap(n ->                  // For each integer...
-        api().characters('a', 'z') // Decision: pick a character
+        api().characters('a', 'z', 'm') // Decision: pick a character
             .lotsOfSize(n))        // Repeat n times
 ```
 
@@ -276,8 +276,8 @@ For this trials, Americium tracks:
 - Which characters were chosen (e.g., 'q', 'z', 'a', 'i', 'r')
 
 When shrinking:
-- Try smaller integer (5 → 4 → 3 → ...)
-- Try characters closer to 'a' ('q' → 'p' → ... → 'a')
+- Try smaller integers (5 → 4 → ... → 1)
+- Try characters closer to 'm' ('q' → 'p' → ... → 'm')
 
 Both dimensions shrink **independently and simultaneously**.
 
