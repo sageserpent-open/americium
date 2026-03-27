@@ -77,7 +77,7 @@ lazy val coreDependencies = Def.setting {
     "org.typelevel"                %% "cats-core"             % "2.13.0",
     "org.typelevel"                %% "cats-free"             % "2.13.0",
     "org.typelevel"                %% "cats-collections-core" % "0.9.10",
-    "co.fs2"                       %% "fs2-core"              % "3.12.2",
+    "co.fs2"                       %% "fs2-core"              % "3.13.0",
     "io.circe"                     %% "circe-core"            % "0.14.15",
     "io.circe"                     %% "circe-generic"         % "0.14.15",
     "io.circe"                     %% "circe-parser"          % "0.14.15",
