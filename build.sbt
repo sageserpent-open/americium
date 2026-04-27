@@ -110,7 +110,7 @@ lazy val `americium-utilities`: Project =
     .settings(
       name := "americium-utilities",
       description := "Utilities used internally by Americium that are of use to other projects",
-      libraryDependencies += "org.scalatest" %% "scalatest" % "3.2.19" % Test
+      libraryDependencies += "org.scalatest" %% "scalatest" % "3.2.20" % Test
     )
 
 lazy val `external-tests`: Project = (project in file("external-tests"))
@@ -123,7 +123,7 @@ lazy val `external-tests`: Project = (project in file("external-tests"))
     name := "external-tests",
     description := "Tests in their own project to break pseudo-cyclic dependencies",
     publish / skip                         := true,
-    libraryDependencies += "org.scalatest" %% "scalatest" % "3.2.19" % Test
+    libraryDependencies += "org.scalatest" %% "scalatest" % "3.2.20" % Test
   )
 
 lazy val americium: Project = (project in file("core-library"))
@@ -136,7 +136,7 @@ lazy val americium: Project = (project in file("core-library"))
     libraryDependencies ++= scalaVersionDependencies.value,
     libraryDependencies += "com.github.valfirst" % "slf4j-test" % "3.0.3" % Test,
     libraryDependencies += "org.typelevel"  %% "cats-laws"  % "2.13.0" % Test,
-    libraryDependencies += "org.scalatest"  %% "scalatest"  % "3.2.19" % Test,
+    libraryDependencies += "org.scalatest"  %% "scalatest"  % "3.2.20" % Test,
     libraryDependencies += "org.scalacheck" %% "scalacheck" % "1.19.0" % Test,
     libraryDependencies += "org.scalatestplus" %% "scalacheck-1-16" % "3.2.14.0" % Test,
     libraryDependencies += "org.mockito" % "mockito-core" % "5.23.0" % Test,
@@ -159,7 +159,7 @@ lazy val `americium-junit5`: Project = (project in file("junit5-integration"))
     libraryDependencies += "org.junit.jupiter" % "junit-jupiter-params" % "5.14.3",
     libraryDependencies += "org.junit.platform" % "junit-platform-launcher" % "1.14.3",
 
-    libraryDependencies += "org.scalatest" %% "scalatest" % "3.2.19" % Test,
+    libraryDependencies += "org.scalatest" %% "scalatest" % "3.2.20" % Test,
     libraryDependencies += "uk.org.webcompere" % "system-stubs-jupiter" % "2.1.8" % Test,
     libraryDependencies += "com.github.valfirst" % "slf4j-test" % "3.0.3" % Test,
     libraryDependencies += "org.hamcrest" % "hamcrest" % "3.0" % Test,
