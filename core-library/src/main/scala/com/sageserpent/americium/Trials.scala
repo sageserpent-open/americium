@@ -93,14 +93,13 @@ trait Trials[+Case]
   override type SupplySyntaxType <: TrialsScaffolding.SupplyToSyntax[Case]
 
   /** This is mostly just for implementation purposes, as the Java incarnation
-    * [[support.java.Trials]] is effectively a wrapper around
-    * the Scala incarnation [[Trials]]. However, if you want to pull cases via
-    * an iterator, this is handy as currently the iterator access is via the
-    * Java incarnation.
+    * [[support.java.Trials]] is effectively a wrapper around the Scala
+    * incarnation [[Trials]]. However, if you want to pull cases via an
+    * iterator, this is handy as currently the iterator access is via the Java
+    * incarnation.
     *
     * @return
-    * The Java incarnation [[support.java.Trials]] of this
-    * instance
+    *   The Java incarnation [[support.java.Trials]] of this instance
     */
   def javaTrials: JavaTrials[Case @uncheckedVariance]
 
