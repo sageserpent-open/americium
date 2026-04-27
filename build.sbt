@@ -81,7 +81,7 @@ lazy val coreDependencies = Def.setting {
     "io.circe"                     %% "circe-core"            % "0.14.15",
     "io.circe"                     %% "circe-generic"         % "0.14.15",
     "io.circe"                     %% "circe-parser"          % "0.14.15",
-    "com.google.guava"              % "guava"                 % "33.5.0-jre",
+    "com.google.guava"              % "guava"                 % "33.6.0-jre",
     "com.github.ben-manes.caffeine" % "caffeine"              % "3.2.3",
     "com.oath.cyclops"              % "cyclops"               % "10.4.1",
     "com.lihaoyi"                  %% "os-lib"                % "0.11.8",
