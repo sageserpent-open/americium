@@ -41,7 +41,7 @@ aux_links:
   "Americium on GitHub":
     - "https://github.com/sageserpent-open/americium"
   "Sonatype":
-    - "https://central.sonatype.com/artifact/com.sageserpent/americium"
+    - "https://central.sonatype.com/search?q=americium"
 
 # Footer
 footer_content: >-
