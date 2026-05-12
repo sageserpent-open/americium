@@ -95,7 +95,7 @@ lazy val scalaVersionDependencies = Def.setting {
   CrossVersion.partialVersion(scalaVersion.value) match {
     case Some((2, _)) =>
       Seq(
-        "com.softwaremill.magnolia1_2" %% "magnolia"      % "1.1.12",
+        "com.softwaremill.magnolia1_2" %% "magnolia"      % "1.1.13",
         "org.scala-lang"                % "scala-reflect" % scalaVersion.value
       )
     case Some((3, _)) =>
@@ -156,8 +156,8 @@ lazy val `americium-junit5`: Project = (project in file("junit5-integration"))
     description := "JUnit5 integration for Americium property-based testing",
     // Pin the *non-test* JUnit dependencies to align with JUnit5 rather than
     // picking up the version from `JupiterKeys`.
-    libraryDependencies += "org.junit.jupiter" % "junit-jupiter-params" % "5.14.3",
     libraryDependencies += "org.junit.platform" % "junit-platform-launcher" % "1.14.4",
+    libraryDependencies += "org.junit.jupiter" % "junit-jupiter-params" % "5.14.4",
 
     libraryDependencies += "org.scalatest" %% "scalatest" % "3.2.20" % Test,
     libraryDependencies += "uk.org.webcompere" % "system-stubs-jupiter" % "2.1.8" % Test,
