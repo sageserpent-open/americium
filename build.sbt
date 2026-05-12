@@ -156,7 +156,7 @@ lazy val `americium-junit5`: Project = (project in file("junit5-integration"))
     description := "JUnit5 integration for Americium property-based testing",
     // Pin the *non-test* JUnit dependencies to align with JUnit5 rather than
     // picking up the version from `JupiterKeys`.
-    libraryDependencies += "org.junit.jupiter" % "junit-jupiter-params" % "5.14.3",
+    libraryDependencies += "org.junit.jupiter" % "junit-jupiter-params" % "5.14.4",
     libraryDependencies += "org.junit.platform" % "junit-platform-launcher" % "1.14.3",
 
     libraryDependencies += "org.scalatest" %% "scalatest" % "3.2.20" % Test,
