@@ -99,7 +99,7 @@ lazy val scalaVersionDependencies = Def.setting {
         "org.scala-lang"                % "scala-reflect" % scalaVersion.value
       )
     case Some((3, _)) =>
-      Seq("com.softwaremill.magnolia1_3" %% "magnolia" % "1.3.18")
+      Seq("com.softwaremill.magnolia1_3" %% "magnolia" % "1.3.20")
     case _ => Seq.empty
   }
 }
