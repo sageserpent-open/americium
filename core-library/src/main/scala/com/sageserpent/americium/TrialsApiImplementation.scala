@@ -502,7 +502,7 @@ class TrialsApiImplementation extends CommonApi with ScalaTrialsApi {
       if (candidateLists.isEmpty) only(Vector.empty)
       else
         integers(0, candidateLists.size - 1).flatMap { chosenCandidateIndex =>
-          val (prefix, Vector(listToPickFrom, suffix*)) =
+          val (prefix, Vector(listToPickFrom, suffix @ _*)) =
             candidateLists.splitAt(chosenCandidateIndex): @unchecked
 
           val remainders = prefix ++ suffix
@@ -526,4 +526,72 @@ class TrialsApiImplementation extends CommonApi with ScalaTrialsApi {
 
     pickAnItem(iterables.map(LazyList.from(_)).toVector)
   }
+
+  override def splitIntoPieces[Element, Container[X] <: Iterable[X]](
+      items: Container[Element],
+      numberOfPieces: Int
+  ): Trials[Seq[Container[Element]]] = {
+    require(0 < numberOfPieces)
+
+    val numberOfItems = items.size
+
+    val partitionPointIndexVectors =
+      if (0 < numberOfItems)
+        integers(lowerBound = 0, upperBound = numberOfItems)
+          .lotsOfSize[Vector[Int]](numberOfPieces - 1)
+          .map(_.sorted)
+      else only(Vector.fill(numberOfPieces - 1)(0))
+
+    partitionPointIndexVectors.map { partitionPointIndices =>
+      val chunkSizes = (0 +: partitionPointIndices)
+        .zip(partitionPointIndices :+ numberOfItems)
+        .map { case (partitionStartIndex, onePastPartitionEndIndex) =>
+          onePastPartitionEndIndex - partitionStartIndex
+        }
+
+      thingsInChunks(chunkSizes, items)
+    }
+  }
+
+  override def splitIntoNonEmptyPieces[Element, Container[X] <: Iterable[X]](
+      items: Container[Element],
+      numberOfPieces: Int
+  ): Trials[Seq[Container[Element]]] = {
+    require(0 < numberOfPieces)
+
+    val numberOfItems = items.size
+
+    val chunkSizeVectors =
+      indexCombinations(
+        numberOfIndices = numberOfItems - 1,
+        combinationSize = numberOfPieces - 1
+      ).map(_.map(1 + _))
+        .map(partitionPointIndices =>
+          (0 +: partitionPointIndices)
+            .zip(partitionPointIndices :+ numberOfItems)
+            .map { case (partitionStartIndex, onePastPartitionEndIndex) =>
+              onePastPartitionEndIndex - partitionStartIndex
+            }
+        )
+
+    chunkSizeVectors.map(chunkSizes => thingsInChunks(chunkSizes, items))
+  }
+
+  private def thingsInChunks[Element, Container[X] <: Iterable[X]](
+      chunkSizes: Seq[Int],
+      things: Container[Element]
+  ): Seq[Container[Element]] =
+    chunkSizes match {
+      case Seq(leadingChunkSize, chunkSizesTail @ _*) =>
+        val (leadingChunk, remainder) =
+          things.splitAt(leadingChunkSize): @unchecked
+
+        leadingChunk.asInstanceOf[Container[Element]] +: thingsInChunks(
+          chunkSizesTail,
+          remainder.asInstanceOf[Container[Element]]
+        )
+      case Nil =>
+        assume(things.isEmpty)
+        Seq.empty
+    }
 }
