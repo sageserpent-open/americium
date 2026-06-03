@@ -370,4 +370,30 @@ public interface TrialsApi {
     <Element> Trials<List<Element>> pickAlternatelyFrom(
             boolean shrinkToRoundRobin,
             Iterable<Element>... iterable);
+
+    /**
+     * Produce a trials instance that yields a list of pieces whose
+     * concatenation is {@code items}.
+     *
+     * @param items          The items to be split into pieces.
+     * @param numberOfPieces The number of pieces to split {@code items} into.
+     * @param <Element>      The type of the elements in {@code items}.
+     * @return A {@link Trials} instance that yields a list of pieces.
+     */
+    <Element> Trials<List<List<Element>>> splitIntoPieces(
+            List<Element> items,
+            int numberOfPieces);
+
+    /**
+     * Produce a trials instance that yields a list of non-empty pieces whose
+     * concatenation is {@code items}.
+     *
+     * @param items          The items to be split into pieces.
+     * @param numberOfPieces The number of pieces to split {@code items} into.
+     * @param <Element>      The type of the elements in {@code items}.
+     * @return A {@link Trials} instance that yields a list of non-empty pieces.
+     */
+    <Element> Trials<List<List<Element>>> splitIntoNonEmptyPieces(
+            List<Element> items,
+            int numberOfPieces);
 }

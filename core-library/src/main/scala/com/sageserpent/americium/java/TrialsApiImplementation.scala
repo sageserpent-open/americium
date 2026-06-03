@@ -388,4 +388,25 @@ trait TrialsApiImplementation extends CommonApi with TrialsApiWart {
       .map(_.asJava)
       .javaTrials
   }
+
+  override def splitIntoPieces[Element](
+      items: JavaList[Element],
+      numberOfPieces: Int
+  ): JavaTrials[JavaList[JavaList[Element]]] =
+    scalaApi
+      .splitIntoPieces[Element, List](items.asScala.toList, numberOfPieces)
+      .map(_.map(_.asJava).asJava)
+      .javaTrials
+
+  override def splitIntoNonEmptyPieces[Element](
+      items: JavaList[Element],
+      numberOfPieces: Int
+  ): JavaTrials[JavaList[JavaList[Element]]] =
+    scalaApi
+      .splitIntoNonEmptyPieces[Element, List](
+        items.asScala.toList,
+        numberOfPieces
+      )
+      .map(_.map(_.asJava).asJava)
+      .javaTrials
 }
