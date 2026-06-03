@@ -12,30 +12,42 @@ public class SplitIntoPiecesJavaTest {
 
     @Test
     void splitIntoPiecesShouldYieldPiecesThatConcatenateToTheOriginalItems() {
-        itemsTrials.withLimit(50).supplyTo(items -> {
-            api.integers(1, Math.max(1, items.size())).withLimit(10).supplyTo(numberOfPieces -> {
-                api.splitIntoPieces(items, numberOfPieces).withLimit(10).supplyTo(pieces -> {
-                    assertThat(pieces.size(), is(numberOfPieces));
-                    List<Integer> concatenated = pieces.stream().flatMap(List::stream).collect(java.util.stream.Collectors.toList());
-                    assertThat(concatenated, is(items));
-                });
-            });
+        itemsTrials.flatMap(items ->
+            api.integers(1, Math.max(1, items.size())).flatMap(numberOfPieces ->
+                api.splitIntoPieces(items, numberOfPieces).map(pieces ->
+                    new Object() {
+                        final List<Integer> itemsValue = items;
+                        final int numberOfPiecesValue = numberOfPieces;
+                        final List<List<Integer>> piecesValue = pieces;
+                    }
+                )
+            )
+        ).withLimit(100).supplyTo(testCase -> {
+            assertThat(testCase.piecesValue.size(), is(testCase.numberOfPiecesValue));
+            List<Integer> concatenated = testCase.piecesValue.stream().flatMap(List::stream).collect(java.util.stream.Collectors.toList());
+            assertThat(concatenated, is(testCase.itemsValue));
         });
     }
 
     @Test
     void splitIntoNonEmptyPiecesShouldYieldNonEmptyPiecesThatConcatenateToTheOriginalItems() {
-        itemsTrials.filter(items -> !items.isEmpty()).withLimit(50).supplyTo(items -> {
-            api.integers(1, items.size()).withLimit(10).supplyTo(numberOfPieces -> {
-                api.splitIntoNonEmptyPieces(items, numberOfPieces).withLimit(10).supplyTo(pieces -> {
-                    assertThat(pieces.size(), is(numberOfPieces));
-                    List<Integer> concatenated = pieces.stream().flatMap(List::stream).collect(java.util.stream.Collectors.toList());
-                    assertThat(concatenated, is(items));
-                    for (List<Integer> piece : pieces) {
-                        assertThat(piece, is(not(empty())));
+        itemsTrials.filter(items -> !items.isEmpty()).flatMap(items ->
+            api.integers(1, items.size()).flatMap(numberOfPieces ->
+                api.splitIntoNonEmptyPieces(items, numberOfPieces).map(pieces ->
+                    new Object() {
+                        final List<Integer> itemsValue = items;
+                        final int numberOfPiecesValue = numberOfPieces;
+                        final List<List<Integer>> piecesValue = pieces;
                     }
-                });
-            });
+                )
+            )
+        ).withLimit(100).supplyTo(testCase -> {
+            assertThat(testCase.piecesValue.size(), is(testCase.numberOfPiecesValue));
+            List<Integer> concatenated = testCase.piecesValue.stream().flatMap(List::stream).collect(java.util.stream.Collectors.toList());
+            assertThat(concatenated, is(testCase.itemsValue));
+            for (List<Integer> piece : testCase.piecesValue) {
+                assertThat(piece, is(not(empty())));
+            }
         });
     }
 }

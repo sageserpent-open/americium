@@ -10,17 +10,15 @@ class SplitIntoPiecesTest extends AnyFlatSpec with Matchers {
     api.integers.several[Vector[Int]]
 
   "splitIntoPieces" should "yield pieces that concatenate to the original items" in {
-    itemsTrials.withLimit(50).supplyTo { items =>
-      api
-        .integers(1, items.size max 1)
-        .withLimit(10)
-        .supplyTo { numberOfPieces =>
-          api.splitIntoPieces(items, numberOfPieces).withLimit(10).supplyTo {
-            pieces =>
-              pieces.size should be(numberOfPieces)
-              pieces.flatten should be(items)
-          }
-        }
+    val testCaseTrials = for {
+      items          <- itemsTrials
+      numberOfPieces <- api.integers(1, items.size max 1)
+      pieces         <- api.splitIntoPieces(items, numberOfPieces)
+    } yield (items, numberOfPieces, pieces)
+
+    testCaseTrials.withLimit(100).supplyTo { case (items, numberOfPieces, pieces) =>
+      pieces.size should be(numberOfPieces)
+      pieces.flatten should be(items)
     }
   }
 
@@ -37,17 +35,16 @@ class SplitIntoPiecesTest extends AnyFlatSpec with Matchers {
   }
 
   "splitIntoNonEmptyPieces" should "yield non-empty pieces that concatenate to the original items" in {
-    itemsTrials.filter(_.nonEmpty).withLimit(50).supplyTo { items =>
-      api.integers(1, items.size).withLimit(10).supplyTo { numberOfPieces =>
-        api
-          .splitIntoNonEmptyPieces(items, numberOfPieces)
-          .withLimit(10)
-          .supplyTo { pieces =>
-            pieces.size should be(numberOfPieces)
-            pieces.flatten should be(items)
-            pieces.forall(_.nonEmpty) should be(true)
-          }
-      }
+    val testCaseTrials = for {
+      items          <- itemsTrials.filter(_.nonEmpty)
+      numberOfPieces <- api.integers(1, items.size)
+      pieces         <- api.splitIntoNonEmptyPieces(items, numberOfPieces)
+    } yield (items, numberOfPieces, pieces)
+
+    testCaseTrials.withLimit(100).supplyTo { case (items, numberOfPieces, pieces) =>
+      pieces.size should be(numberOfPieces)
+      pieces.flatten should be(items)
+      pieces.forall(_.nonEmpty) should be(true)
     }
   }
 }
