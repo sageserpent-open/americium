@@ -42,12 +42,7 @@ lazy val commonSettings = Seq(
       .groupBy(_.name)
       .map { case (groupName, group) =>
         val trialsRunDatabaseName =
-          if (
-            groupName.contains(
-              "TrialsSpecInQuarantineDueToUseOfRecipeHashSystemProperty"
-            )
-          ) s"trialsRunDatabaseIsolatedForTestGroup$groupName"
-          else "trialsRunDatabaseSharedAcrossTestGroups"
+          s"trialsRunDatabaseIsolatedForTestGroup$groupName"
 
         new Group(
           groupName,
