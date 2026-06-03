@@ -6,13 +6,21 @@ import org.scalatest.matchers.should.Matchers
 class SplitIntoPiecesTest extends AnyFlatSpec with Matchers {
   val api = Trials.api
 
+  private val itemsTrials: Trials[Vector[Int]] =
+    api.integers.several[Vector[Int]]
+
   "splitIntoPieces" should "yield pieces that concatenate to the original items" in {
-    val items = (1 to 10).toVector
-    api.integers(1, 20).withLimit(10).supplyTo { numberOfPieces =>
-      api.splitIntoPieces(items, numberOfPieces).withLimit(10).supplyTo { pieces =>
-        pieces.size should be(numberOfPieces)
-        pieces.flatten should be(items)
-      }
+    itemsTrials.withLimit(50).supplyTo { items =>
+      api
+        .integers(1, items.size max 1)
+        .withLimit(10)
+        .supplyTo { numberOfPieces =>
+          api.splitIntoPieces(items, numberOfPieces).withLimit(10).supplyTo {
+            pieces =>
+              pieces.size should be(numberOfPieces)
+              pieces.flatten should be(items)
+          }
+        }
     }
   }
 
@@ -29,12 +37,16 @@ class SplitIntoPiecesTest extends AnyFlatSpec with Matchers {
   }
 
   "splitIntoNonEmptyPieces" should "yield non-empty pieces that concatenate to the original items" in {
-    val items = (1 to 10).toVector
-    api.integers(1, items.size).withLimit(10).supplyTo { numberOfPieces =>
-      api.splitIntoNonEmptyPieces(items, numberOfPieces).withLimit(10).supplyTo { pieces =>
-        pieces.size should be(numberOfPieces)
-        pieces.flatten should be(items)
-        pieces.forall(_.nonEmpty) should be(true)
+    itemsTrials.filter(_.nonEmpty).withLimit(50).supplyTo { items =>
+      api.integers(1, items.size).withLimit(10).supplyTo { numberOfPieces =>
+        api
+          .splitIntoNonEmptyPieces(items, numberOfPieces)
+          .withLimit(10)
+          .supplyTo { pieces =>
+            pieces.size should be(numberOfPieces)
+            pieces.flatten should be(items)
+            pieces.forall(_.nonEmpty) should be(true)
+          }
       }
     }
   }
