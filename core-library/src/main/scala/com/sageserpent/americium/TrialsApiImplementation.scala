@@ -35,6 +35,29 @@ class TrialsApiImplementation extends CommonApi with ScalaTrialsApi {
   ): TrialsImplementation[Case] =
     chooseWithWeights(firstChoice +: secondChoice +: otherChoices)
 
+  override def chooseWithWeights[Case](
+      choices: Iterable[(Int, Case)]
+  ): TrialsImplementation[Case] =
+    new TrialsImplementation(
+      Choice(choices.filter(0 != _._1).unzip match {
+        case (weights, plainChoices) =>
+          SortedMap.from(
+            weights
+              .scanLeft(0) {
+                case (_, weight) if 0 > weight =>
+                  throw new IllegalArgumentException(
+                    s"Weight $weight amongst provided weights of $weights must be non-negative"
+                  )
+                case (cumulativeWeight, weight) =>
+                  assert(0 < weight)
+                  cumulativeWeight + weight
+              }
+              .drop(1)
+              .zip(plainChoices)
+          )
+      })
+    )
+
   override def alternate[Case](
       firstAlternative: ScalaTrials[Case],
       secondAlternative: ScalaTrials[Case],
@@ -64,44 +87,15 @@ class TrialsApiImplementation extends CommonApi with ScalaTrialsApi {
   ): TrialsImplementation[Case] =
     chooseWithWeights(alternatives).flatMap(identity[ScalaTrials[Case]])
 
-  override def chooseWithWeights[Case](
-      choices: Iterable[(Int, Case)]
-  ): TrialsImplementation[Case] =
-    new TrialsImplementation(
-      Choice(choices.filter(0 != _._1).unzip match {
-        case (weights, plainChoices) =>
-          SortedMap.from(
-            weights
-              .scanLeft(0) {
-                case (_, weight) if 0 > weight =>
-                  throw new IllegalArgumentException(
-                    s"Weight $weight amongst provided weights of $weights must be non-negative"
-                  )
-                case (cumulativeWeight, weight) =>
-                  assert(0 < weight)
-                  cumulativeWeight + weight
-              }
-              .drop(1)
-              .zip(plainChoices)
-          )
-      })
-    )
-
   override def sequences[Case, Sequence[_]: Traverse](
       sequenceOfTrials: Sequence[ScalaTrials[Case]]
   )(implicit
       factory: collection.Factory[Case, Sequence[Case]]
   ): ScalaTrials[Sequence[Case]] = sequenceOfTrials.sequence
 
-  override def complexities: TrialsImplementation[Int] =
-    new TrialsImplementation(NoteComplexity)
-
   override def uniqueIds: TrialsImplementation[Int] = {
     new TrialsImplementation(UniqueId)
   }
-
-  def resetComplexity(complexity: Int): TrialsImplementation[Unit] =
-    new TrialsImplementation(ResetComplexity(complexity))
 
   override def bytes: TrialsImplementation[Byte] =
     stream(new CaseFactory[Byte] {
@@ -113,6 +107,9 @@ class TrialsApiImplementation extends CommonApi with ScalaTrialsApi {
 
   override def integers: TrialsImplementation[Int] =
     integers(Int.MinValue, Int.MaxValue)
+
+  override def nonNegativeIntegers: TrialsImplementation[Int] =
+    integers(0, Int.MaxValue)
 
   override def integers(
       lowerBound: Int,
@@ -138,35 +135,8 @@ class TrialsApiImplementation extends CommonApi with ScalaTrialsApi {
       override def maximallyShrunkInput: BigInt = shrinkageTarget
     })
 
-  override def nonNegativeIntegers: TrialsImplementation[Int] =
-    integers(0, Int.MaxValue)
-
   override def nonNegativeLongs: TrialsImplementation[Long] =
     longs(0, Long.MaxValue)
-
-  override def longs(
-      lowerBound: Long,
-      upperBound: Long
-  ): TrialsImplementation[Long] = longs(
-    lowerBound,
-    upperBound,
-    if (0L > upperBound)
-      upperBound
-    else if (0L < lowerBound) lowerBound
-    else 0L
-  )
-
-  override def longs(
-      lowerBound: Long,
-      upperBound: Long,
-      shrinkageTarget: Long
-  ): TrialsImplementation[Long] =
-    stream(new CaseFactory[Long] {
-      override def apply(input: BigInt): Long   = input.toLong
-      override def lowerBoundInput: BigInt      = lowerBound
-      override def upperBoundInput: BigInt      = upperBound
-      override def maximallyShrunkInput: BigInt = shrinkageTarget
-    })
 
   override def bigInts(
       lowerBound: BigInt,
@@ -191,8 +161,34 @@ class TrialsApiImplementation extends CommonApi with ScalaTrialsApi {
     override def maximallyShrunkInput: BigInt = shrinkageTarget
   })
 
+  def stream[Case](
+      caseFactory: CaseFactory[Case]
+  ): TrialsImplementation[Case] = new TrialsImplementation(
+    Factory(new CaseFactory[Case] {
+      require(lowerBoundInput <= maximallyShrunkInput)
+      require(maximallyShrunkInput <= upperBoundInput)
+
+      override def apply(input: BigInt): Case = {
+        require(lowerBoundInput <= input)
+        require(upperBoundInput >= input)
+        caseFactory(input)
+      }
+      override def lowerBoundInput: BigInt      = caseFactory.lowerBoundInput
+      override def upperBoundInput: BigInt      = caseFactory.upperBoundInput
+      override def maximallyShrunkInput: BigInt =
+        caseFactory.maximallyShrunkInput
+    })
+  )
+
   override def doubles: TrialsImplementation[Double] =
     doubles(Double.MinValue, Double.MaxValue, 0.0)
+
+  override def doubles(
+      lowerBound: Double,
+      upperBound: Double,
+      shrinkageTarget: Double
+  ): TrialsImplementation[Double] =
+    bigDecimals(lowerBound, upperBound, shrinkageTarget).map(_.toDouble)
 
   override def booleans: TrialsImplementation[Boolean] =
     choose(true, false)
@@ -216,13 +212,6 @@ class TrialsApiImplementation extends CommonApi with ScalaTrialsApi {
     else if (0.0 < lowerBound) lowerBound
     else 0.0
   )
-
-  override def doubles(
-      lowerBound: Double,
-      upperBound: Double,
-      shrinkageTarget: Double
-  ): TrialsImplementation[Double] =
-    bigDecimals(lowerBound, upperBound, shrinkageTarget).map(_.toDouble)
 
   override def bigDecimals(
       lowerBound: BigDecimal,
@@ -352,25 +341,6 @@ class TrialsApiImplementation extends CommonApi with ScalaTrialsApi {
 
   override def longs: TrialsImplementation[Long] = streamLegacy(identity)
 
-  def stream[Case](
-      caseFactory: CaseFactory[Case]
-  ): TrialsImplementation[Case] = new TrialsImplementation(
-    Factory(new CaseFactory[Case] {
-      require(lowerBoundInput <= maximallyShrunkInput)
-      require(maximallyShrunkInput <= upperBoundInput)
-
-      override def apply(input: BigInt): Case = {
-        require(lowerBoundInput <= input)
-        require(upperBoundInput >= input)
-        caseFactory(input)
-      }
-      override def lowerBoundInput: BigInt      = caseFactory.lowerBoundInput
-      override def upperBoundInput: BigInt      = caseFactory.upperBoundInput
-      override def maximallyShrunkInput: BigInt =
-        caseFactory.maximallyShrunkInput
-    })
-  )
-
   override def streamLegacy[Case](
       factory: Long => Case
   ): TrialsImplementation[Case] = stream(
@@ -389,6 +359,30 @@ class TrialsApiImplementation extends CommonApi with ScalaTrialsApi {
     longs(lowerBound.toEpochMilli, upperBound.toEpochMilli).map(
       Instant.ofEpochMilli
     )
+
+  override def longs(
+      lowerBound: Long,
+      upperBound: Long
+  ): TrialsImplementation[Long] = longs(
+    lowerBound,
+    upperBound,
+    if (0L > upperBound)
+      upperBound
+    else if (0L < lowerBound) lowerBound
+    else 0L
+  )
+
+  override def longs(
+      lowerBound: Long,
+      upperBound: Long,
+      shrinkageTarget: Long
+  ): TrialsImplementation[Long] =
+    stream(new CaseFactory[Long] {
+      override def apply(input: BigInt): Long   = input.toLong
+      override def lowerBoundInput: BigInt      = lowerBound
+      override def upperBoundInput: BigInt      = upperBound
+      override def maximallyShrunkInput: BigInt = shrinkageTarget
+    })
 
   override def instants(
       lowerBound: Instant,
@@ -527,6 +521,12 @@ class TrialsApiImplementation extends CommonApi with ScalaTrialsApi {
     pickAnItem(iterables.map(LazyList.from(_)).toVector)
   }
 
+  override def complexities: TrialsImplementation[Int] =
+    new TrialsImplementation(NoteComplexity)
+
+  def resetComplexity(complexity: Int): TrialsImplementation[Unit] =
+    new TrialsImplementation(ResetComplexity(complexity))
+
   override def splitIntoPieces[Element, Container[X] <: Iterable[X]](
       items: Container[Element],
       numberOfPieces: Int
@@ -579,21 +579,24 @@ class TrialsApiImplementation extends CommonApi with ScalaTrialsApi {
     chunkSizeVectors.map(chunkSizes => thingsInChunks(chunkSizes, items))
   }
 
+  override def splitIntoNonEmptyPieces[Element, Container[X] <: Iterable[X]](
+      items: Container[Element]
+  ): Trials[Seq[Container[Element]]] = if (items.nonEmpty)
+    integers(1, items.size).flatMap(splitIntoNonEmptyPieces(items, _))
+  else only(Seq.empty)
+
   private def thingsInChunks[Element, Container[X] <: Iterable[X]](
       chunkSizes: Seq[Int],
       things: Container[Element]
-  ): Seq[Container[Element]] =
+  ): LazyList[Container[Element]] =
     chunkSizes match {
-      case Seq(leadingChunkSize, chunkSizesTail @ _*) =>
-        val (leadingChunk, remainder) =
+      case Seq(leadingChunkSize, chunkSizesTail*) =>
+        val (leadingChunk: Container[Element], remainder: Container[Element]) =
           things.splitAt(leadingChunkSize): @unchecked
 
-        leadingChunk.asInstanceOf[Container[Element]] +: thingsInChunks(
-          chunkSizesTail,
-          remainder.asInstanceOf[Container[Element]]
-        )
-      case Nil =>
+        leadingChunk #:: thingsInChunks(chunkSizesTail, remainder)
+      case Seq() =>
         assume(things.isEmpty)
-        Seq.empty
+        LazyList.empty
     }
 }

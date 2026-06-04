@@ -398,4 +398,15 @@ public interface TrialsApi {
     <Element> Trials<List<List<Element>>> splitIntoNonEmptyPieces(
             List<Element> items,
             int numberOfPieces);
+
+    /**
+     * Produce a trials instance that yields a list of non-empty pieces whose
+     * concatenation is {@code items}.
+     *
+     * @param items          The items to be split into pieces.
+     * @param <Element>      The type of the elements in {@code items}.
+     * @return A {@link Trials} instance that yields a list of non-empty pieces.
+     */
+    <Element> Trials<List<List<Element>>> splitIntoNonEmptyPieces(
+            List<Element> items);
 }

@@ -300,12 +300,6 @@ trait TrialsApiImplementation extends CommonApi with TrialsApiWart {
   override def booleans(): TrialsImplementation[JavaBoolean] =
     scalaApi.booleans.map(Boolean.box)
 
-  override def characters(): CharacterTrials =
-    DelegatingTrials.delegateTo(
-      classOf[CharacterTrials],
-      scalaApi.characters.map(Char.box)
-    )
-
   override def characters(
       lowerBound: Char,
       upperBound: Char
@@ -343,6 +337,12 @@ trait TrialsApiImplementation extends CommonApi with TrialsApiWart {
 
   override def strings(): JavaTrials[String] =
     characters().strings
+
+  override def characters(): CharacterTrials =
+    DelegatingTrials.delegateTo(
+      classOf[CharacterTrials],
+      scalaApi.characters.map(Char.box)
+    )
 
   override def indexPermutations(
       numberOfIndices: Int
@@ -409,4 +409,11 @@ trait TrialsApiImplementation extends CommonApi with TrialsApiWart {
       )
       .map(_.map(_.asJava).asJava)
       .javaTrials
+
+  override def splitIntoNonEmptyPieces[Element](
+      items: JavaList[Element]
+  ): JavaTrials[JavaList[JavaList[Element]]] = scalaApi
+    .splitIntoNonEmptyPieces[Element, List](items.asScala.toList)
+    .map(_.map(_.asJava).asJava)
+    .javaTrials
 }

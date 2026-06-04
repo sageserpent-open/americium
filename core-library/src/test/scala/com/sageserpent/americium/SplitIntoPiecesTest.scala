@@ -39,7 +39,7 @@ class SplitIntoPiecesTest extends AnyFlatSpec with Matchers {
     }
   }
 
-  "splitIntoNonEmptyPieces" should "yield non-empty pieces that concatenate to the original items" in {
+  "splitIntoNonEmptyPieces specifying the number of pieces" should "yield non-empty pieces that concatenate to the original items" in {
     val testCaseTrials = for {
       items          <- itemsTrials.filter(_.nonEmpty)
       numberOfPieces <- api.integers(1, items.size)
@@ -49,6 +49,20 @@ class SplitIntoPiecesTest extends AnyFlatSpec with Matchers {
     testCaseTrials.withLimit(100).supplyTo {
       case (items, numberOfPieces, pieces) =>
         pieces.size should be(numberOfPieces)
+        pieces.flatten should be(items)
+        pieces.forall(_.nonEmpty) should be(true)
+    }
+  }
+
+  "splitIntoNonEmptyPieces" should "yield non-empty pieces that concatenate to the original items" in {
+    val testCaseTrials = for {
+      items          <- itemsTrials
+      pieces         <- api.splitIntoNonEmptyPieces(items)
+    } yield (items, pieces)
+
+    testCaseTrials.withLimit(100).supplyTo {
+      case (items, pieces) =>
+        pieces.size should be <= items.size
         pieces.flatten should be(items)
         pieces.forall(_.nonEmpty) should be(true)
     }

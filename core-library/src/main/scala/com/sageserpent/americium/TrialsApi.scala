@@ -414,4 +414,20 @@ trait TrialsApi {
       items: Container[Element],
       numberOfPieces: Int
   ): Trials[Seq[Container[Element]]]
+
+  /** Produce a trials instance that yields a sequence of non-empty pieces whose
+    * concatenation is {@code items}.
+    *
+    * @param items
+    *   The items to be split into pieces.
+    * @tparam Element
+    *   The type of the elements in {@code items}.
+    * @tparam Container
+    *   The type of {@code items} and the pieces.
+    * @return
+    *   A [[Trials]] instance that yields a sequence of non-empty pieces.
+    */
+  def splitIntoNonEmptyPieces[Element, Container[X] <: Iterable[X]](
+      items: Container[Element]
+  ): Trials[Seq[Container[Element]]]
 }
