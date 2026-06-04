@@ -379,6 +379,8 @@ public interface TrialsApi {
      * @param numberOfPieces The number of pieces to split {@code items} into.
      * @param <Element>      The type of the elements in {@code items}.
      * @return A {@link Trials} instance that yields a list of pieces.
+     * @apiNote The resulting pieces may be empty, and if more pieces are
+     * requested than there are items then some *must* be empty.
      */
     <Element> Trials<List<List<Element>>> splitIntoPieces(
             List<Element> items,

@@ -561,6 +561,8 @@ class TrialsApiImplementation extends CommonApi with ScalaTrialsApi {
 
     val numberOfItems = items.size
 
+    require(numberOfPieces <= numberOfItems)
+
     val chunkSizeVectors =
       indexCombinations(
         numberOfIndices = numberOfItems - 1,

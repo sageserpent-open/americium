@@ -375,18 +375,21 @@ trait TrialsApi {
   ): Trials[Vector[Element]]
 
   /** Produce a trials instance that yields a sequence of pieces whose
-    * concatenation is {@code items} .
+    * concatenation is {@code items}.
     *
     * @param items
     *   The items to be split into pieces.
     * @param numberOfPieces
     *   The number of pieces to split {@code items} into.
     * @tparam Element
-    *   The type of the elements in {@code items} .
+    *   The type of the elements in {@code items}.
     * @tparam Container
     *   The type of {@code items} and the pieces.
     * @return
     *   A [[Trials]] instance that yields a sequence of pieces.
+    * @note
+    *   The resulting pieces may be empty, and if more pieces are requested than
+    *   there are items then some *must* be empty.
     */
   def splitIntoPieces[Element, Container[X] <: Iterable[X]](
       items: Container[Element],
@@ -394,14 +397,14 @@ trait TrialsApi {
   ): Trials[Seq[Container[Element]]]
 
   /** Produce a trials instance that yields a sequence of non-empty pieces whose
-    * concatenation is {@code items} .
+    * concatenation is {@code items}.
     *
     * @param items
     *   The items to be split into pieces.
     * @param numberOfPieces
     *   The number of pieces to split {@code items} into.
     * @tparam Element
-    *   The type of the elements in {@code items} .
+    *   The type of the elements in {@code items}.
     * @tparam Container
     *   The type of {@code items} and the pieces.
     * @return
