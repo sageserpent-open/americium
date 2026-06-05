@@ -394,6 +394,8 @@ trait TrialsApi {
   def splitsIntoPieces[Element, Container[X] <: Iterable[X]](
       items: Container[Element],
       numberOfPieces: Int
+  )(implicit
+      factory: Factory[Element, Container[Element]]
   ): Trials[Seq[Container[Element]]]
 
   /** Produce a trials instance that yields a sequence of non-empty pieces whose
@@ -413,6 +415,8 @@ trait TrialsApi {
   def splitsIntoNonEmptyPieces[Element, Container[X] <: Iterable[X]](
       items: Container[Element],
       numberOfPieces: Int
+  )(implicit
+      factory: Factory[Element, Container[Element]]
   ): Trials[Seq[Container[Element]]]
 
   /** Produce a trials instance that yields a sequence of non-empty pieces whose
@@ -429,6 +433,8 @@ trait TrialsApi {
     */
   def splitsIntoNonEmptyPieces[Element, Container[X] <: Iterable[X]](
       items: Container[Element]
+  )(implicit
+      factory: Factory[Element, Container[Element]]
   ): Trials[Seq[Container[Element]]]
 
   /** Produce a trials instance that yields shuffles of {@code items}.

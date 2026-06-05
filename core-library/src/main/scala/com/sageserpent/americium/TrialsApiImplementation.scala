@@ -161,8 +161,34 @@ class TrialsApiImplementation extends CommonApi with ScalaTrialsApi {
     override def maximallyShrunkInput: BigInt = shrinkageTarget
   })
 
+  def stream[Case](
+      caseFactory: CaseFactory[Case]
+  ): TrialsImplementation[Case] = new TrialsImplementation(
+    Factory(new CaseFactory[Case] {
+      require(lowerBoundInput <= maximallyShrunkInput)
+      require(maximallyShrunkInput <= upperBoundInput)
+
+      override def apply(input: BigInt): Case = {
+        require(lowerBoundInput <= input)
+        require(upperBoundInput >= input)
+        caseFactory(input)
+      }
+      override def lowerBoundInput: BigInt      = caseFactory.lowerBoundInput
+      override def upperBoundInput: BigInt      = caseFactory.upperBoundInput
+      override def maximallyShrunkInput: BigInt =
+        caseFactory.maximallyShrunkInput
+    })
+  )
+
   override def doubles: TrialsImplementation[Double] =
     doubles(Double.MinValue, Double.MaxValue, 0.0)
+
+  override def doubles(
+      lowerBound: Double,
+      upperBound: Double,
+      shrinkageTarget: Double
+  ): TrialsImplementation[Double] =
+    bigDecimals(lowerBound, upperBound, shrinkageTarget).map(_.toDouble)
 
   override def booleans: TrialsImplementation[Boolean] =
     choose(true, false)
@@ -187,12 +213,17 @@ class TrialsApiImplementation extends CommonApi with ScalaTrialsApi {
     else 0.0
   )
 
-  override def doubles(
-      lowerBound: Double,
-      upperBound: Double,
-      shrinkageTarget: Double
-  ): TrialsImplementation[Double] =
-    bigDecimals(lowerBound, upperBound, shrinkageTarget).map(_.toDouble)
+  override def bigDecimals(
+      lowerBound: BigDecimal,
+      upperBound: BigDecimal
+  ): TrialsImplementation[BigDecimal] = bigDecimals(
+    lowerBound,
+    upperBound,
+    if (0.0 > upperBound)
+      upperBound
+    else if (0.0 < lowerBound) lowerBound
+    else 0.0
+  )
 
   override def bigDecimals(
       lowerBound: BigDecimal,
@@ -282,22 +313,17 @@ class TrialsApiImplementation extends CommonApi with ScalaTrialsApi {
     else only(shrinkageTarget)
   }
 
-  override def bigDecimals(
-      lowerBound: BigDecimal,
-      upperBound: BigDecimal
-  ): TrialsImplementation[BigDecimal] = bigDecimals(
-    lowerBound,
-    upperBound,
-    if (0.0 > upperBound)
-      upperBound
-    else if (0.0 < lowerBound) lowerBound
-    else 0.0
-  )
-
   override def characters(
       lowerBound: Char,
       upperBound: Char
   ): TrialsImplementation[Char] = choose(lowerBound to upperBound)
+
+  override def choose[Case](
+      choices: Iterable[Case]
+  ): TrialsImplementation[Case] =
+    new TrialsImplementation(
+      Choice(SortedMap.from(LazyList.from(1).zip(choices)))
+    )
 
   override def characters(
       lowerBound: Char,
@@ -358,25 +384,6 @@ class TrialsApiImplementation extends CommonApi with ScalaTrialsApi {
       override def maximallyShrunkInput: BigInt = shrinkageTarget
     })
 
-  def stream[Case](
-      caseFactory: CaseFactory[Case]
-  ): TrialsImplementation[Case] = new TrialsImplementation(
-    Factory(new CaseFactory[Case] {
-      require(lowerBoundInput <= maximallyShrunkInput)
-      require(maximallyShrunkInput <= upperBoundInput)
-
-      override def apply(input: BigInt): Case = {
-        require(lowerBoundInput <= input)
-        require(upperBoundInput >= input)
-        caseFactory(input)
-      }
-      override def lowerBoundInput: BigInt      = caseFactory.lowerBoundInput
-      override def upperBoundInput: BigInt      = caseFactory.upperBoundInput
-      override def maximallyShrunkInput: BigInt =
-        caseFactory.maximallyShrunkInput
-    })
-  )
-
   override def instants(
       lowerBound: Instant,
       upperBound: Instant,
@@ -394,12 +401,50 @@ class TrialsApiImplementation extends CommonApi with ScalaTrialsApi {
   override def characters: TrialsImplementation[Char] =
     choose(Char.MinValue to Char.MaxValue)
 
-  override def choose[Case](
-      choices: Iterable[Case]
-  ): TrialsImplementation[Case] =
-    new TrialsImplementation(
-      Choice(SortedMap.from(LazyList.from(1).zip(choices)))
+  override def indexPermutations(
+      numberOfIndices: Int
+  ): TrialsImplementation[Vector[Int]] =
+    indexPermutations(numberOfIndices, numberOfIndices)
+
+  override def indexPermutations(
+      numberOfIndices: Int,
+      permutationSize: Int
+  ): TrialsImplementation[Vector[Int]] = {
+    require(0 <= numberOfIndices)
+    require(0 to numberOfIndices contains permutationSize)
+
+    def indexPermutations(
+        cumulativePermutationSize: Int,
+        previouslyChosenItemsAsBinaryTree: RangeOfSlots,
+        partialResult: TrialsImplementation[Vector[Int]]
+    ): TrialsImplementation[Vector[Int]] = if (
+      permutationSize == cumulativePermutationSize
+    ) partialResult
+    else {
+      val exclusiveLimitOnVacantSlotIndex =
+        numberOfIndices - cumulativePermutationSize
+
+      integers(0, exclusiveLimitOnVacantSlotIndex - 1).flatMap(
+        vacantSlotIndex => {
+          val (filledSlot, chosenItemsAsBinaryTree) =
+            previouslyChosenItemsAsBinaryTree
+              .fillVacantSlotAtIndex(vacantSlotIndex)
+
+          indexPermutations(
+            1 + cumulativePermutationSize,
+            chosenItemsAsBinaryTree,
+            partialResult.map(_ :+ filledSlot)
+          )
+        }
+      )
+    }
+
+    indexPermutations(
+      0,
+      RangeOfSlots.allSlotsAreVacant(numberOfIndices),
+      only(Vector.empty)
     )
+  }
 
   override def indexCombinations(
       numberOfIndices: Int,
@@ -485,24 +530,36 @@ class TrialsApiImplementation extends CommonApi with ScalaTrialsApi {
   override def splitsIntoPieces[Element, Container[X] <: Iterable[X]](
       items: Container[Element],
       numberOfPieces: Int
+  )(implicit
+      factory: collection.Factory[Element, Container[Element]]
   ): Trials[Seq[Container[Element]]] = {
     require(0 < numberOfPieces)
 
     val numberOfItems = items.size
 
-    val partitionPointIndices =
+    val partitionPointIndexVectors =
       if (0 < numberOfItems)
         integers(lowerBound = 0, upperBound = numberOfItems)
           .lotsOfSize[Vector[Int]](numberOfPieces - 1)
           .map(_.sorted)
       else only(Vector.fill(numberOfPieces - 1)(0))
 
-    applyPartitions(items, partitionPointIndices)
+    partitionPointIndexVectors.map { partitionPointIndices =>
+      val chunkSizes = (0 +: partitionPointIndices)
+        .zip(partitionPointIndices :+ numberOfItems)
+        .map { case (partitionStartIndex, onePastPartitionEndIndex) =>
+          onePastPartitionEndIndex - partitionStartIndex
+        }
+
+      thingsInChunks(chunkSizes, items)
+    }
   }
 
   override def splitsIntoNonEmptyPieces[Element, Container[X] <: Iterable[X]](
       items: Container[Element],
       numberOfPieces: Int
+  )(implicit
+      factory: collection.Factory[Element, Container[Element]]
   ): Trials[Seq[Container[Element]]] = {
     require(0 < numberOfPieces)
 
@@ -510,16 +567,26 @@ class TrialsApiImplementation extends CommonApi with ScalaTrialsApi {
 
     require(numberOfPieces <= numberOfItems)
 
-    val partitionPointIndices = indexCombinations(
-      numberOfIndices = numberOfItems - 1,
-      combinationSize = numberOfPieces - 1
-    ).map(_.map(1 + _))
+    val chunkSizeVectors =
+      indexCombinations(
+        numberOfIndices = numberOfItems - 1,
+        combinationSize = numberOfPieces - 1
+      ).map(_.map(1 + _))
+        .map(partitionPointIndices =>
+          (0 +: partitionPointIndices)
+            .zip(partitionPointIndices :+ numberOfItems)
+            .map { case (partitionStartIndex, onePastPartitionEndIndex) =>
+              onePastPartitionEndIndex - partitionStartIndex
+            }
+        )
 
-    applyPartitions(items, partitionPointIndices)
+    chunkSizeVectors.map(chunkSizes => thingsInChunks(chunkSizes, items))
   }
 
   override def splitsIntoNonEmptyPieces[Element, Container[X] <: Iterable[X]](
       items: Container[Element]
+  )(implicit
+      factory: collection.Factory[Element, Container[Element]]
   ): Trials[Seq[Container[Element]]] = if (items.nonEmpty)
     integers(1, items.size).flatMap(splitsIntoNonEmptyPieces(items, _))
   else only(Seq.empty)
@@ -531,66 +598,6 @@ class TrialsApiImplementation extends CommonApi with ScalaTrialsApi {
   ): Trials[Container[Element]] = {
     val indexedItems = items.toIndexedSeq
     indexPermutations(items.size).map(_.map(indexedItems.apply).to(factory))
-  }
-
-  override def indexPermutations(
-      numberOfIndices: Int
-  ): TrialsImplementation[Vector[Int]] =
-    indexPermutations(numberOfIndices, numberOfIndices)
-
-  override def indexPermutations(
-      numberOfIndices: Int,
-      permutationSize: Int
-  ): TrialsImplementation[Vector[Int]] = {
-    require(0 <= numberOfIndices)
-    require(0 to numberOfIndices contains permutationSize)
-
-    def indexPermutations(
-        cumulativePermutationSize: Int,
-        previouslyChosenItemsAsBinaryTree: RangeOfSlots,
-        partialResult: TrialsImplementation[Vector[Int]]
-    ): TrialsImplementation[Vector[Int]] = if (
-      permutationSize == cumulativePermutationSize
-    ) partialResult
-    else {
-      val exclusiveLimitOnVacantSlotIndex =
-        numberOfIndices - cumulativePermutationSize
-
-      integers(0, exclusiveLimitOnVacantSlotIndex - 1).flatMap(
-        vacantSlotIndex => {
-          val (filledSlot, chosenItemsAsBinaryTree) =
-            previouslyChosenItemsAsBinaryTree
-              .fillVacantSlotAtIndex(vacantSlotIndex)
-
-          indexPermutations(
-            1 + cumulativePermutationSize,
-            chosenItemsAsBinaryTree,
-            partialResult.map(_ :+ filledSlot)
-          )
-        }
-      )
-    }
-
-    indexPermutations(
-      0,
-      RangeOfSlots.allSlotsAreVacant(numberOfIndices),
-      only(Vector.empty)
-    )
-  }
-
-  private def applyPartitions[Container[X] <: Iterable[X], Element](
-      items: Container[Element],
-      partitionPointIndices: Trials[Vector[Int]]
-  ): Trials[LazyList[Container[Element]]] = {
-    partitionPointIndices.map { partitionPointIndices =>
-      val chunkSizes = (0 +: partitionPointIndices)
-        .zip(partitionPointIndices :+ items.size)
-        .map { case (partitionStartIndex, onePastPartitionEndIndex) =>
-          onePastPartitionEndIndex - partitionStartIndex
-        }
-
-      thingsInChunks(chunkSizes, items)
-    }
   }
 
   private def thingsInChunks[Element, Container[X] <: Iterable[X]](
