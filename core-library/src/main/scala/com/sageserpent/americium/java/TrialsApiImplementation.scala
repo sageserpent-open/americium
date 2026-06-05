@@ -389,31 +389,36 @@ trait TrialsApiImplementation extends CommonApi with TrialsApiWart {
       .javaTrials
   }
 
-  override def splitIntoPieces[Element](
+  override def splitsIntoPieces[Element](
       items: JavaList[Element],
       numberOfPieces: Int
   ): JavaTrials[JavaList[JavaList[Element]]] =
     scalaApi
-      .splitIntoPieces[Element, List](items.asScala.toList, numberOfPieces)
+      .splitsIntoPieces[Element, List](items.asScala.toList, numberOfPieces)
       .map(_.map(_.asJava).asJava)
       .javaTrials
 
-  override def splitIntoNonEmptyPieces[Element](
+  override def splitsIntoNonEmptyPieces[Element](
       items: JavaList[Element],
       numberOfPieces: Int
   ): JavaTrials[JavaList[JavaList[Element]]] =
     scalaApi
-      .splitIntoNonEmptyPieces[Element, List](
+      .splitsIntoNonEmptyPieces[Element, List](
         items.asScala.toList,
         numberOfPieces
       )
       .map(_.map(_.asJava).asJava)
       .javaTrials
 
-  override def splitIntoNonEmptyPieces[Element](
+  override def splitsIntoNonEmptyPieces[Element](
       items: JavaList[Element]
   ): JavaTrials[JavaList[JavaList[Element]]] = scalaApi
-    .splitIntoNonEmptyPieces[Element, List](items.asScala.toList)
+    .splitsIntoNonEmptyPieces[Element, List](items.asScala.toList)
     .map(_.map(_.asJava).asJava)
     .javaTrials
+
+  override def shuffles[Element](
+      items: JavaList[Element]
+  ): JavaTrials[JavaList[Element]] =
+    scalaApi.shuffles[Element, List](items.asScala.toList).map(_.asJava).javaTrials
 }

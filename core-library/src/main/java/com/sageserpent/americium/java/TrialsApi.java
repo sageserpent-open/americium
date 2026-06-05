@@ -382,7 +382,7 @@ public interface TrialsApi {
      * @apiNote The resulting pieces may be empty, and if more pieces are
      * requested than there are items then some *must* be empty.
      */
-    <Element> Trials<List<List<Element>>> splitIntoPieces(
+    <Element> Trials<List<List<Element>>> splitsIntoPieces(
             List<Element> items,
             int numberOfPieces);
 
@@ -395,7 +395,7 @@ public interface TrialsApi {
      * @param <Element>      The type of the elements in {@code items}.
      * @return A {@link Trials} instance that yields a list of non-empty pieces.
      */
-    <Element> Trials<List<List<Element>>> splitIntoNonEmptyPieces(
+    <Element> Trials<List<List<Element>>> splitsIntoNonEmptyPieces(
             List<Element> items,
             int numberOfPieces);
 
@@ -407,6 +407,15 @@ public interface TrialsApi {
      * @param <Element>      The type of the elements in {@code items}.
      * @return A {@link Trials} instance that yields a list of non-empty pieces.
      */
-    <Element> Trials<List<List<Element>>> splitIntoNonEmptyPieces(
+    <Element> Trials<List<List<Element>>> splitsIntoNonEmptyPieces(
             List<Element> items);
+
+    /**
+     * Produce a trials instance that yields shuffles of {@code items}.
+     *
+     * @param items     The items to be shuffled.
+     * @param <Element> The type of the elements in {@code items}.
+     * @return A {@link Trials} instance that yields shuffles.
+     */
+    <Element> Trials<List<Element>> shuffles(List<Element> items);
 }

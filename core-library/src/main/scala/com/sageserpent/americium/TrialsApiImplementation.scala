@@ -527,9 +527,11 @@ class TrialsApiImplementation extends CommonApi with ScalaTrialsApi {
   def resetComplexity(complexity: Int): TrialsImplementation[Unit] =
     new TrialsImplementation(ResetComplexity(complexity))
 
-  override def splitIntoPieces[Element, Container[X] <: Iterable[X]](
+  override def splitsIntoPieces[Element, Container[X] <: Iterable[X]](
       items: Container[Element],
       numberOfPieces: Int
+  )(implicit
+      factory: collection.Factory[Element, Container[Element]]
   ): Trials[Seq[Container[Element]]] = {
     require(0 < numberOfPieces)
 
@@ -553,9 +555,11 @@ class TrialsApiImplementation extends CommonApi with ScalaTrialsApi {
     }
   }
 
-  override def splitIntoNonEmptyPieces[Element, Container[X] <: Iterable[X]](
+  override def splitsIntoNonEmptyPieces[Element, Container[X] <: Iterable[X]](
       items: Container[Element],
       numberOfPieces: Int
+  )(implicit
+      factory: collection.Factory[Element, Container[Element]]
   ): Trials[Seq[Container[Element]]] = {
     require(0 < numberOfPieces)
 
@@ -579,11 +583,22 @@ class TrialsApiImplementation extends CommonApi with ScalaTrialsApi {
     chunkSizeVectors.map(chunkSizes => thingsInChunks(chunkSizes, items))
   }
 
-  override def splitIntoNonEmptyPieces[Element, Container[X] <: Iterable[X]](
+  override def splitsIntoNonEmptyPieces[Element, Container[X] <: Iterable[X]](
       items: Container[Element]
+  )(implicit
+      factory: collection.Factory[Element, Container[Element]]
   ): Trials[Seq[Container[Element]]] = if (items.nonEmpty)
-    integers(1, items.size).flatMap(splitIntoNonEmptyPieces(items, _))
+    integers(1, items.size).flatMap(splitsIntoNonEmptyPieces(items, _))
   else only(Seq.empty)
+
+  override def shuffles[Element, Container[X] <: Iterable[X]](
+      items: Container[Element]
+  )(implicit
+      factory: collection.Factory[Element, Container[Element]]
+  ): Trials[Container[Element]] = {
+    val indexedItems = items.toIndexedSeq
+    indexPermutations(items.size).map(_.map(indexedItems.apply).to(factory))
+  }
 
   private def thingsInChunks[Element, Container[X] <: Iterable[X]](
       chunkSizes: Seq[Int],

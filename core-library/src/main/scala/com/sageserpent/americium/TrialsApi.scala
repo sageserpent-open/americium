@@ -391,9 +391,11 @@ trait TrialsApi {
     *   The resulting pieces may be empty, and if more pieces are requested than
     *   there are items then some *must* be empty.
     */
-  def splitIntoPieces[Element, Container[X] <: Iterable[X]](
+  def splitsIntoPieces[Element, Container[X] <: Iterable[X]](
       items: Container[Element],
       numberOfPieces: Int
+  )(implicit
+      factory: Factory[Element, Container[Element]]
   ): Trials[Seq[Container[Element]]]
 
   /** Produce a trials instance that yields a sequence of non-empty pieces whose
@@ -410,9 +412,11 @@ trait TrialsApi {
     * @return
     *   A [[Trials]] instance that yields a sequence of non-empty pieces.
     */
-  def splitIntoNonEmptyPieces[Element, Container[X] <: Iterable[X]](
+  def splitsIntoNonEmptyPieces[Element, Container[X] <: Iterable[X]](
       items: Container[Element],
       numberOfPieces: Int
+  )(implicit
+      factory: Factory[Element, Container[Element]]
   ): Trials[Seq[Container[Element]]]
 
   /** Produce a trials instance that yields a sequence of non-empty pieces whose
@@ -427,7 +431,26 @@ trait TrialsApi {
     * @return
     *   A [[Trials]] instance that yields a sequence of non-empty pieces.
     */
-  def splitIntoNonEmptyPieces[Element, Container[X] <: Iterable[X]](
+  def splitsIntoNonEmptyPieces[Element, Container[X] <: Iterable[X]](
       items: Container[Element]
+  )(implicit
+      factory: Factory[Element, Container[Element]]
   ): Trials[Seq[Container[Element]]]
+
+  /** Produce a trials instance that yields shuffles of {@code items}.
+    *
+    * @param items
+    *   The items to be shuffled.
+    * @tparam Element
+    *   The type of the elements in {@code items}.
+    * @tparam Container
+    *   The type of {@code items} and the shuffles.
+    * @return
+    *   A [[Trials]] instance that yields shuffles.
+    */
+  def shuffles[Element, Container[X] <: Iterable[X]](
+      items: Container[Element]
+  )(implicit
+      factory: Factory[Element, Container[Element]]
+  ): Trials[Container[Element]]
 }
