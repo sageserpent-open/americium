@@ -520,7 +520,7 @@ case class TrialsImplementation[Case](
           partialResult.foreach(builder.add)
           builder.build()
         },
-        flatMap(item =>
+        flatMap((item: Case) =>
           addItems(item :: partialResult).scalaTrials: ScalaTrials[Collection]
         ).scalaTrials.asInstanceOf[TrialsImplementation[Collection]]
       )
@@ -535,7 +535,7 @@ case class TrialsImplementation[Case](
   override def nonEmptySeveralImplementation[Collection](
       builderFactory: _root_.java.util.function.Supplier[Builder[Case, Collection]]
   ): JavaTrials[Collection] =
-    flatMap(item =>
+    flatMap((item: Case) =>
       severalImplementation(() => {
         val builder = builderFactory.get()
         builder.add(item)
@@ -574,10 +574,10 @@ case class TrialsImplementation[Case](
             builder.build()
           }
         else
-          flatMap(item =>
+          flatMap((item: Case) =>
             (scalaApi
               .resetComplexity(complexity): ScalaTrials[Unit])
-              .flatMap(_ =>
+              .flatMap((_: Unit) =>
                 addItems(
                   numberOfItems - 1,
                   item :: partialResult

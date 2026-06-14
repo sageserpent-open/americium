@@ -192,7 +192,7 @@ trait TrialsSkeletalImplementation[Case] extends JavaTrials[Case] {
       values: JavaTrials[Value]
   ): JavaTrials[ImmutableMap[Case, Value]] =
     flatMap(key => values.map(key -> _))
-      .severalImplementation(() =>
+      .collections(() =>
         new Builder[(Case, Value), ImmutableMap[Case, Value]] {
           val accumulator: JavaMap[Case, Value] =
             new JavaHashMap()
@@ -210,7 +210,7 @@ trait TrialsSkeletalImplementation[Case] extends JavaTrials[Case] {
       values: JavaTrials[Value]
   ): JavaTrials[ImmutableMap[Case, Value]] =
     flatMap(key => values.map(key -> _))
-      .nonEmptySeveralImplementation(() =>
+      .nonEmptyCollections(() =>
         new Builder[(Case, Value), ImmutableMap[Case, Value]] {
           val accumulator: JavaMap[Case, Value] =
             new JavaHashMap()
@@ -229,7 +229,7 @@ trait TrialsSkeletalImplementation[Case] extends JavaTrials[Case] {
       values: JavaTrials[Value]
   ): JavaTrials[ImmutableSortedMap[Case, Value]] =
     flatMap(key => values.map(key -> _))
-      .nonEmptySeveralImplementation(() =>
+      .nonEmptyCollections(() =>
         new Builder[
           (Case, Value),
           ImmutableSortedMap[Case, Value]
@@ -251,7 +251,7 @@ trait TrialsSkeletalImplementation[Case] extends JavaTrials[Case] {
       values: JavaTrials[Value]
   ): JavaTrials[ImmutableSortedMap[Case, Value]] =
     flatMap(key => values.map(key -> _))
-      .severalImplementation(() =>
+      .collections(() =>
         new Builder[
           (Case, Value),
           ImmutableSortedMap[Case, Value]
