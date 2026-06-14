@@ -132,6 +132,28 @@ trait TrialsApiImplementation extends CommonApi with TrialsApiWart {
           }
       )
 
+  override def nonEmptyCollections[Case, Collection](
+      iterableOfTrials: JavaIterable[JavaTrials[Case]],
+      builderFactory: Supplier[Builder[Case, Collection]]
+  ): JavaTrials[Collection] =
+    // NASTY HACK: make a throwaway trials of type `TrialsImplementation` to
+    // act as a springboard to flatmap the 'real' result into the correct
+    // type.
+    scalaApi
+      .only(())
+      .flatMap((_: Unit) =>
+        scalaApi
+          .sequences[Case, List](
+            iterableOfTrials.asScala.map(_.scalaTrials).toList
+          )
+          .filter(_.nonEmpty)
+          .map { sequence =>
+            val builder = builderFactory.get()
+            sequence.foreach(builder.add)
+            builder.build()
+          }
+      )
+
   override def collections[Case, Collection](
       iterableOfTrials: JavaIterable[JavaTrials[Case]],
       builderFactory: Supplier[Builder[Case, Collection]]
@@ -337,6 +359,9 @@ trait TrialsApiImplementation extends CommonApi with TrialsApiWart {
 
   override def strings(): JavaTrials[String] =
     characters().strings
+
+  override def nonEmptyStrings(): JavaTrials[String] =
+    characters().nonEmptyStrings()
 
   override def characters(): CharacterTrials =
     DelegatingTrials.delegateTo(

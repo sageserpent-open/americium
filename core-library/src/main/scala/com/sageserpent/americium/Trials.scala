@@ -63,7 +63,9 @@ object Trials {
 
   implicit class CharacterTrialsSyntax(val characterTrials: Trials[Char])
       extends AnyVal {
-    def strings: Trials[String] = characterTrials.several
+    def strings: Trials[String] = characterTrials.collections
+
+    def nonEmptyStrings: Trials[String] = characterTrials.nonEmptyCollections
 
     def stringsOfSize(size: Int): Trials[String] =
       characterTrials.lotsOfSize(size)
@@ -172,15 +174,55 @@ trait Trials[+Case]
     * @return
     *   A [[Trials]] instance that yields {@code Collection} instances.
     */
-  def several[Collection](implicit
+  def collections[Collection](implicit
       factory: Factory[Case, Collection]
   ): Trials[Collection]
 
+  /** @deprecated
+    *   Use [[collections]] instead.
+    */
+  @deprecated("Use 'collections' instead.")
+  def several[Collection](implicit
+      factory: Factory[Case, Collection]
+  ): Trials[Collection] = collections
+
+  /** Transform this to a trials of non-empty collection, where
+    * {@code Collection} is some kind of collection that can be built from
+    * elements of type {@code Case} by a [[Factory]].
+    *
+    * @param factory
+    *   A [[Factory]] that can build a [[Collection]] .
+    * @tparam Collection
+    *   Any kind of collection that can take an arbitrary number of elements of
+    *   type {@code Case} .
+    * @return
+    *   A [[Trials]] instance that yields non-empty [[Collection]] instances.
+    */
+  def nonEmptyCollections[Collection](implicit
+      factory: Factory[Case, Collection]
+  ): Trials[Collection]
+
+  /** @deprecated
+    *   Use [[nonEmptyCollections]] instead.
+    */
+  @deprecated("Use 'nonEmptyCollections' instead.")
+  def nonEmptySeveral[Collection](implicit
+      factory: Factory[Case, Collection]
+  ): Trials[Collection] = nonEmptyCollections
+
   def lists: Trials[List[Case]]
+
+  def nonEmptyLists: Trials[List[Case]]
 
   def sets: Trials[Set[Case @uncheckedVariance]]
 
+  def nonEmptySets: Trials[Set[Case @uncheckedVariance]]
+
   def sortedSets(implicit
+      ordering: Ordering[Case @uncheckedVariance]
+  ): Trials[SortedSet[Case @uncheckedVariance]]
+
+  def nonEmptySortedSets(implicit
       ordering: Ordering[Case @uncheckedVariance]
   ): Trials[SortedSet[Case @uncheckedVariance]]
 
@@ -188,7 +230,15 @@ trait Trials[+Case]
       values: Trials[Value]
   ): Trials[Map[Case @uncheckedVariance, Value]]
 
+  def nonEmptyMaps[Value](
+      values: Trials[Value]
+  ): Trials[Map[Case @uncheckedVariance, Value]]
+
   def sortedMaps[Value](values: Trials[Value])(implicit
+      ordering: Ordering[Case @uncheckedVariance]
+  ): Trials[SortedMap[Case @uncheckedVariance, Value]]
+
+  def nonEmptySortedMaps[Value](values: Trials[Value])(implicit
       ordering: Ordering[Case @uncheckedVariance]
   ): Trials[SortedMap[Case @uncheckedVariance, Value]]
 

@@ -300,6 +300,8 @@ trait TrialsApi {
 
   def strings: Trials[String]
 
+  def nonEmptyStrings: Trials[String]
+
   /** Produce a trials instance whose cases can be used to permute elements of
     * indexed collections, or as permutations of integers in their own right.
     *

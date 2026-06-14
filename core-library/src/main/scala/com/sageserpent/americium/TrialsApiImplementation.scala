@@ -387,8 +387,12 @@ class TrialsApiImplementation extends CommonApi with ScalaTrialsApi {
     shrinkageTarget.toEpochMilli
   ).map(Instant.ofEpochMilli)
 
-  override def strings: TrialsImplementation[String] = {
-    characters.several[String]
+  override def strings: ScalaTrials[String] = {
+    characters.collections[String]
+  }
+
+  override def nonEmptyStrings: ScalaTrials[String] = {
+    characters.nonEmptyCollections[String]
   }
 
   override def characters: TrialsImplementation[Char] =

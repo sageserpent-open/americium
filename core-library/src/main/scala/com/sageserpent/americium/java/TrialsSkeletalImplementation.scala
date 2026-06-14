@@ -72,63 +72,127 @@ trait TrialsSkeletalImplementation[Case] extends JavaTrials[Case] {
       builderFactory: => Builder[Case, Collection]
   ): TrialsSkeletalImplementation[Collection]
 
-  protected def several[Collection](
-      builderFactory: => Builder[Case, Collection]
-  ): TrialsSkeletalImplementation[Collection]
+  protected def severalImplementation[Collection](
+      builderFactory: Supplier[Builder[Case, Collection]]
+  ): JavaTrials[Collection]
+
+  protected def nonEmptySeveralImplementation[Collection](
+      builderFactory: Supplier[Builder[Case, Collection]]
+  ): JavaTrials[Collection]
 
   override def collections[Collection](
       builderFactory: Supplier[
         Builder[Case, Collection]
       ]
-  ): TrialsSkeletalImplementation[Collection] =
-    several(builderFactory.get())
+  ): JavaTrials[Collection] =
+    severalImplementation(builderFactory)
+
+  override def nonEmptyCollections[Collection](
+      builderFactory: Supplier[
+        Builder[Case, Collection]
+      ]
+  ): JavaTrials[Collection] =
+    nonEmptySeveralImplementation(builderFactory)
 
   override def immutableLists()
-      : TrialsSkeletalImplementation[ImmutableList[Case]] =
-    several(new Builder[Case, ImmutableList[Case]] {
-      private val underlyingBuilder = ImmutableList.builder[Case]()
+      : JavaTrials[ImmutableList[Case]] =
+    severalImplementation(() =>
+      new Builder[Case, ImmutableList[Case]] {
+        private val underlyingBuilder = ImmutableList.builder[Case]()
 
-      override def add(caze: Case): Unit = {
-        underlyingBuilder.add(caze)
+        override def add(caze: Case): Unit = {
+          underlyingBuilder.add(caze)
+        }
+
+        override def build(): ImmutableList[Case] =
+          underlyingBuilder.build()
       }
+    )
 
-      override def build(): ImmutableList[Case] =
-        underlyingBuilder.build()
-    })
+  override def nonEmptyImmutableLists()
+      : JavaTrials[ImmutableList[Case]] =
+    nonEmptySeveralImplementation(() =>
+      new Builder[Case, ImmutableList[Case]] {
+        private val underlyingBuilder = ImmutableList.builder[Case]()
+
+        override def add(caze: Case): Unit = {
+          underlyingBuilder.add(caze)
+        }
+
+        override def build(): ImmutableList[Case] =
+          underlyingBuilder.build()
+      }
+    )
 
   override def immutableSets()
-      : TrialsSkeletalImplementation[ImmutableSet[Case]] =
-    several(new Builder[Case, ImmutableSet[Case]] {
-      private val underlyingBuilder = ImmutableSet.builder[Case]()
+      : JavaTrials[ImmutableSet[Case]] =
+    severalImplementation(() =>
+      new Builder[Case, ImmutableSet[Case]] {
+        private val underlyingBuilder = ImmutableSet.builder[Case]()
 
-      override def add(caze: Case): Unit = {
-        underlyingBuilder.add(caze)
+        override def add(caze: Case): Unit = {
+          underlyingBuilder.add(caze)
+        }
+
+        override def build(): ImmutableSet[Case] =
+          underlyingBuilder.build()
       }
+    )
 
-      override def build(): ImmutableSet[Case] =
-        underlyingBuilder.build()
-    })
+  override def nonEmptyImmutableSets()
+      : JavaTrials[ImmutableSet[Case]] =
+    nonEmptySeveralImplementation(() =>
+      new Builder[Case, ImmutableSet[Case]] {
+        private val underlyingBuilder = ImmutableSet.builder[Case]()
+
+        override def add(caze: Case): Unit = {
+          underlyingBuilder.add(caze)
+        }
+
+        override def build(): ImmutableSet[Case] =
+          underlyingBuilder.build()
+      }
+    )
 
   override def immutableSortedSets(
       elementComparator: Comparator[Case]
-  ): TrialsSkeletalImplementation[ImmutableSortedSet[Case]] =
-    several(new Builder[Case, ImmutableSortedSet[Case]] {
-      private val underlyingBuilder: ImmutableSortedSet.Builder[Case] =
-        new ImmutableSortedSet.Builder(elementComparator)
+  ): JavaTrials[ImmutableSortedSet[Case]] =
+    severalImplementation(() =>
+      new Builder[Case, ImmutableSortedSet[Case]] {
+        private val underlyingBuilder: ImmutableSortedSet.Builder[Case] =
+          new ImmutableSortedSet.Builder(elementComparator)
 
-      override def add(caze: Case): Unit = {
-        underlyingBuilder.add(caze)
+        override def add(caze: Case): Unit = {
+          underlyingBuilder.add(caze)
+        }
+
+        override def build(): ImmutableSortedSet[Case] =
+          underlyingBuilder.build()
       }
+    )
 
-      override def build(): ImmutableSortedSet[Case] =
-        underlyingBuilder.build()
-    })
+  override def nonEmptyImmutableSortedSets(
+      elementComparator: Comparator[Case]
+  ): JavaTrials[ImmutableSortedSet[Case]] =
+    nonEmptySeveralImplementation(() =>
+      new Builder[Case, ImmutableSortedSet[Case]] {
+        private val underlyingBuilder: ImmutableSortedSet.Builder[Case] =
+          new ImmutableSortedSet.Builder(elementComparator)
+
+        override def add(caze: Case): Unit = {
+          underlyingBuilder.add(caze)
+        }
+
+        override def build(): ImmutableSortedSet[Case] =
+          underlyingBuilder.build()
+      }
+    )
 
   override def immutableMaps[Value](
       values: JavaTrials[Value]
-  ): TrialsSkeletalImplementation[ImmutableMap[Case, Value]] =
+  ): JavaTrials[ImmutableMap[Case, Value]] =
     flatMap(key => values.map(key -> _))
-      .several(
+      .severalImplementation(() =>
         new Builder[(Case, Value), ImmutableMap[Case, Value]] {
           val accumulator: JavaMap[Case, Value] =
             new JavaHashMap()
@@ -142,12 +206,52 @@ trait TrialsSkeletalImplementation[Case] extends JavaTrials[Case] {
         }
       )
 
+  override def nonEmptyImmutableMaps[Value](
+      values: JavaTrials[Value]
+  ): JavaTrials[ImmutableMap[Case, Value]] =
+    flatMap(key => values.map(key -> _))
+      .nonEmptySeveralImplementation(() =>
+        new Builder[(Case, Value), ImmutableMap[Case, Value]] {
+          val accumulator: JavaMap[Case, Value] =
+            new JavaHashMap()
+
+          override def add(entry: (Case, Value)): Unit = {
+            accumulator.put(entry._1, entry._2)
+          }
+          override def build(): ImmutableMap[Case, Value] = {
+            ImmutableMap.copyOf(accumulator)
+          }
+        }
+      )
+
+  override def nonEmptyImmutableSortedMaps[Value](
+      elementComparator: Comparator[Case],
+      values: JavaTrials[Value]
+  ): JavaTrials[ImmutableSortedMap[Case, Value]] =
+    flatMap(key => values.map(key -> _))
+      .nonEmptySeveralImplementation(() =>
+        new Builder[
+          (Case, Value),
+          ImmutableSortedMap[Case, Value]
+        ] {
+          val accumulator: JavaMap[Case, Value] =
+            new JavaHashMap()
+
+          override def add(entry: (Case, Value)): Unit = {
+            accumulator.put(entry._1, entry._2)
+          }
+          override def build(): ImmutableSortedMap[Case, Value] = {
+            ImmutableSortedMap.copyOf(accumulator, elementComparator)
+          }
+        }
+      )
+
   override def immutableSortedMaps[Value](
       elementComparator: Comparator[Case],
       values: JavaTrials[Value]
-  ): TrialsSkeletalImplementation[ImmutableSortedMap[Case, Value]] =
+  ): JavaTrials[ImmutableSortedMap[Case, Value]] =
     flatMap(key => values.map(key -> _))
-      .several(
+      .severalImplementation(() =>
         new Builder[
           (Case, Value),
           ImmutableSortedMap[Case, Value]
@@ -169,12 +273,12 @@ trait TrialsSkeletalImplementation[Case] extends JavaTrials[Case] {
       builderFactory: Supplier[
         Builder[Case, Collection]
       ]
-  ): TrialsSkeletalImplementation[Collection] =
+  ): JavaTrials[Collection] =
     lotsOfSize(size, builderFactory.get())
 
   override def immutableListsOfSize(
       size: Int
-  ): TrialsSkeletalImplementation[ImmutableList[Case]] =
+  ): JavaTrials[ImmutableList[Case]] =
     lotsOfSize(
       size,
       new Builder[Case, ImmutableList[Case]] {

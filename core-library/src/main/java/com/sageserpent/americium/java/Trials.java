@@ -142,19 +142,47 @@ public interface Trials<Case> extends
     <Collection> Trials<Collection> collections(
             Supplier<Builder<Case, Collection>> builderFactory);
 
+    /**
+     * Transform this to a trials of non-empty collection, where
+     * {@code Collection} is some kind of collection that can be built from
+     * elements of type {@code Case} by a {@link Builder}.
+     *
+     * @param builderFactory A {@link Supplier} that should construct a
+     *                       *fresh* instance of a {@link Builder}.
+     * @param <Collection>   Any kind of collection that can take an
+     *                       arbitrary number of elements of type {@code Case}.
+     * @return A {@link Trials} instance that yields non-empty collections.
+     */
+    <Collection> Trials<Collection> nonEmptyCollections(
+            Supplier<Builder<Case, Collection>> builderFactory);
+
     // Convenience methods that enable supply of Guava collection cases...
 
     Trials<ImmutableList<Case>> immutableLists();
 
+    Trials<ImmutableList<Case>> nonEmptyImmutableLists();
+
     Trials<ImmutableSet<Case>> immutableSets();
 
+    Trials<ImmutableSet<Case>> nonEmptyImmutableSets();
+
     Trials<ImmutableSortedSet<Case>> immutableSortedSets(
+            final Comparator<Case> elementComparator);
+
+    Trials<ImmutableSortedSet<Case>> nonEmptyImmutableSortedSets(
             final Comparator<Case> elementComparator);
 
     <Value> Trials<ImmutableMap<Case, Value>> immutableMaps(
             final Trials<Value> values);
 
+    <Value> Trials<ImmutableMap<Case, Value>> nonEmptyImmutableMaps(
+            final Trials<Value> values);
+
     <Value> Trials<ImmutableSortedMap<Case, Value>> immutableSortedMaps(
+            final Comparator<Case> elementComparator,
+            final Trials<Value> values);
+
+    <Value> Trials<ImmutableSortedMap<Case, Value>> nonEmptyImmutableSortedMaps(
             final Comparator<Case> elementComparator,
             final Trials<Value> values);
 

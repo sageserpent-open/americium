@@ -160,6 +160,10 @@ public interface TrialsApi {
             Iterable<Trials<Element>> iterableOfTrials,
             Supplier<Builder<Element, Collection>> builderFactory);
 
+    <Element, Collection> Trials<Collection> nonEmptyCollections(
+            Iterable<Trials<Element>> iterableOfTrials,
+            Supplier<Builder<Element, Collection>> builderFactory);
+
     /**
      * This is for advanced usage, where there is a need to control how
      * trials instances are formulated to avoid hitting the complexity limit,
@@ -290,6 +294,8 @@ public interface TrialsApi {
 
     CharacterTrials characters(char lowerBound, char upperBound,
                                char shrinkageTarget);
+
+    Trials<String> nonEmptyStrings();
 
     Trials<Instant> instants();
 

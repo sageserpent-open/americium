@@ -5,6 +5,10 @@ public interface CharacterTrials extends Trials<Character> {
         return collections(Builder::stringBuilder);
     }
 
+    default Trials<String> nonEmptyStrings() {
+        return nonEmptyCollections(Builder::stringBuilder);
+    }
+
     default Trials<String> stringsOfSize(int size) {
         return collectionsOfSize(size, Builder::stringBuilder);
     }

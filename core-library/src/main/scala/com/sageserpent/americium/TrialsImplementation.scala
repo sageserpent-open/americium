@@ -26,7 +26,8 @@ import com.sageserpent.americium.java.{
   RecipeCouldNotBeReproducedException,
   TestIntegrationContext,
   TrialsScaffolding as JavaTrialsScaffolding,
-  TrialsSkeletalImplementation as JavaTrialsSkeletalImplementation
+  TrialsSkeletalImplementation as JavaTrialsSkeletalImplementation,
+  Trials as JavaTrials
 }
 import com.sageserpent.americium.storage.TrialsReproductionStorage
 import com.sageserpent.americium.storage.TrialsReproductionStorage.RecipeData
@@ -469,39 +470,82 @@ case class TrialsImplementation[Case](
       }
     }
 
+  override def collections[Collection](implicit
+      factory: scala.collection.Factory[Case, Collection]
+  ): ScalaTrials[Collection] = severalImplementation(() =>
+    new Builder[Case, Collection] {
+      private val underlyingBuilder = factory.newBuilder
+
+      override def add(caze: Case): Unit = {
+        underlyingBuilder += caze
+      }
+
+      override def build(): Collection = underlyingBuilder.result()
+    }
+  ).scalaTrials
+
   override def several[Collection](implicit
       factory: scala.collection.Factory[Case, Collection]
-  ): TrialsImplementation[Collection] = several(new Builder[Case, Collection] {
-    private val underlyingBuilder = factory.newBuilder
+  ): ScalaTrials[Collection] = collections(factory)
 
-    override def add(caze: Case): Unit = {
-      underlyingBuilder += caze
+  override def nonEmptyCollections[Collection](implicit
+      factory: scala.collection.Factory[Case, Collection]
+  ): ScalaTrials[Collection] = nonEmptySeveralImplementation(() =>
+    new Builder[Case, Collection] {
+      private val underlyingBuilder = factory.newBuilder
+
+      override def add(caze: Case): Unit = {
+        underlyingBuilder += caze
+      }
+
+      override def build(): Collection = underlyingBuilder.result()
     }
+  ).scalaTrials
 
-    override def build(): Collection = underlyingBuilder.result()
-  })
+  override def nonEmptySeveral[Collection](implicit
+      factory: scala.collection.Factory[Case, Collection]
+  ): ScalaTrials[Collection] = nonEmptyCollections(factory)
 
-  protected override def several[Collection](
-      builderFactory: => Builder[Case, Collection]
-  ): TrialsImplementation[Collection] = {
+  override def collections[Collection](
+      builderFactory: _root_.java.util.function.Supplier[Builder[Case, Collection]]
+  ): JavaTrials[Collection] = severalImplementation(builderFactory)
+
+  override def severalImplementation[Collection](
+      builderFactory: _root_.java.util.function.Supplier[Builder[Case, Collection]]
+  ): JavaTrials[Collection] = {
     def addItems(partialResult: List[Case]): TrialsImplementation[Collection] =
       scalaApi.alternate(
         scalaApi.only {
-          val builder = builderFactory
-          partialResult.foreach(builder add _)
+          val builder = builderFactory.get()
+          partialResult.foreach(builder.add)
           builder.build()
         },
         flatMap(item =>
-          addItems(item :: partialResult): ScalaTrials[Collection]
-        )
+          addItems(item :: partialResult).scalaTrials: ScalaTrials[Collection]
+        ).scalaTrials.asInstanceOf[TrialsImplementation[Collection]]
       )
 
     addItems(Nil)
   }
 
+  override def nonEmptyCollections[Collection](
+      builderFactory: _root_.java.util.function.Supplier[Builder[Case, Collection]]
+  ): JavaTrials[Collection] = nonEmptySeveralImplementation(builderFactory)
+
+  override def nonEmptySeveralImplementation[Collection](
+      builderFactory: _root_.java.util.function.Supplier[Builder[Case, Collection]]
+  ): JavaTrials[Collection] =
+    flatMap(item =>
+      severalImplementation(() => {
+        val builder = builderFactory.get()
+        builder.add(item)
+        builder
+      }).scalaTrials
+    ).javaTrials
+
   override def lotsOfSize[Collection](size: Int)(implicit
       factory: collection.Factory[Case, Collection]
-  ): TrialsImplementation[Collection] = lotsOfSize(
+  ): ScalaTrials[Collection] = lotsOfSize(
     size,
     new Builder[Case, Collection] {
       private val underlyingBuilder = factory.newBuilder
