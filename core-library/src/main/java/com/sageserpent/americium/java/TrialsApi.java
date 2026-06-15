@@ -291,6 +291,8 @@ public interface TrialsApi {
     CharacterTrials characters(char lowerBound, char upperBound,
                                char shrinkageTarget);
 
+    Trials<String> nonEmptyStrings();
+
     Trials<Instant> instants();
 
     Trials<Instant> instants(Instant lowerBound, Instant upperBound);

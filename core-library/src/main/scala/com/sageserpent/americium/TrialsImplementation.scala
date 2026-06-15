@@ -26,7 +26,8 @@ import com.sageserpent.americium.java.{
   RecipeCouldNotBeReproducedException,
   TestIntegrationContext,
   TrialsScaffolding as JavaTrialsScaffolding,
-  TrialsSkeletalImplementation as JavaTrialsSkeletalImplementation
+  TrialsSkeletalImplementation as JavaTrialsSkeletalImplementation,
+  Trials as JavaTrials
 }
 import com.sageserpent.americium.storage.TrialsReproductionStorage
 import com.sageserpent.americium.storage.TrialsReproductionStorage.RecipeData
@@ -469,39 +470,80 @@ case class TrialsImplementation[Case](
       }
     }
 
+  override def collections[Collection](implicit
+      factory: scala.collection.Factory[Case, Collection]
+  ): TrialsImplementation[Collection] = severalImplementation(
+    new Builder[Case, Collection] {
+      private val underlyingBuilder = factory.newBuilder
+
+      override def add(caze: Case): Unit = {
+        underlyingBuilder += caze
+      }
+
+      override def build(): Collection = underlyingBuilder.result()
+    }
+  )
+
   override def several[Collection](implicit
       factory: scala.collection.Factory[Case, Collection]
-  ): TrialsImplementation[Collection] = several(new Builder[Case, Collection] {
-    private val underlyingBuilder = factory.newBuilder
+  ): TrialsImplementation[Collection] = collections(factory)
 
-    override def add(caze: Case): Unit = {
-      underlyingBuilder += caze
+  override def nonEmptyCollections[Collection](implicit
+      factory: scala.collection.Factory[Case, Collection]
+  ): TrialsImplementation[Collection] = nonEmptySeveralImplementation(
+    new Builder[Case, Collection] {
+      private val underlyingBuilder = factory.newBuilder
+
+      override def add(caze: Case): Unit = {
+        underlyingBuilder += caze
+      }
+
+      override def build(): Collection = underlyingBuilder.result()
     }
+  )
 
-    override def build(): Collection = underlyingBuilder.result()
-  })
+  override def collections[Collection](
+      builderFactory: _root_.java.util.function.Supplier[Builder[Case, Collection]]
+  ): TrialsImplementation[Collection] =
+    severalImplementation(builderFactory.get())
 
-  protected override def several[Collection](
+  override def severalImplementation[Collection](
       builderFactory: => Builder[Case, Collection]
   ): TrialsImplementation[Collection] = {
     def addItems(partialResult: List[Case]): TrialsImplementation[Collection] =
       scalaApi.alternate(
         scalaApi.only {
           val builder = builderFactory
-          partialResult.foreach(builder add _)
+          partialResult.foreach(builder.add)
           builder.build()
         },
-        flatMap(item =>
-          addItems(item :: partialResult): ScalaTrials[Collection]
+        flatMap((item: Case) =>
+          addItems(item :: partialResult)
         )
       )
 
     addItems(Nil)
   }
 
+  override def nonEmptyCollections[Collection](
+      builderFactory: _root_.java.util.function.Supplier[Builder[Case, Collection]]
+  ): TrialsImplementation[Collection] =
+    nonEmptySeveralImplementation(builderFactory.get())
+
+  override def nonEmptySeveralImplementation[Collection](
+      builderFactory: => Builder[Case, Collection]
+  ): TrialsImplementation[Collection] =
+    flatMap((item: Case) =>
+      severalImplementation({
+        val builder = builderFactory
+        builder.add(item)
+        builder
+      })
+    )
+
   override def lotsOfSize[Collection](size: Int)(implicit
       factory: collection.Factory[Case, Collection]
-  ): TrialsImplementation[Collection] = lotsOfSize(
+  ): ScalaTrials[Collection] = lotsOfSize(
     size,
     new Builder[Case, Collection] {
       private val underlyingBuilder = factory.newBuilder
@@ -530,10 +572,10 @@ case class TrialsImplementation[Case](
             builder.build()
           }
         else
-          flatMap(item =>
+          flatMap((item: Case) =>
             (scalaApi
               .resetComplexity(complexity): ScalaTrials[Unit])
-              .flatMap(_ =>
+              .flatMap((_: Unit) =>
                 addItems(
                   numberOfItems - 1,
                   item :: partialResult

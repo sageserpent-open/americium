@@ -59,39 +59,77 @@ trait TrialsSkeletalImplementation[Case] extends ScalaTrials[Case] {
   override def options: TrialsImplementation[Option[Case]] =
     scalaApi.alternate(scalaApi.only(None), this.map(Some.apply[Case]))
 
+  override def collections[Container](implicit
+      factory: collection.Factory[Case, Container]
+  ): ScalaTrials[Container]
+
   override def several[Container](implicit
       factory: collection.Factory[Case, Container]
-  ): TrialsSkeletalImplementation[Container]
+  ): ScalaTrials[Container] = collections(factory)
 
-  override def lists: TrialsSkeletalImplementation[List[Case]] = several
+  override def nonEmptyCollections[Container](implicit
+      factory: collection.Factory[Case, Container]
+  ): ScalaTrials[Container]
 
-  override def sets: TrialsSkeletalImplementation[Set[Case]] = several
+  /** @deprecated
+    *   Use [[nonEmptyCollections]] instead.
+    */
+  @deprecated("Use 'nonEmptyCollections' instead.")
+  def nonEmptySeveral[Container](implicit
+      factory: collection.Factory[Case, Container]
+  ): ScalaTrials[Container] = nonEmptyCollections(factory)
+
+  override def lists: ScalaTrials[List[Case]] = collections
+
+  override def nonEmptyLists: ScalaTrials[List[Case]] = nonEmptyCollections
+
+  override def sets: ScalaTrials[Set[Case]] = collections
+
+  override def nonEmptySets: ScalaTrials[Set[Case]] = nonEmptyCollections
 
   override def sortedSets(implicit
       ordering: Ordering[Case]
-  ): TrialsSkeletalImplementation[SortedSet[Case]] =
+  ): ScalaTrials[SortedSet[Case]] =
     lists.map(SortedSet.from[Case](_)(ordering))
+
+  override def nonEmptySortedSets(implicit
+      ordering: Ordering[Case]
+  ): ScalaTrials[SortedSet[Case]] =
+    nonEmptyLists.map(SortedSet.from[Case](_)(ordering))
 
   override def maps[Value](
       values: ScalaTrials[Value]
-  ): TrialsSkeletalImplementation[Map[Case, Value]] =
-    flatMap(key => values.map(key -> _)).several[Map[Case, Value]]
+  ): ScalaTrials[Map[Case, Value]] =
+    flatMap(key => values.map(key -> _)).collections[Map[Case, Value]]
+
+  override def nonEmptyMaps[Value](
+      values: ScalaTrials[Value]
+  ): ScalaTrials[Map[Case, Value]] =
+    flatMap(key => values.map(key -> _)).nonEmptyCollections[Map[Case, Value]]
 
   override def sortedMaps[Value](
       values: ScalaTrials[Value]
   )(implicit
       ordering: Ordering[Case]
-  ): TrialsSkeletalImplementation[SortedMap[Case, Value]] =
+  ): ScalaTrials[SortedMap[Case, Value]] =
     flatMap(key => values.map(key -> _)).lists
+      .map(SortedMap.from[Case, Value](_)(ordering))
+
+  override def nonEmptySortedMaps[Value](
+      values: ScalaTrials[Value]
+  )(implicit
+      ordering: Ordering[Case]
+  ): ScalaTrials[SortedMap[Case, Value]] =
+    flatMap(key => values.map(key -> _)).nonEmptyLists
       .map(SortedMap.from[Case, Value](_)(ordering))
 
   override def lotsOfSize[Collection](size: Int)(implicit
       factory: collection.Factory[Case, Collection]
-  ): TrialsSkeletalImplementation[Collection]
+  ): ScalaTrials[Collection]
 
   override def listsOfSize(
       size: Int
-  ): TrialsSkeletalImplementation[List[Case]] = lotsOfSize(
+  ): ScalaTrials[List[Case]] = lotsOfSize(
     size
   )
 }

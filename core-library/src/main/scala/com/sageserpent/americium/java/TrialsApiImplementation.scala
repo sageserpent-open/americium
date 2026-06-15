@@ -338,6 +338,9 @@ trait TrialsApiImplementation extends CommonApi with TrialsApiWart {
   override def strings(): JavaTrials[String] =
     characters().strings
 
+  override def nonEmptyStrings(): JavaTrials[String] =
+    characters().nonEmptyStrings()
+
   override def characters(): CharacterTrials =
     DelegatingTrials.delegateTo(
       classOf[CharacterTrials],
