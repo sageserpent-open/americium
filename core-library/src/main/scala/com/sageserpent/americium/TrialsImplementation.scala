@@ -472,7 +472,7 @@ case class TrialsImplementation[Case](
 
   override def collections[Collection](implicit
       factory: scala.collection.Factory[Case, Collection]
-  ): ScalaTrials[Collection] = severalImplementation(() =>
+  ): TrialsImplementation[Collection] = severalImplementation(
     new Builder[Case, Collection] {
       private val underlyingBuilder = factory.newBuilder
 
@@ -482,15 +482,15 @@ case class TrialsImplementation[Case](
 
       override def build(): Collection = underlyingBuilder.result()
     }
-  ).scalaTrials
+  )
 
   override def several[Collection](implicit
       factory: scala.collection.Factory[Case, Collection]
-  ): ScalaTrials[Collection] = collections(factory)
+  ): TrialsImplementation[Collection] = collections(factory)
 
   override def nonEmptyCollections[Collection](implicit
       factory: scala.collection.Factory[Case, Collection]
-  ): ScalaTrials[Collection] = nonEmptySeveralImplementation(() =>
+  ): TrialsImplementation[Collection] = nonEmptySeveralImplementation(
     new Builder[Case, Collection] {
       private val underlyingBuilder = factory.newBuilder
 
@@ -500,29 +500,26 @@ case class TrialsImplementation[Case](
 
       override def build(): Collection = underlyingBuilder.result()
     }
-  ).scalaTrials
-
-  override def nonEmptySeveral[Collection](implicit
-      factory: scala.collection.Factory[Case, Collection]
-  ): ScalaTrials[Collection] = nonEmptyCollections(factory)
+  )
 
   override def collections[Collection](
       builderFactory: _root_.java.util.function.Supplier[Builder[Case, Collection]]
-  ): JavaTrials[Collection] = severalImplementation(builderFactory)
+  ): TrialsImplementation[Collection] =
+    severalImplementation(builderFactory.get())
 
   override def severalImplementation[Collection](
-      builderFactory: _root_.java.util.function.Supplier[Builder[Case, Collection]]
-  ): JavaTrials[Collection] = {
+      builderFactory: => Builder[Case, Collection]
+  ): TrialsImplementation[Collection] = {
     def addItems(partialResult: List[Case]): TrialsImplementation[Collection] =
       scalaApi.alternate(
         scalaApi.only {
-          val builder = builderFactory.get()
+          val builder = builderFactory
           partialResult.foreach(builder.add)
           builder.build()
         },
         flatMap((item: Case) =>
-          addItems(item :: partialResult).scalaTrials: ScalaTrials[Collection]
-        ).scalaTrials.asInstanceOf[TrialsImplementation[Collection]]
+          addItems(item :: partialResult)
+        )
       )
 
     addItems(Nil)
@@ -530,18 +527,19 @@ case class TrialsImplementation[Case](
 
   override def nonEmptyCollections[Collection](
       builderFactory: _root_.java.util.function.Supplier[Builder[Case, Collection]]
-  ): JavaTrials[Collection] = nonEmptySeveralImplementation(builderFactory)
+  ): TrialsImplementation[Collection] =
+    nonEmptySeveralImplementation(builderFactory.get())
 
   override def nonEmptySeveralImplementation[Collection](
-      builderFactory: _root_.java.util.function.Supplier[Builder[Case, Collection]]
-  ): JavaTrials[Collection] =
+      builderFactory: => Builder[Case, Collection]
+  ): TrialsImplementation[Collection] =
     flatMap((item: Case) =>
-      severalImplementation(() => {
-        val builder = builderFactory.get()
+      severalImplementation({
+        val builder = builderFactory
         builder.add(item)
         builder
-      }).scalaTrials
-    ).javaTrials
+      })
+    )
 
   override def lotsOfSize[Collection](size: Int)(implicit
       factory: collection.Factory[Case, Collection]

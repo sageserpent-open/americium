@@ -202,14 +202,6 @@ trait Trials[+Case]
       factory: Factory[Case, Collection]
   ): Trials[Collection]
 
-  /** @deprecated
-    *   Use [[nonEmptyCollections]] instead.
-    */
-  @deprecated("Use 'nonEmptyCollections' instead.")
-  def nonEmptySeveral[Collection](implicit
-      factory: Factory[Case, Collection]
-  ): Trials[Collection] = nonEmptyCollections
-
   def lists: Trials[List[Case]]
 
   def nonEmptyLists: Trials[List[Case]]

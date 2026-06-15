@@ -71,7 +71,11 @@ trait TrialsSkeletalImplementation[Case] extends ScalaTrials[Case] {
       factory: collection.Factory[Case, Container]
   ): ScalaTrials[Container]
 
-  override def nonEmptySeveral[Container](implicit
+  /** @deprecated
+    *   Use [[nonEmptyCollections]] instead.
+    */
+  @deprecated("Use 'nonEmptyCollections' instead.")
+  def nonEmptySeveral[Container](implicit
       factory: collection.Factory[Case, Container]
   ): ScalaTrials[Container] = nonEmptyCollections(factory)
 
