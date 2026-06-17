@@ -3,6 +3,7 @@ layout: default
 title: Awkward Tests
 parent: Core Concepts
 nav_order: 5
+reviewed: true
 ---
 
 # Awkward Tests
@@ -17,166 +18,137 @@ Handling preconditions with `Trials.reject()` and `Trials.whenever()`
 1. TOC
 {:toc}
 
-{% include disclaimer.html %}
-
 ---
 
 ## The Problem: Stateful Systems
 
 Sometimes you're testing a **stateful system** where test cases represent sequences of operations. Not all sequences make sense - some violate preconditions or invariants.
 
-Consider testing a banking system where operations can fail for perfectly valid reasons (insufficient funds). How do we handle this?
+Consider testing a banking system where operations can fail for perfectly valid reasons (e.g., insufficient funds). How do we handle this in a property-based test?
 
 ---
 
 ## Example: Bank Account Testing
 
-Let's test a simple cash box accounting system:
+### System Under Test
+
+Let's look at a model of simple cash accounts. We have a `Bank` that manages `CashBoxAccounts` identified by UUIDs.
+
 ```java
-import com.sageserpent.americium.java.CashBoxAccounts;
+interface CashBoxAccounts {
+    void open(UUID accountId, int cash) throws AccountAlreadyExists;
+    void deposit(UUID accountId, int cash) throws AccountDoesNotExist;
+    void withdraw(UUID accountId, int requestedAmount)
+            throws AccountDoesNotExist, InsufficientFunds;
+    int close(UUID accountId) throws AccountDoesNotExist;
+}
+```
 
-// Generate random account operations
-final Trials<ImmutableList<CashBoxAccounts.OperationId>> testPlans = 
-    api().uniqueIds()
-        .map(CashBoxAccounts.OperationId::new)
-        .immutableLists();
+The `Bank` provides a transactional API:
 
-testPlans.withLimit(100).supplyTo(plan -> {
-    final CashBoxAccounts cashBoxAccounts = new CashBoxAccounts();
-    
-    for (final CashBoxAccounts.OperationId operationId : plan) {
-        // Randomly choose an operation type
-        final int operationType = random.nextInt(4);
-        
-        switch (operationType) {
-            case 0: // Open account
-                cashBoxAccounts.open(operationId);
-                break;
-            case 1: // Deposit
-                cashBoxAccounts.deposit(operationId, randomAmount());
-                break;
-            case 2: // Withdrawal  
-                cashBoxAccounts.withdrawal(operationId, randomAmount());
-                break;
-            case 3: // Close account
-                cashBoxAccounts.close(operationId);
-                break;
-        }
+```java
+public class Bank {
+    private final Map<UUID, Integer> accountBalances = new HashMap<>();
+
+    public void transaction(Consumer<CashBoxAccounts> action) {
+        final CashBoxAccounts cashBoxAccounts = new CashBoxAccounts() {
+            // ... implementation that updates accountBalances ...
+            // BUG: close(UUID) returns the balance but fails to remove
+            // the account from accountBalances!
+        };
+        action.accept(cashBoxAccounts);
     }
-    
-    // Verify invariants
-    assertThat(cashBoxAccounts.balance(), greaterThanOrEqualTo(0));
-});
+}
+```
+
+### Test Approach: The Test Plan
+
+We want to test if a customer can always close their account and receive their expected balance, regardless of the sequence of deposits and withdrawals, provided they don't overdraw.
+
+A good way to model this is a recursive `TestPlan` that builds a chain of operations:
+
+```java
+class TestPlan {
+    // ... fields for accountId, availableToDeposit, targetToWithdraw, and the current step ...
+
+    public Trials<TestPlan> extend() {
+        if (0 == targetToWithdraw) {
+            return api().only(opening());
+        }
+
+        List<Trials<TestPlan>> choices = new ArrayList<>();
+
+        if (2 <= availableToDeposit) {
+            choices.add(api().integers(1, availableToDeposit - 1)
+                             .map(this::deposition));
+        }
+
+        if (1 <= targetToWithdraw) {
+            choices.add(api().integers(1, targetToWithdraw)
+                             .map(this::withdrawal));
+        }
+
+        return api().alternate(choices)
+                    .flatMap(TestPlan::extend);
+    }
+
+    void executeUsing(Bank bank) {
+        // ... executes the chain of transactions ...
+    }
+}
 ```
 
 ---
 
 ## The Issue: Invalid Operations
 
-This test will **fail frequently** - but not because the system is buggy!
-
-Invalid sequences like:
-- Withdrawing from a closed account
-- Depositing to a non-existent account
-- Withdrawing more than the balance
-
-These throw exceptions - but they're **correct behavior**, not bugs. Our **test plan is faulty**, not the system.
-
-We could handle this with try-catch:
-```java
-try {
-    cashBoxAccounts.withdrawal(operationId, amount);
-} catch (CashBoxAccounts.InsufficientFunds e) {
-    // Ignore - this is valid behavior
-}
+When we run this test, we might see failures like this:
+```
+Insufficient funds in account 5120f880... for requested amount: 9. Current balance is: 1.
 ```
 
-But this feels wrong - we're **swallowing exceptions** and the test continues with a partially invalid state.
+This isn't necessarily a bug in the `Bank`—it's a **faulty test plan**. Our `TestPlan` generator allows splitting deposits and withdrawals in arbitrary ways. Even if they total up correctly by the end, a withdrawal might be attempted before enough money has been deposited.
+
+We could try to make the generator smarter to avoid overdrawing, but for complex systems, that often means duplicating the system's logic in the test.
+
+Instead, Americium allows us to **reject** test cases that violate preconditions during execution.
 
 ---
 
 ## Solution 1: `Trials.reject()`
 
-When a test case doesn't meet preconditions, **reject it entirely** and move to the next:
+When a test case hits a valid "business rule" failure that isn't the bug you're looking for, you can reject it:
+
 ```java
-testPlans.withLimit(100).supplyTo(plan -> {
-    final CashBoxAccounts cashBoxAccounts = new CashBoxAccounts();
-    
-    for (final CashBoxAccounts.OperationId operationId : plan) {
-        final int operationType = random.nextInt(4);
-        
-        try {
-            switch (operationType) {
-                case 0:
-                    cashBoxAccounts.open(operationId);
-                    break;
-                case 1:
-                    cashBoxAccounts.deposit(operationId, randomAmount());
-                    break;
-                case 2:
-                    cashBoxAccounts.withdrawal(operationId, randomAmount());
-                    break;
-                case 3:
-                    cashBoxAccounts.close(operationId);
-                    break;
-            }
-        } catch (CashBoxAccounts.InsufficientFunds e) {
-            Trials.reject();  // ← Abort this trial, try another
-        }
+testPlans.withLimit(100).supplyTo(testPlan -> {
+    try {
+        testPlan.executeUsing(new Bank());
+    } catch (CashBoxAccounts.InsufficientFunds e) {
+        Trials.reject();  // ← Abort this trial, try another
     }
-    
-    // Only valid sequences reach here
-    assertThat(cashBoxAccounts.balance(), greaterThanOrEqualTo(0));
 });
 ```
 
 ### How `reject()` Works
 
 When `Trials.reject()` is called:
-1. Current trial is **immediately aborted**
-2. No failure is recorded
-3. Americium **generates a new test case** and tries again
-4. Counts against your case limit
-
-{: .note }
-> Rejected trials still consume your limit! If you have `.withLimit(100)` and reject 30 trials, you'll only run 70 successful trials.
+1. The current trial is **immediately aborted** via a control-flow exception.
+2. No failure is recorded for this case.
+3. Americium **generates a new test case** and continues.
+4. The rejected trial still counts against your `casesLimit`.
 
 ---
 
 ## Solution 2: `Trials.whenever()`
 
-A more elegant approach - **guard code blocks** with preconditions:
+A more elegant approach is to **guard code blocks** with preconditions. This is especially useful if you can check the state before performing the operation:
+
 ```java
-testPlans.withLimit(100).supplyTo(plan -> {
-    final CashBoxAccounts cashBoxAccounts = new CashBoxAccounts();
-    
-    for (final CashBoxAccounts.OperationId operationId : plan) {
-        final int operationType = random.nextInt(4);
-        
-        switch (operationType) {
-            case 0:
-                cashBoxAccounts.open(operationId);
-                break;
-            case 1:
-                Trials.whenever(
-                    cashBoxAccounts.isOpen(operationId),
-                    () -> cashBoxAccounts.deposit(operationId, randomAmount())
-                );
-                break;
-            case 2:
-                Trials.whenever(
-                    cashBoxAccounts.canWithdraw(operationId, randomAmount()),
-                    () -> cashBoxAccounts.withdrawal(operationId, randomAmount())
-                );
-                break;
-            case 3:
-                cashBoxAccounts.close(operationId);
-                break;
-        }
-    }
-    
-    assertThat(cashBoxAccounts.balance(), greaterThanOrEqualTo(0));
-});
+// Logic inside a test plan step
+Trials.whenever(
+    cashBoxAccounts.getBalance(accountId) >= requestedAmount,
+    () -> cashBoxAccounts.withdraw(accountId, requestedAmount)
+);
 ```
 
 ### How `whenever()` Works
@@ -186,10 +158,10 @@ Trials.whenever(guardCondition, () -> {
 });
 ```
 
-- If `guardCondition` is **true** → Execute the code block
-- If `guardCondition` is **false** → Call `Trials.reject()` automatically
+- If `guardCondition` is **true** → The code block is executed.
+- If `guardCondition` is **false** → `Trials.reject()` is called automatically.
 
-It's just **syntactic sugar**, but much cleaner!
+It's syntactic sugar that makes the intent of preconditions clear.
 
 ---
 
@@ -197,223 +169,65 @@ It's just **syntactic sugar**, but much cleaner!
 
 ### ✅ Good Use Cases
 
-**Filtering complex state:**
-```java
-Trials.whenever(systemInValidState(), () -> {
-    performOperation();
-});
-```
-
-**Precondition checking:**
-```java
-Trials.whenever(account.isOpen() && balance > 0, () -> {
-    account.withdraw(amount);
-});
-```
-
-**Avoiding edge cases temporarily:**
-```java
-// While debugging, skip problematic states
-Trials.whenever(!isProblematicState(state), () -> {
-    testSystemUnderTest(state);
-});
-```
+- **Stateful testing**: When a sequence of operations depends on the results of previous ones.
+- **Precondition checking**: When it's easier to check a condition at runtime than to build it into the generator.
+- **Handling rare edge cases**: Skipping specific combinations of state and input that are known to be invalid.
 
 ---
 
 ### ❌ When NOT to Use Rejection
 
 {: .warning-title }
-> **Don't be casual with rejection!**
+> **Avoid high rejection rates!**
 
-**High rejection rates** can indicate problems:
+If your generator produces invalid cases most of the time, your test will be very slow and may "starve."
+
 ```java
-// BAD: This will reject most cases!
-api().integers(1, 1000000).withLimit(100).supplyTo(n -> {
-    Trials.whenever(isPrime(n), () -> {  // Only ~7% of numbers are prime!
-        testWithPrime(n);
-    });
+// BAD: Only ~7% of numbers are prime!
+api().integers(1, 1000).withLimit(100).supplyTo(n -> {
+    Trials.whenever(isPrime(n), () -> { ... });
 });
 ```
 
-If you're rejecting >50% of cases, you're doing it wrong. Generate valid cases **directly** instead:
+Instead, **prefer direct generation**:
 ```java
-// GOOD: Generate primes directly
-final Trials<Integer> primes = 
-    api().choose(2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, ...);
-
-primes.withLimit(100).supplyTo(prime -> {
-    testWithPrime(prime);  // No rejection needed!
-});
+// GOOD: Generate from a known set of primes
+api().choose(2, 3, 5, 7, 11, ...).withLimit(100).supplyTo(n -> { ... });
 ```
-
----
-
-### Starvation Detection
-
-Remember the **starvation ratio** from Configuration?
-```java
-trials.withStrategy(cycle -> 
-    CasesLimitStrategy.counted(100, 0.2)  // ← 20% rejection tolerance
-);
-```
-
-If more than 20% of trials are rejected, Americium will warn you about **starvation** - you're not getting enough valid test cases.
 
 ---
 
 ## Rejection vs Filtering
 
-You might be wondering: how is `Trials.reject()` different from `.filter()`?
-```java
-// Using .filter()
-trials
-    .filter(isValid)
-    .withLimit(100)
-    .supplyTo(testCase -> { ... });
-
-// Using Trials.reject()  
-trials.withLimit(100).supplyTo(testCase -> {
-    Trials.whenever(isValid(testCase), () -> {
-        // Test code
-    });
-});
-```
-
-**Key differences:**
-
-| `.filter()` | `Trials.reject()` |
-|------------|-------------------|
-| Filters **before** generating complex structures | Filters **during** test execution |
-| Can't access runtime state | Can check runtime state |
-| More efficient for simple predicates | Better for stateful/sequential tests |
-| Applied at generation time | Applied at test time |
-
-**Use `.filter()` when:**
-- Predicate is based on the test case alone
-- No runtime state needed
-- Simple conditions
-
-**Use `Trials.reject()` when:**
-- Need to check runtime state
-- Testing sequences of operations
-- Preconditions depend on accumulated state
+| `.filter()` | `Trials.reject()` / `.whenever()` |
+|:---|:---|
+| Applied **during generation**. | Applied **during test execution**. |
+| Best for static data properties. | Best for dynamic runtime state. |
+| More efficient (avoids building the case). | Flexible (can access the system under test). |
 
 ---
 
 ## A Lurking Bug
 
-Our `CashBoxAccounts` example actually has a **subtle bug** that we haven't caught yet!
+Remember the bug mentioned in the `Bank` implementation?
 
-Look at the `close()` implementation:
 ```java
-public void close(OperationId operationId) {
-    if (!accounts.containsKey(operationId)) {
-        throw new IllegalArgumentException("Account does not exist");
-    }
-    
-    Account account = accounts.get(operationId);
-    
-    if (account.isClosed()) {
-        throw new IllegalStateException("Account already closed");
-    }
-    
-    account.setClosed(true);
-    // BUG: Doesn't remove from map!
+public int close(UUID accountId) throws AccountDoesNotExist {
+    return Optional.of(accountBalances.get(accountId))
+                   .orElseThrow(() -> new AccountDoesNotExist(accountId));
+    // BUG: Missing accountBalances.remove(accountId);
 }
 ```
 
-The account is marked closed but **not removed from the map**.
+Our current `TestPlan` uses a `UUID.randomUUID()` for each plan, so we never see the same ID twice. This is why we haven't caught the bug yet!
 
-If we try to open an account with the **same ID twice**, the second open will fail because the ID already exists in the map (even though it's "closed").
-
-This is why our test uses `api().uniqueIds()` - it ensures unique operation IDs. But in real systems, IDs might be reused after accounts close!
-
-{: .tip }
-> **Exercise:** Modify the test to reuse operation IDs and catch this bug. You'll need to handle the two distinct "lifecycles" of an account with the same ID.
+To find it, we would need to modify our generator to occasionally **reuse account IDs** across different lifecycles. Once we do that, we'll see that opening an account fails if it was previously "closed" but not removed from the bank's internal map.
 
 ---
 
-## Best Practices
+## Summary
 
-### 1. Prefer Direct Generation
-```java
-// ❌ Bad: Generate then filter heavily
-api().integers(1, 1000).withLimit(100).supplyTo(n -> {
-    Trials.whenever(isSpecialCase(n), () -> { ... });
-});
-
-// ✅ Good: Generate valid cases directly
-api().choose(getSpecialCases()).withLimit(100).supplyTo(n -> {
-    // All cases are valid!
-});
-```
-
-### 2. Use Rejection for State, Filtering for Data
-```java
-// ✅ Good: Filter data properties
-trials
-    .filter(data -> data.isValid())
-    .withLimit(100)
-    .supplyTo(data -> { ... });
-
-// ✅ Good: Reject based on accumulated state
-trials.withLimit(100).supplyTo(data -> {
-    Trials.whenever(system.canHandle(data), () -> {
-        system.process(data);
-    });
-});
-```
-
-### 3. Monitor Rejection Rates
-```java
-// Set a starvation ratio to detect problems early
-trials.withStrategy(cycle -> 
-    CasesLimitStrategy.counted(100, 0.1)  // Max 10% rejection
-);
-```
-
-### 4. Document Why You're Rejecting
-```java
-Trials.whenever(account.isOpen(), () -> {
-    // Rejection here is expected: closed accounts can't accept deposits
-    account.deposit(amount);
-});
-```
-
----
-
-## Summary Pattern
-
-The typical pattern for testing stateful systems:
-```java
-final Trials<ImmutableList<Operation>> operationSequences = 
-    generateOperations();
-
-operationSequences.withLimit(100).supplyTo(operations -> {
-    final StatefulSystem system = new StatefulSystem();
-    
-    for (Operation op : operations) {
-        Trials.whenever(op.preconditionsMet(system), () -> {
-            op.execute(system);
-        });
-    }
-    
-    // Verify invariants on valid sequences
-    assertThat(system.isConsistent(), is(true));
-});
-```
-
----
-
-{: .note-title }
-> Key Takeaways
->
-> - **`Trials.reject()`** - Abort current trial when preconditions aren't met
-> - **`Trials.whenever(condition, code)`** - Syntactic sugar for guarded rejection
-> - **Use for stateful testing** - When preconditions depend on runtime state
-> - **Monitor rejection rates** - High rejection = inefficient test case generation
-> - **Prefer direct generation** - Generate valid cases rather than filtering invalid ones
-> - **Starvation ratio** - Configure tolerance for rejection
-> - **`.filter()` vs `.reject()`** - Filter at generation time, reject at test time
-> - Rejection counts against your case limit
+- **`Trials.reject()`** allows a test to abandon a trial that violates preconditions.
+- **`Trials.whenever()`** provides a clean way to guard code blocks with these preconditions.
+- Use these tools to handle the "awkward" parts of stateful systems where the test data and system state must be synchronized.
+- Always monitor your rejection rates to ensure your tests remain efficient.

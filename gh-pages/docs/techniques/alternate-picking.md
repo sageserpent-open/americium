@@ -3,12 +3,13 @@ layout: default
 title: Alternate Picking
 parent: Advanced Techniques
 nav_order: 5
+reviewed: true
 ---
 
 # Alternate Picking
 {: .no_toc }
 
-Merging sequences while preserving element order
+Merging multiple sequences into one while preserving internal order
 {: .fs-6 .fw-300 }
 
 ## Table of contents
@@ -17,407 +18,83 @@ Merging sequences while preserving element order
 1. TOC
 {:toc}
 
-{% include disclaimer.html %}
-
 ---
 
 ## The Problem
 
-Imagine you're testing a **merge algorithm** or a **multi-stream processor**. You have multiple input sequences and need to generate **interleavings** of them:
+Sometimes you have multiple independent sequences of events or data, and you want to test how your system handles them when they are **interleaved**.
 
-**Sequences:**
-```
-A: [1, 2, 3]
-B: [a, b, c]
-C: [X, Y]
-```
+For example, you might have:
+- Sequence A: `[A1, A2, A3]`
+- Sequence B: `[B1, B2]`
 
-**Valid interleavings** (preserve order within each sequence):
-```
-[1, a, 2, X, b, 3, Y, c]  ✓ Order preserved: 1→2→3, a→b→c, X→Y
-[a, 1, X, 2, b, Y, 3, c]  ✓ Order preserved
-[1, 2, 3, a, b, c, X, Y]  ✓ Order preserved (simple concatenation)
-```
+You want to generate test cases like `[A1, B1, A2, B2, A3]` or `[B1, A1, A2, B2, A3]`. Crucially, you must **preserve the relative order** of elements within each sequence (e.g., `A1` must always come before `A2`).
 
-**Invalid interleavings** (violate order):
-```
-[2, 1, a, 3, b, c, X, Y]  ✗ 2 before 1!
-[a, c, b, 1, 2, 3, X, Y]  ✗ c before b!
-```
-
-How do you generate **valid interleavings** for testing?
+Doing this manually with `flatMap` and random choices is complex and often leads to shuffles that Americium cannot shrink effectively.
 
 ---
 
-## The Solution: `api.pickAlternatelyFrom()`
+## The Solution: `pickAlternatelyFrom`
 
-Americium provides a built-in way to generate interleavings:
-```scala
-val seq1 = IndexedSeq(1, 2, 3)
-val seq2 = IndexedSeq('a', 'b', 'c')
-val seq3 = IndexedSeq('X', 'Y')
+Americium provides **`api().pickAlternatelyFrom()`**, which takes a set of sequences and merges them into a single list. The merging is done by picking the next element from one of the available sequences at each step.
 
-api.pickAlternatelyFrom(
-  shrinkToRoundRobin = true,
-  seq1, seq2, seq3
-).withLimit(10).supplyTo(println)
-```
-
-Output:
-```
-[1, a, X, 2, b, Y, 3, c]
-[1, 2, a, b, 3, c, X, Y]
-[a, 1, 2, X, 3, b, Y, c]
-[1, a, 2, b, 3, X, c, Y]
-...
-```
-
-All elements from all sequences are present, and **order is preserved** within each sequence!
-
----
-
-## How It Works
-
-`api.pickAlternatelyFrom()` generates a **merge** of the input sequences:
-
-1. Iterate through all sequences
-2. Pick elements **alternately** from each
-3. **Preserve order** within each sequence
-4. Ensure **all elements** appear exactly once
-
-The exact interleaving pattern varies based on Americium's pseudorandom generation.
-
----
-
-## Parameters
-```scala
-api.pickAlternatelyFrom(
-  shrinkToRoundRobin: Boolean,  // Shrinkage strategy
-  sequences: IndexedSeq[T]*      // Variable number of sequences
-)
-```
-
-### `shrinkToRoundRobin`
-
-Controls how interleavings shrink when a test fails:
-
-**`shrinkToRoundRobin = true`** - Shrinks toward **round-robin** merge:
-```
-Initial: [a, 1, 2, b, X, 3, c, Y]
-Shrunk:  [1, a, X, 2, b, Y, 3, c]  ← Strict alternation
-```
-
-**`shrinkToRoundRobin = false`** - Shrinks toward **concatenation**:
-```
-Initial: [a, 1, 2, b, X, 3, c, Y]
-Shrunk:  [1, 2, 3, a, b, c, X, Y]  ← Just appended
-```
-
----
-
-## Basic Usage Example
-
-Testing a merge function:
-```scala
-val list1 = api.integers(1, 100).immutableListsOfSize(5)
-val list2 = api.integers(1, 100).immutableListsOfSize(5)
-
-list1.flatMap(l1 =>
-  list2.flatMap(l2 =>
-    api.pickAlternatelyFrom(
-      shrinkToRoundRobin = true,
-      l1.toIndexedSeq,
-      l2.toIndexedSeq
-    ).map(_.toList)
-  )
-).withLimit(100).supplyTo { merged =>
-  // merged contains all elements from both lists
-  // with order preserved
-  
-  val elements = merged.toSet
-  assert(elements == (l1.toSet ++ l2.toSet))
-  
-  // Verify order preservation
-  // (elements from l1 appear in same relative order)
-  // (elements from l2 appear in same relative order)
-}
-```
-
----
-
-## Real-World Example: Event Stream Merging
-
-Testing a system that merges events from multiple sources:
-```scala
-case class Event(source: String, id: Int, timestamp: Long)
-
-val source1Events = (1 to 5).map(i => Event("A", i, i * 100))
-val source2Events = (1 to 3).map(i => Event("B", i, i * 100))
-val source3Events = (1 to 4).map(i => Event("C", i, i * 100))
-
-api.pickAlternatelyFrom(
-  shrinkToRoundRobin = true,
-  source1Events.toIndexedSeq,
-  source2Events.toIndexedSeq,
-  source3Events.toIndexedSeq
-).withLimit(50).supplyTo { mergedEvents =>
-  
-  // Process merged event stream
-  val processor = new EventProcessor()
-  mergedEvents.foreach(processor.process)
-  
-  // Verify all events processed
-  assert(processor.processedCount == 12)  // 5 + 3 + 4
-  
-  // Verify order within each source
-  val source1Processed = 
-    processor.getProcessedEvents
-      .filter(_.source == "A")
-      .map(_.id)
-  
-  assert(source1Processed == List(1, 2, 3, 4, 5))
-  
-  // Similarly for source2 and source3...
-}
-```
-
----
-
-## Choosing Shrinkage Strategy
-
-### Round-Robin (`shrinkToRoundRobin = true`)
-
-**Best for:** Testing systems that expect **balanced** input from sources.
-
-**Shrinks to:**
-```
-[A1, B1, C1, A2, B2, C2, A3, B3, C3, ...]
-```
-
-**Example:** Load balancers, fair schedulers, round-robin distributors.
-
----
-
-### Concatenation (`shrinkToRoundRobin = false`)
-
-**Best for:** Testing systems where **bulk processing** might reveal bugs.
-
-**Shrinks to:**
-```
-[A1, A2, A3, ..., B1, B2, B3, ..., C1, C2, C3, ...]
-```
-
-**Example:** Batch processors, systems with buffering, stream coalescers.
-
----
-
-## Combining with Other Techniques
-
-### Alternate Picking + Unique IDs
-
-Test concurrent operations from multiple clients:
-```scala
-val client1Ops = api.uniqueIds().immutableListsOfSize(10)
-val client2Ops = api.uniqueIds().immutableListsOfSize(10)
-val client3Ops = api.uniqueIds().immutableListsOfSize(10)
-
-client1Ops.flatMap(c1 =>
-  client2Ops.flatMap(c2 =>
-    client3Ops.flatMap(c3 =>
-      api.pickAlternatelyFrom(
-        shrinkToRoundRobin = true,
-        c1.toIndexedSeq,
-        c2.toIndexedSeq,
-        c3.toIndexedSeq
-      )
-    )
-  )
-).withLimit(100).supplyTo { interleavedOps =>
-  // Simulate concurrent operations
-  val system = new ConcurrentSystem()
-  
-  interleavedOps.foreach(opId => {
-    system.performOperation(opId)
-  })
-  
-  // Verify system state
-  assert(system.isConsistent())
-}
-```
-
----
-
-### Alternate Picking + Permutations
-
-First merge sequences, then permute the result:
-```scala
-api.pickAlternatelyFrom(
-  shrinkToRoundRobin = true,
-  seq1, seq2, seq3
-).flatMap(merged =>
-  api.indexPermutations(merged.size).map(perm =>
-    perm.map(merged)
-  )
-).withLimit(100).supplyTo { permutedMerge =>
-  // Now order is NOT preserved!
-  // Good for testing order-agnostic systems
-}
-```
-
----
-
-## Variable-Length Sequences
-
-Sequences don't need to be the same length:
-```scala
-val short = IndexedSeq(1, 2)
-val medium = IndexedSeq('a', 'b', 'c', 'd')
-val long = IndexedSeq('X', 'Y', 'Z', 'W', 'V', 'U')
-
-api.pickAlternatelyFrom(
-  shrinkToRoundRobin = true,
-  short, medium, long
-).supplyTo(println)
-```
-
-Output example:
-```
-[1, a, X, 2, b, Y, c, Z, d, W, V, U]
-```
-
-All elements appear, order preserved within each sequence.
-
----
-
-## Empty Sequences
-
-Handles empty sequences gracefully:
-```scala
-val seq1 = IndexedSeq(1, 2, 3)
-val seq2 = IndexedSeq.empty[Int]
-val seq3 = IndexedSeq(7, 8)
-
-api.pickAlternatelyFrom(
-  shrinkToRoundRobin = true,
-  seq1, seq2, seq3
-).supplyTo(println)
-```
-
-Output:
-```
-[1, 7, 2, 8, 3]
-```
-
-The empty sequence contributes nothing but doesn't break the merge.
-
----
-
-## Performance Considerations
-
-The alternate picking algorithm is **efficient** - it doesn't generate all possible interleavings (which would be exponential), but rather samples the space effectively.
-
-**Number of possible interleavings:**
-```
-For sequences of lengths n1, n2, n3, ...:
-Number of interleavings = (n1 + n2 + n3 + ...)! / (n1! × n2! × n3! × ...)
-```
-
-For `[3, 3, 2]`:
-```
-8! / (3! × 3! × 2!) = 40,320 / (6 × 6 × 2) = 40,320 / 72 = 560
-```
-
-Americium **samples** from these 560 possibilities rather than generating them all.
-
----
-
-## When to Use Alternate Picking
-
-### ✅ Use when:
-- Testing **merge** algorithms
-- Testing **multi-stream** processors
-- Testing **concurrent** event handlers
-- Simulating **interleaved** execution
-- Testing **order-preserving** systems with multiple inputs
-
-### ❌ Don't use when:
-- Order **doesn't matter** (just concatenate or shuffle)
-- You need **all possible interleavings** (combinatorial explosion)
-- Sequences are **too large** (performance impact)
-
----
-
-## Shrinkage Example
-
-See shrinkage in action:
-```scala
-val seq1 = IndexedSeq(1, 2, 3, 4, 5)
-val seq2 = IndexedSeq('a', 'b', 'c')
-
-api.pickAlternatelyFrom(
-  shrinkToRoundRobin = true,
-  seq1, seq2
-).withLimit(100).supplyTo { merged =>
-  // Simulate bug: fails if 'b' comes before 3
-  val bIndex = merged.indexOf('b')
-  val threeIndex = merged.indexOf(3)
-  
-  if (bIndex >= 0 && threeIndex >= 0 && bIndex < threeIndex) {
-    throw new AssertionError(s"Bug! Merged: $merged")
-  }
-}
-```
-
-Shrinkage progression:
-```
-Initial failure: [1, a, 2, b, 3, c, 4, 5]
-Shrinking toward round-robin...
-[1, a, 2, b, 3, c, 4, 5]
-[1, a, 2, b, 3, c, 4, 5]
-[1, a, b, 2, 3, c, 4, 5]  ← Shrunk!
-```
-
-With `shrinkToRoundRobin = false`:
-```
-Initial failure: [1, a, 2, b, 3, c, 4, 5]
-Shrinking toward concatenation...
-[1, a, b, 2, 3, c, 4, 5]
-[1, 2, a, b, 3, c, 4, 5]
-[1, 2, 3, a, b, c, 4, 5]  ← Shrunk to concatenation
-```
-
----
-
-## Scala vs Java
-
-**Scala:**
-```scala
-api.pickAlternatelyFrom(
-  shrinkToRoundRobin = true,
-  seq1, seq2, seq3
-)
-```
-
-**Java:**
 ```java
-api().pickAlternatelyFrom(
-  true,  // shrinkToRoundRobin
-  seq1, seq2, seq3
-)
+final List<Integer> odds = List.of(1, 3, 5, 7, 9);
+final List<Integer> evens = List.of(0, 2, 4, 6, 8, 10);
+
+final Trials<List<Integer>> merged =
+        api().pickAlternatelyFrom(true, odds, evens);
 ```
 
-Same functionality, slightly different syntax.
+### Parameters
+
+- **`shrinkToRoundRobin` (boolean)**: This defines the "minimal" form that Americium will shrink toward if a failure occurs.
+    - `true`: Shrink toward a strict interleaved pattern (`[A1, B1, A2, B2, ...]`).
+    - `false`: Shrink toward a simple concatenation (`[A1, A2, A3, B1, B2, ...]`).
+- **`sequences`**: Two or more iterables to be merged.
 
 ---
 
-{: .note-title }
-> Key Takeaways
->
-> - **`api.pickAlternatelyFrom(shrinkToRoundRobin, seqs...)`** - Merge sequences preserving order
-> - **Order preserved** within each sequence
-> - **All elements** appear exactly once
-> - **Two shrinkage modes:** Round-robin (balanced) or concatenation (bulk)
-> - **Efficient sampling** - Doesn't generate all possibilities
-> - Perfect for merge algorithms, multi-stream processors, concurrent systems
-> - Combine with unique IDs, permutations, and other techniques
-> - Handles variable-length and empty sequences gracefully
+## Example: Testing a Merged Stream
+
+Suppose you are testing a component that merges several sorted streams into a single sorted output.
+
+```java
+List<Integer> stream1 = List.of(1, 10, 100);
+List<Integer> stream2 = List.of(2, 20, 200);
+List<Integer> stream3 = List.of(3, 30, 300);
+
+api().pickAlternatelyFrom(true, stream1, stream2, stream3)
+    .withLimit(100)
+    .supplyTo(mergedSequence -> {
+        // The merged sequence preserves the relative order of each stream,
+        // but the streams are interleaved in various ways.
+        List<Integer> result = mySystem.process(mergedSequence);
+
+        assertThat(result, isSorted());
+    });
+```
+
+---
+
+## Shrinkage and Alternate Picking
+
+When a failure occurs with a wild, randomized interleave, Americium will use the `shrinkToRoundRobin` flag to find a simpler failing case.
+
+- If **`shrinkToRoundRobin` is `true`**, Americium will try to find a failing case where the elements are perfectly interleaved:
+  `[odds0, evens0, negatives0, odds1, evens1, negatives1, ...]`
+  
+- If **`shrinkToRoundRobin` is `false`**, Americium will try to find a failing case where one sequence is drained before the next starts:
+  `[odds0, odds1, ..., evens0, evens1, ..., negatives0, negatives1, ...]`
+
+This allows you to choose the "simplest" failure mode that makes sense for your specific domain.
+
+---
+
+## Summary
+
+- Use **`api().pickAlternatelyFrom()`** to merge multiple ordered sequences into one.
+- It **guarantees** that the relative order of elements within each source sequence is maintained.
+- It provides a **highly efficient search space** for interleaved events.
+- The **shrinkage strategy** (round-robin vs. concatenation) is configurable, allowing you to isolate bugs more easily.
+- Use it for testing stream processing, multi-threaded event merging, or any system that consumes multiple ordered inputs.

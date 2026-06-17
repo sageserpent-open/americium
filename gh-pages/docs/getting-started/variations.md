@@ -18,7 +18,6 @@ Choices, alternation, special cases
 1. TOC
 {:toc}
 
-{% include disclaimer.html %}
 
 ---
 

@@ -18,7 +18,6 @@ Using `.and()` to supply multiple independent test case streams
 1. TOC
 {:toc}
 
-{% include disclaimer.html %}
 
 ---
 

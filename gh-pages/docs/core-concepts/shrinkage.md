@@ -18,7 +18,6 @@ Distance shrinkage, complexity shrinkage, and how they work together
 1. TOC
 {:toc}
 
-{% include disclaimer.html %}
 
 ---
 

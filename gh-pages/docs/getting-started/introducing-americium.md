@@ -18,7 +18,6 @@ Trials, supplying test cases to tests, shrinkage in action
 1. TOC
 {:toc}
 
-{% include disclaimer.html %}
 
 ---
 
