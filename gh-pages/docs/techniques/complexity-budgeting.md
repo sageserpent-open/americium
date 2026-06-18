@@ -3,6 +3,7 @@ layout: default
 title: Complexity Budgeting
 parent: Advanced Techniques
 nav_order: 4
+reviewed: true
 ---
 
 # Complexity Budgeting
@@ -17,482 +18,100 @@ Controlling recursive structure generation with complexity awareness
 1. TOC
 {:toc}
 
-{% include disclaimer.html %}
-
 ---
 
 ## The Problem
 
-When generating **recursive data structures** (trees, expressions, nested lists, etc.), you need to control their depth and size:
+When generating **recursive data structures** (trees, expressions, nested lists, etc.), you need to control their depth and size.
 
-**Too shallow:**
-```
-1           ← Boring, doesn't test recursion
-```
+If you use a simple recursive definition, you often run into two extremes:
+1. **Too shallow**: The generation terminates too early, and you never test deep structures.
+2. **Runaway recursion**: The generation goes too deep, breaching the default complexity limit, resulting in very few valid test cases being generated.
 
-**Too deep:**
-```
-(((((((((((((((((((((1 + 2) - 3) * 4) / 5) + 6) - 7) ...))))))))))))))))
-↑ 100 levels deep - unwieldy, hard to debug
-```
-
-**What you want:** A **balanced distribution** of shallow and deep structures.
-
-We've already seen one approach - using `api().delay()` to prevent infinite recursion:
-```java
-public static Trials<String> calculation() {
-    final Trials<String> constants =
-        api().integers(1, 100).map(x -> x.toString());
-
-    final Trials<String> unaryExpression =
-        api().delay(() -> calculation()
-            .map(expr -> String.format("-(%s)", expr)));
-
-    final Trials<String> binaryExpression =
-        api().delay(() -> calculation().flatMap(lhs -> 
-            api().choose("+", "-", "*", "/").flatMap(op -> 
-                calculation().map(rhs -> 
-                    String.format("(%s) %s (%s)", lhs, op, rhs)))));
-
-    return api().alternate(constants, unaryExpression, binaryExpression);
-}
-```
-
-This works, but the distribution is **random**. Sometimes you get deep trees, sometimes shallow ones. There's no **control** over complexity.
+We've seen that `api().delay()` prevents infinite recursion at the code level, but it doesn't solve the **distribution** problem. We want a healthy mix of shallow and deep structures without "starving" the test suite.
 
 ---
 
-## The Solution: Complexity-Aware Generation
+## The Solution: `api().complexities`
 
-Use **`api().complexities`** to access the current complexity budget and make **depth-aware** decisions:
+Americium allows you to access the current **complexity level** during generation. You can use this value to dynamically adjust the weights of your choices, creating "termination pressure" as the structure grows.
+
+### Complexity-Aware Alternation
+
+The key pattern is to use **`api.complexities`** combined with **`alternateWithWeights`**:
+
 ```scala
-def calculation(): Trials[String] = {
-  val constants = api.integers(1, 100).map(_.toString)
-  
-  val unaryExpression = api.delay(() =>
-    calculation().map(expr => s"-($expr)")
-  )
-  
-  val binaryExpression = api.delay(() =>
-    calculation().flatMap(lhs =>
-      api.choose("+", "-", "*", "/").flatMap(op =>
-        calculation().map(rhs => s"($lhs) $op ($rhs)")
+def statelyTrees: Trials[Tree] = api.complexities.flatMap(complexity =>
+  api.alternateWithWeights(
+    // As complexity increases, the weight of the Leaf (base case) increases
+    complexity -> api.uniqueIds.map(Leaf.apply),
+
+    // The Branching (recursive case) has a fixed weight
+    2 -> api.integers(1, 5).flatMap(numberOfSubtrees =>
+        statelyTrees.listsOfSize(numberOfSubtrees).map(Branching.apply)
       )
-    )
   )
-  
-  // 🌟 Complexity-aware alternation
-  api.complexities.flatMap { complexity =>
-    api.alternateWithWeights(
-      complexity -> constants,         // Weight increases with depth
-      2 -> unaryExpression,           // Fixed weight
-      2 -> binaryExpression           // Fixed weight
-    )
-  }
-}
+)
 ```
 
 ### How It Works
 
-**`api.complexities`** provides the **current complexity level**:
-- Starts at **0** (no complexity consumed yet)
-- **Increases** as you build nested structures
-- Used to **weight alternatives**
-```scala
-api.alternateWithWeights(
-  complexity -> constants,      // Weight = complexity
-  2 -> unaryExpression,        // Weight = 2 (fixed)
-  2 -> binaryExpression        // Weight = 2 (fixed)
-)
-```
-
-At **low complexity** (shallow):
-- `constants` weight = 1
-- `unaryExpression` weight = 2
-- `binaryExpression` weight = 2
-- **Recursion favored** (weights 2 + 2 = 4 vs. 1)
-
-At **high complexity** (deep):
-- `constants` weight = 50
-- `unaryExpression` weight = 2
-- `binaryExpression` weight = 2
-- **Termination favored** (weight 50 vs. 4)
+1. **`api.complexities`** provides a `Trials[Int]` that yields the current complexity count (roughly the number of decisions made so far to build the current case).
+2. **Early in generation** (low complexity):
+   - The weight of the `Leaf` is low (e.g., 0 or 1).
+   - The weight of the `Branching` is 2.
+   - **Branching is favored**, allowing the tree to grow.
+3. **Deep in generation** (high complexity):
+   - The weight of the `Leaf` becomes high (e.g., 20 or 50).
+   - The weight of the `Branching` remains 2.
+   - **The base case (Leaf) becomes much more likely**, effectively "winding down" the recursion.
 
 ---
 
-## Understanding Complexity
+## Example: Expression Trees
 
-**Complexity** in Americium measures the **degrees of freedom** used to build a test case:
-```scala
-// No complexity
-api.only(42)
+Without complexity budgeting, a generator for mathematical expressions might produce either trivial constants or expressions so deep they hit the complexity limit and fail to generate.
 
-// Complexity = 1 (one choice)
-api.choose(1, 2, 3)
+With budgeting:
 
-// Complexity = n (n independent choices)
-api.integers().immutableListsOfSize(n)
-
-// Complexity = depth of recursion
-calculation()  // Could be 0 (constant) to 50+ (deep expression)
-```
-
-Each decision point **consumes complexity**:
-- `.choose()` consumes 1
-- `.integers()` consumes 1
-- Recursive call consumes whatever the recursive structure consumes
-
----
-
-## The Magic of Weighted Alternation
-```scala
-api.alternateWithWeights(
-  complexity -> alternative1,   // ← Lambda: weight varies with complexity
-  fixedWeight -> alternative2   // ← Constant: weight is always fixedWeight
-)
-```
-
-**Early in generation** (complexity = 0):
-```
-Weights: [0, fixedWeight]
-→ alternative2 heavily favored
-```
-
-**Deep in generation** (complexity = 50):
-```
-Weights: [50, fixedWeight]
-→ alternative1 heavily favored
-```
-
-This creates a **natural termination pressure** - the deeper you go, the more likely you are to pick the base case!
-
----
-
-## Complete Example: Expression Trees
-
-Let's build a complete expression generator with complexity budgeting:
-```scala
-sealed trait Expr
-case class Const(value: Int) extends Expr
-case class Neg(expr: Expr) extends Expr
-case class BinOp(left: Expr, op: String, right: Expr) extends Expr
-
-def exprTrials: Trials[Expr] = {
-  val constants: Trials[Expr] = 
-    api.integers(1, 100).map(Const(_))
-  
-  val unary: Trials[Expr] = 
-    api.delay(() => exprTrials.map(Neg(_)))
-  
-  val binary: Trials[Expr] = 
-    api.delay(() =>
-      exprTrials.flatMap(left =>
-        api.choose("+", "-", "*", "/").flatMap(op =>
-          exprTrials.map(right =>
-            BinOp(left, op, right)
-          )
-        )
-      )
-    )
-  
-  // Complexity-aware generation
-  api.complexities.flatMap { complexity =>
-    api.alternateWithWeights(
-      complexity -> constants,
-      1 -> unary,
-      1 -> binary
-    )
-  }
-}
-
-// Test it
-exprTrials.withLimit(10).supplyTo { expr =>
-  println(s"Expression: $expr")
-  println(s"Depth: ${depth(expr)}")
-}
-```
-
-Output shows **varied depths**:
-```
-Expression: Const(42)
-Depth: 1
-
-Expression: Neg(BinOp(Const(7), +, Const(3)))
-Depth: 3
-
-Expression: BinOp(Const(1), *, Neg(Const(5)))
-Depth: 3
-
-Expression: BinOp(Neg(Const(2)), -, BinOp(Const(8), /, Const(4)))
-Depth: 4
-
-Expression: Const(91)
-Depth: 1
-```
-
-Without complexity budgeting, you'd get much more extreme variation (all depth 1, or all depth 20+).
-
----
-
-## Java Example
-
-The same pattern works in Java:
 ```java
-public static Trials<Expr> exprTrials() {
-    final Trials<Expr> constants = 
-        api().integers(1, 100).map(Const::new);
-    
-    final Trials<Expr> unary = 
-        api().delay(() -> exprTrials().map(Neg::new));
-    
-    final Trials<Expr> binary = 
-        api().delay(() -> 
-            exprTrials().flatMap(left ->
-                api().choose("+", "-", "*", "/").flatMap(op ->
-                    exprTrials().map(right ->
-                        new BinOp(left, op, right)
-                    )
-                )
-            )
-        );
-    
-    // Complexity-aware alternation
+public static Trials<Expr> expressions() {
     return api().complexities().flatMap(complexity ->
         api().alternateWithWeights(
-            Map.entry(complexity, constants),
-            Map.entry(1, unary),
-            Map.entry(1, binary)
+            // Termination pressure: favor constants as we get deeper
+            Map.entry(complexity, constants()),
+
+            // Fixed weights for recursive structures
+            Map.entry(1, unaryOperations()),
+            Map.entry(2, binaryOperations())
         )
     );
 }
 ```
 
----
-
-## Fine-Tuning the Distribution
-
-Adjust the **fixed weights** to control recursion depth:
-
-### More Recursion
-```scala
-api.alternateWithWeights(
-  complexity -> constants,
-  5 -> unary,              // ← Higher fixed weights
-  5 -> binary              // ← More recursion favored initially
-)
-```
-
-Result: **Deeper trees** on average.
+This ensures that the majority of test cases stay within a "sweet spot" of complexity—complex enough to be interesting, but simple enough to be processed quickly and shrunk effectively.
 
 ---
 
-### Less Recursion
-```scala
-api.alternateWithWeights(
-  complexity -> constants,
-  1 -> unary,              // ← Lower fixed weights
-  1 -> binary              // ← Terminates sooner
-)
-```
+## Why Budgeting Matters for Shrinkage
 
-Result: **Shallower trees** on average.
+Americium shrinks cases by trying to reduce the "degrees of freedom" (complexity). If your generator only produces valid cases at the very edge of the complexity limit, the shrinker has very little room to move before the case becomes "invalid" according to your generator.
+
+By using complexity budgeting, you ensure that there is a **continuous distribution** of valid cases from zero complexity up to your limit. This allows the shrinker to find a smooth path from a massive failing case down to a minimal one.
 
 ---
 
-### Favor Specific Constructors
-```scala
-api.alternateWithWeights(
-  complexity -> constants,
-  3 -> unary,              // ← Unary expressions more common
-  1 -> binary
-)
-```
+## Practical Tips
 
-Result: More unary operations (negation) than binary operations.
+- **Adjust the fixed weight**: Increasing the fixed weight (e.g., from 2 to 5) will result in deeper/larger structures on average.
+- **Complexity Limit**: Remember that you can still set a hard cap using `.withComplexityLimit(n)`. Complexity budgeting works *with* this limit to ensure you get a good distribution below the cap.
+- **Nested Collections**: Complexity budgeting is also useful when generating lists of lists, where you want to ensure the total number of elements across all lists remains manageable.
 
 ---
 
-## Working with Complexity Limits
+## Summary
 
-Remember `.withComplexityLimit()` from Configuration?
-```scala
-exprTrials
-  .withLimit(100)
-  .withComplexityLimit(20)    // ← Maximum complexity budget
-  .supplyTo { expr =>
-    // Expressions limited to ~20 degrees of freedom
-  }
-```
-
-The complexity budget **starts at the limit** and **decreases** as you make choices:
-```
-Initial budget: 20
-
-Choose constant (1 degree): Budget = 19
-Choose binary op (1 degree): Budget = 18
-Choose left subexpr (3 degrees): Budget = 15
-Choose right subexpr (5 degrees): Budget = 10
-...
-```
-
-When budget is **low**, the `complexity` value in your weighted alternation is **low**, so termination is favored.
-
----
-
-## Advanced Pattern: Complexity Thresholds
-
-Use explicit thresholds for more control:
-```scala
-api.complexities.flatMap { complexity =>
-  if (complexity < 5) {
-    // Low complexity: strongly favor recursion
-    api.alternateWithWeights(
-      1 -> constants,
-      10 -> unary,
-      10 -> binary
-    )
-  } else if (complexity < 15) {
-    // Medium complexity: balanced
-    api.alternateWithWeights(
-      complexity -> constants,
-      2 -> unary,
-      2 -> binary
-    )
-  } else {
-    // High complexity: strongly favor termination
-    api.alternateWithWeights(
-      complexity * 2 -> constants,
-      1 -> unary,
-      1 -> binary
-    )
-  }
-}
-```
-
-This creates **distinct phases**:
-1. **Build up** (complexity < 5)
-2. **Balanced** (5 ≤ complexity < 15)
-3. **Wind down** (complexity ≥ 15)
-
----
-
-## Complexity and Shrinkage
-
-When a test fails, Americium shrinks toward **lower complexity**:
-```
-Initial failure (complexity ~25):
-BinOp(
-  BinOp(Const(42), +, Neg(BinOp(Const(7), *, Const(3)))),
-  -,
-  BinOp(Neg(Const(5)), /, Const(2))
-)
-
-After shrinkage (complexity ~3):
-BinOp(Const(1), +, Const(0))
-```
-
-The shrunk case has **much lower complexity** - simpler structure, easier to debug!
-
----
-
-## Real-World Example: JSON Generation
-
-Generate realistic JSON with controlled nesting:
-```scala
-sealed trait Json
-case class JNull() extends Json
-case class JBool(value: Boolean) extends Json
-case class JNum(value: Double) extends Json
-case class JStr(value: String) extends Json
-case class JArr(values: List[Json]) extends Json
-case class JObj(fields: Map[String, Json]) extends Json
-
-def jsonTrials: Trials[Json] = {
-  val jNull: Trials[Json] = api.only(JNull())
-  val jBool: Trials[Json] = api.booleans().map(JBool(_))
-  val jNum: Trials[Json] = api.doubles(-1000, 1000).map(JNum(_))
-  val jStr: Trials[Json] = api.strings().map(JStr(_))
-  
-  val jArr: Trials[Json] = api.delay(() =>
-    jsonTrials.immutableLists().map(vs => JArr(vs.toList))
-  )
-  
-  val jObj: Trials[Json] = api.delay(() =>
-    api.strings()
-      .and(jsonTrials)
-      .immutableLists()
-      .map(pairs => JObj(pairs.map(p => (p._1, p._2)).toMap))
-  )
-  
-  // Complexity-aware distribution
-  api.complexities.flatMap { complexity =>
-    api.alternateWithWeights(
-      complexity -> api.alternate(jNull, jBool, jNum, jStr),  // Primitives
-      2 -> jArr,                                               // Arrays
-      2 -> jObj                                                // Objects
-    )
-  }
-}
-```
-
-This generates:
-- **Simple JSON** at low complexity (primitives)
-- **Nested JSON** at medium complexity (arrays/objects with primitives)
-- **Terminates** at high complexity (back to primitives)
-
----
-
-## Combining with Complexity Limits
-```scala
-jsonTrials
-  .withLimit(100)
-  .withComplexityLimit(30)
-  .supplyTo { json =>
-    // Test JSON parsing/serialization
-    val serialized = Json.stringify(json)
-    val parsed = Json.parse(serialized)
-    
-    assert(parsed == json)
-  }
-```
-
-The complexity limit ensures you don't generate **absurdly deep** JSON like:
-```json
-{"a": {"b": {"c": {"d": {"e": {"f": {"g": {"h": ...}}}}}}}
-```
-
----
-
-## When to Use Complexity Budgeting
-
-### ✅ Use when:
-- Generating **recursive data structures** (trees, expressions, JSON, XML)
-- You want **controlled depth distribution**
-- Testing parsers, evaluators, tree algorithms
-- You need **balanced** shallow and deep test cases
-
-### ❌ Don't use when:
-- Data is **not recursive** (just use regular trials)
-- You want **maximum depth** (use large complexity limit without budgeting)
-- Overhead of `complexities` flat-map is too much
-
----
-
-## Performance Note
-
-The `api.complexities.flatMap(...)` pattern adds **one extra flat-map** to your generation. For simple cases, this is negligible. For very large test suites, it's a small trade-off for much better control.
-
----
-
-{: .note-title }
-> Key Takeaways
->
-> - **`api.complexities`** - Access current complexity budget
-> - **Pattern:** `api.complexities.flatMap(c => alternateWithWeights(c -> base, n -> recursive))`
-> - **Low complexity** - Recursion favored (fixed weights higher)
-> - **High complexity** - Termination favored (variable weight higher)
-> - **Natural termination pressure** - Deeper = more likely to stop
-> - **Fine-tune with weights** - Adjust fixed weights to control depth distribution
-> - **Shrinks to lower complexity** - Simpler structures after shrinkage
-> - **Combine with complexity limits** - `.withComplexityLimit(n)` caps maximum depth
-> - Perfect for trees, expressions, JSON, XML, nested structures
+- Use **`api().complexities()`** to get the current growth state of a test case.
+- Use **`alternateWithWeights`** to increase the probability of base cases as complexity grows.
+- This creates **natural termination pressure**, preventing runaway recursion while still allowing for deep test cases.
+- It improves both **generation efficiency** and **shrinkage quality**.

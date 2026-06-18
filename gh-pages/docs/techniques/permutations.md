@@ -3,12 +3,13 @@ layout: default
 title: Permutations
 parent: Advanced Techniques
 nav_order: 3
+reviewed: true
 ---
 
 # Permutations
 {: .no_toc }
 
-Testing order-dependent behavior with index permutations
+Testing order-dependent logic with `indexPermutations`
 {: .fs-6 .fw-300 }
 
 ## Table of contents
@@ -17,380 +18,138 @@ Testing order-dependent behavior with index permutations
 1. TOC
 {:toc}
 
-{% include disclaimer.html %}
-
 ---
 
 ## The Problem
 
-Many algorithms are **order-dependent**:
+A common pattern in property-based testing is to take an expected output that is correct by construction, then demolish it and use the resulting pieces as input to the test.
 
-- **Sorting** algorithms should produce the same result regardless of input order
-- **Merging** operations should maintain relative order
-- **Sequential processing** might have bugs that only appear in certain orderings
-- **Concurrent systems** might have race conditions triggered by specific event orderings
+For example, if you are testing a sorting algorithm, you might:
+1. Generate a sorted list (easy to do by construction).
+2. **Permute** it (shuffle the elements).
+3. Feed the shuffled list to your sorting algorithm.
+4. Verify the output matches your original sorted list.
 
-How do you test that behavior is **invariant under reordering**?
-
-**Naive approach:**
-```java
-// Generate random lists - but orderings are random and hard to control
-api().integers().immutableLists()
-```
-
-**Better approach:**
-- Generate **correct output**
-- **Permute it** to create input
-- Verify the algorithm **reconstructs the correct output**
+Generating random shuffles using a standard `Collections.shuffle()` inside a test is problematic because it introduces randomness that Americium cannot track or shrink.
 
 ---
 
-## The Solution: `api().indexPermutations()`
+## The Solution: `indexPermutations`
 
-Americium provides a way to generate **permutations of indices**:
-```java
-api().indexPermutations(5)
-    .withLimit(10)
-    .supplyTo(permutation -> {
-        System.out.println(permutation);
-    });
-```
+Americium provides **`api().indexPermutations(size)`**, which generates permutations of indices from `0` to `size - 1`.
 
-Output:
-```
-[0, 1, 2, 3, 4]  ← Identity permutation
-[1, 0, 2, 3, 4]  ← Swap first two
-[0, 2, 1, 3, 4]  ← Swap second and third
-[3, 1, 2, 0, 4]  ← More complex
-...
-```
-
----
-
-## How It Works
-
-`api().indexPermutations(n)` generates **permutations of indices** `[0, n-1]`.
-
-You can think of it as: "Given a list of size `n`, these are all the ways to reorder it."
-
-### Example with n=3
-
-All permutations of `[0, 1, 2]`:
-```
-[0, 1, 2]  ← Original order
-[0, 2, 1]  ← Swap last two
-[1, 0, 2]  ← Swap first two
-[1, 2, 0]  ← Rotate right
-[2, 0, 1]  ← Rotate left
-[2, 1, 0]  ← Reverse
-```
-
-There are **n! = 3! = 6** total permutations.
-
----
-
-## Basic Usage: Testing Sorting
-
-The classic use case - test that sorting works regardless of input order:
-```java
-api().only(15).flatMap(size -> {
-    final ImmutableList<Integer> sourceCollection = 
-        IntStream.range(0, size)
-            .boxed()
-            .collect(ImmutableList.toImmutableList());
-    
-    return api()
-        .indexPermutations(size)
-        .map(permutation -> {
-            // Apply permutation to create shuffled input
-            return permutation.stream()
-                .map(sourceCollection::get)
-                .collect(ImmutableList.toImmutableList());
-        });
-})
-.withLimit(100)
-.supplyTo(shuffledInput -> {
-    // Sort the shuffled input
-    List<Integer> sorted = new ArrayList<>(shuffledInput);
-    Collections.sort(sorted);
-    
-    // Should get back [0, 1, 2, ..., 14]
-    assertThat(sorted, 
-        equalTo(IntStream.range(0, 15)
-            .boxed()
-            .collect(Collectors.toList())));
-});
-```
-
-### What This Tests
-
-1. Create the **correct output**: `[0, 1, 2, ..., 14]`
-2. **Permute** it to create shuffled inputs
-3. **Sort** each shuffled input
-4. Verify we get back the **original correct output**
-
-This tests sorting with **all possible input orderings** (up to the trial limit).
-
----
-
-## Shrinkage Toward Identity
-
-When a test fails, permutations shrink toward the **identity permutation** `[0, 1, 2, ..., n-1]`:
-```java
-api().indexPermutations(10)
-    .withLimit(1000)
-    .supplyTo(perm -> {
-        // Simulate a bug when index 5 comes before index 3
-        int index5Pos = perm.indexOf(5);
-        int index3Pos = perm.indexOf(3);
-        
-        if (index5Pos < index3Pos) {
-            throw new AssertionError("Bug! Permutation: " + perm);
-        }
-    });
-```
-
-Shrinkage:
-```
-Initial failure: [5, 1, 7, 3, 0, 2, 9, 6, 4, 8]
-Shrinking...
-[5, 1, 3, 2, 0, 4, 6, 7, 8, 9]
-[5, 1, 3, 0, 2, 4, 6, 7, 8, 9]
-[5, 3, 0, 1, 2, 4, 6, 7, 8, 9]
-[5, 3, 0, 1, 2, 4, 6, 7, 8, 9]  ← Close to identity with minimal swap!
-```
-
-The shrunk case shows **the minimal permutation** that still triggers the bug.
-
----
-
-## Alternative Shrinkage: Minimal Swap
-
-You can configure permutations to shrink toward the **minimal swap** instead of identity:
-```java
-// This is an advanced feature - check API docs for exact syntax
-```
-
-**Identity shrinkage** (default): `[2, 1, 0, 3, 4]` → `[0, 1, 2, 3, 4]`  
-**Minimal swap**: `[2, 1, 0, 3, 4]` → `[1, 0, 2, 3, 4]` (just one swap)
-
----
-
-## Real-World Example: SortedMap
-
-Testing that a `SortedMap` maintains order:
-```java
-api().only(15).flatMap(size -> {
-    final List<Integer> keys = 
-        IntStream.range(0, size)
-            .boxed()
-            .collect(Collectors.toList());
-    
-    final List<Integer> values = 
-        IntStream.range(0, size)
-            .boxed()
-            .collect(Collectors.toList());
-    
-    return api()
-        .indexPermutations(size)
-        .map(permutation -> {
-            // Create a SortedMap with permuted insertion order
-            SortedMap<Integer, Integer> map = new TreeMap<>();
-            
-            for (int idx : permutation) {
-                map.put(keys.get(idx), values.get(idx));
-            }
-            
-            // Verify size
-            assume(map.size() == size);
-            
-            // Verify values in sorted order
-            assume(ImmutableList.copyOf(map.values()).equals(values));
-            
-            return map;
-        });
-})
-.withLimit(15)
-.supplyTo(sortedMap -> {
-    Trials.whenever(sortedMap.size() > 0, () -> {
-        // Verify map is actually sorted
-        List<Integer> keysList = new ArrayList<>(sortedMap.keySet());
-        
-        for (int i = 0; i < keysList.size() - 1; i++) {
-            assertThat(
-                "Keys should be in order",
-                keysList.get(i),
-                lessThan(keysList.get(i + 1))
-            );
-        }
-    });
-});
-```
-
----
-
-## Combining with Other Techniques
-
-### Permutations + Unique IDs
-
-Test account operations in different orders:
-```java
-api().uniqueIds()
-    .immutableListsOfSize(10)
-    .flatMap(accountIds ->
-        api().indexPermutations(10).map(perm -> {
-            // Operate on accounts in permuted order
-            return perm.stream()
-                .map(accountIds::get)
-                .collect(ImmutableList.toImmutableList());
-        }))
-    .withLimit(100)
-    .supplyTo(orderedAccountIds -> {
-        orderedAccountIds.forEach(id -> {
-            openAccount(id);
-            deposit(id, 100);
-            withdraw(id, 50);
-        });
-        
-        // Verify final state is consistent
-        assertThat(totalBalance(), equalTo(500));  // 10 accounts * $50 each
-    });
-```
-
----
-
-### Permutations + Forcing Duplicates
-
-Test sorting with duplicate values:
-```java
-api().integers(1, 5).flatMap(n ->
-    api().integers(1, 10)
-        .immutableListsOfSize(n)
-        .flatMap(choices ->
-            api().choose(choices)
-                .immutableListsOfSize(n)
-                .flatMap(values ->
-                    api().indexPermutations(n).map(perm -> {
-                        // Permute list with duplicates
-                        return perm.stream()
-                            .map(values::get)
-                            .collect(ImmutableList.toImmutableList());
-                    }))))
-.withLimit(100)
-.supplyTo(permutedWithDuplicates -> {
-    List<Integer> sorted = new ArrayList<>(permutedWithDuplicates);
-    Collections.sort(sorted);
-    
-    // Verify sorted list properties
-    // ...
-});
-```
-
----
-
-## Performance Considerations
-
-### Factorial Explosion
-
-Be aware: the number of permutations grows **factorially**:
-
-| Size | Permutations |
-|------|--------------|
-| 3 | 6 |
-| 5 | 120 |
-| 7 | 5,040 |
-| 10 | 3,628,800 |
-| 15 | 1,307,674,368,000 |
-
-For size 15, you can't possibly test **all** permutations. Americium samples from the space.
-
-### Recommendation
-
-For testing purposes:
-- **Small sizes** (3-7): Can test many/all permutations
-- **Medium sizes** (8-15): Test a representative sample
-- **Large sizes** (16+): Permutations become less practical
-
----
-
-## When to Use Permutations
-
-### ✅ Use when:
-- Testing **sorting** algorithms
-- Testing **order-invariant** operations
-- Finding **ordering-dependent** bugs
-- Testing **merge** or **interleaving** operations
-- Verifying **concurrent** event orderings
-
-### ❌ Don't use when:
-- Order genuinely **doesn't matter** (just use random lists)
-- Size is **too large** (factorial explosion)
-- You need **specific** orderings (use `.choose()` instead)
-
----
-
-## Scala Example
-
-Permutations work beautifully with Scala for-comprehensions:
 ```scala
-val sortingTests = for {
-  size <- api.only(10)
-  permutation <- api.indexPermutations(size)
-} yield {
-  val original = (0 until size).toList
-  permutation.map(original).toList
-}
+api.indexPermutations(3).withLimit(10).supplyTo(println)
+// Vector(1, 0, 2)
+// Vector(2, 1, 0)
+// Vector(1, 2, 0)
+// Vector(0, 2, 1)
+// Vector(0, 1, 2)
+// Vector(2, 0, 1)
+```
 
-sortingTests.withLimit(100).supplyTo { shuffled =>
-  val sorted = shuffled.sorted
-  assert(sorted == (0 until shuffled.size).toList)
+### Why "Index" Permutations?
+
+By generating a permutation of **indices** rather than the elements themselves, Americium can provide a stable specification that works for any collection of that size. You then use these indices to rearrange your actual data.
+
+---
+
+## Example: Testing a Sort Algorithm
+
+Let's test a sorting algorithm by generating a sorted collection, permuting it, and then sorting it back.
+
+### 1. Generate Sorted Data
+First, we generate a list of non-strictly increasing values:
+
+```scala
+val sortedData: Trials[Vector[Int]] = api
+  .choose(0 until 5)
+  .several[Vector[Int]]
+  .flatMap(increments =>
+    api.choose(-10 to 10).map(base =>
+        increments.scanLeft(base)(_ + _)
+    )
+  )
+```
+
+### 2. Permute the Data
+Now we use `indexPermutations` to shuffle that data:
+
+```scala
+val testCases = sortedData.flatMap { original =>
+  api.indexPermutations(original.size).map { indices =>
+    // Rearrange original using the permuted indices
+    val shuffled = indices.map(original)
+    (original, shuffled)
+  }
+}
+```
+
+### 3. Run the Test
+Finally, we verify that sorting the shuffled data reproduces the original:
+
+```scala
+testCases.withLimit(100).supplyTo { case (original, shuffled) =>
+  val result = shuffled.sorted
+  assert(result == original)
 }
 ```
 
 ---
 
-## JUnit5 Integration Example
+## Shrinkage and Permutations
+
+This is where `indexPermutations` shines. When a test fails on a complex permutation, Americium doesn't just reduce the size of the collection; it also **shrinks the permutation toward the identity permutation** (`[0, 1, 2, ...]`).
+
+Suppose our "sort" algorithm has a bug where it fails if elements are moved more than 2 positions from their original spot.
+
+1. Americium finds a failure with a wild permutation: `[8, 1, 13, 12, 11, 9, 6, 4, 10, 14, 0, 3, 5, 7, 2]`
+2. It shrinks the list size and shuffles.
+3. It eventually finds the **minimal failing permutation**:
+   ```
+   Case: [0, 1, 2, 3, 4, 5, 6, 7, 9, 8, 10, 11, 12, 13, 14]
+   ```
+   Notice how only **9 and 8** are out of order. This makes the bug immediately obvious: the failure is triggered specifically by this one swap.
+
+---
+
+## On-the-fly Permutations
+
+If you don't need the whole collection at once, you can compose the indices with your source:
+
+```scala
+val inPermutationAt: Int => Int = indices.andThen(original)
+```
+
+This works well if you just need random access to permuted items without allocating a new collection.
+
+---
+
+## Java Example
+
 ```java
-public class SortingTest {
-    @TrialsTest(trials = "permutedLists", casesLimit = 100)
-    void sortingShouldWorkRegardlessOfInputOrder(List<Integer> input) {
-        List<Integer> sorted = new ArrayList<>(input);
-        Collections.sort(sorted);
-        
-        // Should be [0, 1, 2, ..., input.size()-1]
-        assertThat(sorted, 
-            equalTo(IntStream.range(0, input.size())
-                .boxed()
-                .collect(Collectors.toList())));
-    }
+Trials<ImmutableList<Integer>> sortedData = ...;
+
+sortedData.flatMap(original ->
+    api().indexPermutations(original.size()).map(indices -> {
+        List<Integer> shuffled = indices.stream()
+            .map(original::get)
+            .collect(Collectors.toList());
+        return Tuple.tuple(original, shuffled);
+    })
+).withLimit(100).supplyTo(tuple -> {
+    List<Integer> original = tuple._1();
+    List<Integer> shuffled = tuple._2();
     
-    private static final Trials<List<Integer>> permutedLists =
-        api().only(10).flatMap(size -> {
-            final List<Integer> original = 
-                IntStream.range(0, size)
-                    .boxed()
-                    .collect(Collectors.toList());
-            
-            return api()
-                .indexPermutations(size)
-                .map(perm -> 
-                    perm.stream()
-                        .map(original::get)
-                        .collect(Collectors.toList()));
-        });
-}
+    assertThat(sort(shuffled), equalTo(original));
+});
 ```
 
 ---
 
-{: .note-title }
-> Key Takeaways
->
-> - **`api().indexPermutations(n)`** - Generates permutations of indices [0, n-1]
-> - **Classic pattern:** Generate correct output → permute → verify reconstruction
-> - **Shrinks to identity** - `[0, 1, 2, ..., n-1]` by default
-> - **Alternative:** Shrink to minimal swap
-> - **Factorial explosion** - n! permutations (test samples for large n)
-> - Perfect for testing sorting, merging, order-invariant operations
-> - Combine with unique IDs, duplicates, and other techniques
-> - Helps find ordering-dependent bugs
+## Summary
+
+- Use **`api().indexPermutations(n)`** to generate shuffles.
+- It provides **stable, repeatable randomness** that Americium can track.
+- It **shrinks toward the identity permutation**, making order-dependent bugs easy to isolate.
+- Use it for testing sorts, caches, priority queues, or any logic where the order of operations/data matters.
