@@ -354,6 +354,24 @@ trait TrialsApi {
       combinationSize: Int
   ): Trials[Vector[Int]]
 
+  /** Produce a trials instance that yields permutations of {@code candidates}
+    * of the given size.
+    *
+    * @param candidates
+    *   The items to be chosen from.
+    * @param numberToChoose
+    *   The number of items to choose.
+    * @tparam Element
+    *   The type of the elements in {@code candidates}.
+    * @return
+    *   A [[Trials]] instance that yields permutations of size
+    *   {@code numberToChoose}.
+    */
+  def chooseSeveralOf[Element](
+      candidates: Iterable[Element],
+      numberToChoose: Int
+  ): Trials[Seq[Element]]
+
   /** Produce a trials instance whose cases are vectors containing elements
     * picked alternately from {@code iterables} . The order of elements
     * contributed by any given iterable is preserved in the yielded vectors, but

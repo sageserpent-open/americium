@@ -889,6 +889,32 @@ public class TrialsApiTests {
         }
     }
 
+    @ParameterizedTest
+    @ValueSource(ints = {0, 1, 2, 3, 4, 5, 7})
+    void chooseSeveralOfCasesShouldCoverAllPossibilities(int numberOfCandidates) {
+        final List<Integer> candidates = IntStream.range(0, numberOfCandidates)
+                                                  .boxed()
+                                                  .collect(Collectors.toList());
+
+        for (int numberToChoose = 0; numberOfCandidates >= numberToChoose;
+             ++numberToChoose) {
+            final int numberOfPermutations =
+                    BargainBasement.numberOfPermutations(numberOfCandidates,
+                                                         numberToChoose);
+
+            final Set<List<Integer>> chosenPermutations = new HashSet<>();
+
+            api
+                    .chooseSeveralOf(candidates, numberToChoose)
+                    .withStrategy(unused -> CasesLimitStrategy.counted(
+                            numberOfPermutations,
+                            numberOfPermutations))
+                    .supplyTo(chosenPermutations::add);
+
+            assertThat(chosenPermutations.size(), is(numberOfPermutations));
+        }
+    }
+
     @Test
     void alternatePickingShouldForwardCorrectly() {
         final Consumer<List<Integer>> consumer = mock(Consumer.class);

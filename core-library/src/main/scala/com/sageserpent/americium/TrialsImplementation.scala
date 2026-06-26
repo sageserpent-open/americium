@@ -503,7 +503,10 @@ case class TrialsImplementation[Case](
   )
 
   override def collections[Collection](
-      builderFactory: _root_.java.util.function.Supplier[Builder[Case, Collection]]
+      builderFactory: _root_.java.util.function.Supplier[Builder[
+        Case,
+        Collection
+      ]]
   ): TrialsImplementation[Collection] =
     severalImplementation(builderFactory.get())
 
@@ -517,16 +520,17 @@ case class TrialsImplementation[Case](
           partialResult.foreach(builder.add)
           builder.build()
         },
-        flatMap((item: Case) =>
-          addItems(item :: partialResult)
-        )
+        flatMap((item: Case) => addItems(item :: partialResult))
       )
 
     addItems(Nil)
   }
 
   override def nonEmptyCollections[Collection](
-      builderFactory: _root_.java.util.function.Supplier[Builder[Case, Collection]]
+      builderFactory: _root_.java.util.function.Supplier[Builder[
+        Case,
+        Collection
+      ]]
   ): TrialsImplementation[Collection] =
     nonEmptySeveralImplementation(builderFactory.get())
 

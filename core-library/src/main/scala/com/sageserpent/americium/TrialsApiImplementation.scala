@@ -405,6 +405,17 @@ class TrialsApiImplementation extends CommonApi with ScalaTrialsApi {
       Choice(SortedMap.from(LazyList.from(1).zip(choices)))
     )
 
+  override def chooseSeveralOf[Element](
+      candidates: Iterable[Element],
+      numberToChoose: Int
+  ): Trials[Seq[Element]] = {
+    val indexedCandidates = candidates.toIndexedSeq
+    indexPermutations(
+      numberOfIndices = indexedCandidates.size,
+      permutationSize = numberToChoose
+    ).map(_.map(indexedCandidates.apply))
+  }
+
   override def indexCombinations(
       numberOfIndices: Int,
       combinationSize: Int
