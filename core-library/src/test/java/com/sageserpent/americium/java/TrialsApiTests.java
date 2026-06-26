@@ -902,7 +902,7 @@ public class TrialsApiTests {
                     BargainBasement.numberOfPermutations(numberOfCandidates,
                                                          numberToChoose);
 
-            final Set<List<Integer>> chosenPermutations = new HashSet<>();
+            final List<List<Integer>> chosenPermutations = new ArrayList<>();
 
             api
                     .chooseSeveralOf(candidates, numberToChoose)
@@ -912,6 +912,8 @@ public class TrialsApiTests {
                     .supplyTo(chosenPermutations::add);
 
             assertThat(chosenPermutations.size(), is(numberOfPermutations));
+            assertThat(new HashSet<>(chosenPermutations).size(),
+                       is(numberOfPermutations));
         }
     }
 

@@ -35,14 +35,14 @@ class ChooseSeveralOfTest extends AnyFlatSpec with Matchers {
     val items                        = Vector(1, 2, 3)
     val sizeToChoose                 = 2
     val expectedNumberOfPermutations = 6 // 3 * 2
-    val permutations                 =
+    val permutations =
       api
         .chooseSeveralOf(items, sizeToChoose)
         .withLimit(100)
         .asIterator()
-        .to(LazyList)
-        .toSet
+        .to(List)
     permutations should have size expectedNumberOfPermutations
+    permutations.distinct should have size expectedNumberOfPermutations
   }
 
   it should "handle choosing zero items" in {
@@ -54,12 +54,14 @@ class ChooseSeveralOfTest extends AnyFlatSpec with Matchers {
 
   it should "handle choosing all items (behaving like a shuffle)" in {
     val items = Vector(1, 2, 3)
-    api
+    val permutations = api
       .chooseSeveralOf(items, items.size)
       .withLimit(100)
       .asIterator()
-      .to(LazyList)
-      .toSet should have size 6
+      .to(List)
+
+    permutations should have size 6
+    permutations.distinct should have size 6
   }
 
   it should "throw an requirement error if numberToChoose is greater than the number of candidates" in {
