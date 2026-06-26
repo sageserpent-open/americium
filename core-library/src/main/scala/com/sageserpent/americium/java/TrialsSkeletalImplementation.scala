@@ -94,8 +94,7 @@ trait TrialsSkeletalImplementation[Case] extends JavaTrials[Case] {
   ): TrialsImplementation[Collection] =
     nonEmptySeveralImplementation(builderFactory.get())
 
-  override def immutableLists()
-      : TrialsImplementation[ImmutableList[Case]] =
+  override def immutableLists(): TrialsImplementation[ImmutableList[Case]] =
     severalImplementation(new Builder[Case, ImmutableList[Case]] {
       private val underlyingBuilder = ImmutableList.builder[Case]()
 
@@ -120,8 +119,7 @@ trait TrialsSkeletalImplementation[Case] extends JavaTrials[Case] {
         underlyingBuilder.build()
     })
 
-  override def immutableSets()
-      : TrialsImplementation[ImmutableSet[Case]] =
+  override def immutableSets(): TrialsImplementation[ImmutableSet[Case]] =
     severalImplementation(new Builder[Case, ImmutableSet[Case]] {
       private val underlyingBuilder = ImmutableSet.builder[Case]()
 

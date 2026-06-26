@@ -376,6 +376,14 @@ trait TrialsApiImplementation extends CommonApi with TrialsApiWart {
     .map(_.map(Int.box).asJava)
     .javaTrials
 
+  override def chooseSeveralOf[Element](
+      candidates: JavaIterable[Element],
+      numberToChoose: Int
+  ): JavaTrials[JavaList[Element]] = scalaApi
+    .chooseSeveralOf(candidates.asScala, numberToChoose)
+    .map(_.asJava)
+    .javaTrials
+
   override def pickAlternatelyFrom[Element](
       shrinkToRoundRobin: Boolean,
       iterable: JavaIterable[Element]*
@@ -423,5 +431,8 @@ trait TrialsApiImplementation extends CommonApi with TrialsApiWart {
   override def shuffles[Element](
       items: JavaList[Element]
   ): JavaTrials[JavaList[Element]] =
-    scalaApi.shuffles[Element, List](items.asScala.toList).map(_.asJava).javaTrials
+    scalaApi
+      .shuffles[Element, List](items.asScala.toList)
+      .map(_.asJava)
+      .javaTrials
 }
