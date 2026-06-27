@@ -35,7 +35,7 @@ lazy val commonSettings = Seq(
   Test / test / logLevel    := Level.Error,
   Test / testOptions += Tests.Argument(jupiterTestFramework, "-q"),
   // Test grouping for isolated databases
-  Test / testGrouping := {
+  Test / testGrouping := Def.uncached {
     val tests = (Test / definedTests).value
 
     tests
