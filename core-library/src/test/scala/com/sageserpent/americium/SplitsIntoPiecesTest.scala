@@ -56,15 +56,14 @@ class SplitsIntoPiecesTest extends AnyFlatSpec with Matchers {
 
   "splitsIntoNonEmptyPieces" should "yield non-empty pieces that concatenate to the original items" in {
     val testCaseTrials = for {
-      items          <- itemsTrials
-      pieces         <- api.splitsIntoNonEmptyPieces(items)
+      items  <- itemsTrials
+      pieces <- api.splitsIntoNonEmptyPieces(items)
     } yield (items, pieces)
 
-    testCaseTrials.withLimit(100).supplyTo {
-      case (items, pieces) =>
-        pieces.size should be <= items.size
-        pieces.flatten should be(items)
-        pieces.forall(_.nonEmpty) should be(true)
+    testCaseTrials.withLimit(100).supplyTo { case (items, pieces) =>
+      pieces.size should be <= items.size
+      pieces.flatten should be(items)
+      pieces.forall(_.nonEmpty) should be(true)
     }
   }
 }

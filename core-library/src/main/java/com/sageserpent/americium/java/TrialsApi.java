@@ -352,6 +352,20 @@ public interface TrialsApi {
                                             int combinationSize);
 
     /**
+     * Produce a trials instance that yields permutations of {@code candidates}
+     * of the given size.
+     *
+     * @param candidates     The items to be chosen from.
+     * @param numberToChoose The number of items to choose.
+     * @param <Element>      The type of the elements in {@code candidates}.
+     * @return A {@link Trials} instance that yields permutations of size
+     * {@code numberToChoose}.
+     */
+    <Element> Trials<List<Element>> chooseSeveralOf(
+            Iterable<Element> candidates,
+            int numberToChoose);
+
+    /**
      * Produce a trials instance whose cases are lists containing elements
      * picked alternately from {@code iterables}. The order of elements
      * contributed by any given iterable is preserved in the yielded lists,
@@ -405,8 +419,8 @@ public interface TrialsApi {
      * Produce a trials instance that yields a list of non-empty pieces whose
      * concatenation is {@code items}.
      *
-     * @param items          The items to be split into pieces.
-     * @param <Element>      The type of the elements in {@code items}.
+     * @param items     The items to be split into pieces.
+     * @param <Element> The type of the elements in {@code items}.
      * @return A {@link Trials} instance that yields a list of non-empty pieces.
      */
     <Element> Trials<List<List<Element>>> splitsIntoNonEmptyPieces(

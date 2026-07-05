@@ -74,12 +74,13 @@ public class TrialsApiTests {
         return api.booleans().flatMap(terminate ->
                                               terminate
                                               ? api.only("*** END ***") : api
-                                                      .integers()
-                                                      .flatMap(value -> chainedIntegersUsingAnExplicitTerminationCase().map(
-                                                              simplerCase -> String.join(
-                                                                      ",",
-                                                                      value.toString(),
-                                                                      simplerCase))));
+                                                                          .integers()
+                                                                          .flatMap(
+                                                                                  value -> chainedIntegersUsingAnExplicitTerminationCase().map(
+                                                                                          simplerCase -> String.join(
+                                                                                                  ",",
+                                                                                                  value.toString(),
+                                                                                                  simplerCase))));
     }
 
     @Test
@@ -886,6 +887,35 @@ public class TrialsApiTests {
                     });
 
             assertThat(combinations.size(), is(numberOfCombinations));
+        }
+    }
+
+    @ParameterizedTest
+    @ValueSource(ints = {0, 1, 2, 3, 4, 5, 7})
+    void chooseSeveralOfCasesShouldCoverAllPossibilities(
+            int numberOfCandidates) {
+        final List<Integer> candidates = IntStream.range(0, numberOfCandidates)
+                                                  .boxed()
+                                                  .collect(Collectors.toList());
+
+        for (int numberToChoose = 0; numberOfCandidates >= numberToChoose;
+             ++numberToChoose) {
+            final int numberOfPermutations =
+                    BargainBasement.numberOfPermutations(numberOfCandidates,
+                                                         numberToChoose);
+
+            final List<List<Integer>> chosenPermutations = new ArrayList<>();
+
+            api
+                    .chooseSeveralOf(candidates, numberToChoose)
+                    .withStrategy(unused -> CasesLimitStrategy.counted(
+                            numberOfPermutations,
+                            numberOfPermutations))
+                    .supplyTo(chosenPermutations::add);
+
+            assertThat(chosenPermutations.size(), is(numberOfPermutations));
+            assertThat(new HashSet<>(chosenPermutations).size(),
+                       is(numberOfPermutations));
         }
     }
 

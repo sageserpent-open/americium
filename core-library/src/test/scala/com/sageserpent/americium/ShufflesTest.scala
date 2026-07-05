@@ -31,9 +31,9 @@ class ShufflesTest extends AnyFlatSpec with Matchers {
   }
 
   it should "eventually yield all possible shuffles" in {
-    val items = Vector(1, 2, 3)
+    val items                    = Vector(1, 2, 3)
     val expectedNumberOfShuffles = 6 // 3!
-    val shuffles =
+    val shuffles                 =
       api.shuffles(items).withLimit(100).asIterator().to(LazyList).toSet
     shuffles should have size expectedNumberOfShuffles
   }

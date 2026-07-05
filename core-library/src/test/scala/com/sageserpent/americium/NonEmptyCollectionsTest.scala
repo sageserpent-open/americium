@@ -9,8 +9,9 @@ class NonEmptyCollectionsTest extends AnyFlatSpec with Matchers {
   val elementTrials = api.integers
 
   "nonEmptyCollections" should "yield only non-empty collections" in {
-    elementTrials.nonEmptyCollections[List[Int]].withLimit(50).supplyTo { collection =>
-      collection should not be empty
+    elementTrials.nonEmptyCollections[List[Int]].withLimit(50).supplyTo {
+      collection =>
+        collection should not be empty
     }
   }
 
@@ -33,14 +34,16 @@ class NonEmptyCollectionsTest extends AnyFlatSpec with Matchers {
   }
 
   "nonEmptyMaps" should "yield only non-empty maps" in {
-    elementTrials.nonEmptyMaps(api.booleans).withLimit(50).supplyTo { collection =>
-      collection should not be empty
+    elementTrials.nonEmptyMaps(api.booleans).withLimit(50).supplyTo {
+      collection =>
+        collection should not be empty
     }
   }
 
   "nonEmptySortedMaps" should "yield only non-empty sorted maps" in {
-    elementTrials.nonEmptySortedMaps(api.booleans).withLimit(50).supplyTo { collection =>
-      collection should not be empty
+    elementTrials.nonEmptySortedMaps(api.booleans).withLimit(50).supplyTo {
+      collection =>
+        collection should not be empty
     }
   }
 
