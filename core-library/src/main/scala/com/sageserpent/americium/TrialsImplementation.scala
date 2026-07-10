@@ -415,10 +415,12 @@ case class TrialsImplementation[Case](
         supplyTo(consumer.accept)
 
       override def asIterator(): JavaIterator[Case] with ScalaIterator[Case] =
-        CrossApiIterator.from(Seq {
-          val decisionStages = parseRecipe(recipe)
-          thisTrialsImplementation.reproduce(decisionStages)
-        }.iterator)
+        CrossApiIterator.from(
+          Seq {
+            val decisionStages = parseRecipe(recipe)
+            thisTrialsImplementation.reproduce(decisionStages)
+          }.iterator
+        )
 
       override def testIntegrationContexts()
           : CrossApiIterator[TestIntegrationContext[Case]] = {

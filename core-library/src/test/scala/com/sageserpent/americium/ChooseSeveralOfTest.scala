@@ -35,7 +35,7 @@ class ChooseSeveralOfTest extends AnyFlatSpec with Matchers {
     val items                        = Vector(1, 2, 3)
     val sizeToChoose                 = 2
     val expectedNumberOfPermutations = 6 // 3 * 2
-    val permutations =
+    val permutations                 =
       api
         .chooseSeveralOf(items, sizeToChoose)
         .withLimit(100)
@@ -53,7 +53,7 @@ class ChooseSeveralOfTest extends AnyFlatSpec with Matchers {
   }
 
   it should "handle choosing all items (behaving like a shuffle)" in {
-    val items = Vector(1, 2, 3)
+    val items        = Vector(1, 2, 3)
     val permutations = api
       .chooseSeveralOf(items, items.size)
       .withLimit(100)

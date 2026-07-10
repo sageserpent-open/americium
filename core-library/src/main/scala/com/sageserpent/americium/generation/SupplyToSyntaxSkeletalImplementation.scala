@@ -182,13 +182,15 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
     def carryOnButSwitchToShrinkageApproachOnCaseFailure(
         businessAsUsualCases: StreamedCases
     ): PullOfCases = Pull
-      .eval(SyncIO {
-        val capture = shrinkageCasesFromDownstream
+      .eval(
+        SyncIO {
+          val capture = shrinkageCasesFromDownstream
 
-        capture.foreach { _ => shrinkageCasesFromDownstream = None }
+          capture.foreach { _ => shrinkageCasesFromDownstream = None }
 
-        capture
-      })
+          capture
+        }
+      )
       .flatMap(
         _.fold
           // If there are no shrinkage cases from downstream, we need to
