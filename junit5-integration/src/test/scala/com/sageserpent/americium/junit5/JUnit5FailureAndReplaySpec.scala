@@ -10,6 +10,9 @@ import org.scalatest.matchers.should.Matchers
 
 class JUnit5FailureAndReplaySpec extends AnyFlatSpec with Matchers {
   "running a failing dynamicTest under JUnit5" should "produce com.sageserpent.americium.junit5.TrialException with recipe/recipeId diagnostics and support replay" in {
+    // Set a different failing case to prove we can vary which case fails dynamically!
+    FailingDynamicTestExample.failingCase = 3
+
     val results = EngineTestKit.engine("junit-jupiter")
       .selectors(DiscoverySelectors.selectClass(classOf[FailingDynamicTestExample]))
       .configurationParameter(
@@ -71,6 +74,9 @@ class JUnit5FailureAndReplaySpec extends AnyFlatSpec with Matchers {
   }
 
   "running a failing annotated TrialsTest under JUnit5" should "produce com.sageserpent.americium.junit5.TrialException with recipe/recipeId diagnostics and support replay" in {
+    // Set a different failing case to prove we can vary which case fails dynamically!
+    FailingTrialsTestExample.failingCase = 4
+
     val results = EngineTestKit.engine("junit-jupiter")
       .selectors(DiscoverySelectors.selectClass(classOf[FailingTrialsTestExample]))
       .configurationParameter(
@@ -136,10 +142,15 @@ class JUnit5FailureAndReplaySpec extends AnyFlatSpec with Matchers {
 class FailingDynamicTestExample {
   @TestFactory
   def failingTest(): DynamicTests = {
-    Trials.api.integers(1, 10).withLimit(5).dynamicTests { caze =>
-      if (caze == 1) {
-        throw new RuntimeException("Deliberate failure for caze 1")
+    // Choose 1, 2, 3, 4, 5 so we are guaranteed to include the failing case
+    Trials.api.choose(1, 2, 3, 4, 5).withLimit(5).dynamicTests { caze =>
+      if (caze == FailingDynamicTestExample.failingCase) {
+        throw new RuntimeException(s"Deliberate failure for caze $caze")
       }
     }
   }
+}
+
+object FailingDynamicTestExample {
+  var failingCase: Int = 1
 }

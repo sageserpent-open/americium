@@ -9,13 +9,15 @@ import org.junit.jupiter.api.Tag;
 public class FailingTrialsTestExample {
     private final static TrialsApi api = Trials.api();
 
-    public static final Trials<Integer> integers = api.integers(1, 10);
+    public static final Trials<Integer> integers = api.choose(1, 2, 3, 4, 5);
+
+    public static int failingCase = 1;
 
     @Tag("failingTest")
     @TrialsTest(trials = "integers", casesLimit = 5)
     void failingTest(int caze) {
-        if (caze == 1) {
-            throw new RuntimeException("Deliberate failure for caze 1");
+        if (caze == failingCase) {
+            throw new RuntimeException("Deliberate failure for caze " + caze);
         }
     }
 }
