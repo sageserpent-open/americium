@@ -134,13 +134,13 @@ package object junit5 {
         .replayedUniqueIds()
         .asScala
 
-    val casesAvailableForReplayByUniqueId: mutable.Map[UniqueId, Case] =
+    val casesAvailableForReplayByUniqueId: mutable.Map[UniqueId, (Case, String)] =
       mutable.Map.from(
         replayedUniqueIds
           .flatMap(uniqueId =>
             JUnit5ReplayStorage.jUnit5ReplayStorage
               .recipeFromUniqueId(uniqueId.toString)
-              .map(uniqueId -> reproduceFromRecipe(_))
+              .map(recipe => uniqueId -> (reproduceFromRecipe(recipe), recipe))
           )
       )
 
@@ -190,6 +190,7 @@ package object junit5 {
             if (1 == casesAvailableForReplayByUniqueId.size)
               casesAvailableForReplayByUniqueId
                 .get(casesAvailableForReplayByUniqueId.keys.head)
+                .map(_._1)
                 .getOrElse("")
             else ""
 
@@ -199,19 +200,22 @@ package object junit5 {
               val uniqueId =
                 TestExecutionListenerCapturingUniqueIds.uniqueId.toScala
 
-              val potentialReplayedTestCase =
+              val potentialReplayedTestCaseAndRecipe =
                 uniqueId.flatMap(casesAvailableForReplayByUniqueId.get)
 
               uniqueId.foreach(casesAvailableForReplayByUniqueId.remove)
 
-              potentialReplayedTestCase.foreach(
+              potentialReplayedTestCaseAndRecipe.foreach { case (caze, recipe) =>
+                val recipeHash = com.sageserpent.americium.generation.Decision.parseRecipe(recipe).recipeHash
                 invoke(
                   parameterisedTest,
-                  _,
+                  caze,
                   inlinedCaseFiltration,
-                  caseFailureReporting
+                  caseFailureReporting,
+                  recipe,
+                  recipeHash
                 )
-              )
+              }
             }
           )
         }
@@ -226,6 +230,7 @@ package object junit5 {
         val inlinedCaseFiltration = context.inlinedCaseFiltration
         val caseFailureReporting  = context.caseFailureReporting
         val recipe                = context.recipe
+        val recipeHash            = com.sageserpent.americium.generation.Decision.parseRecipe(recipe).recipeHash
 
         dynamicTest(
           s"[${1 + invocationIndex}] $shrinkagePrefix${pprint.PPrinter.BlackWhite(caze)}",
@@ -242,7 +247,9 @@ package object junit5 {
               parameterisedTest,
               caze,
               inlinedCaseFiltration,
-              caseFailureReporting
+              caseFailureReporting,
+              recipe,
+              recipeHash
             )
           }
         )
@@ -253,7 +260,9 @@ package object junit5 {
       parameterisedTest: Case => Unit,
       caze: Case,
       inlinedCaseFiltration: InlinedCaseFiltration,
-      caseFailureReporting: CaseFailureReporting
+      caseFailureReporting: CaseFailureReporting,
+      recipe: String,
+      recipeHash: String
   ): Unit = {
     val eligible: Boolean =
       try {
@@ -265,7 +274,12 @@ package object junit5 {
       } catch {
         case throwable: Throwable =>
           caseFailureReporting.report(throwable)
-          throw throwable
+          throw new TrialException(
+            cause = throwable,
+            provokingCase = caze,
+            recipe = recipe,
+            recipeHash = recipeHash
+          )
       }
 
     if (!eligible) throw new TestAbortedException

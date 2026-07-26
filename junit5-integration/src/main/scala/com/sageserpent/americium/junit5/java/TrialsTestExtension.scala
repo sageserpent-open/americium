@@ -316,13 +316,13 @@ class TrialsTestExtension extends TestTemplateInvocationContextProvider {
 
     val supply = supplyToSyntax(context)
 
-    val casesAvailableForReplayByUniqueId: mutable.Map[UniqueId, AnyRef] =
+    val casesAvailableForReplayByUniqueId: mutable.Map[UniqueId, (AnyRef, String)] =
       mutable.Map.from(
         replayedUniqueIds
           .flatMap(uniqueId =>
             JUnit5ReplayStorage.jUnit5ReplayStorage
               .recipeFromUniqueId(uniqueId.toString)
-              .map(uniqueId -> supply.reproduce(_).asInstanceOf[AnyRef])
+              .map(recipe => uniqueId -> (supply.reproduce(recipe).asInstanceOf[AnyRef], recipe))
           )
       )
 
@@ -336,6 +336,45 @@ class TrialsTestExtension extends TestTemplateInvocationContextProvider {
 
         override def next(): TestTemplateInvocationContext =
           new TrialTemplateInvocationContext {
+            private def activeReplayCaseAndRecipe: Option[(AnyRef, String)] = {
+              val uniqueId = TestExecutionListenerCapturingUniqueIds.uniqueId().toScala
+              uniqueId.flatMap(casesAvailableForReplayByUniqueId.get)
+            }
+
+            override def getAdditionalExtensions: JavaList[Extension] = {
+              val extensions = new java.util.ArrayList[Extension](super.getAdditionalExtensions)
+              extensions.add(new TestExecutionExceptionHandler {
+                override def handleTestExecutionException(
+                    context: ExtensionContext,
+                    throwable: Throwable
+                ): Unit = {
+                  if (!additionalExceptionsToHandleAsFiltration.exists(_.isInstance(throwable))) {
+                    activeReplayCaseAndRecipe.foreach { case (caze, recipe) =>
+                      val recipeHash = com.sageserpent.americium.generation.Decision.parseRecipe(recipe).recipeHash
+
+                      context.publishReportEntry(
+                        Map(
+                          "recipe" -> recipe,
+                          "recipeHash" -> recipeHash
+                        ).asJava
+                      )
+
+                      caseFailureReporting.report(throwable)
+
+                      throw new com.sageserpent.americium.junit5.TrialException(
+                        cause = throwable,
+                        provokingCase = caze,
+                        recipe = recipe,
+                        recipeHash = recipeHash
+                      )
+                    }
+                  }
+                  throw throwable
+                }
+              })
+              extensions
+            }
+
             override protected def inlinedCaseFiltration
                 : InlinedCaseFiltration =
               (
@@ -380,7 +419,7 @@ class TrialsTestExtension extends TestTemplateInvocationContextProvider {
                   .flatMap(casesAvailableForReplayByUniqueId.get)
 
               potentialReplayedTestCase.fold(ifEmpty = Array.empty[AnyRef]) {
-                testCase =>
+                case (testCase, _) =>
                   extractedParameters(wrap(testCase))
               }
             }
@@ -388,11 +427,10 @@ class TrialsTestExtension extends TestTemplateInvocationContextProvider {
             override def getDisplayName(
                 invocationIndex: Int
             ): String = {
-              val details =
-                if (1 == casesAvailableForReplayByUniqueId.size)
-                  casesAvailableForReplayByUniqueId
-                    .getOrElse(casesAvailableForReplayByUniqueId.keys.head, "")
-                else ""
+              val details = Option(casesAvailableForReplayByUniqueId)
+                .filter(_.size == 1)
+                .flatMap(_.values.headOption)
+                .fold(ifEmpty = "") { case (testCase, _) => testCase.toString }
 
               s"${super.getDisplayName(invocationIndex)} $details"
             }
@@ -420,7 +458,18 @@ class TrialsTestExtension extends TestTemplateInvocationContextProvider {
               }
             }
             override protected def testWatcher: TestWatcher =
-              new TestWatcher() {}
+              new TestWatcher() {
+                override def testFailed(
+                    context: ExtensionContext,
+                    cause: Throwable
+                ): Unit = {
+                  cause match {
+                    case _: com.sageserpent.americium.junit5.TrialException => // already reported
+                    case _ =>
+                      caseFailureReporting.report(cause)
+                  }
+                }
+              }
           }
       })
     } else
@@ -434,6 +483,40 @@ class TrialsTestExtension extends TestTemplateInvocationContextProvider {
           new TrialTemplateInvocationContext {
             private val wrappedTestCase: Vector[AnyRef] =
               wrap(testIntegrationContext.caze)
+
+            val recipe: String = testIntegrationContext.recipe
+            val recipeHash: String = com.sageserpent.americium.generation.Decision.parseRecipe(recipe).recipeHash
+            val caze: AnyRef = testIntegrationContext.caze
+
+            override def getAdditionalExtensions: JavaList[Extension] = {
+              val extensions = new java.util.ArrayList[Extension](super.getAdditionalExtensions)
+              extensions.add(new TestExecutionExceptionHandler {
+                override def handleTestExecutionException(
+                    context: ExtensionContext,
+                    throwable: Throwable
+                ): Unit = {
+                  if (!additionalExceptionsToHandleAsFiltration.exists(_.isInstance(throwable))) {
+                    context.publishReportEntry(
+                      Map(
+                        "recipe" -> recipe,
+                        "recipeHash" -> recipeHash
+                      ).asJava
+                    )
+
+                    caseFailureReporting.report(throwable)
+
+                    throw new com.sageserpent.americium.junit5.TrialException(
+                      cause = throwable,
+                      provokingCase = caze,
+                      recipe = recipe,
+                      recipeHash = recipeHash
+                    )
+                  }
+                  throw throwable
+                }
+              })
+              extensions
+            }
 
             override protected def inlinedCaseFiltration
                 : InlinedCaseFiltration =
@@ -471,7 +554,7 @@ class TrialsTestExtension extends TestTemplateInvocationContextProvider {
                   // courtesy of JUnit5, so let's use it as intended.
                   JUnit5ReplayStorage.jUnit5ReplayStorage.recordUniqueId(
                     extensionContext.getUniqueId,
-                    testIntegrationContext.recipe
+                    recipe
                   )
 
                   delegatedSuper.interceptTestTemplateMethod(
@@ -489,7 +572,11 @@ class TrialsTestExtension extends TestTemplateInvocationContextProvider {
                     context: ExtensionContext,
                     cause: Throwable
                 ): Unit = {
-                  caseFailureReporting.report(cause)
+                  cause match {
+                    case _: com.sageserpent.americium.junit5.TrialException => // already reported
+                    case _ =>
+                      caseFailureReporting.report(cause)
+                  }
                 }
               }
           }
