@@ -134,7 +134,8 @@ package object junit5 {
         .replayedUniqueIds()
         .asScala
 
-    val casesAvailableForReplayByUniqueId: mutable.Map[UniqueId, (Case, String)] =
+    val casesAvailableForReplayByUniqueId
+        : mutable.Map[UniqueId, (Case, String)] =
       mutable.Map.from(
         replayedUniqueIds
           .flatMap(uniqueId =>
@@ -205,16 +206,19 @@ package object junit5 {
 
               uniqueId.foreach(casesAvailableForReplayByUniqueId.remove)
 
-              potentialReplayedTestCaseAndRecipe.foreach { case (caze, recipe) =>
-                val recipeHash = com.sageserpent.americium.generation.Decision.parseRecipe(recipe).recipeHash
-                invoke(
-                  parameterisedTest,
-                  caze,
-                  inlinedCaseFiltration,
-                  caseFailureReporting,
-                  recipe,
-                  recipeHash
-                )
+              potentialReplayedTestCaseAndRecipe.foreach {
+                case (caze, recipe) =>
+                  val recipeHash = com.sageserpent.americium.generation.Decision
+                    .parseRecipe(recipe)
+                    .recipeHash
+                  invoke(
+                    parameterisedTest,
+                    caze,
+                    inlinedCaseFiltration,
+                    caseFailureReporting,
+                    recipe,
+                    recipeHash
+                  )
               }
             }
           )
@@ -230,7 +234,9 @@ package object junit5 {
         val inlinedCaseFiltration = context.inlinedCaseFiltration
         val caseFailureReporting  = context.caseFailureReporting
         val recipe                = context.recipe
-        val recipeHash            = com.sageserpent.americium.generation.Decision.parseRecipe(recipe).recipeHash
+        val recipeHash = com.sageserpent.americium.generation.Decision
+          .parseRecipe(recipe)
+          .recipeHash
 
         dynamicTest(
           s"[${1 + invocationIndex}] $shrinkagePrefix${pprint.PPrinter.BlackWhite(caze)}",

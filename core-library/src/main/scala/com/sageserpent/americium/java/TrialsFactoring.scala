@@ -19,6 +19,7 @@ trait TrialsFactoring[+Case] {
 
   abstract class TrialException(cause: Throwable)
       extends com.sageserpent.americium.TrialException(cause) {
+
     /** @return
       *   The {@code Case} that provoked the exception.
       */
