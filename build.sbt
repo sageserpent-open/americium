@@ -70,7 +70,7 @@ lazy val commonSettings = Seq(
 lazy val coreDependencies = Def.setting {
   Seq(
     "com.typesafe.scala-logging"   %% "scala-logging"         % "3.9.6",
-    "ch.qos.logback"                % "logback-core"          % "1.5.35",
+    "ch.qos.logback"                % "logback-core"          % "1.5.38",
     "org.typelevel"                %% "cats-core"             % "2.13.0",
     "org.typelevel"                %% "cats-free"             % "2.13.0",
     "org.typelevel"                %% "cats-collections-core" % "0.9.10",
@@ -96,7 +96,7 @@ lazy val scalaVersionDependencies = Def.setting {
         "org.scala-lang"                % "scala-reflect" % scalaVersion.value
       )
     case Some((3, _)) =>
-      Seq("com.softwaremill.magnolia1_3" %% "magnolia" % "1.3.21")
+      Seq("com.softwaremill.magnolia1_3" %% "magnolia" % "1.3.23")
     case _ => Seq.empty
   }
 }
