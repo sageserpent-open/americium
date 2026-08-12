@@ -9,27 +9,40 @@ import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.prop.TableDrivenPropertyChecks
 
-class JUnit5FailureAndReplaySpec extends AnyFlatSpec with Matchers with TableDrivenPropertyChecks {
+class JUnit5FailureAndReplaySpec
+    extends AnyFlatSpec
+    with Matchers
+    with TableDrivenPropertyChecks {
   "running a failing dynamicTest under JUnit5" should "produce com.sageserpent.americium.junit5.TrialException with recipe/recipeId diagnostics and support replay" in {
     forAll(Table("failingCase", 1, 2, 3, 4, 5)) { failingCase =>
       FailingDynamicTestExample.failingCase = failingCase
 
-      val results = EngineTestKit.engine("junit-jupiter")
-        .selectors(DiscoverySelectors.selectClass(classOf[FailingDynamicTestExample]))
+      val results = EngineTestKit
+        .engine("junit-jupiter")
+        .selectors(
+          DiscoverySelectors.selectClass(classOf[FailingDynamicTestExample])
+        )
         .configurationParameter(
           "junit.jupiter.conditions.deactivate",
           "org.junit.*DisabledCondition"
         )
         .execute()
 
-      val testEvents = results.testEvents()
+      val testEvents  = results.testEvents()
       val failedTests = testEvents.failed().list()
       failedTests should not be empty
 
-      val failure = failedTests.get(0).getRequiredPayload(classOf[org.junit.platform.engine.TestExecutionResult]).getThrowable.get()
+      val failure = failedTests
+        .get(0)
+        .getRequiredPayload(
+          classOf[org.junit.platform.engine.TestExecutionResult]
+        )
+        .getThrowable
+        .get()
       failure shouldBe a[com.sageserpent.americium.junit5.TrialException]
-      val trialException = failure.asInstanceOf[com.sageserpent.americium.junit5.TrialException]
-      val recipe = trialException.recipe
+      val trialException =
+        failure.asInstanceOf[com.sageserpent.americium.junit5.TrialException]
+      val recipe     = trialException.recipe
       val recipeHash = trialException.recipeHash
 
       recipe should not be empty
@@ -40,8 +53,11 @@ class JUnit5FailureAndReplaySpec extends AnyFlatSpec with Matchers with TableDri
       // Now test replay with trials.recipe
       System.setProperty("trials.recipe", recipe)
       try {
-        val replayResults = EngineTestKit.engine("junit-jupiter")
-          .selectors(DiscoverySelectors.selectClass(classOf[FailingDynamicTestExample]))
+        val replayResults = EngineTestKit
+          .engine("junit-jupiter")
+          .selectors(
+            DiscoverySelectors.selectClass(classOf[FailingDynamicTestExample])
+          )
           .configurationParameter(
             "junit.jupiter.conditions.deactivate",
             "org.junit.*DisabledCondition"
@@ -58,8 +74,11 @@ class JUnit5FailureAndReplaySpec extends AnyFlatSpec with Matchers with TableDri
       // Now test replay with trials.recipeHash
       System.setProperty("trials.recipeHash", recipeHash)
       try {
-        val replayResults = EngineTestKit.engine("junit-jupiter")
-          .selectors(DiscoverySelectors.selectClass(classOf[FailingDynamicTestExample]))
+        val replayResults = EngineTestKit
+          .engine("junit-jupiter")
+          .selectors(
+            DiscoverySelectors.selectClass(classOf[FailingDynamicTestExample])
+          )
           .configurationParameter(
             "junit.jupiter.conditions.deactivate",
             "org.junit.*DisabledCondition"
@@ -79,22 +98,32 @@ class JUnit5FailureAndReplaySpec extends AnyFlatSpec with Matchers with TableDri
     forAll(Table("failingCase", 1, 2, 3, 4, 5)) { failingCase =>
       FailingTrialsTestExample.failingCase = failingCase
 
-      val results = EngineTestKit.engine("junit-jupiter")
-        .selectors(DiscoverySelectors.selectClass(classOf[FailingTrialsTestExample]))
+      val results = EngineTestKit
+        .engine("junit-jupiter")
+        .selectors(
+          DiscoverySelectors.selectClass(classOf[FailingTrialsTestExample])
+        )
         .configurationParameter(
           "junit.jupiter.conditions.deactivate",
           "org.junit.*DisabledCondition"
         )
         .execute()
 
-      val testEvents = results.testEvents()
+      val testEvents  = results.testEvents()
       val failedTests = testEvents.failed().list()
       failedTests should not be empty
 
-      val failure = failedTests.get(0).getRequiredPayload(classOf[org.junit.platform.engine.TestExecutionResult]).getThrowable.get()
+      val failure = failedTests
+        .get(0)
+        .getRequiredPayload(
+          classOf[org.junit.platform.engine.TestExecutionResult]
+        )
+        .getThrowable
+        .get()
       failure shouldBe a[com.sageserpent.americium.junit5.TrialException]
-      val trialException = failure.asInstanceOf[com.sageserpent.americium.junit5.TrialException]
-      val recipe = trialException.recipe
+      val trialException =
+        failure.asInstanceOf[com.sageserpent.americium.junit5.TrialException]
+      val recipe     = trialException.recipe
       val recipeHash = trialException.recipeHash
 
       recipe should not be empty
@@ -105,8 +134,11 @@ class JUnit5FailureAndReplaySpec extends AnyFlatSpec with Matchers with TableDri
       // Now test replay with trials.recipe
       System.setProperty("trials.recipe", recipe)
       try {
-        val replayResults = EngineTestKit.engine("junit-jupiter")
-          .selectors(DiscoverySelectors.selectClass(classOf[FailingTrialsTestExample]))
+        val replayResults = EngineTestKit
+          .engine("junit-jupiter")
+          .selectors(
+            DiscoverySelectors.selectClass(classOf[FailingTrialsTestExample])
+          )
           .configurationParameter(
             "junit.jupiter.conditions.deactivate",
             "org.junit.*DisabledCondition"
@@ -123,8 +155,11 @@ class JUnit5FailureAndReplaySpec extends AnyFlatSpec with Matchers with TableDri
       // Now test replay with trials.recipeHash
       System.setProperty("trials.recipeHash", recipeHash)
       try {
-        val replayResults = EngineTestKit.engine("junit-jupiter")
-          .selectors(DiscoverySelectors.selectClass(classOf[FailingTrialsTestExample]))
+        val replayResults = EngineTestKit
+          .engine("junit-jupiter")
+          .selectors(
+            DiscoverySelectors.selectClass(classOf[FailingTrialsTestExample])
+          )
           .configurationParameter(
             "junit.jupiter.conditions.deactivate",
             "org.junit.*DisabledCondition"

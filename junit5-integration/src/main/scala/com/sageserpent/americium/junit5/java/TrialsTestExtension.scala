@@ -316,13 +316,19 @@ class TrialsTestExtension extends TestTemplateInvocationContextProvider {
 
     val supply = supplyToSyntax(context)
 
-    val casesAvailableForReplayByUniqueId: mutable.Map[UniqueId, (AnyRef, String)] =
+    val casesAvailableForReplayByUniqueId
+        : mutable.Map[UniqueId, (AnyRef, String)] =
       mutable.Map.from(
         replayedUniqueIds
           .flatMap(uniqueId =>
             JUnit5ReplayStorage.jUnit5ReplayStorage
               .recipeFromUniqueId(uniqueId.toString)
-              .map(recipe => uniqueId -> (supply.reproduce(recipe).asInstanceOf[AnyRef], recipe))
+              .map(recipe =>
+                uniqueId -> (
+                  supply.reproduce(recipe).asInstanceOf[AnyRef],
+                  recipe
+                )
+              )
           )
       )
 
@@ -337,24 +343,33 @@ class TrialsTestExtension extends TestTemplateInvocationContextProvider {
         override def next(): TestTemplateInvocationContext =
           new TrialTemplateInvocationContext {
             private def activeReplayCaseAndRecipe: Option[(AnyRef, String)] = {
-              val uniqueId = TestExecutionListenerCapturingUniqueIds.uniqueId().toScala
+              val uniqueId =
+                TestExecutionListenerCapturingUniqueIds.uniqueId().toScala
               uniqueId.flatMap(casesAvailableForReplayByUniqueId.get)
             }
 
             override def getAdditionalExtensions: JavaList[Extension] = {
-              val extensions = new java.util.ArrayList[Extension](super.getAdditionalExtensions)
+              val extensions = new java.util.ArrayList[Extension](
+                super.getAdditionalExtensions
+              )
               extensions.add(new TestExecutionExceptionHandler {
                 override def handleTestExecutionException(
                     context: ExtensionContext,
                     throwable: Throwable
                 ): Unit = {
-                  if (!additionalExceptionsToHandleAsFiltration.exists(_.isInstance(throwable))) {
+                  if (
+                    !additionalExceptionsToHandleAsFiltration
+                      .exists(_.isInstance(throwable))
+                  ) {
                     activeReplayCaseAndRecipe.foreach { case (caze, recipe) =>
-                      val recipeHash = com.sageserpent.americium.generation.Decision.parseRecipe(recipe).recipeHash
+                      val recipeHash =
+                        com.sageserpent.americium.generation.Decision
+                          .parseRecipe(recipe)
+                          .recipeHash
 
                       context.publishReportEntry(
                         Map(
-                          "recipe" -> recipe,
+                          "recipe"     -> recipe,
                           "recipeHash" -> recipeHash
                         ).asJava
                       )
@@ -484,21 +499,29 @@ class TrialsTestExtension extends TestTemplateInvocationContextProvider {
             private val wrappedTestCase: Vector[AnyRef] =
               wrap(testIntegrationContext.caze)
 
-            val recipe: String = testIntegrationContext.recipe
-            val recipeHash: String = com.sageserpent.americium.generation.Decision.parseRecipe(recipe).recipeHash
+            val recipe: String     = testIntegrationContext.recipe
+            val recipeHash: String =
+              com.sageserpent.americium.generation.Decision
+                .parseRecipe(recipe)
+                .recipeHash
             val caze: AnyRef = testIntegrationContext.caze
 
             override def getAdditionalExtensions: JavaList[Extension] = {
-              val extensions = new java.util.ArrayList[Extension](super.getAdditionalExtensions)
+              val extensions = new java.util.ArrayList[Extension](
+                super.getAdditionalExtensions
+              )
               extensions.add(new TestExecutionExceptionHandler {
                 override def handleTestExecutionException(
                     context: ExtensionContext,
                     throwable: Throwable
                 ): Unit = {
-                  if (!additionalExceptionsToHandleAsFiltration.exists(_.isInstance(throwable))) {
+                  if (
+                    !additionalExceptionsToHandleAsFiltration
+                      .exists(_.isInstance(throwable))
+                  ) {
                     context.publishReportEntry(
                       Map(
-                        "recipe" -> recipe,
+                        "recipe"     -> recipe,
                         "recipeHash" -> recipeHash
                       ).asJava
                     )
