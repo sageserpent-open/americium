@@ -17,7 +17,7 @@ lazy val commonSettings = Seq(
   crossScalaVersions   := Seq(scala2_13_Version, scala3_Version),
   pomIncludeRepository := { _ => false },
   publishMavenStyle    := true,
-  licenses += ("MIT", url("https://opensource.org/licenses/MIT")),
+  licenses += ("MIT", uri("https://opensource.org/licenses/MIT")),
   organization     := "com.sageserpent",
   organizationName := "sageserpent",
   scalacOptions ++= (CrossVersion.partialVersion(
@@ -32,7 +32,7 @@ lazy val commonSettings = Seq(
   javacOptions ++= Seq("-source", javaVersion, "-target", javaVersion),
   Test / fork               := true,
   Test / testForkedParallel := false,
-  Test / test / logLevel    := Level.Error,
+  Test / logLevel    := Level.Error,
   Test / testOptions += Tests.Argument(jupiterTestFramework, "-q"),
   // Test grouping for isolated databases
   Test / testGrouping := Def.uncached {
