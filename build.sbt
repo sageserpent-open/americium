@@ -11,61 +11,57 @@ lazy val scala3_Version = "3.3.8"
 
 scalaVersion := scala2_13_Version
 
-// Common settings for all modules: not all of these work when
-// scoped to `ThisBuild`, so go with this brute-force approach.
-lazy val commonSettings = Seq(
-  crossScalaVersions   := Seq(scala2_13_Version, scala3_Version),
-  pomIncludeRepository := { _ => false },
-  publishMavenStyle    := true,
-  licenses += ("MIT", uri("https://opensource.org/licenses/MIT")),
-  organization     := "com.sageserpent",
-  organizationName := "sageserpent",
-  scalacOptions ++= (CrossVersion.partialVersion(
-    scalaVersion.value
-  ) match {
-    case Some((2, _)) =>
-      Seq("-Xsource:3", s"-java-output-version:$javaVersion")
-    case Some((3, _)) =>
-      Seq("-explain", s"-java-output-version:$javaVersion")
-    case _ => Nil
-  }),
-  javacOptions ++= Seq("-source", javaVersion, "-target", javaVersion),
-  Test / fork               := true,
-  Test / testForkedParallel := false,
-  Test / logLevel    := Level.Error,
-  Test / testOptions += Tests.Argument(jupiterTestFramework, "-q"),
-  // Test grouping for isolated databases
-  Test / testGrouping := Def.uncached {
-    val tests = (Test / definedTests).value
+crossScalaVersions   := Seq(scala2_13_Version, scala3_Version)
+pomIncludeRepository := { _ => false }
+publishMavenStyle    := true
+licenses += ("MIT", uri("https://opensource.org/licenses/MIT"))
+organization     := "com.sageserpent"
+organizationName := "sageserpent"
+scalacOptions ++= (CrossVersion.partialVersion(
+  scalaVersion.value
+) match {
+  case Some((2, _)) =>
+    Seq("-Xsource:3", s"-java-output-version:$javaVersion")
+  case Some((3, _)) =>
+    Seq("-explain", s"-java-output-version:$javaVersion")
+  case _ => Nil
+})
+javacOptions ++= Seq("-source", javaVersion, "-target", javaVersion)
+Test / fork               := true
+Test / testForkedParallel := false
+Test / logLevel           := Level.Error
+Test / testOptions += Tests.Argument(jupiterTestFramework, "-q")
+// Test grouping for isolated databases
+Test / testGrouping := Def.uncached {
+  val tests = (Test / definedTests).value
 
-    tests
-      .groupBy(_.name)
-      .map { case (groupName, group) =>
-        val trialsRunDatabaseName =
-          if (groupName.contains("Quarantine"))
-            s"trialsRunDatabaseIsolatedForTestGroup$groupName"
-          else "trialsRunDatabaseSharedAcrossTestGroups"
+  tests
+    .groupBy(_.name)
+    .map { case (groupName, group) =>
+      val trialsRunDatabaseName =
+        if (groupName.contains("Quarantine"))
+          s"trialsRunDatabaseIsolatedForTestGroup$groupName"
+        else "trialsRunDatabaseSharedAcrossTestGroups"
 
-        new Group(
-          groupName,
-          group,
-          SubProcess(
-            (Test / forkOptions).value
-              .withRunJVMOptions(
-                Vector(
-                  s"-Dtrials.runDatabase=$trialsRunDatabaseName"
-                )
+      new Group(
+        groupName,
+        group,
+        SubProcess(
+          (Test / forkOptions).value
+            .withRunJVMOptions(
+              Vector(
+                s"-Dtrials.runDatabase=$trialsRunDatabaseName"
               )
-              .withOutputStrategy(
-                OutputStrategy.CustomOutput(OutputStream.nullOutputStream)
-              )
-          )
+            )
+            .withOutputStrategy(
+              OutputStrategy.CustomOutput(OutputStream.nullOutputStream)
+            )
         )
-      }
-      .toSeq
-  },
-  Global / concurrentRestrictions := Seq(Tags.limit(Tags.ForkedTestGroup, 6))
-)
+      )
+    }
+    .toSeq
+}
+Global / concurrentRestrictions := Seq(Tags.limit(Tags.ForkedTestGroup, 6))
 
 lazy val coreDependencies = Def.setting {
   Seq(
@@ -103,7 +99,6 @@ lazy val scalaVersionDependencies = Def.setting {
 
 lazy val `americium-utilities`: Project =
   (project in file("utilities"))
-    .settings(commonSettings)
     .settings(
       name := "americium-utilities",
       description := "Utilities used internally by Americium that are of use to other projects",
@@ -115,7 +110,6 @@ lazy val `external-tests`: Project = (project in file("external-tests"))
     `americium-utilities` % "test->compile;test->test",
     americium             % "test->compile"
   )
-  .settings(commonSettings)
   .settings(
     name := "external-tests",
     description := "Tests in their own project to break pseudo-cyclic dependencies",
@@ -125,7 +119,6 @@ lazy val `external-tests`: Project = (project in file("external-tests"))
 
 lazy val americium: Project = (project in file("core-library"))
   .dependsOn(`americium-utilities` % "compile->compile;test->test")
-  .settings(commonSettings)
   .settings(
     name        := "americium",
     description := "Generation of test data for parameterised testing",
@@ -147,7 +140,6 @@ lazy val americium: Project = (project in file("core-library"))
 
 lazy val `americium-junit5`: Project = (project in file("junit5-integration"))
   .dependsOn(americium)
-  .settings(commonSettings)
   .settings(
     name        := "americium-junit5",
     description := "JUnit5 integration for Americium property-based testing",
