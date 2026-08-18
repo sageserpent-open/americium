@@ -9,7 +9,7 @@ lazy val scala2_13_Version = "2.13.18"
 
 lazy val scala3_Version = "3.3.8"
 
-ThisBuild / scalaVersion := scala2_13_Version
+scalaVersion := scala2_13_Version
 
 // Common settings for all modules: not all of these work when
 // scoped to `ThisBuild`, so go with this brute-force approach.
