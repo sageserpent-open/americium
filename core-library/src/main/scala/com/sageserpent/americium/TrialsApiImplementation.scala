@@ -111,30 +111,6 @@ class TrialsApiImplementation extends CommonApi with ScalaTrialsApi {
   override def nonNegativeIntegers: TrialsImplementation[Int] =
     integers(0, Int.MaxValue)
 
-  override def integers(
-      lowerBound: Int,
-      upperBound: Int
-  ): TrialsImplementation[Int] = integers(
-    lowerBound,
-    upperBound,
-    if (0 > upperBound)
-      upperBound
-    else if (0 < lowerBound) lowerBound
-    else 0
-  )
-
-  override def integers(
-      lowerBound: Int,
-      upperBound: Int,
-      shrinkageTarget: Int
-  ): TrialsImplementation[Int] =
-    stream(new CaseFactory[Int] {
-      override def apply(input: BigInt): Int    = input.toInt
-      override def lowerBoundInput: BigInt      = lowerBound
-      override def upperBoundInput: BigInt      = upperBound
-      override def maximallyShrunkInput: BigInt = shrinkageTarget
-    })
-
   override def nonNegativeLongs: TrialsImplementation[Long] =
     longs(0, Long.MaxValue)
 
@@ -163,29 +139,6 @@ class TrialsApiImplementation extends CommonApi with ScalaTrialsApi {
 
   override def doubles: TrialsImplementation[Double] =
     doubles(Double.MinValue, Double.MaxValue, 0.0)
-
-  override def booleans: TrialsImplementation[Boolean] =
-    choose(true, false)
-
-  override def choose[Case](
-      firstChoice: Case,
-      secondChoice: Case,
-      otherChoices: Case*
-  ): TrialsImplementation[Case] = choose(
-    firstChoice +: secondChoice +: otherChoices
-  )
-
-  override def doubles(
-      lowerBound: Double,
-      upperBound: Double
-  ): TrialsImplementation[Double] = doubles(
-    lowerBound,
-    upperBound,
-    if (0.0 > upperBound)
-      upperBound
-    else if (0.0 < lowerBound) lowerBound
-    else 0.0
-  )
 
   override def doubles(
       lowerBound: Double,
@@ -281,6 +234,29 @@ class TrialsApiImplementation extends CommonApi with ScalaTrialsApi {
       )
     else only(shrinkageTarget)
   }
+
+  override def booleans: TrialsImplementation[Boolean] =
+    choose(true, false)
+
+  override def choose[Case](
+      firstChoice: Case,
+      secondChoice: Case,
+      otherChoices: Case*
+  ): TrialsImplementation[Case] = choose(
+    firstChoice +: secondChoice +: otherChoices
+  )
+
+  override def doubles(
+      lowerBound: Double,
+      upperBound: Double
+  ): TrialsImplementation[Double] = doubles(
+    lowerBound,
+    upperBound,
+    if (0.0 > upperBound)
+      upperBound
+    else if (0.0 < lowerBound) lowerBound
+    else 0.0
+  )
 
   override def bigDecimals(
       lowerBound: BigDecimal,
@@ -592,6 +568,30 @@ class TrialsApiImplementation extends CommonApi with ScalaTrialsApi {
       only(Vector.empty)
     )
   }
+
+  override def integers(
+      lowerBound: Int,
+      upperBound: Int
+  ): TrialsImplementation[Int] = integers(
+    lowerBound,
+    upperBound,
+    if (0 > upperBound)
+      upperBound
+    else if (0 < lowerBound) lowerBound
+    else 0
+  )
+
+  override def integers(
+      lowerBound: Int,
+      upperBound: Int,
+      shrinkageTarget: Int
+  ): TrialsImplementation[Int] =
+    stream(new CaseFactory[Int] {
+      override def apply(input: BigInt): Int    = input.toInt
+      override def lowerBoundInput: BigInt      = lowerBound
+      override def upperBoundInput: BigInt      = upperBound
+      override def maximallyShrunkInput: BigInt = shrinkageTarget
+    })
 
   private def applyPartitions[Container[X] <: Iterable[X], Element](
       items: Container[Element],
