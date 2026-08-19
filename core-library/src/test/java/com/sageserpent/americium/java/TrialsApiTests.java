@@ -74,12 +74,13 @@ public class TrialsApiTests {
         return api.booleans().flatMap(terminate ->
                                               terminate
                                               ? api.only("*** END ***") : api
-                                                      .integers()
-                                                      .flatMap(value -> chainedIntegersUsingAnExplicitTerminationCase().map(
-                                                              simplerCase -> String.join(
-                                                                      ",",
-                                                                      value.toString(),
-                                                                      simplerCase))));
+                                                                          .integers()
+                                                                          .flatMap(
+                                                                                  value -> chainedIntegersUsingAnExplicitTerminationCase().map(
+                                                                                          simplerCase -> String.join(
+                                                                                                  ",",
+                                                                                                  value.toString(),
+                                                                                                  simplerCase))));
     }
 
     @Test
@@ -891,7 +892,8 @@ public class TrialsApiTests {
 
     @ParameterizedTest
     @ValueSource(ints = {0, 1, 2, 3, 4, 5, 7})
-    void chooseSeveralOfCasesShouldCoverAllPossibilities(int numberOfCandidates) {
+    void chooseSeveralOfCasesShouldCoverAllPossibilities(
+            int numberOfCandidates) {
         final List<Integer> candidates = IntStream.range(0, numberOfCandidates)
                                                   .boxed()
                                                   .collect(Collectors.toList());

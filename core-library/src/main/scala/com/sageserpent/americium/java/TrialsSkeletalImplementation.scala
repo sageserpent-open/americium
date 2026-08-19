@@ -21,16 +21,6 @@ import _root_.java.util.{
 trait TrialsSkeletalImplementation[Case] extends JavaTrials[Case] {
   override def scalaTrials(): TrialsImplementation[Case]
 
-  override def map[TransformedCase](
-      transform: JavaFunction[Case, TransformedCase]
-  ): TrialsSkeletalImplementation[TransformedCase] =
-    scalaTrials().map(transform.apply).javaTrials
-
-  override def flatMap[TransformedCase](
-      step: JavaFunction[Case, JavaTrials[TransformedCase]]
-  ): TrialsSkeletalImplementation[TransformedCase] =
-    scalaTrials().flatMap(step.apply _ andThen (_.scalaTrials)).javaTrials
-
   override def filter(
       predicate: Predicate[Case]
   ): TrialsSkeletalImplementation[Case] =
@@ -60,25 +50,17 @@ trait TrialsSkeletalImplementation[Case] extends JavaTrials[Case] {
     alternativeTrials.map(JavaEither.right[Case, Case2])
   )
 
+  override def map[TransformedCase](
+      transform: JavaFunction[Case, TransformedCase]
+  ): TrialsSkeletalImplementation[TransformedCase] =
+    scalaTrials().map(transform.apply).javaTrials
+
   override def optionals(): TrialsImplementation[
     Optional[Case]
   ] = javaApi.alternate(
     javaApi.only(Optional.empty()),
     this.map(Optional.of[Case])
   )
-
-  protected def lotsOfSize[Collection](
-      size: Int,
-      builderFactory: => Builder[Case, Collection]
-  ): TrialsImplementation[Collection]
-
-  protected def severalImplementation[Collection](
-      builderFactory: => Builder[Case, Collection]
-  ): TrialsImplementation[Collection]
-
-  protected def nonEmptySeveralImplementation[Collection](
-      builderFactory: => Builder[Case, Collection]
-  ): TrialsImplementation[Collection]
 
   override def collections[Collection](
       builderFactory: Supplier[
@@ -254,6 +236,11 @@ trait TrialsSkeletalImplementation[Case] extends JavaTrials[Case] {
         }
       )
 
+  override def flatMap[TransformedCase](
+      step: JavaFunction[Case, JavaTrials[TransformedCase]]
+  ): TrialsSkeletalImplementation[TransformedCase] =
+    scalaTrials().flatMap(step.apply _ andThen (_.scalaTrials)).javaTrials
+
   override def collectionsOfSize[Collection](
       size: Int,
       builderFactory: Supplier[
@@ -278,5 +265,18 @@ trait TrialsSkeletalImplementation[Case] extends JavaTrials[Case] {
           underlyingBuilder.build()
       }
     )
+
+  protected def lotsOfSize[Collection](
+      size: Int,
+      builderFactory: => Builder[Case, Collection]
+  ): TrialsImplementation[Collection]
+
+  protected def severalImplementation[Collection](
+      builderFactory: => Builder[Case, Collection]
+  ): TrialsImplementation[Collection]
+
+  protected def nonEmptySeveralImplementation[Collection](
+      builderFactory: => Builder[Case, Collection]
+  ): TrialsImplementation[Collection]
 
 }
