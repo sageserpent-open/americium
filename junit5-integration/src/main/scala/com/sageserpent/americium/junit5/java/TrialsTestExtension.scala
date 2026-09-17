@@ -63,12 +63,12 @@ object TrialsTestExtension {
     )
 
   private val additionalExceptionsToHandleAsFiltration
-      : Array[Class[_ <: Throwable]] =
+      : Array[Class[? <: Throwable]] =
     Array(classOf[TestAbortedException])
 
   private def supplyToSyntax(
       context: ExtensionContext
-  ): TrialsScaffolding.SupplyToSyntax[_] = {
+  ): TrialsScaffolding.SupplyToSyntax[?] = {
     val testMethod = context.getRequiredTestMethod
 
     AnnotationSupport
@@ -281,7 +281,7 @@ class TrialsTestExtension extends TestTemplateInvocationContextProvider {
         while (
           formalParameterTypes.length > formalParameterIndex && argumentIterator.hasNext
         ) {
-          val parameter           = argumentIterator.next
+          val parameter           = argumentIterator.next()
           val formalParameterType =
             formalParameterTypes(formalParameterIndex)
           val expansion = cachedTupleAdaptations
