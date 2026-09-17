@@ -90,12 +90,12 @@ trait TrialsSkeletalImplementation[Case] extends ScalaTrials[Case] {
   override def sortedSets(implicit
       ordering: Ordering[Case]
   ): ScalaTrials[SortedSet[Case]] =
-    lists.map(items => SortedSet.from(items))
+    lists.map(SortedSet.from(_))
 
   override def nonEmptySortedSets(implicit
       ordering: Ordering[Case]
   ): ScalaTrials[SortedSet[Case]] =
-    nonEmptyLists.map(items => SortedSet.from(items))
+    nonEmptyLists.map(SortedSet.from(_))
 
   override def maps[Value](
       values: ScalaTrials[Value]
@@ -113,7 +113,7 @@ trait TrialsSkeletalImplementation[Case] extends ScalaTrials[Case] {
       ordering: Ordering[Case]
   ): ScalaTrials[SortedMap[Case, Value]] =
     flatMap(key => values.map(key -> _)).lists
-      .map(entries => SortedMap.from(entries))
+      .map(SortedMap.from(_))
 
   override def nonEmptySortedMaps[Value](
       values: ScalaTrials[Value]
@@ -121,7 +121,7 @@ trait TrialsSkeletalImplementation[Case] extends ScalaTrials[Case] {
       ordering: Ordering[Case]
   ): ScalaTrials[SortedMap[Case, Value]] =
     flatMap(key => values.map(key -> _)).nonEmptyLists
-      .map(entries => SortedMap.from(entries))
+      .map(SortedMap.from(_))
 
   override def lotsOfSize[Collection](size: Int)(implicit
       factory: collection.Factory[Case, Collection]
