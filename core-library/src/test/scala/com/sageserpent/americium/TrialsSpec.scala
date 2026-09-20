@@ -2054,13 +2054,21 @@ class TrialsSpec
   }
 
   "inlined filtration" should "execute the controlled block if and only if the precondition holds" in {
-    Trials.whenever(guardPrecondition = false) {
-      fail(
-        "If the precondition doesn't hold, the block should not be executed."
-      )
+    intercept[RuntimeException] {
+      Trials.whenever(guardPrecondition = false) {
+        fail(
+          "If the precondition doesn't hold, the block should not be executed."
+        )
+      }
     }
 
     Trials.whenever(guardPrecondition = true) {}
+
+    api.integers.withLimit(10).supplyTo { caze =>
+      Trials.whenever(caze % 2 == 0) {
+        caze % 2 shouldBe 0
+      }
+    }
   }
 
   case class DescriptionTrialsCriterionAndLimit[X](
