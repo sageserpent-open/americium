@@ -13,7 +13,76 @@ trait RandomEnrichment {
     ): X = {
       val typeClass = implicitly[Numeric[X]]
       import typeClass.*
-      fromInt(random.nextInt(exclusiveLimit.toInt))
+
+      val result: Any = exclusiveLimit match {
+        case x: Int =>
+          random.nextInt(x)
+        case x: Long =>
+          random.nextLong(x)
+        case x: BigInt =>
+          if (x <= 0)
+            throw new IllegalArgumentException("bound must be positive")
+          if (x <= Int.MaxValue) BigInt(random.nextInt(x.toInt))
+          else if (x <= Long.MaxValue) BigInt(random.nextLong(x.toLong))
+          else {
+            val bitLength = x.bitLength
+            var res       = BigInt(bitLength, random)
+            while (res >= x) {
+              res = BigInt(bitLength, random)
+            }
+            res
+          }
+        case x: Byte =>
+          random.nextInt(x.toInt).toByte
+        case x: Short =>
+          random.nextInt(x.toInt).toShort
+        case x: Float =>
+          val longLimit = x.toLong
+          if (longLimit <= 0)
+            throw new IllegalArgumentException("bound must be positive")
+          if (longLimit <= Int.MaxValue) random.nextInt(longLimit.toInt).toFloat
+          else random.nextLong(longLimit).toFloat
+        case x: Double =>
+          val longLimit = x.toLong
+          if (longLimit <= 0)
+            throw new IllegalArgumentException("bound must be positive")
+          if (longLimit <= Int.MaxValue) random.nextInt(longLimit.toInt).toDouble
+          else random.nextLong(longLimit).toDouble
+        case x: BigDecimal =>
+          val bigIntLimit = x.toBigInt
+          if (bigIntLimit <= 0)
+            throw new IllegalArgumentException("bound must be positive")
+          if (bigIntLimit <= Int.MaxValue)
+            BigDecimal(random.nextInt(bigIntLimit.toInt))
+          else if (bigIntLimit <= Long.MaxValue)
+            BigDecimal(random.nextLong(bigIntLimit.toLong))
+          else {
+            val bitLength = bigIntLimit.bitLength
+            var res       = BigInt(bitLength, random)
+            while (res >= bigIntLimit) {
+              res = BigInt(bitLength, random)
+            }
+            BigDecimal(res)
+          }
+        case _ =>
+          val longLimit = typeClass.toLong(exclusiveLimit)
+          if (longLimit <= 0)
+            throw new IllegalArgumentException("bound must be positive")
+          if (longLimit <= Int.MaxValue) {
+            fromInt(random.nextInt(longLimit.toInt))
+          } else {
+            val chosenLong = random.nextLong(longLimit)
+            val high       = (chosenLong >>> 32).toInt
+            val low        = chosenLong & 0xffffffffL
+            val two32      = fromInt(65536) * fromInt(65536)
+            val highX      = fromInt(high) * two32
+            val lowX = fromInt((low >>> 16).toInt) * fromInt(65536) + fromInt(
+              (low & 0xffffL).toInt
+            )
+            highX + lowX
+          }
+      }
+      result.asInstanceOf[X]
     }
 
     def chooseAnyNumberFromOneTo[X: Numeric](inclusiveLimit: X): X = {

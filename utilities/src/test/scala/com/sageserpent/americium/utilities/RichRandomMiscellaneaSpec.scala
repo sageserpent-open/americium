@@ -488,4 +488,62 @@ class RichRandomMiscellaneaSpec extends AnyFlatSpec with Matchers {
         .toList should have size limit
     }
   }
+
+  it should "support choosing random Long values with limits exceeding Int.MaxValue" in {
+    val random = new Random(42)
+
+    val limits = Seq(
+      100L,
+      3_000_000_000L,
+      1_700_000_000_000L,
+      Long.MaxValue
+    )
+
+    for (limit <- limits) {
+      for (_ <- 1 to 100) {
+        val chosenExclusive = random.chooseAnyNumberFromZeroToOneLessThan(limit)
+        chosenExclusive should (be >= 0L and be < limit)
+
+        val chosenInclusive = random.chooseAnyNumberFromOneTo(limit)
+        chosenInclusive should (be >= 1L and be <= limit)
+      }
+    }
+  }
+
+  it should "support choosing random numbers across various numeric types" in {
+    val random = new Random(123)
+
+    // BigInt exceeding Long.MaxValue
+    val bigIntLimit = BigInt("123456789012345678901234567890")
+    for (_ <- 1 to 50) {
+      val chosen = random.chooseAnyNumberFromZeroToOneLessThan(bigIntLimit)
+      chosen should (be >= BigInt(0) and be < bigIntLimit)
+
+      val chosenInc = random.chooseAnyNumberFromOneTo(bigIntLimit)
+      chosenInc should (be >= BigInt(1) and be <= bigIntLimit)
+    }
+
+    // Double exceeding Int.MaxValue
+    val doubleLimit = 3_000_000_000.0
+    for (_ <- 1 to 50) {
+      val chosen = random.chooseAnyNumberFromZeroToOneLessThan(doubleLimit)
+      chosen should (be >= 0.0 and be < doubleLimit)
+
+      val chosenInc = random.chooseAnyNumberFromOneTo(doubleLimit)
+      chosenInc should (be >= 1.0 and be <= doubleLimit)
+    }
+
+    // Byte and Short
+    val byteLimit: Byte = 50
+    for (_ <- 1 to 50) {
+      val chosen = random.chooseAnyNumberFromZeroToOneLessThan(byteLimit)
+      chosen should (be >= 0.toByte and be < byteLimit)
+    }
+
+    val shortLimit: Short = 1000
+    for (_ <- 1 to 50) {
+      val chosen = random.chooseAnyNumberFromZeroToOneLessThan(shortLimit)
+      chosen should (be >= 0.toShort and be < shortLimit)
+    }
+  }
 }
