@@ -435,4 +435,12 @@ trait TrialsApiImplementation extends CommonApi with TrialsApiWart {
       .shuffles[Element, List](items.asScala.toList)
       .map(_.asJava)
       .javaTrials
+
+  override def instances[Case](clazz: Class[Case]): JavaTrials[Case] =
+    InstancesDerivation.instances(clazz)
+
+  override def instances[Case](
+      `type`: _root_.java.lang.reflect.Type
+  ): JavaTrials[Case] =
+    InstancesDerivation.instances(`type`)
 }
