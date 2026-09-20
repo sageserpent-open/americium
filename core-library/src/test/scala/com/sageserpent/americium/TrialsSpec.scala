@@ -3176,4 +3176,26 @@ class TrialsSpecInQuarantineDueToTheTestBeingLongRunning
       verify(mockConsumer, times(limit)).apply(any())
     }
   }
+
+  "Trials.reject" should "be compatible with any expected type in value expressions" in {
+    api.integers.withLimit(100).supplyTo { caze =>
+      val evenValue: Int =
+        if (0 == caze % 2) caze else Trials.reject()
+      evenValue % 2 shouldBe 0
+
+      val s: String =
+        if (caze > 0) "positive" else Trials.reject()
+      s shouldBe "positive"
+
+      val stringFromOption: String =
+        Option.when(caze % 2 == 0)("even").getOrElse(Trials.reject())
+      stringFromOption shouldBe "even"
+    }
+  }
+
+  it should "throw an exception when called outside a trial" in {
+    intercept[RuntimeException] {
+      Trials.reject()
+    }
+  }
 }

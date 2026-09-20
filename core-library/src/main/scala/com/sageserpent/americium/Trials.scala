@@ -13,8 +13,12 @@ import scala.util.DynamicVariable
 
 object Trials {
   private[americium] val throwInlineFilterRejection
-      : DynamicVariable[() => Unit] =
-    new DynamicVariable(() => {})
+      : DynamicVariable[() => Nothing] =
+    new DynamicVariable(() =>
+      throw new RuntimeException(
+        "Trials.reject() was called outside a trial execution context."
+      )
+    )
 
   /** Start here: this yields a [[TrialsApi]] instance that is the gateway to
     * creating various kinds of [[Trials]] instances via its factory methods.
@@ -55,9 +59,9 @@ object Trials {
     * @note
     *   This method will abort a trial's execution by throwing a private
     *   exception handled by the framework implementation. If it is called
-    *   outside a trial, then it returns control as a no-operation.
+    *   outside a trial, an exception will be thrown.
     */
-  def reject(): Unit = {
+  def reject(): Nothing = {
     throwInlineFilterRejection.value.apply()
   }
 
