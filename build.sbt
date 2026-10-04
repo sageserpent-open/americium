@@ -61,7 +61,12 @@ Test / testGrouping := Def.uncached {
     }
     .toSeq
 }
-Global / concurrentRestrictions := Seq(Tags.limit(Tags.ForkedTestGroup, 6))
+Global / concurrentRestrictions := Seq(
+  Tags.limit(
+    Tags.ForkedTestGroup,
+    Math.max(2, java.lang.Runtime.getRuntime.availableProcessors)
+  )
+)
 
 lazy val coreDependencies = Def.setting {
   Seq(
