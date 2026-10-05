@@ -13,16 +13,16 @@ object RandomEnrichment {
         random: Random
     ): X
   }
-}
-
-trait RandomEnrichment {
-  implicit val choiceOfLong: Choice[Long] =
-    (exclusiveLimit: Long, random: Random) => random.nextLong(exclusiveLimit)
 
   implicit def choiceOfNumeric[X](implicit numeric: Numeric[X]): Choice[X] =
     (exclusiveLimit: X, random: Random) =>
       numeric.fromInt(random.nextInt(numeric.toInt(exclusiveLimit)))
 
+  implicit val choiceOfLong: Choice[Long] =
+    (exclusiveLimit: Long, random: Random) => random.nextLong(exclusiveLimit)
+}
+
+trait RandomEnrichment {
   implicit class RichRandom(private val random: Random) {
     def chooseAnyNumberFromZeroToOneLessThan[X](
         exclusiveLimit: X
