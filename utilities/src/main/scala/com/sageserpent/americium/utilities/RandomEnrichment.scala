@@ -1,54 +1,49 @@
 package com.sageserpent.americium.utilities
 
+import com.sageserpent.americium.utilities.RandomEnrichment.Choice
+
 import scala.annotation.tailrec
 import scala.language.postfixOps
 import scala.util.Random
 
+object RandomEnrichment {
+  trait Choice[X] {
+    def anyNumberFromZeroToOneLessThan(
+        exclusiveLimit: X,
+        random: Random
+    ): X
+  }
+}
+
 trait RandomEnrichment {
-  implicit class RichRandom(random: Random) {
-    // TODO - throw all this rubbish out and use reservoir sampling!
+  implicit val choiceOfLong: Choice[Long] =
+    (exclusiveLimit: Long, random: Random) => random.nextLong(exclusiveLimit)
 
-    def chooseAnyNumberFromZeroToOneLessThan[X: Numeric](
+  implicit def choiceOfNumeric[X](implicit numeric: Numeric[X]): Choice[X] =
+    (exclusiveLimit: X, random: Random) =>
+      numeric.fromInt(random.nextInt(numeric.toInt(exclusiveLimit)))
+
+  implicit class RichRandom(private val random: Random) {
+    def chooseAnyNumberFromZeroToOneLessThan[X](
         exclusiveLimit: X
-    ): X = {
-      val typeClass = implicitly[Numeric[X]]
-      import typeClass.*
-      fromInt(random.nextInt(exclusiveLimit.toInt))
-    }
+    )(implicit choice: Choice[X]): X =
+      choice.anyNumberFromZeroToOneLessThan(exclusiveLimit, random)
 
-    def chooseAnyNumberFromOneTo[X: Numeric](inclusiveLimit: X): X = {
-      val typeClass = implicitly[Numeric[X]]
-      import typeClass.*
+    def chooseAnyNumberFromOneTo[X: Choice](
+        inclusiveLimit: X
+    )(implicit numeric: Numeric[X]): X = {
+      import numeric.*
       one + chooseAnyNumberFromZeroToOneLessThan(inclusiveLimit)
     }
 
-    def buildRandomSequenceOfDistinctIntegersFromZeroToOneLessThan(
-        exclusiveLimit: Int
-    ): LazyList[Int] = {
-      def chooseAndRecordUniqueItems(
-          exclusiveLimitOnVacantSlotIndex: Int,
-          previouslyChosenItemsAsBinaryTree: RangeOfSlots
-      ): LazyList[Int] = {
-        if (0 == exclusiveLimitOnVacantSlotIndex) {
-          LazyList.empty
-        } else {
-          val (chosenItem, chosenItemsAsBinaryTree) =
-            previouslyChosenItemsAsBinaryTree.fillVacantSlotAtIndex(
-              chooseAnyNumberFromZeroToOneLessThan(
-                exclusiveLimitOnVacantSlotIndex
-              )
-            )
+    def chooseSeveralOf[X](
+        candidates: Iterable[X],
+        numberToChoose: Int
+    ): Seq[X] = {
+      require(numberToChoose <= candidates.size)
 
-          chosenItem #:: chooseAndRecordUniqueItems(
-            exclusiveLimitOnVacantSlotIndex - 1,
-            chosenItemsAsBinaryTree
-          )
-        }
-      }
-
-      chooseAndRecordUniqueItems(
-        exclusiveLimit,
-        RangeOfSlots.allSlotsAreVacant(exclusiveLimit)
+      buildRandomSequenceOfDistinctCandidatesChosenFrom(candidates).take(
+        numberToChoose
       )
     }
 
@@ -94,17 +89,7 @@ trait RandomEnrichment {
       chooseAndRecordUniqueCandidates(0)
     }
 
-    def chooseSeveralOf[X](
-        candidates: Iterable[X],
-        numberToChoose: Int
-    ): Seq[X] = {
-      require(numberToChoose <= candidates.size)
-
-      buildRandomSequenceOfDistinctCandidatesChosenFrom(candidates).take(
-        numberToChoose
-      )
-    }
-
+    // TODO - throw all this rubbish out and use reservoir sampling!
     def chooseOneOf[X](candidates: Iterable[X]): X = {
       // How does this algorithm work? It is a generalisation of the old trick
       // of choosing an item from a sequence working down the sequence,
@@ -234,6 +219,36 @@ trait RandomEnrichment {
 
         splits(indicesToSplitAt, items, 0)
       } else LazyList.empty
+    }
+
+    def buildRandomSequenceOfDistinctIntegersFromZeroToOneLessThan(
+        exclusiveLimit: Int
+    ): LazyList[Int] = {
+      def chooseAndRecordUniqueItems(
+          exclusiveLimitOnVacantSlotIndex: Int,
+          previouslyChosenItemsAsBinaryTree: RangeOfSlots
+      ): LazyList[Int] = {
+        if (0 == exclusiveLimitOnVacantSlotIndex) {
+          LazyList.empty
+        } else {
+          val (chosenItem, chosenItemsAsBinaryTree) =
+            previouslyChosenItemsAsBinaryTree.fillVacantSlotAtIndex(
+              chooseAnyNumberFromZeroToOneLessThan(
+                exclusiveLimitOnVacantSlotIndex
+              )
+            )
+
+          chosenItem #:: chooseAndRecordUniqueItems(
+            exclusiveLimitOnVacantSlotIndex - 1,
+            chosenItemsAsBinaryTree
+          )
+        }
+      }
+
+      chooseAndRecordUniqueItems(
+        exclusiveLimit,
+        RangeOfSlots.allSlotsAreVacant(exclusiveLimit)
+      )
     }
   }
 }
