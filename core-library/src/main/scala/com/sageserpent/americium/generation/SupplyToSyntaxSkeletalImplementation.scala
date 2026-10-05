@@ -700,17 +700,15 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
             case Some(
                   FactoryInputOf(guideInput) :: remainingGuidance
                 )
-                if (remainingGuidance.forall(_ match {
+                if (remainingGuidance.forall {
                   case _: FactoryInputOf => false
                   case _: ChoiceOf       => true
-                }) || 1 < randomBehaviour
+                } || 1 < randomBehaviour
                   .chooseAnyNumberFromOneTo(
-                    1 + remainingGuidance
-                      .filter(_ match {
-                        case _: FactoryInputOf => true
-                        case _: ChoiceOf       => false
-                      })
-                      .size
+                    1 + remainingGuidance.count {
+                      case _: FactoryInputOf => true
+                      case _: ChoiceOf       => false
+                    }
                   )) && factory.lowerBoundInput <= guideInput && factory.upperBoundInput >= guideInput =>
               // Guided shrinkage - can choose a factory input somewhere between
               // the one in the guidance decision stages and the shrinkage
