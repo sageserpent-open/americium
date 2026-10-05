@@ -30,7 +30,10 @@ javacOptions ++= Seq("-source", javaVersion, "-target", javaVersion)
 Test / fork               := true
 Test / testForkedParallel := false
 Test / logLevel           := Level.Error
-Test / testOptions += Tests.Argument(jupiterTestFramework, "-q")
+Test / testOptions ++= Seq(
+  Tests.Argument(jupiterTestFramework, "-q"),
+  Tests.Argument(TestFrameworks.ScalaTest, "-W", "120", "60")
+)
 // Test grouping for isolated databases
 Test / testGrouping := Def.uncached {
   val tests = (Test / definedTests).value
