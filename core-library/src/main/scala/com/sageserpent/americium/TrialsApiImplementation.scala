@@ -524,6 +524,20 @@ class TrialsApiImplementation extends CommonApi with ScalaTrialsApi {
     indexPermutations(items.size).map(_.map(indexedItems.apply).to(factory))
   }
 
+  override def instances[Case](clazz: Class[Case]): TrialsImplementation[Case] =
+    com.sageserpent.americium.java.InstancesDerivation
+      .instances(clazz)
+      .scalaTrials
+      .asInstanceOf[TrialsImplementation[Case]]
+
+  override def instances[Case](
+      `type`: _root_.java.lang.reflect.Type
+  ): TrialsImplementation[Case] =
+    com.sageserpent.americium.java.InstancesDerivation
+      .instances(`type`)
+      .scalaTrials
+      .asInstanceOf[TrialsImplementation[Case]]
+
   override def indexPermutations(
       numberOfIndices: Int
   ): TrialsImplementation[Vector[Int]] =
