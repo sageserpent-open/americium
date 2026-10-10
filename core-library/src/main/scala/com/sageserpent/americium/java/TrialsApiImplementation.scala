@@ -395,7 +395,7 @@ trait TrialsApiImplementation extends CommonApi with TrialsApiWart {
     val scalaIterables: Seq[Iterable[Element]] = iterable.map(_.asScala)
 
     scalaApi
-      .pickAlternatelyFrom(shrinkToRoundRobin, scalaIterables: _*)
+      .pickAlternatelyFrom(shrinkToRoundRobin, scalaIterables*)
       .map(_.asJava)
       .javaTrials
   }
