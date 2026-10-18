@@ -30,7 +30,7 @@ Perhaps you'd like to work on this project yourself? Let's have a chat about wha
 
 Americium is built as an SBT project, using cross-platform support to target Scala 2.13 and Scala 3. The [gha-scala-library-release-workflow](https://github.com/guardian/gha-scala-library-release-workflow) is used to publish a library JAR to Sonatype, running as a manually-triggered CI action on GitHub.
 
-This workflow drives the `release` task in SBT, supplied by the plugin `sbt-release`. As mentioned in [`build.sbt`](https://raw.githubusercontent.com/sageserpent-open/americium/ad4d2f3d09f527441973d262c18b66e86631f124/build.sbt#L184), the support for cross-building from `sbt-release` is disabled; SBT's built-in cross-building is used instead.
+This workflow drives the `release` task in SBT, supplied by the plugin `sbt-release`. As mentioned in [`../../build.sbt`](https://raw.githubusercontent.com/sageserpent-open/americium/ad4d2f3d09f527441973d262c18b66e86631f124/build.sbt#L184), the support for cross-building from `sbt-release` is disabled; SBT's built-in cross-building is used instead.
 
 Sources are organised in typical Maven / SBT directory roots - thus published code sits in `./src/main/scala` for cross-platform shared Scala sources, `./src/main/scala-2.13` for sources specific to Scala 2.13, `./src/main/scala-3`for sources specific to Scala 3 and `./src/main/java` for Java code.
 

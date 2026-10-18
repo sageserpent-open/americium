@@ -82,22 +82,22 @@ trials.withLimit(1000).supplyTo { x =>
   <div class="grid-item">
     <h3>📚 Getting Started</h3>
     <p>Learn the basics of Americium</p>
-    <a href="{% link docs/getting-started/index.md %}">Read more →</a>
+    <a href="{% link docs/introducing-americium.md %}">Read more →</a>
   </div>
   <div class="grid-item">
     <h3>🧪 JUnit5 Integration</h3>
     <p>Use Americium with JUnit5</p>
-    <a href="{% link docs/junit5/integration.md %}">Read more →</a>
+    <a href="{% link docs/junit5-integration.md %}">Read more →</a>
   </div>
   <div class="grid-item">
     <h3>💡 Techniques</h3>
     <p>Advanced patterns and tricks</p>
-    <a href="{% link docs/techniques/index.md %}">Read more →</a>
+    <a href="{% link docs/techniques.md %}">Read more →</a>
   </div>
   <div class="grid-item">
     <h3>🔧 API Reference</h3>
     <p>Design and implementation details</p>
-    <a href="{% link docs/reference/design.md %}">Read more →</a>
+    <a href="{% link docs/design-and-implementation.md %}">Read more →</a>
   </div>
 </div>
 
