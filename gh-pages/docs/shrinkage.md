@@ -392,4 +392,4 @@ See how the lists contract in size, but there is shrinkage applied to the indivi
 It is possible to customise how a trials generates a scalar value and take more control over the lower bound, upper bound and shrinkage target - but we'll leave that for a later topic.
 
 ***
-Next topic: [Configuration buttons, dials and levers...]({% link docs/wiki-content/configuration.md %})
+Next topic: [Configuration buttons, dials and levers...]({% link docs/configuration.md %})

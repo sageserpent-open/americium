@@ -15,21 +15,21 @@ This section contains a direct migration of the original Americium Wiki pages.
 
 ## Topics
 
-- **[Introducing Americium to your tests]({% link docs/wiki-content/introducing-americium.md %})** - Trials, supplying test cases to tests, shrinkage in action
-- **[Variations in making a trials instance]({% link docs/wiki-content/variations.md %})** - Choices, alternation, special cases
-- **[Building up test cases]({% link docs/wiki-content/building-up-test-cases.md %})** - Collections, mapping, filtering, flat-mapping and recursion
-- **[Multi-parameter tests]({% link docs/wiki-content/multi-parameter-tests.md %})** - Supplying independently varying test cases to a trial
-- **[Reproducing a failing test case quickly]({% link docs/wiki-content/reproducing-failures.md %})** - Recipes and recipe hashes
-- **[All about shrinkage]({% link docs/wiki-content/shrinkage.md %})** - What it means and how it is achieved
-- **[Configuration buttons, dials and levers]({% link docs/wiki-content/configuration.md %})** - Case limit strategies, seeding, complexity, controlling shrinking
-- **[Awkward tests]({% link docs/wiki-content/awkward-tests.md %})** - Sometimes the test doesn't even want to run itself
-- **[JUnit5 Integration]({% link docs/wiki-content/junit5-integration.md %})** - Going with the flow
-- **[Techniques]({% link docs/wiki-content/techniques.md %})** - Impress your friends with sleights of hand
-- **[The competition]({% link docs/wiki-content/competition.md %})** - Oh, that bunch?
-- **[Arrived from Scalacheck?]({% link docs/wiki-content/from-scalacheck.md %})** - Welcome to Americium - learn the local language
-- **[JUnit5 again]({% link docs/wiki-content/junit5-typed-tests.md %})** - Strongly typed test supply
-- **[Design and Implementation]({% link docs/wiki-content/design-and-implementation.md %})** - Yes, do pay attention to the man behind the curtain
-- **[How did this come about?]({% link docs/wiki-content/background.md %})** - Sit down and let me tell you...
+- **[Introducing Americium to your tests]({% link docs/introducing-americium.md %})** - Trials, supplying test cases to tests, shrinkage in action
+- **[Variations in making a trials instance]({% link docs/variations.md %})** - Choices, alternation, special cases
+- **[Building up test cases]({% link docs/building-up-test-cases.md %})** - Collections, mapping, filtering, flat-mapping and recursion
+- **[Multi-parameter tests]({% link docs/multi-parameter-tests.md %})** - Supplying independently varying test cases to a trial
+- **[Reproducing a failing test case quickly]({% link docs/reproducing-failures.md %})** - Recipes and recipe hashes
+- **[All about shrinkage]({% link docs/shrinkage.md %})** - What it means and how it is achieved
+- **[Configuration buttons, dials and levers]({% link docs/configuration.md %})** - Case limit strategies, seeding, complexity, controlling shrinking
+- **[Awkward tests]({% link docs/awkward-tests.md %})** - Sometimes the test doesn't even want to run itself
+- **[JUnit5 Integration]({% link docs/junit5-integration.md %})** - Going with the flow
+- **[Techniques]({% link docs/techniques.md %})** - Impress your friends with sleights of hand
+- **[The competition]({% link docs/competition.md %})** - Oh, that bunch?
+- **[Arrived from Scalacheck?]({% link docs/from-scalacheck.md %})** - Welcome to Americium - learn the local language
+- **[JUnit5 again]({% link docs/junit5-typed-tests.md %})** - Strongly typed test supply
+- **[Design and Implementation]({% link docs/design-and-implementation.md %})** - Yes, do pay attention to the man behind the curtain
+- **[How did this come about?]({% link docs/background.md %})** - Sit down and let me tell you...
 
 ---
 

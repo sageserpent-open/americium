@@ -104,4 +104,4 @@ class AwesomeSetMembershipPredicate<Element extends Comparable<Element>> impleme
 That passes the test nicely.
 
 ***
-Next topic: [Reproducing a failing test case quickly...]({% link docs/wiki-content/reproducing-failures.md %})
+Next topic: [Reproducing a failing test case quickly...]({% link docs/reproducing-failures.md %})

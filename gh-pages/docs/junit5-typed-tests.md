@@ -115,4 +115,4 @@ This time we can't use the Scala type alias so we see `Iterator<DynamicTest>` in
 Again, there are overloads of `JUnit5.dynamicTests`, and these work both with ganged trials and trials of tuples.
 
 ***
-Next topic: [Design and Implementation...]({% link docs/wiki-content/design-and-implementation.md %})
+Next topic: [Design and Implementation...]({% link docs/design-and-implementation.md %})

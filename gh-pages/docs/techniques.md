@@ -583,4 +583,4 @@ This means that to start with, branching is favoured, which deepens the potentia
 Now as the recursion deepens through calls to `statelyTrees`, the complexity retrieved by `api.complexities` goes up, so as the potential tree gets deeper, the alternation swings round to favour leaves over branching. This stops runaway recursion and keeps the test cases below the default complexity limit.
 
 ***
-Next topic: [The competition...]({% link docs/wiki-content/competition.md %})
+Next topic: [The competition...]({% link docs/competition.md %})

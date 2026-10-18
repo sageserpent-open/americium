@@ -129,4 +129,4 @@ for [Scala 2.13](https://raw.githubusercontent.com/sageserpent-open/americium/c5
 and [Scala 3](https://raw.githubusercontent.com/sageserpent-open/americium/c53549899b4929c1403bad4cb79d3b3e7af75f94/src/main/scala-3/com/sageserpent/americium/Factory.scala#L18).
 
 ***
-Next topic: [JUnit5 again...]({% link docs/wiki-content/junit5-typed-tests.md %})
+Next topic: [JUnit5 again...]({% link docs/junit5-typed-tests.md %})

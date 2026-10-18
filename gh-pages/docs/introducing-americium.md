@@ -215,4 +215,4 @@ The eagle-eyed will observe that more test cases can be supplied to the test tha
 To summarise, we're seen how to get a trials of integers, how to supply test cases from it to a test, and what happens when a test trial fails. Great. Now take a look at `TrialsApi` in your preferred language API flavour and note the plethora of convenience methods for building trials of integers, longs, big integers, doubles, big decimals, bytes, characters, strings, Booleans and instants. Some are overloaded to take ranges, and some have a mysterious _shrinkage target_ too - we'll talk about that when we revisit shrinkage in a later topic.
 
 ***
-Next topic: [Variations in making a trials instance...]({% link docs/wiki-content/variations.md %})
+Next topic: [Variations in making a trials instance...]({% link docs/variations.md %})

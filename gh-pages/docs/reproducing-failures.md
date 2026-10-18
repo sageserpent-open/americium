@@ -265,4 +265,4 @@ When we try it out, the test _passes_. That's not good, because now there really
 
 ***
 
-Next topic: [All about shrinkage...]({% link docs/wiki-content/shrinkage.md %})
+Next topic: [All about shrinkage...]({% link docs/shrinkage.md %})

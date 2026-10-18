@@ -291,4 +291,4 @@ The result is a bit rough around the edges, but can be improved - try experiment
 ```
 
 ***
-Next topic: [Multi parameter tests...]({% link docs/wiki-content/multi-parameter-tests.md %})
+Next topic: [Multi parameter tests...]({% link docs/multi-parameter-tests.md %})

@@ -223,4 +223,4 @@ For more flexibility in configuration, there is another test annotation, `@Confi
 You can only refer to one instance of `SupplyToSyntax`, so if you want to use multiple trials, gang them together first with `.and` and then call `.withStrategy` or `withLimit`.
 
 ***
-Next topic: [Techniques...]({% link docs/wiki-content/techniques.md %})
+Next topic: [Techniques...]({% link docs/techniques.md %})

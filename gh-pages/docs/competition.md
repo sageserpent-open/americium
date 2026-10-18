@@ -50,4 +50,4 @@ There are several other such tools in the aforementioned shrinking challenge, in
 
 
 ***
-Next topic: [Arrived from Scalacheck?...]({% link docs/wiki-content/from-scalacheck.md %})
+Next topic: [Arrived from Scalacheck?...]({% link docs/from-scalacheck.md %})

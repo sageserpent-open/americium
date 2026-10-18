@@ -296,4 +296,4 @@ For the ultimate in shrinkage control, we have:
 It works in a similar fashion to the callback provided to `.withStrategy`, and both can be used in conjunction. Consult the `ShrinkageStop` interface's Javadoc.
 
 ***
-Next topic: [Awkward tests...]({% link docs/wiki-content/awkward-tests.md %})
+Next topic: [Awkward tests...]({% link docs/awkward-tests.md %})

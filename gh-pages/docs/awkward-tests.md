@@ -554,4 +554,4 @@ This wraps `Trials.reject` under the hood, but reads nicely in situations where 
 Before we move on, did you notice that there is a potential bug lurking in the `Bank` implementation? It certainly passes the test, but maybe we should write an extra test. (HINT: what would happen if we changed the test plans to allow two back-to-back lifecycles sharing the same account ID?)
 
 ***
-Next topic: [JUnit5 Integration...]({% link docs/wiki-content/junit5-integration.md %})
+Next topic: [JUnit5 Integration...]({% link docs/junit5-integration.md %})

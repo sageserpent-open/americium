@@ -176,4 +176,4 @@ There is a `TrialsApi.chooseWithWeights` to complement `TrialsApi.alternateWithW
 The generation of the even and odd numbers can be simplified and made more powerful - on to the next section...
 
 ***
-Next topic: [Building up test cases...]({% link docs/wiki-content/building-up-test-cases.md %})
+Next topic: [Building up test cases...]({% link docs/building-up-test-cases.md %})
