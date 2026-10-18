@@ -1,7 +1,7 @@
 ---
 layout: default
 title: "The competition"
-parent: Wiki Content
+parent: Topics
 nav_order: 11
 ---
 

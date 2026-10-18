@@ -1,7 +1,7 @@
 ---
 layout: default
 title: "Reproducing a failing test case quickly"
-parent: Wiki Content
+parent: Topics
 nav_order: 5
 ---
 

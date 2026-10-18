@@ -1,7 +1,7 @@
 ---
 layout: default
 title: "JUnit5 Integration"
-parent: Wiki Content
+parent: Topics
 nav_order: 9
 ---
 

@@ -1,7 +1,7 @@
 ---
 layout: default
 title: "How did this come about?"
-parent: Wiki Content
+parent: Topics
 nav_order: 15
 ---
 

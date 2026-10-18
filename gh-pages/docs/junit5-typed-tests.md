@@ -1,7 +1,7 @@
 ---
 layout: default
 title: "JUnit5 again"
-parent: Wiki Content
+parent: Topics
 nav_order: 13
 ---
 

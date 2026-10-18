@@ -1,7 +1,7 @@
 ---
 layout: default
 title: "Building up test cases"
-parent: Wiki Content
+parent: Topics
 nav_order: 3
 ---
 

@@ -1,12 +1,12 @@
 ---
 layout: default
-title: Wiki Content
+title: Topics
 nav_order: 10
 has_children: true
 permalink: /docs/wiki-content
 ---
 
-# Wiki Content
+# Topics
 
 {: .no_toc }
 

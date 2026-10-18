@@ -1,7 +1,7 @@
 ---
 layout: default
 title: "Variations in making a trials instance"
-parent: Wiki Content
+parent: Topics
 nav_order: 2
 ---
 

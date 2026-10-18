@@ -1,7 +1,7 @@
 ---
 layout: default
 title: "Awkward tests"
-parent: Wiki Content
+parent: Topics
 nav_order: 8
 ---
 

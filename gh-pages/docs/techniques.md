@@ -1,7 +1,7 @@
 ---
 layout: default
 title: "Techniques"
-parent: Wiki Content
+parent: Topics
 nav_order: 10
 ---
 

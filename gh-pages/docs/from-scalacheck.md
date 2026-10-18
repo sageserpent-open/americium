@@ -1,7 +1,7 @@
 ---
 layout: default
 title: "Arrived from Scalacheck?"
-parent: Wiki Content
+parent: Topics
 nav_order: 12
 ---
 

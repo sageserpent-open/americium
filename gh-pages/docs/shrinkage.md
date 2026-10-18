@@ -1,7 +1,7 @@
 ---
 layout: default
 title: "All about shrinkage"
-parent: Wiki Content
+parent: Topics
 nav_order: 6
 ---
 

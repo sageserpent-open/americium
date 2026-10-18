@@ -1,7 +1,7 @@
 ---
 layout: default
 title: "Configuration buttons, dials and levers"
-parent: Wiki Content
+parent: Topics
 nav_order: 7
 ---
 

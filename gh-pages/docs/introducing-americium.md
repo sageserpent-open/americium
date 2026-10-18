@@ -1,7 +1,7 @@
 ---
 layout: default
 title: "Introducing Americium to your tests"
-parent: Wiki Content
+parent: Topics
 nav_order: 1
 ---
 

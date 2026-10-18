@@ -1,7 +1,7 @@
 ---
 layout: default
 title: "Multi-parameter tests"
-parent: Wiki Content
+parent: Topics
 nav_order: 4
 ---
 
