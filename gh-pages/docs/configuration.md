@@ -211,7 +211,9 @@ We can set the seed according to the date or CI build number, host name or whate
 
 In fact, we can just let Americium to this for us implicitly by setting a JVM property:
 
-```-Dtrials.nondeterministic=true```
+```text
+-Dtrials.nondeterministic=true
+```
 
 This will use `java.util.Random` in non-repeatable seed mode, so different runs should yield different progression of test cases (as long as the trials instance allows variation, that is). This property takes precedence over an explicit seed when set to true.
 
