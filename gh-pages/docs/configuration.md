@@ -209,11 +209,13 @@ Rather than sacrifice timeliness, we can cover a wider base of trials by allowin
 
 We can set the seed according to the date or CI build number, host name or whatever.
 
-In fact, we can just let Americium to this for us implicitly by setting a JVM property:
+In fact, we can just let Americium to this for us implicitly by setting a JVM property when the test is run:
 
 ```text
 -Dtrials.nondeterministic=true
 ```
+
+This is done via whatever way the test is invoked, so in IntelliJ, we use the test configuration dialog, or for a build tool like Maven or SBT there is some configuration option / environment variable for passing JVM command line options into a test.
 
 This will use `java.util.Random` in non-repeatable seed mode, so different runs should yield different progression of test cases (as long as the trials instance allows variation, that is). This property takes precedence over an explicit seed when set to true.
 
