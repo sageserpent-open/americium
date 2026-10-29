@@ -7,7 +7,7 @@ lazy val javaVersion = "17"
 
 lazy val scala2_13_Version = "2.13.18"
 
-lazy val scala3_Version = "3.3.8"
+lazy val scala3_Version = "3.3.9"
 
 scalaVersion := scala2_13_Version
 
@@ -23,7 +23,7 @@ scalacOptions ++= (CrossVersion.partialVersion(
   case Some((2, _)) =>
     Seq("-Xsource:3", s"-java-output-version:$javaVersion")
   case Some((3, _)) =>
-    Seq("-explain", s"-java-output-version:$javaVersion")
+    Seq("-explain", s"-java-output-version:$javaVersion", "-Yfuture-lazy-vals")
   case _ => Nil
 })
 javacOptions ++= Seq("-source", javaVersion, "-target", javaVersion)
