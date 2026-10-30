@@ -434,4 +434,24 @@ public interface TrialsApi {
      * @return A {@link Trials} instance that yields shuffles.
      */
     <Element> Trials<List<Element>> shuffles(List<Element> items);
+
+    /**
+     * Produce a {@link Trials} instance for a given structured class,
+     * automatically deriving test case generation using its public constructors.
+     *
+     * @param clazz The target class to derive trials for.
+     * @param <Case> The type of the target class cases.
+     * @return A {@link Trials} instance that yields instances of {@code Case}.
+     */
+    <Case> Trials<Case> instances(Class<Case> clazz);
+
+    /**
+     * Produce a {@link Trials} instance for a given structured type,
+     * automatically deriving test case generation using its public constructors.
+     *
+     * @param type The target type to derive trials for.
+     * @param <Case> The type of the target cases.
+     * @return A {@link Trials} instance that yields instances of {@code Case}.
+     */
+    <Case> Trials<Case> instances(java.lang.reflect.Type type);
 }
