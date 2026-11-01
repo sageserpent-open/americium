@@ -53,7 +53,8 @@ Test / testGrouping := Def.uncached {
           (Test / forkOptions).value
             .withRunJVMOptions(
               Vector(
-                s"-Dtrials.runDatabase=$trialsRunDatabaseName"
+                s"-Dtrials.runDatabase=$trialsRunDatabaseName",
+                "-Xmx3G"
               )
             )
             .withOutputStrategy(

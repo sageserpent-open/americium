@@ -14,7 +14,9 @@ trait TrialsApiWart extends JavaTrialsApi {
       secondChoice: Case,
       otherChoices: Case*
   ): JavaTrials[Case] =
-    TrialsImplementation(scalaApi.choose(firstChoice +: secondChoice +: otherChoices))
+    TrialsImplementation(
+      scalaApi.choose(firstChoice +: secondChoice +: otherChoices)
+    )
 
   def choose[Case <: AnyRef](
       choices: Array[Case]

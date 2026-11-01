@@ -321,7 +321,7 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
                       },
                     inlinedCaseFiltration = inlinedCaseFiltration,
                     isPartOfShrinkage = true,
-                    recipe =
+                    recipeThunk = () =>
                       potentialShrunkCaseData.decisionStagesInReverseOrder.reverse.longhandRecipe
                   )
                 )
@@ -367,7 +367,7 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
               },
               inlinedCaseFiltration = inlinedCaseFiltration,
               isPartOfShrinkage = false,
-              recipe =
+              recipeThunk = () =>
                 caseData.decisionStagesInReverseOrder.reverse.longhandRecipe
             )
           }
@@ -403,7 +403,7 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
             true
         },
         isPartOfShrinkage = false,
-        recipe = recipe
+        recipeThunk = () => recipe
       )
     }
 

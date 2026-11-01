@@ -245,7 +245,7 @@ case class TrialsImplementation[Case](
               }
             },
             isPartOfShrinkage = false,
-            recipe = recipe
+            recipeThunk = () => recipe
           )
         }: TestIntegrationContext[Case]).iterator
       }

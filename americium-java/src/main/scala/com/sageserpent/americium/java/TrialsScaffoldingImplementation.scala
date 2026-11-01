@@ -57,15 +57,56 @@ object TrialsScaffoldingImplementation {
       )
 
     override def supplyTo(consumer: Consumer[Case]): Unit =
-      scalaSupplyToSyntax.supplyTo(consumer.accept)
+      try {
+        scalaSupplyToSyntax.supplyTo(consumer.accept)
+      } catch {
+        case _: com.sageserpent.americium.NoValidTrialsException =>
+          throw new com.sageserpent.americium.java.NoValidTrialsException
+      }
 
-    override def asIterator(): JavaIterator[Case] =
-      scalaSupplyToSyntax.asIterator().asJava
+    override def asIterator(): JavaIterator[Case] = {
+      val underlying = scalaSupplyToSyntax.asIterator()
+      new JavaIterator[Case] {
+        override def hasNext: Boolean =
+          try {
+            underlying.hasNext
+          } catch {
+            case _: com.sageserpent.americium.NoValidTrialsException =>
+              throw new com.sageserpent.americium.java.NoValidTrialsException
+          }
+
+        override def next(): Case =
+          try {
+            underlying.next()
+          } catch {
+            case _: com.sageserpent.americium.NoValidTrialsException =>
+              throw new com.sageserpent.americium.java.NoValidTrialsException
+          }
+      }
+    }
 
     override def testIntegrationContexts(): JavaIterator[
       ScalaTestIntegrationContext[Case]
-    ] =
-      scalaSupplyToSyntax.testIntegrationContexts().asJava
+    ] = {
+      val underlying = scalaSupplyToSyntax.testIntegrationContexts()
+      new JavaIterator[ScalaTestIntegrationContext[Case]] {
+        override def hasNext: Boolean =
+          try {
+            underlying.hasNext
+          } catch {
+            case _: com.sageserpent.americium.NoValidTrialsException =>
+              throw new com.sageserpent.americium.java.NoValidTrialsException
+          }
+
+        override def next(): ScalaTestIntegrationContext[Case] =
+          try {
+            underlying.next()
+          } catch {
+            case _: com.sageserpent.americium.NoValidTrialsException =>
+              throw new com.sageserpent.americium.java.NoValidTrialsException
+          }
+      }
+    }
 
     override def reproduce(recipe: String): Case =
       scalaSupplyToSyntax.reproduce(recipe)

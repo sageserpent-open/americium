@@ -24,5 +24,7 @@ case class TestIntegrationContextImplementation[Case](
     caseFailureReporting: CaseFailureReporting,
     inlinedCaseFiltration: InlinedCaseFiltration,
     isPartOfShrinkage: Boolean,
-    recipe: String
-) extends TestIntegrationContext[Case]
+    recipeThunk: () => String
+) extends TestIntegrationContext[Case] {
+  override lazy val recipe: String = recipeThunk()
+}
