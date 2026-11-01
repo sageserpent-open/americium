@@ -8,8 +8,6 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
-import static scala.jdk.javaapi.DurationConverters.toJava;
-
 /**
  * Strategy used to limit the emission of cases by the implementation of
  * {@link Trials}. These are supplied by client code when calling
@@ -56,20 +54,6 @@ public interface CasesLimitStrategy extends com.sageserpent.americium.CasesLimit
 
             }
         };
-    }
-
-    /**
-     * Limits test case emission using a time budget that starts when the
-     * strategy is first consulted via {@link CasesLimitStrategy#moreToDo()}.
-     *
-     * @param timeBudget How long to allow a testing cycle to continue to
-     *                   emit cases.
-     * @return A fresh strategy instance - the time budget is not consumed
-     * until the first call to {@link CasesLimitStrategy#moreToDo()}.
-     */
-    static CasesLimitStrategy timed(
-            final scala.concurrent.duration.FiniteDuration timeBudget) {
-        return timed(toJava(timeBudget));
     }
 
     /**
