@@ -125,18 +125,14 @@ trait TrialsApiImplementation extends TrialsApiWart {
   ): JavaTrials[ImmutableList[Element]] =
     TrialsImplementation(
       scalaApi
-        .only(())
-        .flatMap((_: Unit) =>
-          scalaApi
-            .sequences[Element, List](
-              trials.asScala.map(_.scalaTrials).toList
-            )
-            .map { sequence =>
-              val builder = ImmutableList.builder[Element]()
-              sequence.foreach(builder.add)
-              builder.build()
-            }
+        .sequences[Element, List](
+          trials.asScala.map(_.scalaTrials).toList
         )
+        .map { sequence =>
+          val builder = ImmutableList.builder[Element]()
+          sequence.foreach(builder.add)
+          builder.build()
+        }
     )
 
   override def collections[Element, Collection](
@@ -145,18 +141,14 @@ trait TrialsApiImplementation extends TrialsApiWart {
   ): JavaTrials[Collection] = {
     TrialsImplementation(
       scalaApi
-        .only(())
-        .flatMap((_: Unit) =>
-          scalaApi
-            .sequences[Element, List](
-              trials.asScala.map(_.scalaTrials).toList
-            )
-            .map { sequence =>
-              val builder = builderFactory.get()
-              sequence.foreach(builder.add)
-              builder.build()
-            }
+        .sequences[Element, List](
+          trials.asScala.map(_.scalaTrials).toList
         )
+        .map { sequence =>
+          val builder = builderFactory.get()
+          sequence.foreach(builder.add)
+          builder.build()
+        }
     )
   }
 
