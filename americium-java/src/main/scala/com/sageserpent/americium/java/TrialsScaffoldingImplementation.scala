@@ -1,20 +1,13 @@
 package com.sageserpent.americium.java
 
+import com.sageserpent.americium.java.TrialsScaffolding as JavaTrialsScaffolding
 import com.sageserpent.americium.{
-  CaseSupplyCycle as ScalaCaseSupplyCycle,
-  CasesLimitStrategy as ScalaCasesLimitStrategy,
   TestIntegrationContext as ScalaTestIntegrationContext,
   TrialsScaffolding as ScalaTrialsScaffolding
-}
-import com.sageserpent.americium.java.{
-  CaseSupplyCycle as JavaCaseSupplyCycle,
-  CasesLimitStrategy as JavaCasesLimitStrategy,
-  TrialsScaffolding as JavaTrialsScaffolding
 }
 
 import java.util.Iterator as JavaIterator
 import java.util.function.Consumer
-import scala.jdk.CollectionConverters.*
 
 object TrialsScaffoldingImplementation {
   case class SupplyToSyntaxAdapter[Case](

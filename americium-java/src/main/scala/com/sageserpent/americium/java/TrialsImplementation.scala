@@ -1,18 +1,7 @@
 package com.sageserpent.americium.java
 
-import com.sageserpent.americium.TrialsDefaults.{
-  defaultComplexityLimit,
-  defaultShrinkageAttemptsLimit
-}
-import com.sageserpent.americium.{
-  CaseSupplyCycle as ScalaCaseSupplyCycle,
-  CasesLimitStrategy as ScalaCasesLimitStrategy,
-  Trials as ScalaTrials,
-  TrialsScaffolding as ScalaTrialsScaffolding
-}
+import com.sageserpent.americium.Trials as ScalaTrials
 import com.sageserpent.americium.java.{
-  CaseSupplyCycle as JavaCaseSupplyCycle,
-  CasesLimitStrategy as JavaCasesLimitStrategy,
   Trials as JavaTrials,
   TrialsScaffolding as JavaTrialsScaffolding
 }

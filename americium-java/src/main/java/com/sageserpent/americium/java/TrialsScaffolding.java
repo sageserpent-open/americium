@@ -1,6 +1,7 @@
 package com.sageserpent.americium.java;
 
 import com.sageserpent.americium.TestIntegrationContext;
+import com.sageserpent.americium.TrialsFactoring;
 import com.sageserpent.americium.generation.JavaPropertyNames;
 import cyclops.data.tuple.Tuple2;
 import cyclops.data.tuple.Tuple3;

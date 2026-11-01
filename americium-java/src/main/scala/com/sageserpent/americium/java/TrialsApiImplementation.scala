@@ -1,8 +1,7 @@
 package com.sageserpent.americium.java
 import com.google.common.collect.ImmutableList
-import com.sageserpent.americium.generation.Factory
+import com.sageserpent.americium.CaseFactory as ScalaCaseFactory
 import com.sageserpent.americium.java.Trials as JavaTrials
-import com.sageserpent.americium.{CaseFactory as ScalaCaseFactory}
 
 import _root_.java.lang.{
   Boolean as JavaBoolean,

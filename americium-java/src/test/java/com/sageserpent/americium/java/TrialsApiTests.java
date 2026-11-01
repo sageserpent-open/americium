@@ -5,6 +5,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Streams;
 import com.google.common.hash.Hashing;
+import com.sageserpent.americium.TrialException;
 import com.sageserpent.americium.utilities.BargainBasement;
 import cyclops.control.Try;
 import org.junit.jupiter.api.Test;
@@ -371,27 +372,27 @@ public class TrialsApiTests {
                                                       .characters()
                                                       .stringsOfSize(4));
 
-        final Try<Void, TrialsFactoring.TrialException> shouldHarbourAnError =
+        final Try<Void, TrialException> shouldHarbourAnError =
                 Try.runWithCatch(() ->
                                  {
                                      combinationOfTrials
                                              .withLimit(100)
                                              .supplyTo(this::thisShouldFail);
-                                 }, TrialsFactoring.TrialException.class);
+                                 }, TrialException.class);
 
         // If this fails, it is because the test's own logic is incorrect,
         // therefore we don't have any expectations here.
-        final TrialsFactoring.TrialException trialException =
+        final TrialException trialException =
                 shouldHarbourAnError.failureGet().toOptional().get();
 
         System.out.println("Now to reproduce the failure...");
 
-        final Try<Void, TrialsFactoring.TrialException> mustHarbourAnError =
+        final Try<Void, TrialException> mustHarbourAnError =
                 Try.runWithCatch(() -> {
                     combinationOfTrials
                             .withRecipe(trialException.recipe())
                             .supplyTo(this::thisShouldFail);
-                }, TrialsFactoring.TrialException.class);
+                }, TrialException.class);
 
         assertThat("This should have reproduced a failure.",
                    mustHarbourAnError.onFail(exception -> {
@@ -458,8 +459,8 @@ public class TrialsApiTests {
                 assertThat(instant, lessThanOrEqualTo(upperBound));
             });
 
-            final TrialsFactoring.TrialException trialException = assertThrows(
-                    TrialsFactoring.TrialException.class,
+            final TrialException trialException = assertThrows(
+                    TrialException.class,
                     () -> instants.withLimit(10).supplyTo(instant -> {
                         assertThat(instant, greaterThanOrEqualTo(lowerBound));
                         assertThat(instant, lessThanOrEqualTo(upperBound));
@@ -483,8 +484,8 @@ public class TrialsApiTests {
                 assertThat(instant, lessThanOrEqualTo(upperBound));
             });
 
-            final TrialsFactoring.TrialException trialException = assertThrows(
-                    TrialsFactoring.TrialException.class,
+            final TrialException trialException = assertThrows(
+                    TrialException.class,
                     () -> instants.withLimit(10).supplyTo(instant -> {
                         assertThat(instant, greaterThanOrEqualTo(lowerBound));
                         assertThat(instant, lessThanOrEqualTo(upperBound));
@@ -511,8 +512,8 @@ public class TrialsApiTests {
                 assertThat(instant, lessThanOrEqualTo(upperBound));
             });
 
-            final TrialsFactoring.TrialException trialException = assertThrows(
-                    TrialsFactoring.TrialException.class,
+            final TrialException trialException = assertThrows(
+                    TrialException.class,
                     () -> instants.withLimit(10).supplyTo(instant -> {
                         assertThat(instant, greaterThanOrEqualTo(lowerBound));
                         assertThat(instant, lessThanOrEqualTo(upperBound));
@@ -618,8 +619,8 @@ public class TrialsApiTests {
                               upperBound);
         });
 
-        final TrialsFactoring.TrialException trialException = assertThrows(
-                TrialsFactoring.TrialException.class,
+        final TrialException trialException = assertThrows(
+                TrialException.class,
                 () -> doubles.withLimit(100).supplyTo(aDouble -> {
                     assertThat(aDouble, greaterThanOrEqualTo(lowerBound));
                     assertThat(aDouble, lessThanOrEqualTo(upperBound));
@@ -668,8 +669,8 @@ public class TrialsApiTests {
         final int bestPossibleShrinkage = 1;
 
         {
-            final TrialsFactoring.TrialException trialException =
-                    assertThrows(TrialsFactoring.TrialException.class, () -> api
+            final TrialException trialException =
+                    assertThrows(TrialException.class, () -> api
                             .integers()
                             .withLimit(100)
                             .supplyTo(caze -> {
@@ -685,8 +686,8 @@ public class TrialsApiTests {
         {
             final int upperBoundOfFinalShrunkCase = 50;
 
-            final TrialsFactoring.TrialException trialException =
-                    assertThrows(TrialsFactoring.TrialException.class, () -> api
+            final TrialException trialException =
+                    assertThrows(TrialException.class, () -> api
                             .integers()
                             .withLimit(100).withShrinkageStop(
                                     () -> caze ->
@@ -706,8 +707,8 @@ public class TrialsApiTests {
         {
             final int upperBoundOfFinalShrunkCase = 50;
 
-            final TrialsFactoring.TrialException trialException =
-                    assertThrows(TrialsFactoring.TrialException.class, () -> api
+            final TrialException trialException =
+                    assertThrows(TrialException.class, () -> api
                             .integers()
                             .withLimit(100)
                             .withShrinkageAttemptsLimit(0)
