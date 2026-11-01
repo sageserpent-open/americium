@@ -7,15 +7,6 @@ import com.sageserpent.americium.generation.JavaPropertyNames.{
   recipeHashJavaProperty,
   recipeJavaProperty
 }
-import com.sageserpent.americium.java.{
-  CaseSupplyCycle,
-  CasesLimitStrategy,
-  NoValidTrialsException,
-  RecipeCouldNotBeReproducedException,
-  RecipeIsNotPresentException,
-  Trials as JavaTrials,
-  TrialsApi as JavaTrialsApi
-}
 import com.sageserpent.americium.storage.TrialsReproductionStorage
 import cyclops.control.Either as JavaEither
 import org.mockito.ArgumentMatchers.{any, argThat}
@@ -56,7 +47,6 @@ trait MockitoSessionSupport {
 
 object TrialsSpec {
   val api: TrialsApi                         = Trials.api
-  val javaApi: JavaTrialsApi                 = JavaTrials.api
   val limit: Int                             = 350
   val byteVectorTrials: Trials[Vector[Byte]] =
     // FIXME: the need to do this shows that some kind of weighted distribution
@@ -165,9 +155,6 @@ class TrialsSpec
     with TableDrivenPropertyChecks
     with MockitoSessionSupport {
   import TrialsSpec.*
-
-  type TypeRequirementsToProtectCodeInStringsFromUnusedImportOptimisation =
-    (JavaTrials[_], JavaFunction[_, _], Predicate[_])
 
   "test driving the Scala API" should "not produce smoke" in {
     val trials = api.choose(2, -4, 3)
@@ -278,98 +265,6 @@ class TrialsSpec
 
     api.instants
       .or(api.booleans)
-      .withLimit(limit)
-      .supplyTo(println)
-  }
-
-  "test driving the Java API" should "not produce smoke" in {
-    val javaTrials = javaApi.choose(2, -4, 3)
-
-    val flatMappedJavaTrials =
-      javaTrials flatMap (integer => javaApi.only(1.1 * integer))
-
-    flatMappedJavaTrials.withLimit(limit).supplyTo(println)
-
-    val mappedJavaTrials = javaTrials map (_ * 2.5)
-
-    mappedJavaTrials.withLimit(limit).supplyTo(println)
-
-    javaApi
-      .alternate(flatMappedJavaTrials, mappedJavaTrials)
-      .withLimit(limit)
-      .supplyTo(println)
-
-    javaApi
-      .choose((0 to 20).asJava)
-      .withLimit(limit)
-      .supplyTo(println)
-
-    javaApi
-      .alternate(Seq(flatMappedJavaTrials, mappedJavaTrials).asJava)
-      .withLimit(limit)
-      .supplyTo(println)
-
-    javaApi
-      .streamLegacy(_.toString)
-      .withLimit(limit)
-      .supplyTo(println)
-
-    javaApi.bytes
-      .withLimit(limit)
-      .supplyTo(println)
-
-    javaApi.integers
-      .withLimit(limit)
-      .supplyTo(println)
-
-    javaApi.longs
-      .withLimit(limit)
-      .supplyTo(println)
-
-    javaApi.doubles
-      .withLimit(limit)
-      .supplyTo(println)
-
-    javaApi.booleans
-      .withLimit(limit)
-      .supplyTo(println)
-
-    javaApi.characters
-      .withLimit(limit)
-      .supplyTo(println)
-
-    javaApi.instants
-      .withLimit(limit)
-      .supplyTo(println)
-
-    javaApi
-      .characters()
-      .strings()
-      .withLimit(limit)
-      .supplyTo(println)
-
-    javaApi
-      .characters('a', 'z', 'p')
-      .strings()
-      .withLimit(limit)
-      .supplyTo(println)
-
-    javaApi
-      .choose(0, 1, 2, 5)
-      .flatMap(size =>
-        javaApi
-          .characters('a', 'z')
-          .stringsOfSize(size)
-      )
-      .withLimit(limit)
-      .supplyTo(println)
-
-    javaApi.integers.optionals
-      .withLimit(limit)
-      .supplyTo(println)
-
-    javaApi.instants
-      .or(javaApi.booleans)
       .withLimit(limit)
       .supplyTo(println)
   }
@@ -1179,18 +1074,6 @@ class TrialsSpec
           verify(mockConsumer, never()).apply(any)
         }
 
-        {
-          val mockConsumer: Consumer[AnyRef] = mock(classOf[Consumer[AnyRef]])
-
-          sut.javaTrials
-            .flatMap((_: Any) => javaApi.impossible[AnyRef])
-            .withLimit(limit)
-            .withSeed(seed)
-            .withValidTrialsCheck(false)
-            .supplyTo(mockConsumer)
-
-          verify(mockConsumer, never()).accept(any)
-        }
       }
     }
 
@@ -2195,28 +2078,14 @@ class TrialsSpec
     )
   }
 
-  "mapping using a Java function" should "compile" in {
-    assertCompiles("javaApi.only(1).map((_ + 1): JavaFunction[Int, Int])")
-  }
-
   "mapping using a Scala function" should "compile" in {
     assertCompiles("api.only(1).map(_ + 1)")
-  }
-
-  "flatmapping using a Java function" should "compile" in {
-    assertCompiles(
-      "javaApi.only(1).flatMap(value => javaApi.choose(value, 1.0 + value))"
-    )
   }
 
   "flatmapping using a Scala function" should "compile" in {
     assertCompiles(
       "api.only(1).flatMap(value => api.choose(value, 1.0 + value))"
     )
-  }
-
-  "filtering using a Java predicate" should "compile" in {
-    assertCompiles("javaApi.only(1).filter(1 == _)")
   }
 
   "filtering using a Scala function" should "compile" in {
@@ -2313,41 +2182,6 @@ class TrialsSpec
     }
   }
 
-  "combination with Java `.or`" should "cover alternate finite choices" in {
-    inMockitoSession {
-      val mockConsumer: Consumer[JavaEither[String, Int]] =
-        mock(classOf[Consumer[JavaEither[String, Int]]])
-
-      val lefts: JavaTrials[String] = javaApi.choose("Huey", "Duey", "Louie")
-
-      val rights: JavaTrials[Int] = javaApi.choose(
-        IntStream
-          .range(0, 10)
-          .collect[JavaLinkedList[Int]](
-            () => new JavaLinkedList[Int](),
-            _.add(_),
-            _.addAll(_)
-          )
-      )
-
-      lefts
-        .map(JavaEither.left[String, Int])
-        .withLimit(limit)
-        .supplyTo(left => doNothing().when(mockConsumer).accept(left))
-
-      rights
-        .map(JavaEither.right[String, Int])
-        .withLimit(limit)
-        .supplyTo(right => doNothing().when(mockConsumer).accept(right))
-
-      (lefts or rights)
-        .withLimit(limit)
-        .supplyTo(mockConsumer)
-
-      verifyNoMoreInteractions(mockConsumer)
-    }
-  }
-
   "lifting with Scala `.options`" should "cover underlying finite choices and include `None`" in {
     inMockitoSession {
       val mockConsumer: Option[Int] => Unit =
@@ -2364,36 +2198,6 @@ class TrialsSpec
       doReturn(()).when(mockConsumer).apply(None)
 
       underlyings.options.withLimit(limit).supplyTo(mockConsumer)
-
-      verifyNoMoreInteractions(mockConsumer)
-    }
-  }
-
-  "lifting with Java `.optionals`" should "cover underlying finite choices and include `None`" in {
-    inMockitoSession {
-      val mockConsumer: Consumer[Optional[Int]] =
-        mock(classOf[Consumer[Optional[Int]]])
-
-      val underlyings: JavaTrials[Int] =
-        javaApi.choose(
-          IntStream
-            .range(0, 10)
-            .collect[JavaLinkedList[Int]](
-              () => new JavaLinkedList[Int](),
-              _.add(_),
-              _.addAll(_)
-            )
-        )
-
-      underlyings
-        .withLimit(limit)
-        .supplyTo(underlyingCase =>
-          doNothing().when(mockConsumer).accept(Optional.of(underlyingCase))
-        )
-
-      doNothing().when(mockConsumer).accept(Optional.empty)
-
-      underlyings.optionals.withLimit(limit).supplyTo(mockConsumer)
 
       verifyNoMoreInteractions(mockConsumer)
     }
@@ -2451,36 +2255,6 @@ class TrialsSpec
     }
   }
 
-  "combining Java trials via `sequence`" should "yield the Cartesian product of the elements" in {
-    // Outer trials instance - this is for the *test*.
-    val elementMaximaTrials = api.integers(1, 5).several[List[Int]]
-
-    elementMaximaTrials.withLimit(20).supplyTo { elementMaxima =>
-      def inRangeFromOneToMaximum(maximum: Int): JavaTrials[Int] =
-        javaApi.choose((1 to maximum).asJava)
-
-      val trialsSequence = elementMaxima.map(inRangeFromOneToMaximum).asJava
-
-      // Inner trials instance - this is the *SUT* itself; we rely on
-      // `Trials.supplyTo` being re-entrant.
-      val cartesianProduct = javaApi.immutableLists(trialsSequence)
-
-      val cartesianProductSize = elementMaxima.product
-
-      val results = mutable.Set.empty[JavaList[Int]]
-
-      println("---------------------------------")
-
-      cartesianProduct
-        .withLimit(cartesianProductSize)
-        .supplyTo { productMember =>
-          println(productMember)
-          results += productMember
-        }
-
-      results should have size cartesianProductSize
-    }
-  }
 }
 
 class TrialsSpecInQuarantineDueToUseOfRecipeHashSystemProperty
@@ -3107,18 +2881,16 @@ class TrialsSpecInQuarantineDueToUseOfNondeterministicSystemProperty
     try {
       val sharedIrrelevantSeed = 1L
 
-      val testCasesFromFirstRun = api.integers.javaTrials
+      val testCasesFromFirstRun = api.integers
         .withLimit(limit)
         .withSeed(sharedIrrelevantSeed)
         .asIterator()
-        .asScala
         .toSeq
 
-      val testCasesFromSecondRun = api.integers.javaTrials
+      val testCasesFromSecondRun = api.integers
         .withLimit(limit)
         .withSeed(sharedIrrelevantSeed)
         .asIterator()
-        .asScala
         .toSeq
 
       testCasesFromSecondRun should not equal testCasesFromFirstRun

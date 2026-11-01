@@ -5,8 +5,10 @@ import com.sageserpent.americium.java.{
   CaseFailureReporting,
   InlinedCaseFiltration,
   TestIntegrationContext,
-  TrialsScaffolding
+  TrialsScaffolding,
+  TrialsEnrichment
 }
+import TrialsEnrichment.*
 import com.sageserpent.americium.junit5.storage.JUnit5ReplayStorage
 import cyclops.companion.Streams
 import cyclops.data.tuple.{

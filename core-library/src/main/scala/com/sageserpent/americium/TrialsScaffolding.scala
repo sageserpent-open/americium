@@ -1,15 +1,9 @@
 package com.sageserpent.americium
 
 import com.sageserpent.americium.TrialsScaffolding.{ShrinkageStop, noStopping}
-import com.sageserpent.americium.java.TrialsDefaults.{
+import com.sageserpent.americium.TrialsDefaults.{
   defaultComplexityLimit,
   defaultShrinkageAttemptsLimit
-}
-import com.sageserpent.americium.java.{
-  CaseSupplyCycle,
-  CasesLimitStrategy,
-  TestIntegrationContext,
-  TrialsFactoring
 }
 
 object TrialsScaffolding {
