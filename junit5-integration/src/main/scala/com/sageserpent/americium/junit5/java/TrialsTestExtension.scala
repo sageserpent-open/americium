@@ -1,12 +1,13 @@
 package com.sageserpent.americium.junit5.java
 
-import com.sageserpent.americium.Trials as ScalaTrials
-import com.sageserpent.americium.java.{
+import com.sageserpent.americium.{
   CaseFailureReporting,
   InlinedCaseFiltration,
   TestIntegrationContext,
-  TrialsScaffolding
+  Trials as ScalaTrials
 }
+import com.sageserpent.americium.java.{TrialsEnrichment, TrialsScaffolding}
+import TrialsEnrichment.*
 import com.sageserpent.americium.junit5.storage.JUnit5ReplayStorage
 import cyclops.companion.Streams
 import cyclops.data.tuple.{

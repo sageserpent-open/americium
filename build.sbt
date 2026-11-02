@@ -53,7 +53,8 @@ Test / testGrouping := Def.uncached {
           (Test / forkOptions).value
             .withRunJVMOptions(
               Vector(
-                s"-Dtrials.runDatabase=$trialsRunDatabaseName"
+                s"-Dtrials.runDatabase=$trialsRunDatabaseName",
+                "-Xmx3G"
               )
             )
             .withOutputStrategy(
@@ -134,6 +135,27 @@ lazy val americium: Project = (project in file("core-library"))
     libraryDependencies += "org.scalatestplus" %% "scalacheck-1-19" % "3.2.20.0" % Test,
     libraryDependencies += "org.mockito" % "mockito-core" % "5.24.0" % Test,
     libraryDependencies += "com.github.seregamorph" % "hamcrest-more-matchers" % "1.0" % Test,
+    libraryDependencies += "org.hamcrest" % "hamcrest" % "3.0" % Test
+  )
+  .disablePlugins(plugins.JUnitXmlReportPlugin)
+
+lazy val `americium-java`: Project = (project in file("americium-java"))
+  .dependsOn(
+    americium             % "compile->compile;test->test",
+    `americium-utilities` % "compile->compile;test->test"
+  )
+  .settings(
+    name        := "americium-java",
+    description := "Java target for Americium parameterised testing library",
+    libraryDependencies ++= coreDependencies.value,
+    libraryDependencies ++= scalaVersionDependencies.value,
+    libraryDependencies += "com.github.valfirst" % "slf4j-test" % "3.0.3" % Test,
+    libraryDependencies += "org.typelevel"  %% "cats-laws"  % "2.13.0" % Test,
+    libraryDependencies += "org.scalatest"  %% "scalatest"  % "3.2.20" % Test,
+    libraryDependencies += "org.scalacheck" %% "scalacheck" % "1.20.0" % Test,
+    libraryDependencies += "org.scalatestplus" %% "scalacheck-1-19" % "3.2.20.0" % Test,
+    libraryDependencies += "org.mockito" % "mockito-core" % "5.24.0" % Test,
+    libraryDependencies += "com.github.seregamorph" % "hamcrest-more-matchers" % "1.0" % Test,
     libraryDependencies += "org.hamcrest" % "hamcrest" % "3.0" % Test,
     libraryDependencies += "org.mockito" % "mockito-junit-jupiter" % "5.24.0" % Test,
     libraryDependencies += "org.junit.jupiter" % "junit-jupiter-params" % JupiterKeys.junitJupiterVersion.value % Test,
@@ -142,7 +164,7 @@ lazy val americium: Project = (project in file("core-library"))
   .disablePlugins(plugins.JUnitXmlReportPlugin)
 
 lazy val `americium-junit5`: Project = (project in file("junit5-integration"))
-  .dependsOn(americium)
+  .dependsOn(americium, `americium-java`)
   .settings(
     name        := "americium-junit5",
     description := "JUnit5 integration for Americium property-based testing",
@@ -167,6 +189,7 @@ lazy val root: Project = (project in file("."))
   .aggregate(
     `americium-utilities`,
     americium,
+    `americium-java`,
     `americium-junit5`,
     `external-tests`
   )
