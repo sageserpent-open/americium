@@ -1,7 +1,6 @@
 package com.sageserpent.americium.junit5.java;
 
 import com.sageserpent.americium.java.Trials;
-import com.sageserpent.americium.java.TrialsDefaults;
 import com.sageserpent.americium.java.TrialsScaffolding;
 import org.junit.jupiter.api.TestTemplate;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -61,10 +60,10 @@ public @interface TrialsTest {
     /**
      * @see TrialsScaffolding.SupplyToSyntax#withComplexityLimit(int)
      */
-    int complexity() default TrialsDefaults.defaultComplexityLimit;
+    int complexity() default 100;
 
     /**
      * @see TrialsScaffolding.SupplyToSyntax#withShrinkageAttemptsLimit(int)
      */
-    int shrinkageAttempts() default TrialsDefaults.defaultShrinkageAttemptsLimit;
+    int shrinkageAttempts() default 100;
 }

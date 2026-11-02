@@ -7,11 +7,7 @@ import cats.implicits.*
 import cats.~>
 import com.google.common.collect.Ordering as _
 import com.sageserpent.americium.TrialsApis.scalaApi
-import com.sageserpent.americium.TrialsDefaults.{
-  defaultComplexityLimit,
-  defaultShrinkageAttemptsLimit
-}
-import com.sageserpent.americium.TrialsScaffolding.{ShrinkageStop, noStopping}
+import com.sageserpent.americium.TrialsScaffolding.ShrinkageStop
 import com.sageserpent.americium.generation.*
 import com.sageserpent.americium.generation.Decision.{
   DecisionStages,

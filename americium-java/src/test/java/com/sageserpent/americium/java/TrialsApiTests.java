@@ -5,6 +5,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Streams;
 import com.google.common.hash.Hashing;
+import com.sageserpent.americium.NoValidTrialsException;
 import com.sageserpent.americium.TrialException;
 import com.sageserpent.americium.utilities.BargainBasement;
 import cyclops.control.Try;

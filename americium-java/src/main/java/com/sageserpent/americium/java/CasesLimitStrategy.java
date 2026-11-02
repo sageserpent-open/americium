@@ -4,9 +4,7 @@ import com.google.common.base.Preconditions;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.util.function.Consumer;
 import java.util.function.Function;
-import java.util.function.Predicate;
 
 /**
  * Strategy used to limit the emission of cases by the implementation of
@@ -16,7 +14,8 @@ import java.util.function.Predicate;
  * @apiNote Instances are expected to be stateful, so they should not be
  * reused when calling the aforementioned overloads.
  */
-public interface CasesLimitStrategy extends com.sageserpent.americium.CasesLimitStrategy {
+public interface CasesLimitStrategy
+        extends com.sageserpent.americium.CasesLimitStrategy {
     /**
      * Limits test case emission using a time budget that starts when the
      * strategy is first consulted via {@link CasesLimitStrategy#moreToDo()}.
