@@ -1,6 +1,6 @@
 package com.sageserpent.americium
 
 object TrialsDefaults {
-  val defaultComplexityLimit: Int        = 100
-  val defaultShrinkageAttemptsLimit: Int = 100
+  final val defaultComplexityLimit: Int        = 100
+  final val defaultShrinkageAttemptsLimit: Int = 100
 }
