@@ -949,4 +949,21 @@ public class TrialsApiTests {
         assertThat(cases.size(),
                    equalTo(numberOfPermutationsOfTheSingletonListElements));
     }
+
+    @Test
+    void rejectInValueExpressions() {
+        api.integers().withLimit(100).supplyTo(caze -> {
+            final int evenValue = (0 == caze % 2) ? caze : Trials.reject();
+            assertThat(evenValue % 2, is(0));
+
+            final String stringFromOptional =
+                    Optional.of(caze)
+                            .filter(val -> val > 0)
+                            .map(Object::toString)
+                            .orElseGet(Trials::reject);
+            assertThat(Integer.parseInt(stringFromOptional), greaterThan(0));
+        });
+
+        assertThrows(RuntimeException.class, Trials::reject);
+    }
 }

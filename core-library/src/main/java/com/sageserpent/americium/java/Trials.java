@@ -54,10 +54,11 @@ public interface Trials<Case> extends
      *
      * @apiNote This method will abort a trial's execution by throwing a
      * private exception handled by the framework implementation. If it is
-     * called outside a trial, then it returns control as a no-operation.
+     * called outside a trial, an exception will be thrown.
      */
-    static void reject() {
+    static <Case> Case reject() {
         com.sageserpent.americium.Trials.reject();
+        return null;
     }
 
     /**
