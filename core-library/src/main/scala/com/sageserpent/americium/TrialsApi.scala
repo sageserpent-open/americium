@@ -467,4 +467,28 @@ trait TrialsApi {
   )(implicit
       factory: Factory[Element, Container[Element]]
   ): Trials[Container[Element]]
+
+  /** Produce a [[Trials]] instance for a given structured class,
+    * automatically deriving test case generation using its public constructors.
+    *
+    * @param clazz
+    *   The target class to derive trials for.
+    * @tparam Case
+    *   The type of the target class cases.
+    * @return
+    *   A [[Trials]] instance that yields instances of {@code Case}.
+    */
+  def instances[Case](clazz: Class[Case]): Trials[Case]
+
+  /** Produce a [[Trials]] instance for a given structured type,
+    * automatically deriving test case generation using its public constructors.
+    *
+    * @param type
+    *   The target type to derive trials for.
+    * @tparam Case
+    *   The type of the target cases.
+    * @return
+    *   A [[Trials]] instance that yields instances of {@code Case}.
+    */
+  def instances[Case](`type`: _root_.java.lang.reflect.Type): Trials[Case]
 }
