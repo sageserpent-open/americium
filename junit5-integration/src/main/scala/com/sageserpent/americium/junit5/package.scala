@@ -1,5 +1,5 @@
 package com.sageserpent.americium
-import com.sageserpent.americium.java.{
+import com.sageserpent.americium.{
   CaseFailureReporting,
   InlinedCaseFiltration,
   TestIntegrationContext
@@ -125,7 +125,7 @@ package object junit5 {
   }
 
   private[americium] def dynamicTests[Case](
-      contexts: Iterator[TestIntegrationContext[Case]],
+      contexts: Iterator[_ <: TestIntegrationContext[Case]],
       reproduceFromRecipe: String => Case,
       parameterisedTest: Case => Unit
   ): DynamicTests = {

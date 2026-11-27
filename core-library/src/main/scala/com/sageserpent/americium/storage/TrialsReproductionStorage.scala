@@ -5,7 +5,7 @@ import com.sageserpent.americium.generation.JavaPropertyNames.{
   temporaryDirectoryJavaProperty
 }
 import com.sageserpent.americium.generation.SupplyToSyntaxSkeletalImplementation.runDatabaseDefault
-import com.sageserpent.americium.java.RecipeIsNotPresentException
+import com.sageserpent.americium.RecipeIsNotPresentException
 import com.sageserpent.americium.storage.TrialsReproductionStorage.RecipeData
 import io.circe.generic.auto.*
 import io.circe.parser.parse

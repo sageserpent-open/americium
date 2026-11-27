@@ -1,6 +1,6 @@
 package com.sageserpent.americium.storage
 
-import com.sageserpent.americium.java.RecipeIsNotPresentException
+import com.sageserpent.americium.RecipeIsNotPresentException
 import com.sageserpent.americium.storage.TrialsReproductionStorage.RecipeData
 import org.scalatest.exceptions.TestFailedException
 import org.scalatest.flatspec.AnyFlatSpec

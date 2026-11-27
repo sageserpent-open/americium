@@ -1,8 +1,8 @@
 package com.sageserpent.americium.junit5.java;
 
 import com.google.common.collect.ImmutableList;
+import com.sageserpent.americium.TrialException;
 import com.sageserpent.americium.java.Trials;
-import com.sageserpent.americium.java.TrialsFactoring;
 import com.sageserpent.americium.junit5.java.examples.Tiers;
 import cyclops.data.tuple.Tuple;
 import cyclops.data.tuple.Tuple2;
@@ -110,7 +110,7 @@ class TestConsistencyOfJUnit5Integrations {
                     .flatMap(payload -> ((TestExecutionResult) payload)
                             .getThrowable())
                     .map(throwable -> (Tuple2<ImmutableList<Integer>,
-                            ImmutableList<Integer>>) (((TrialsFactoring.TrialException) throwable).provokingCase()));
+                            ImmutableList<Integer>>) (((TrialException) throwable).provokingCase()));
 
             MatcherAssert.assertThat(provokingCase,
                                      Matchers.equalTo(
@@ -138,7 +138,7 @@ class TestConsistencyOfJUnit5Integrations {
                     builder.add(testCase);
                 }
             });
-        } catch (TrialsFactoring.TrialException e) {
+        } catch (TrialException e) {
             maximallyShrunkTestCase =
                     Optional.of((Tuple2<ImmutableList<Integer>,
                             ImmutableList<Integer>>) e.provokingCase());

@@ -2,11 +2,6 @@ package com.sageserpent.americium
 
 import cats.implicits.*
 import com.sageserpent.americium.TrialsScaffolding.ShrinkageStop
-import com.sageserpent.americium.java.{
-  CaseSupplyCycle,
-  CasesLimitStrategy,
-  TestIntegrationContext
-}
 
 object tupleTrials {
   class Tuple2Trials[+Case1, +Case2](

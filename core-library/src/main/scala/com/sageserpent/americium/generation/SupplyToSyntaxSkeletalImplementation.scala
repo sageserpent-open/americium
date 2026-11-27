@@ -15,21 +15,17 @@ import com.sageserpent.americium.generation.SupplyToSyntaxSkeletalImplementation
   maximumScaleDeflationLevel,
   minimumScaleDeflationLevel
 }
-import com.sageserpent.americium.java.{
-  CaseFailureReporting,
-  CaseSupplyCycle,
-  CasesLimitStrategy,
-  CrossApiIterator,
-  InlinedCaseFiltration,
-  NoValidTrialsException,
-  RecipeIsNotPresentException,
-  TestIntegrationContext,
-  TrialsScaffolding as JavaTrialsScaffolding
-}
 import com.sageserpent.americium.storage.TrialsReproductionStorage
 import com.sageserpent.americium.utilities.randomEnrichment.RichRandom
 import com.sageserpent.americium.{
   CaseFactory,
+  CaseFailureReporting,
+  CaseSupplyCycle,
+  CasesLimitStrategy,
+  InlinedCaseFiltration,
+  NoValidTrialsException,
+  RecipeIsNotPresentException,
+  TestIntegrationContext,
   TestIntegrationContextImplementation,
   Trials,
   TrialsScaffolding as ScalaTrialsScaffolding
@@ -37,8 +33,6 @@ import com.sageserpent.americium.{
 import com.typesafe.scalalogging.StrictLogging
 import fs2.{Pull, Stream as Fs2Stream}
 
-import _root_.java.util.Iterator as JavaIterator
-import _root_.java.util.function.Consumer
 import scala.annotation.tailrec
 import scala.collection.immutable.SortedMap
 import scala.collection.{mutable, Iterator as ScalaIterator}
@@ -54,8 +48,7 @@ object SupplyToSyntaxSkeletalImplementation {
 }
 
 trait SupplyToSyntaxSkeletalImplementation[Case]
-    extends JavaTrialsScaffolding.SupplyToSyntax[Case]
-    with ScalaTrialsScaffolding.SupplyToSyntax[Case]
+    extends ScalaTrialsScaffolding.SupplyToSyntax[Case]
     with StrictLogging {
   type StreamedCases =
     Fs2Stream[SyncIO, TestIntegrationContext[Case]]
@@ -82,31 +75,19 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
 
   override def withSeed(
       seed: Long
-  ): JavaTrialsScaffolding.SupplyToSyntax[
-    Case
-  ] with ScalaTrialsScaffolding.SupplyToSyntax[Case]
+  ): ScalaTrialsScaffolding.SupplyToSyntax[Case]
 
   override def withComplexityLimit(
       complexityLimit: Int
-  ): JavaTrialsScaffolding.SupplyToSyntax[
-    Case
-  ] with ScalaTrialsScaffolding.SupplyToSyntax[Case]
+  ): ScalaTrialsScaffolding.SupplyToSyntax[Case]
 
   override def withShrinkageAttemptsLimit(
       shrinkageAttemptsLimit: Int
-  ): JavaTrialsScaffolding.SupplyToSyntax[
-    Case
-  ] with ScalaTrialsScaffolding.SupplyToSyntax[Case]
+  ): ScalaTrialsScaffolding.SupplyToSyntax[Case]
 
   override def withValidTrialsCheck(
       enabled: Boolean
-  ): JavaTrialsScaffolding.SupplyToSyntax[
-    Case
-  ] with ScalaTrialsScaffolding.SupplyToSyntax[Case]
-
-  // Java-only API ...
-  override def supplyTo(consumer: Consumer[Case]): Unit =
-    supplyTo(consumer.accept)
+  ): ScalaTrialsScaffolding.SupplyToSyntax[Case]
 
   // Scala-only API ...
   override def supplyTo(consumer: Case => Unit): Unit = {
@@ -140,13 +121,11 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
   }
 
   override def testIntegrationContexts()
-      : CrossApiIterator[TestIntegrationContext[Case]] =
-    CrossApiIterator.from(lazyListOfTestIntegrationContexts().iterator)
+      : ScalaIterator[TestIntegrationContext[Case]] =
+    lazyListOfTestIntegrationContexts().iterator
 
-  override def asIterator(): JavaIterator[Case] with ScalaIterator[Case] =
-    CrossApiIterator.from(
-      lazyListOfTestIntegrationContexts().map(_.caze).iterator
-    )
+  override def asIterator(): ScalaIterator[Case] =
+    lazyListOfTestIntegrationContexts().map(_.caze).iterator
 
   private def lazyListOfTestIntegrationContexts()
       : LazyList[TestIntegrationContext[Case]] = {
@@ -342,7 +321,7 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
                       },
                     inlinedCaseFiltration = inlinedCaseFiltration,
                     isPartOfShrinkage = true,
-                    recipe =
+                    recipeThunk = () =>
                       potentialShrunkCaseData.decisionStagesInReverseOrder.reverse.longhandRecipe
                   )
                 )
@@ -388,7 +367,7 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
               },
               inlinedCaseFiltration = inlinedCaseFiltration,
               isPartOfShrinkage = false,
-              recipe =
+              recipeThunk = () =>
                 caseData.decisionStagesInReverseOrder.reverse.longhandRecipe
             )
           }
@@ -424,7 +403,7 @@ trait SupplyToSyntaxSkeletalImplementation[Case]
             true
         },
         isPartOfShrinkage = false,
-        recipe = recipe
+        recipeThunk = () => recipe
       )
     }
 
